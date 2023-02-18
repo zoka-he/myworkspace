@@ -1,0 +1,100 @@
+{
+  "data": {
+    "responses": [
+      {
+        "took": 358,
+        "timed_out": false,
+        "_shards": {
+          "total": 224,
+          "successful": 224,
+          "skipped": 208,
+          "failed": 0
+        },
+        "hits": {
+          "total": 22,
+          "max_score": 0.0,
+          "hits": []
+        },
+        "aggregations": {
+          "2": {
+            "doc_count_error_upper_bound": 0,
+            "sum_other_doc_count": 16,
+            "buckets": [
+              {
+                "key": "2408:8239:3901:582c:7d44:24cd:c372:9c83",
+                "doc_count": 2,
+                "3": {
+                  "doc_count_error_upper_bound": 0,
+                  "sum_other_doc_count": 0,
+                  "buckets": [
+                    {
+                      "key": "建行生活",
+                      "doc_count": 2
+                    }
+                  ]
+                }
+              },
+              {
+                "key": "112.226.121.72",
+                "doc_count": 1,
+                "3": {
+                  "doc_count_error_upper_bound": 0,
+                  "sum_other_doc_count": 0,
+                  "buckets": [
+                    {
+                      "key": "中国建设银行",
+                      "doc_count": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "key": "112.36.198.234",
+                "doc_count": 1,
+                "3": {
+                  "doc_count_error_upper_bound": 0,
+                  "sum_other_doc_count": 0,
+                  "buckets": [
+                    {
+                      "key": "中国建设银行",
+                      "doc_count": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "key": "112.39.42.12",
+                "doc_count": 1,
+                "3": {
+                  "doc_count_error_upper_bound": 0,
+                  "sum_other_doc_count": 0,
+                  "buckets": [
+                    {
+                      "key": "中国建设银行",
+                      "doc_count": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "key": "113.108.99.50",
+                "doc_count": 1,
+                "3": {
+                  "doc_count_error_upper_bound": 0,
+                  "sum_other_doc_count": 0,
+                  "buckets": [
+                    {
+                      "key": "中国建设银行",
+                      "doc_count": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ]
+  }
+}

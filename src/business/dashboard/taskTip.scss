@@ -1,0 +1,90 @@
+.m_tasktip {
+  width: 100%;
+
+  box-sizing: border-box;
+  margin-bottom: 15px;
+
+  border-radius: 4px;
+  border: 1px #eee solid;
+  background-color: white;
+
+  transition: 0.2s all;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  }
+
+  &.emerg {
+    border: 1px #fdd solid;
+  }
+
+
+  &-title {
+    background-color: #eee;
+    padding: 2px 6px 0px;
+  }
+
+  &.emerg &-title {
+    background-color: #fee;
+  }
+
+  &-context {
+    padding: 2px 6px 2px;
+  }
+
+  &-props {
+    dl, dd, dt {
+      margin-bottom: 2px;
+      font-size: 12px;
+      line-height: 1;
+    }
+
+    dl {
+      height: auto;
+      display: block;
+      overflow: auto;
+
+      > * {
+        float: left;
+      }
+    }
+  }
+
+  &-detail {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+    font-size: 10px;
+    color: gray;
+    padding-top: 5px;
+  }
+
+  &-problems {
+    pre, h5 {
+      font-size: 10px;
+      padding: 0;
+      margin: 0;
+    }
+  }
+
+  &-extra_btn {
+    transition: all .2s;
+    overflow: hidden;
+  }
+
+  & &-extra_btn.auto_hide {
+    height: 0;
+  }
+
+  &:hover &-extra_btn.auto_hide {
+    height: 25px;
+  }
+
+  &-txtbtn {
+    font-size: 10px;
+    padding: 0 2px;
+  }
+
+
+}

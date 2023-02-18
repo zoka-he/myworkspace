@@ -1,0 +1,28 @@
+.m-week_report {
+  &-partition {
+    li {
+      list-style: decimal;
+    }
+  }
+
+  &-tbl_detail {
+    border: 1px solid black;
+    border-collapse: collapse;
+
+    tr:nth-child(1) th {
+      background-color: #7ec1ff;
+    }
+
+    tr:nth-child(3) td {
+      background-color: #ffc063;
+    }
+
+    td, th {
+      border: 1px solid black;
+    }
+
+    pre {
+      margin: 0;
+    }
+  }
+}

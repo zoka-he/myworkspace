@@ -1,0 +1,84 @@
+.f-full-scr, .f-full-screen {
+  height: 100vh;
+  width: 100vw;
+  position: absolute;
+  overflow: hidden;
+}
+
+.f-fit-height {
+  height: 100%;
+}
+
+.f-fit-width {
+  width: 100%;
+}
+
+.f-fit-content {
+  width: 100%;
+  height: 100%;
+}
+
+.f-flex-row {
+  display: flex;
+  flex-direction: row;
+}
+
+.f-align-items-center {
+  align-items: center;
+}
+
+.f-flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.f-flex-1 {
+  flex: 1;
+}
+
+.f-row-gutter {
+  > * + * {
+    margin-left: 10px;
+  }
+}
+
+.f-cursor-hand {
+  cursor: pointer;
+}
+
+.f-vertical-middle, .f-vertical-middle > * {
+  vertical-align: middle;
+}
+
+.f-align-right {
+  text-align: right;
+}
+
+.f-flex-two-side {
+  display: flex;
+  justify-content: space-between;
+}
+
+.f-vertical-scroll {
+  overflow-y: auto;
+}
+
+.f-overflow-ellipse {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-wrap: none;
+  white-space: nowrap;
+}
+
+th {
+  text-wrap: none;
+  white-space: nowrap;
+}
+
+.f-inline-block {
+  display: inline-block;
+}
+
+.f-align-center {
+  text-align: center;
+}

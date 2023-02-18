@@ -1,0 +1,244 @@
+export default function buildTx() {
+  let json = {
+    declaration: {
+      attributes: {
+        version: "1.0",
+        encoding: "utf-8"
+      }
+    },
+    elements: [
+      {
+        type: "element",
+        name: "TX",
+        elements: [
+          {
+            type: "element",
+            name: "TX_HEADER",
+            elements: [
+              {
+                type: "element",
+                name: "SYS_HDR_LEN",
+                elements: [
+                  {
+                    type: "cdata",
+                    cdata: "1"
+                  }
+                ]
+              },
+              {
+                type: "element",
+                name: "SYS_PKG_VRSN",
+                elements: [
+                  {
+                    type: "cdata",
+                    cdata: "01"
+                  }
+                ]
+              },
+              {
+                type: "element",
+                name: "SYS_TTL_LEN",
+                elements: [
+                  {
+                    type: "cdata",
+                    cdata: "1"
+                  }
+                ]
+              },
+              {
+                type: "element",
+                name: "SYS_REQ_SEC_ID",
+                elements: [
+                  {
+                    type: "cdata",
+                    cdata: "101020"
+                  }
+                ]
+              },
+              {
+                type: "element",
+                name: "SYS_SND_SEC_ID",
+                elements: [
+                  {
+                    type: "cdata",
+                    cdata: "101020"
+                  }
+                ]
+              },
+              {
+                type: "element",
+                name: "SYS_TX_CODE",
+                elements: [
+                  {
+                    type: "cdata",
+                    cdata: "NSDS0016"
+                  }
+                ]
+              },
+              {
+                type: "element",
+                name: "SYS_TX_VRSN",
+                elements: [
+                  {
+                    type: "cdata",
+                    cdata: "1"
+                  }
+                ]
+              },
+              {
+                type: "element",
+                name: "SYS_TX_TYPE",
+                elements: [
+                  {
+                    type: "cdata",
+                    cdata: "000000"
+                  }
+                ]
+              },
+              {
+                type: "element",
+                name: "SYS_RESERVED",
+                elements: [
+                  {
+                    type: "cdata",
+                    cdata: "0"
+                  }
+                ]
+              },
+              {
+                type: "element",
+                name: "SYS_EVT_TRACE_ID",
+                elements: [
+                  {
+                    type: "cdata",
+                    cdata: "1010203011551077093000030"
+                  }
+                ]
+              },
+              {
+                type: "element",
+                name: "SYS_SND_SERIAL_NO",
+                elements: [
+                  {
+                    type: "cdata",
+                    cdata: "0000000000"
+                  }
+                ]
+              },
+              {
+                type: "element",
+                name: "SYS_PKG_TYPE",
+                elements: [
+                  {
+                    type: "cdata",
+                    cdata: "1"
+                  }
+                ]
+              },
+              {
+                type: "element",
+                name: "SYS_MSG_LEN",
+                elements: [
+                  {
+                    type: "cdata",
+                    cdata: "10"
+                  }
+                ]
+              },
+              {
+                type: "element",
+                name: "SYS_IS_ENCRYPTED",
+                elements: [
+                  {
+                    type: "cdata",
+                    cdata: "0"
+                  }
+                ]
+              },
+              {
+                type: "element",
+                name: "SYS_ENCRYPT_TYPE",
+                elements: [
+                  {
+                    type: "cdata",
+                    cdata: "3"
+                  }
+                ]
+              },
+              {
+                type: "element",
+                name: "SYS_COMPRESS_TYPE",
+                elements: [
+                  {
+                    type: "cdata",
+                    cdata: "0"
+                  }
+                ]
+              },
+              {
+                type: "element",
+                name: "SYS_EMB_MSG_LEN",
+                elements: [
+                  {
+                    type: "cdata",
+                    cdata: "10"
+                  }
+                ]
+              },
+              {
+                type: "element",
+                name: "SYS_REQ_TIME",
+                elements: [
+                  {
+                    type: "cdata",
+                    cdata: "20190225144453"
+                  }
+                ]
+              },
+              {
+                type: "element",
+                name: "SYS_PKG_STS_TYPE",
+                elements: [
+                  {
+                    type: "cdata",
+                    cdata: "00"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            type: "element",
+            name: "TX_BODY",
+            elements: [
+              {
+                type: "element",
+                name: "COMMON"
+              },
+              {
+                type: "element",
+                name: "ENTITY",
+                elements: [
+                  {
+                    type: "element",
+                    name: "base64_ECD_Txn_Inf",
+                    elements: [
+                      {
+                        type: "cdata",
+                        cdata: "-----------"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            type: "element",
+            name: "TX_EMB"
+          }
+        ]
+      }
+    ]
+  }
+}
