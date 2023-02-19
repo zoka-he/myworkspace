@@ -1,11 +1,9 @@
 import React, {useEffect, useRef, useState} from "react";
 import {Button, Input, Space, Spin, Table, Switch} from "antd";
-import {SearchOutlined, ExclamationCircleFilled} from "@ant-design/icons";
 import moment from "moment";
 import {message} from "antd";
 import _ from 'lodash';
 import confirm from "antd/es/modal/confirm";
-// import UplineCheckService from './uplineCheckService';
 import UplineCheckEditor from './uplineCheckEditor';
 import FuckCheckUtils from './fuckCheckUtils';
 import TaskEditor from '../taskEditor';
@@ -18,10 +16,6 @@ export default function () {
     let [listData, updateListData] = useState([]);
     let [spinning, updateSpinning] = useState(false);
 
-    // let [queryTaskName, updateQueryTaskName] = useState('');
-    // let [queryEmployee, updateQueryEmployee] = useState('');
-    // let [queryStatus, updateQueryStatus] = useState([0, 1, 2, 3, 4]);
-
     let [pageNum, updatePageNum] = useState(1);
     let [pageSize, updatePageSize] = useState(10);
     let [total, updateTotal] = useState(0);
@@ -32,20 +26,6 @@ export default function () {
     async function onQuery() {
         try {
             updateSpinning(true);
-
-            // let queryObject = {};
-            // if (queryTaskName) {
-            //     queryObject.task_name = { $like: `%${queryTaskName}%` };
-            // }
-            // if (queryEmployee) {
-            //     queryObject.employee = { $like: `%${queryEmployee}%` };
-            // }
-            // if (queryStatus) {
-            //     queryObject.status = { $in: Array.from(queryStatus) };
-            // }
-
-            // let service = new UplineCheckService();
-            // let data = await service.queryUplineTaskAndCheck();
             let data = await fetch.get('/api/fuckCheck/list');
 
             updateListData(data);
@@ -65,17 +45,6 @@ export default function () {
         onQuery();
     }, []);
 
-    // useEffect(() => {
-    //     _.debounce(onQuery, 300)();
-    // }, [pageNum, pageSize]);
-
-    async function onExport() {
-
-    }
-
-    function onCreateTask() {
-        mEditor.current.show();
-    }
 
     function renderTime(cell, row) {
         let timeStr = '/';
@@ -106,59 +75,12 @@ export default function () {
             mEditor.current.showAndEdit(row);
         }
 
-        const deleteRow = async () => {
-            // await new UplineCheckService().deleteOne(row);
-            message.success('已删除');
-            onQuery();
-        }
-
-        // const showDeleteConfirm = () => {
-        //     confirm({
-        //         title: '删除确认',
-        //         icon: <ExclamationCircleFilled />,
-        //         content: '警告！将删除任务：' + row.task_name + '！',
-        //         okText: '删除',
-        //         okType: 'danger',
-        //         cancelText: '取消',
-        //         onOk() {
-        //             deleteRow();
-        //         },
-        //         onCancel() {
-        //             console.log('Cancel');
-        //         },
-        //     });
-        // };
-
-
 
         return (
             <Space>
                 <Button type={'primary'} onClick={editRow}>编辑</Button>
-                {/* <Button type={'danger'} onClick={showDeleteConfirm}>删除</Button> */}
             </Space>
         )
-    }
-
-    function renderState(cell, row) {
-        return [
-            <span>未开始</span>,
-            <span>开发中</span>,
-            <span>测试中</span>,
-            <span>待上线</span>,
-            <span>已完成</span>,
-            <span>已关闭</span>,
-        ][cell];
-    }
-
-    function renderPriority(cell, row) {
-        return [
-            <span>普通</span>,
-            <span className={'f-red'}>紧急</span>,
-        ][cell];
-    }
-
-    function renderIndex(cell, row, index) {
-        return <span>{index+1}</span>
     }
 
     function onPageChange({ current, pageSize }) {
@@ -169,18 +91,6 @@ export default function () {
 
     function renderPageTotal(n) {
         return `共 ${n} 个记录`;
-    }
-
-    function renderWeekReportSwitch(cell, row) {
-        let val = cell === 1;
-
-        const onChange = async (v) => {
-            let is_week_report = v ? 1 : 0;
-            // await new UplineCheckService().updateOne(row, { is_week_report });
-            onQuery();
-        }
-
-        return <Switch checkedChildren="开" unCheckedChildren="关" checked={val} onChange={onChange}/>
     }
 
     function showTaskInfo(task) {

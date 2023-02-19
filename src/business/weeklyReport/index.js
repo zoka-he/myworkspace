@@ -1,10 +1,8 @@
 import {useEffect, useState} from "react";
-import TaskService from "../taskManage/taskService";
 import {Button, Space} from "antd";
 import moment from "moment";
 import _ from 'lodash';
-
-import './week-report.scss';
+import fetch from '@/src/fetch';
 
 export default function () {
     let [taskData, updateTaskData] = useState([]);
@@ -22,25 +20,12 @@ export default function () {
     }
 
     async function processFullData() {
-        let { data } = await new TaskService().query(
-            { status: { $lt: 5 } },
-            [],
-            ['sys_name asc', 'status desc'],
-            1, 200
-        );
-
-        console.debug('task data', data);
+        let { data } = await fetch.get('/api/weekReport/full');
         updateTaskData(data);
     }
 
     async function processReportData() {
-        let { data } = await new TaskService().query(
-            { is_week_report: '1', status: { $lt: 5 } },
-            [],
-            ['sys_name asc', 'status desc'],
-            1, 200
-        );
-
+        let { data } = await fetch.get('/api/weekReport');
         let taskData = data;
 
 

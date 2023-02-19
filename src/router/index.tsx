@@ -9,6 +9,7 @@ const EmployeeManage = lazy(() => import('../business/employeeManage'));
 const BugTrace = lazy(() => import('../business/bugTrace'));
 const CatfightLog = lazy(() => import('../business/catfightLog'));
 const UplineCheck = lazy(() => import('../business/fuckCheck'));
+const WeekReport = lazy(() => import('../business/weeklyReport'))
 
 async function mainFrameLoader() {
   let matches = useMatches();
@@ -26,6 +27,7 @@ export default function() {
           <Route path="taskManage/bugTrace" element={<BugTrace />} />
           <Route path="taskManage/catfightLog" element={<CatfightLog />} />
           <Route path="taskManage/uplineCheck" element={<UplineCheck />} />
+          <Route path="taskManage/weeklyReport" element={<WeekReport />} />
           <Route path="*" element={<div><h1>此页面尚未实现！</h1></div>}/>
         </Route>
       </Routes>
