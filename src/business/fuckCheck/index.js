@@ -5,10 +5,11 @@ import moment from "moment";
 import {message} from "antd";
 import _ from 'lodash';
 import confirm from "antd/es/modal/confirm";
-import UplineCheckService from './uplineCheckService';
+// import UplineCheckService from './uplineCheckService';
 import UplineCheckEditor from './uplineCheckEditor';
 import FuckCheckUtils from './fuckCheckUtils';
 import TaskEditor from '../taskEditor';
+import fetch from '@/src/fetch';
 
 const { Column } = Table;
 
@@ -17,9 +18,9 @@ export default function () {
     let [listData, updateListData] = useState([]);
     let [spinning, updateSpinning] = useState(false);
 
-    let [queryTaskName, updateQueryTaskName] = useState('');
-    let [queryEmployee, updateQueryEmployee] = useState('');
-    let [queryStatus, updateQueryStatus] = useState([0, 1, 2, 3, 4]);
+    // let [queryTaskName, updateQueryTaskName] = useState('');
+    // let [queryEmployee, updateQueryEmployee] = useState('');
+    // let [queryStatus, updateQueryStatus] = useState([0, 1, 2, 3, 4]);
 
     let [pageNum, updatePageNum] = useState(1);
     let [pageSize, updatePageSize] = useState(10);
@@ -43,8 +44,10 @@ export default function () {
             //     queryObject.status = { $in: Array.from(queryStatus) };
             // }
 
-            let service = new UplineCheckService();
-            let data = await service.queryUplineTaskAndCheck();
+            // let service = new UplineCheckService();
+            // let data = await service.queryUplineTaskAndCheck();
+            let data = await fetch.get('/api/fuckCheck/list');
+
             updateListData(data);
 
         } catch (e) {
@@ -62,9 +65,9 @@ export default function () {
         onQuery();
     }, []);
 
-    useEffect(() => {
-        _.debounce(onQuery, 300)();
-    }, [queryTaskName, queryEmployee, queryStatus, pageNum, pageSize]);
+    // useEffect(() => {
+    //     _.debounce(onQuery, 300)();
+    // }, [pageNum, pageSize]);
 
     async function onExport() {
 
@@ -109,29 +112,29 @@ export default function () {
             onQuery();
         }
 
-        const showDeleteConfirm = () => {
-            confirm({
-                title: '删除确认',
-                icon: <ExclamationCircleFilled />,
-                content: '警告！将删除任务：' + row.task_name + '！',
-                okText: '删除',
-                okType: 'danger',
-                cancelText: '取消',
-                onOk() {
-                    deleteRow();
-                },
-                onCancel() {
-                    console.log('Cancel');
-                },
-            });
-        };
+        // const showDeleteConfirm = () => {
+        //     confirm({
+        //         title: '删除确认',
+        //         icon: <ExclamationCircleFilled />,
+        //         content: '警告！将删除任务：' + row.task_name + '！',
+        //         okText: '删除',
+        //         okType: 'danger',
+        //         cancelText: '取消',
+        //         onOk() {
+        //             deleteRow();
+        //         },
+        //         onCancel() {
+        //             console.log('Cancel');
+        //         },
+        //     });
+        // };
 
 
 
         return (
             <Space>
                 <Button type={'primary'} onClick={editRow}>编辑</Button>
-                <Button type={'danger'} onClick={showDeleteConfirm}>删除</Button>
+                {/* <Button type={'danger'} onClick={showDeleteConfirm}>删除</Button> */}
             </Space>
         )
     }

@@ -1,10 +1,11 @@
 import React from "react";
 import {Form, Modal, Input, Select, Button, message, DatePicker} from "antd";
 import _ from 'lodash';
-import UplineCheckService from "./uplineCheckService";
+// import UplineCheckService from "./uplineCheckService";
 import moment from "moment";
 import FuckCheckUtils from './fuckCheckUtils';
 import TaskEditor from "../taskEditor";
+import fetch from '@/src/fetch';
 
 function date2string(date, format) {
     if (date) {
@@ -96,12 +97,14 @@ class UplineCheckEditor extends React.Component {
             updateObj.fuck_date = date2string(updateObj.fuck_date,'YYYY-MM-DD');
 
             // await taskDao.updateTask(this.oldData, updateObj);
-            await new UplineCheckService().updateOne(this.oldData, updateObj);
+            // await new UplineCheckService().updateOne(this.oldData, updateObj);
+            await fetch.post('/api/fuckCheck', updateObj, { params: { ID: this.oldData.ID } });
         } else {
             let createObj = _.clone(values);
             createObj.fuck_date = date2string(createObj.fuck_date,'YYYY-MM-DD');
 
-            await new UplineCheckService().insertOne(createObj);
+            // await new UplineCheckService().insertOne(createObj);
+            await fetch.post('/api/fuckCheck', createObj);
         }
 
         if (this.props.onFinish) {

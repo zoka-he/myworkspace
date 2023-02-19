@@ -3,6 +3,7 @@ import {Button, Modal, Radio, Table} from "antd";
 // import BugService from "./bugService";
 import moment from "moment";
 import BugEditor from './bugEditor';
+import fetch from '@/src/fetch';
 
 const { Column } = Table;
 
@@ -34,7 +35,7 @@ class TaskEditor extends React.Component {
 
     async onQuery() {
         // let { data } = await new BugService().query({ task_id: this.refTask.ID }, [], ['create_time desc'], 1, 100);
-        let data = [];
+        let { data } = await fetch.get('/api/bug/list', { params: { task_id: this.refTask.ID, page: 1, limit: 100 } });
         this.setState({ listData: data });
     }
 

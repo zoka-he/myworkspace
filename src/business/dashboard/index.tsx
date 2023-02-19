@@ -32,7 +32,7 @@ class Dashboard extends React.Component<{}, IDashboardState & IDashboardLists & 
 
     private mTaskEditor: TaskEditor | null = null;
     private mInteractViewer: InteractViewer | null = null;
-    private mBugViewer = null;
+    private mBugViewer: BugViewer | null = null;
 
     constructor(props: any) {
         super(props);

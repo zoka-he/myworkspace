@@ -1,13 +1,12 @@
 import React, {useEffect, useRef, useState} from "react";
 import {Button, Input, Space, Spin, Table} from "antd";
 import {SearchOutlined, ExclamationCircleFilled} from "@ant-design/icons";
-import employeeDao from "./employeeDao";
 import moment from "moment";
 import EmployeeEditor from "./employeeEditor";
 import {message} from "antd";
 import _ from 'lodash';
 import confirm from "antd/es/modal/confirm";
-import EmployeeService from './employeeService';
+import fetch from '@/src/fetch';
 
 const { Column } = Table;
 
@@ -27,14 +26,16 @@ export default function () {
         try {
             updateSpinning(true);
 
-            let options = {};
+            let options = {
+                page: pageNum,
+                limit: pageSize
+            };
+
             if (queryEmployee) {
-                options.name = { $like: `%${queryEmployee}%` }
+                options.name = queryEmployee;
             }
 
-            let employeeService = new EmployeeService();
-            let { data, count } = await employeeService.query(options, [], ['ID asc'], pageNum, pageSize);
-            console.debug('mysql t_employee', data);
+            let { data, count } = await fetch.get('/api/employee/list', { params: options });
 
             updateListData(data);
             updateDataCount(count);
@@ -80,8 +81,7 @@ export default function () {
         }
 
         const deleteRow = async () => {
-            let service = new EmployeeService();
-            await service.deleteOne(row);
+            await fetch.delete('/api/employee', { params: { ID: row.ID } });
 
             message.success('已删除');
             onQuery();
@@ -109,7 +109,7 @@ export default function () {
         return (
             <Space>
                 <Button type={'primary'} onClick={editRow}>编辑</Button>
-                <Button type={'danger'} onClick={showDeleteConfirm}>删除</Button>
+                <Button type={'primary'} danger onClick={showDeleteConfirm}>删除</Button>
             </Space>
         )
     }

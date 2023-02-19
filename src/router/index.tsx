@@ -5,6 +5,10 @@ import { BrowserRouter, Routes, Route, Navigate, useMatches } from 'react-router
 import MainFrame from '../framework';
 const Dashboard = lazy(() => import("../business/dashboard"));
 const TaskManage = lazy(() => import('../business/taskManage'));
+const EmployeeManage = lazy(() => import('../business/employeeManage'));
+const BugTrace = lazy(() => import('../business/bugTrace'));
+const CatfightLog = lazy(() => import('../business/catfightLog'));
+const UplineCheck = lazy(() => import('../business/fuckCheck'));
 
 async function mainFrameLoader() {
   let matches = useMatches();
@@ -18,6 +22,10 @@ export default function() {
         <Route path="/" loader={mainFrameLoader} element={<MainFrame/>}>
           <Route path="taskManage/dashboard" element={<Dashboard />} />
           <Route path="taskManage/taskManage" element={<TaskManage />} />
+          <Route path="taskManage/employeeManage" element={<EmployeeManage />} />
+          <Route path="taskManage/bugTrace" element={<BugTrace />} />
+          <Route path="taskManage/catfightLog" element={<CatfightLog />} />
+          <Route path="taskManage/uplineCheck" element={<UplineCheck />} />
           <Route path="*" element={<div><h1>此页面尚未实现！</h1></div>}/>
         </Route>
       </Routes>

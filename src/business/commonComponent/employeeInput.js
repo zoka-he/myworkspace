@@ -1,6 +1,6 @@
-// import EmployeeService from "../employeeManage/employeeService";
 import { AutoComplete } from "antd";
 import { useState } from "react";
+import fetch from '@/src/fetch';
 
 export default function EmployeeInput(props) {
     let [options, setOptions] = useState([]);
@@ -10,10 +10,10 @@ export default function EmployeeInput(props) {
     }
 
     async function onSearch(text) {
-        // let { data } = await new EmployeeService().query({ name: { $like: `%${text}%` } });
+        let { data } = await fetch.get('/api/employee/list', { params: { name: text, page: 1, limit: 10 } });
+
         if (data instanceof Array) {
             setOptions(data.map(item => ({value: item.name})));
-
         } else {
             setOptions([]);
         }

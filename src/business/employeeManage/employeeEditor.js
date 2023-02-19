@@ -1,9 +1,8 @@
 import React from "react";
 import {Form, Modal, Input, Select, Button, message, DatePicker} from "antd";
 import _ from 'lodash';
-import employeeDao from "./employeeDao";
 import moment from "moment";
-import EmployeeService from './employeeService';
+import fetch from '@/src/fetch';
 
 class EmployeeEditor extends React.Component {
     constructor(props) {
@@ -59,16 +58,14 @@ class EmployeeEditor extends React.Component {
     async onFinish(values) {
         this.hide();
 
-        let service = new EmployeeService();
-
         if (this.oldObj) {
             let updateObj = _.clone(values);
             delete updateObj['create_time'];
             updateObj.update_time = moment().format('YYYY-MM-DD HH:mm:ss');
-            await service.updateOne(this.oldObj, updateObj);
+            await fetch.post('/api/employee', updateObj, { params: { ID: this.oldObj.ID } });
         } else {
             let createObj = _.clone(values);
-            await service.insertOne(createObj);
+            await fetch.post('/api/employee', createObj);
         }
 
         if (this.props.onFinish) {

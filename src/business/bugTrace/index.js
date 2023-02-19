@@ -2,11 +2,12 @@ import React, {useEffect, useRef, useState} from "react";
 import {Input, Button, Table, Space, message} from "antd";
 import {ExclamationCircleFilled, SearchOutlined} from "@ant-design/icons";
 import BugEditor from './bugEditor';
-import BugService from "./bugService";
+// import BugService from "./bugService";
 import moment from "moment";
 import _ from 'lodash';
 import confirm from "antd/es/modal/confirm";
 import BugStatusSelect from './bugStatusSelect';
+import fetch from '@/src/fetch';
 
 const { Column } = Table;
 
@@ -16,6 +17,9 @@ export default function BugTrace() {
     let [queryStatus, updateQueryStatus] = useState([0, 1, 2, 3, 4]);
     let [listData, updateListData] = useState('');
     let [spinning, updateSpinning] = useState(false);
+    let [pageNum, updatePageNum] = useState(1);
+    let [pageSize, updatePageSize] = useState(10);
+    let [total, updateTotal] = useState(0);
     let mEditor = useRef();
 
     useEffect(() => {
@@ -24,29 +28,40 @@ export default function BugTrace() {
 
     useEffect(() => {
         _.debounce(onQuery, 300)();
-    }, [queryEmployee, queryStatus]);
+    }, [queryEmployee, queryStatus, pageSize, pageNum]);
 
     async function onQuery() {
         try {
             updateSpinning(true);
 
-            let conditions = {};
+            let params = {
+                page: pageNum,
+                limit: pageSize
+            };
+
             if (queryEmployee) {
-                conditions.employee = { $like: `%${queryEmployee}%` };
+                params.employee = queryEmployee;
             }
 
             if (queryStatus && queryStatus.length) {
-                conditions.status = { $in: queryStatus };
+                params.status = queryStatus;
             }
 
-            let {data, count} = await new BugService().queryWithTaskName(conditions, 1, 20);
+            // let {data, count} = await new BugService().queryWithTaskName(conditions, 1, 20);
+            let {data, count} = await fetch.get('/api/bug/list', { params });
             updateListData(data);
+            updateTotal(count);
         } catch (e) {
             console.error(e);
             message.error(e.message);
         } finally {
             updateSpinning(false);
         }
+    }
+
+    function onPageChange({ page, pageSize }) {
+        updatePageNum(page);
+        updatePageSize(pageSize);
     }
 
     function onCreateLog() {
@@ -78,9 +93,9 @@ export default function BugTrace() {
         }
 
         const deleteRow = async () => {
-            let service = new BugService();
-            await service.deleteOne(row);
-
+            // let service = new BugService();
+            // await service.deleteOne(row);
+            await fetch.delete('/api/bug', { params: { ID: row.ID } });
             message.success('已删除');
             onQuery();
         }
@@ -108,6 +123,10 @@ export default function BugTrace() {
         </Space>
     }
 
+    function renderTotal(total) {
+        return `共 ${total} 个记录`;
+    }
+
     return (
         <div className="f-fit-height f-flex-col">
             <div className="f-flex-two-side">
@@ -128,7 +147,8 @@ export default function BugTrace() {
 
 
             <div className="f-flex-1" style={{ margin: '12px 0' }}>
-                <Table dataSource={listData} size={'small'}>
+                <Table dataSource={listData} size={'small'}
+                       pagination={{ pageSize, total, onChange: onPageChange, showTotal: renderTotal }}>
                     <Column title="关联任务" dataIndex="task_name" key="task_name"/>
                     <Column title="上报渠道" dataIndex="source" key="source"/>
                     <Column title="责任人" dataIndex="employee" key="employee"/>

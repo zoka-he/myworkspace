@@ -2,11 +2,10 @@ import React, {useEffect, useRef, useState} from "react";
 import {Input, Button, Table, Space, message} from "antd";
 import {ExclamationCircleFilled, SearchOutlined} from "@ant-design/icons";
 import InteractEditor from './interactEditor';
-import InteractService from "./interactService";
 import moment from "moment";
 import _ from 'lodash';
-import EmployeeService from "../employeeManage/employeeService";
 import confirm from "antd/es/modal/confirm";
+import fetch from '@/src/fetch';
 
 const { Column } = Table;
 
@@ -15,6 +14,10 @@ export default function CatfightLog() {
     let [queryEmployee, updateQueryEmployee] = useState('');
     let [listData, updateListData] = useState('');
     let [spinning, updateSpinning] = useState(false);
+    let [pageNum, updatePageNum] = useState(1);
+    let [pageSize, updatePageSize] = useState(10);
+    let [total, updateTotal] = useState(0);
+
     let mEditor = useRef();
 
     useEffect(() => {
@@ -23,19 +26,24 @@ export default function CatfightLog() {
 
     useEffect(() => {
         _.debounce(onQuery, 300)();
-    }, [queryEmployee]);
+    }, [queryEmployee, pageNum, pageSize]);
 
     async function onQuery() {
         try {
             updateSpinning(true);
 
-            let conditions = {};
+            let params = {
+                page: pageNum,
+                limit: pageSize
+            };
             if (queryEmployee) {
-                conditions.employee = { $like: `%${queryEmployee}%` };
+                params.employee = employee;
             }
 
-            let {data, count} = await new InteractService().queryWithTaskName(conditions, 1, 20);
+            let {data, count} = await fetch.get('/api/interact/list', { params })
+
             updateListData(data);
+            updateTotal(count);
         } catch (e) {
             console.error(e);
             message.error(e.message);
@@ -46,6 +54,11 @@ export default function CatfightLog() {
 
     function onCreateLog() {
         mEditor.current.show();
+    }
+
+    function onPageChange({ page, pageSize }) {
+        updatePageNum(page);
+        updatePageSize(pageSize);
     }
 
     function renderTime(cell) {
@@ -71,8 +84,7 @@ export default function CatfightLog() {
         }
 
         const deleteRow = async () => {
-            let service = new InteractService();
-            await service.deleteOne(row);
+            await fetch.delete('/api/interact', { params: { ID: row.ID } });
 
             message.success('已删除');
             onQuery();
@@ -101,6 +113,10 @@ export default function CatfightLog() {
         </Space>
     }
 
+    function renderTotal(total) {
+        return `共 ${total} 个记录`;
+    }
+
     return (
         <div className="f-fit-height f-flex-col">
             <div className="f-flex-two-side">
@@ -118,7 +134,8 @@ export default function CatfightLog() {
 
 
             <div className="f-flex-1" style={{ margin: '12px 0' }}>
-                <Table dataSource={listData} size={'small'}>
+                <Table dataSource={listData} size={'small'}
+                        pagination={{ pageSize, total, onChange: onPageChange, showTotal: renderTotal }}>
                     <Column title="关联任务" dataIndex="task_name" key="task_name"/>
                     <Column title="提议人" dataIndex="employee" key="employee"/>
                     <Column title="提议内容" dataIndex="message" key="message"/>

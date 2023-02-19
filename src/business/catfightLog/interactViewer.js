@@ -3,6 +3,7 @@ import {Button, Modal, Table} from "antd";
 // import InteractService from "./interactService";
 import moment from "moment";
 import InteractEditor from './interactEditor';
+import fetch from '@/src/fetch';
 
 const { Column } = Table;
 
@@ -44,7 +45,7 @@ class TaskEditor extends React.Component {
 
     async onQuery() {
         // let { data } = await new InteractService().query({ task_id: this.refTask.ID }, [], ['create_time desc'], 1, 100);
-        let data = [];
+        let { data } = await fetch.get('/api/interact/list', { params: { task_id: this.refTask.ID, page: 1, limit: 100 } });
         this.setState({ listData: data });
     }
 

@@ -1,11 +1,12 @@
 import React from "react";
 import {Form, Modal, Input, Button, message, Radio, FormInstance} from "antd";
-import _ from 'lodash';
+import _, { update } from 'lodash';
 // import InteractService from "./interactService";
 import moment from "moment";
 import EmployeeInput from '../commonComponent/employeeInput';
 import TaskSelect from '../commonComponent/taskSelect';
 import {ITaskData} from "@/src/types/ITaskData";
+import fetch from '@/src/fetch';
 
 interface IInteractEditorProps {
     onFinish: Function
@@ -99,11 +100,13 @@ class InteractEditor extends React.Component<IInteractEditorProps, IInteractEdit
             updateObj.update_time = moment().format('YYYY-MM-DD HH:mm:ss');
 
             // await new InteractService().updateOne(this.oldData, updateObj);
+            await fetch.post('/api/interact', updateObj, { params: { ID: this.oldData.ID } });
         } else {
             let createObj = _.clone(values);
             createObj.create_time = moment().format('YYYY-MM-DD HH:mm:ss');
 
             // await new InteractService().insertOne(createObj);
+            await fetch.post('/api/interact', createObj);
         }
 
         if (this.props.onFinish) {

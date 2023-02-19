@@ -41,7 +41,7 @@ export default function () {
             if (queryEmployee) {
               params.employee = queryEmployee;
             }
-            if (queryStatus) {
+            if (queryStatus && queryStatus.length) {
               params.status = queryStatus;
             }
 

@@ -33,7 +33,7 @@ class MysqlService {
         }
     }
 
-    parseConditionObject(obj: ISqlCondMap): ISqlCondMapParsed {
+    parseConditionObject(obj: ISqlCondMap): ISqlCondMapParsed | null {
 
         let keys = Object.keys(obj), values = [], condStrs = [];
 
@@ -93,10 +93,7 @@ class MysqlService {
 
         // 出参校验
         if (condStrs.length === 0) {
-            return {
-                sql: '',
-                values: []
-            }
+            return null;
         }
 
         return {

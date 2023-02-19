@@ -5,6 +5,7 @@ import _ from 'lodash';
 import moment from "moment";
 import EmployeeInput from '../commonComponent/employeeInput';
 import TaskSelect from '../commonComponent/taskSelect';
+import fetch from '@/src/fetch';
 
 function date2string(date, format) {
     if (date) {
@@ -100,11 +101,13 @@ class BugEditor extends React.Component {
             updateObj.update_time = moment().format('YYYY-MM-DD HH:mm:ss');
 
             // await new BugService().updateOne(this.oldData, updateObj);
+            await fetch.post('/api/bug', updateObj, { params: { ID: this.oldData.ID } });
         } else {
             let createObj = _.clone(values);
             createObj.create_time = moment().format('YYYY-MM-DD HH:mm:ss');
 
             // await new BugService().insertOne(createObj);
+            await fetch.post('/api/bug', createObj);
         }
 
         if (this.props.onFinish) {
