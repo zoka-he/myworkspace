@@ -1,6 +1,6 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from 'next'
-import BugService from "@/src/business/bugTrace/bugService";
+import BugService from "@/src/services/bug/bugService";
 import _ from 'lodash';
 import { ISqlCondMap } from '@/src/utils/mysql/types';
 

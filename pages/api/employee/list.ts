@@ -1,6 +1,6 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from 'next'
-import Employee from "@/src/business/employeeManage/employeeService";
+import Employee from "@/src/services/employee/employeeService";
 import _ from 'lodash';
 import { ISqlCondMap } from '@/src/utils/mysql/types';
 

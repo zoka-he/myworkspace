@@ -1,6 +1,6 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from 'next'
-import InteractService from "@/src/business/catfightLog/interactService";
+import InteractService from "@/src/services/interact/interactService";
 
 type Data = Object;
 

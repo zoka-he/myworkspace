@@ -1,6 +1,6 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from 'next'
-import EmployeeService from "@/src/business/employeeManage/employeeService";
+import EmployeeService from "@/src/services/employee/employeeService";
 
 type Data = Object;
 

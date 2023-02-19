@@ -1,6 +1,6 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from 'next'
-import FuckCheckService from "@/src/business/fuckCheck/uplineCheckService";
+import FuckCheckService from "@/src/services/fuckCheck/uplineCheckService";
 import _ from 'lodash';
 
 type Data = Object;
