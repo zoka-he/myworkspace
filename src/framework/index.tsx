@@ -1,11 +1,10 @@
 import { Breadcrumb, Layout, Menu } from 'antd';
 import { connect } from 'react-redux';
-import React from 'react';
+import React, {useEffect} from 'react';
 import g_config from '../config';
 import { setLv1Key, setLv2Key } from '../store/navigatorSlice';
-import { clearLoginUser } from '../store/loginSlice';
 import store from '../store';
-import { Outlet, Navigate, useLocation } from 'react-router-dom';
+import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
 
 import type { IRootState } from '../store';
 import type { INavMenu } from '../config/navigator';
@@ -24,11 +23,9 @@ const mapStateToProps = (state: IRootState) => {
 function MainFrame (props: any) {
 
   let location = useLocation();
+  let navigate = useNavigate();
 
-  // 主页默认
-  if (location.pathname === '/') {
-    return <Navigate to='/taskManage/dashboard'/>;
-  }
+  
 
   /**
    * 选择一级菜单
@@ -72,16 +69,10 @@ function MainFrame (props: any) {
     return subMenu.map((item: INavMenu, index: number) => {
       return {
         key: index,
-        label: item.label
+        label: item.label,
+        url: item.url
       }
     });
-  }
-
-  /**
-   * 登出，未实现
-   */
-  function onLogout() {
-    store.dispatch(clearLoginUser());
   }
 
   /**
@@ -124,30 +115,39 @@ function MainFrame (props: any) {
     return <Breadcrumb style={{ padding: '12px 0 0' }}>{items}</Breadcrumb>;
   }
 
+  // 响应location变化
+  useEffect(() => {
+    let lv2Entry = getLv2Menus()[props.lv2Key];
+    if (lv2Entry.url) {
+      navigate(lv2Entry.url);
+    }
+
+  }, [props.lv1Key, props.lv2Key])
+
+  // 主页默认
+  if (location.pathname === '/') {
+    return <Navigate to='/taskManage/dashboard'/>;
+  }
+
   return (
     <Layout className="f-fit-height" >
       <Header className="f-flex-row">
         <div style={{ display: 'inline-block' }}>
-          <h2 style={{ color: 'white', marginRight: '50px' }}>移动安全监测</h2>
+          <h2 style={{ color: 'white', marginRight: '50px' }}>工作台</h2>
         </div>
         <Menu 
           className="f-flex-1"
           theme="dark" 
-          mode="horizontal" 
-          defaultSelectedKeys={[ props.lv1Key ]} 
+          mode="horizontal"
           items={getLv1Menus()} 
           onSelect={e => onLv1Select(e)}
         />
-        <div>
-          <a className="f-cursor-hand f-red" onClick={e => onLogout(e)}>退出登录</a>
-        </div>
       </Header>
       <Layout>
         <Sider width={200}>
           <Menu 
             mode="inline" 
-            style={{ height: '100%' }} 
-            selectedKeys={[ props.lv2Key ]} 
+            style={{ height: '100%' }}
             items={getLv2Menus()} 
             onSelect={e => onLv2Select(e)}
           />

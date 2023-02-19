@@ -1,4 +1,5 @@
-import MysqlService from "../utils/mysql/service";
+import MysqlService from "../../utils/mysql/service";
+import {ISqlCondMap} from "@/src/utils/mysql/types";
 
 class TaskService extends MysqlService {
 
@@ -22,7 +23,7 @@ class TaskService extends MysqlService {
         ]);
     }
 
-    async getDashboard(extraCond = {}) {
+    async getDashboard(extraCond: ISqlCondMap = {}) {
         let parseRes = this.parseConditionObject({
             ...extraCond,
             status: { $ne: 5 }

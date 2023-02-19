@@ -1,12 +1,11 @@
-import './dashboard.scss';
-
-import React from "react";
+import React, {FormEvent} from "react";
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 
+import fetch from '@/src/fetch';
 import TaskTip from "./taskTip";
 import {Button, Input, message, Space} from "antd";
 
-import TaskService from "../taskManage/taskService";
+// import TaskService from "../taskManage/taskService";
 import TaskEditor from "../taskEditor";
 import InteractViewer from '../catfightLog/interactViewer';
 import BugViewer from '../bugTrace/bugViewer';
@@ -14,10 +13,28 @@ import BugViewer from '../bugTrace/bugViewer';
 import _ from 'lodash';
 
 import {SearchOutlined} from "@ant-design/icons";
+import {ITaskData} from "@/src/types/ITaskData";
 
-class Dashboard extends React.Component{
+interface IDashboardLists {
+    notStarted: Array<any>,
+    developing: Array<any>,
+    testing: Array<any>,
+    fuckable: Array<any>,
+    finished: Array<any>,
+}
 
-    constructor(props) {
+interface IDashboardState {
+    queryTaskName: string,
+    queryEmployee: string,
+}
+
+class Dashboard extends React.Component<{}, IDashboardState & IDashboardLists & {}> {
+
+    private mTaskEditor: TaskEditor | null = null;
+    private mInteractViewer: InteractViewer | null = null;
+    private mBugViewer = null;
+
+    constructor(props: any) {
         super(props);
 
         this.state = {
@@ -30,12 +47,10 @@ class Dashboard extends React.Component{
             queryEmployee: '',
         }
 
-        this.mTaskEditor = null;
-        this.mInteractViewer = null;
-        this.mBugViewer = null;
+
     }
 
-    statusName2status(statusName) {
+    statusName2status(statusName: string) {
         let ret = ['notStarted', 'developing', 'testing', 'fuckable', 'finished'].indexOf(statusName);
         console.debug('statusName2status', statusName, ret);
         if (ret === -1) {
@@ -46,7 +61,7 @@ class Dashboard extends React.Component{
         return ret;
     }
 
-    status2statusName(status) {
+    status2statusName(status: number) {
         return ['notStarted', 'developing', 'testing', 'fuckable', 'finished'][status];
     }
 
@@ -57,7 +72,7 @@ class Dashboard extends React.Component{
      * @param endIndex
      * @returns {unknown[]}
      */
-    reorder(list, startIndex, endIndex) {
+    reorder(list: Array<any>, startIndex: number, endIndex: number) {
         const result = Array.from(list);
         const [removed] = result.splice(startIndex, 1);
         result.splice(endIndex, 0, removed);
@@ -73,7 +88,7 @@ class Dashboard extends React.Component{
      * @param droppableDestination 释放点数据
      * @returns {{destination: unknown[], source: unknown[]}}
      */
-    move(source, destination, droppableSource, droppableDestination) {
+    move(source: Array<any>, destination: Array<any>, droppableSource: any, droppableDestination: any) {
         // 复制原始表
         const sourceClone = Array.from(source);
         const destClone = Array.from(destination);
@@ -85,8 +100,12 @@ class Dashboard extends React.Component{
         return { source: sourceClone, destination: destClone };
     };
 
-    onConditionInput(prop, e) {
-        this.setState({ [prop]: e.target.value });
+    onConditionInput(prop: string, e: FormEvent<HTMLInputElement>) {
+        // @ts-ignore
+        let val = e?.target?.value || '';
+
+        // @ts-ignore
+        this.setState({ [prop]: val });
         _.debounce(() => this.onQuery(), 300)();
     }
 
@@ -94,7 +113,7 @@ class Dashboard extends React.Component{
      * 拖拽完成，变更state，并触发保存入库
      * @param result
      */
-    async onDragEnd(result) {
+    async onDragEnd(result: any) {
         const { source, destination } = result;
 
         // dropped outside the list
@@ -103,17 +122,21 @@ class Dashboard extends React.Component{
         }
 
         try {
+            // @ts-ignore
             console.debug('getSourceTask', source.droppableId, this.state[source.droppableId], source.index);
+            // @ts-ignore
             let sourceTask = this.state[source.droppableId][source.index];
 
             // 状态未变，重新排序
             if (source.droppableId === destination.droppableId) {
                 const items = this.reorder(
+                    // @ts-ignore
                     this.state[source.droppableId],
                     source.index,
                     destination.index
                 );
 
+                // @ts-ignore
                 this.setState({
                     [source.droppableId]: items
                 });
@@ -124,12 +147,15 @@ class Dashboard extends React.Component{
             // 状态已变，重新排序目标序列
             else {
                 const result = this.move(
+                    // @ts-ignore
                     this.state[source.droppableId],
+                    // @ts-ignore
                     this.state[destination.droppableId],
                     source,
                     destination
                 );
 
+                // @ts-ignore
                 this.setState({
                     [source.droppableId]: result.source,
                     [destination.droppableId]: result.destination,
@@ -151,17 +177,21 @@ class Dashboard extends React.Component{
 
     async onQuery() {
         // let { data } = await new TaskService().query({ status: { $ne: 5 } }, [], ['priority desc', 'create_time asc'], 1, 10000);
-        let conditions = {};
+
+
+        let params: any = {};
         if (this.state.queryTaskName) {
-            conditions.task_name = { $like: `%${this.state.queryTaskName}%` };
+            params.task_name = this.state.queryTaskName;
         }
         if (this.state.queryEmployee) {
-            conditions.employee = { $like: `%${this.state.queryEmployee}%` };
+            params.employee = this.state.queryEmployee;
         }
 
-        let data = await new TaskService().getDashboard(conditions);
+        // let data = await new TaskService().getDashboard(conditions);
+        let data: any = await fetch.get('/api/dashboard', { params });
+        console.debug('fetch data', data);
 
-        let state = {
+        let state: IDashboardLists = {
             notStarted: [],
             developing: [],
             testing: [],
@@ -172,6 +202,7 @@ class Dashboard extends React.Component{
         console.debug('onQuery', data);
 
         for (let item of data) {
+            // @ts-ignore
             state[this.status2statusName(item.status)]?.push(item);
         }
 
@@ -186,7 +217,7 @@ class Dashboard extends React.Component{
         return {};
     }
 
-    async updateDispOrder(listName, refList) {
+    async updateDispOrder(listName: string, refList: Array<any>) {
         let list = refList;
         if (!(list instanceof Array)) {
             console.error(refList);
@@ -194,15 +225,14 @@ class Dashboard extends React.Component{
         }
 
         let dispOrder = 0;
-        let service = new TaskService();
-        for (let item of list) {
-            await service.updateOne(item, { disp_order: dispOrder++ });
-        }
+        // let service = new TaskService();
+        // for (let item of list) {
+        //     await service.updateOne(item, { disp_order: dispOrder++ });
+        // }
     }
 
-    async changeTaskStatus(task, statusName) {
-
-        await new TaskService().updateOne(task, { status: this.statusName2status(statusName) });
+    async changeTaskStatus(task: ITaskData, statusName: string) {
+        // await new TaskService().updateOne(task, { status: this.statusName2status(statusName) });
     }
 
     onCreateTask() {
@@ -211,19 +241,19 @@ class Dashboard extends React.Component{
         }
     }
 
-    onEditTask(task) {
+    onEditTask(task: ITaskData) {
         if (this.mTaskEditor) {
             this.mTaskEditor.showAndEdit(task);
         }
     }
 
-    onShowInteract(task) {
+    onShowInteract(task: ITaskData) {
         if (this.mInteractViewer) {
             this.mInteractViewer.show(task);
         }
     }
 
-    onShowBug(task) {
+    onShowBug(task: ITaskData) {
         if (this.mBugViewer) {
             this.mBugViewer.show(task);
         }
@@ -235,16 +265,17 @@ class Dashboard extends React.Component{
      * @param index
      * @returns {JSX.Element}
      */
-    renderTask(item, index) {
+    renderTask(item: ITaskData, index: number) {
+        // @ts-ignore
         return (
             <Draggable key={item.ID} draggableId={item.ID.toString()} index={index}>
                 {(provided, snapshot) => {
                     return (
                         <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
                             <TaskTip taskData={item}
-                                     onEdit={task => this.onEditTask(task)}
-                                     onShowInteract={task => this.onShowInteract(task)}
-                                     onShowBug={task => this.onShowBug(task)}
+                                     onEdit={(task: ITaskData) => this.onEditTask(task)}
+                                     onShowInteract={(task: ITaskData) => this.onShowInteract(task)}
+                                     onShowBug={(task: ITaskData) => this.onShowBug(task)}
                             />
                         </div>
                     )
@@ -258,10 +289,12 @@ class Dashboard extends React.Component{
      * @param droppableId 任务列表变量名
      * @returns {JSX.Element}
      */
-    renderTaskList(droppableId) {
-        let myplaceholder = null;
-        let taskContext = null;
+    renderTaskList(droppableId: string) {
+        let myplaceholder: JSX.Element | null = null;
+        let taskContext: JSX.Element | null = null;
 
+
+        // @ts-ignore
         let taskList = this.state[droppableId];
 
         // console.debug(droppableId, taskList);
@@ -270,7 +303,7 @@ class Dashboard extends React.Component{
         } else {
             // 千万注意这里的lambda不能丢，否则renderTask的this就丢失了；
             // 此外index也不能丢，react-beautiful-dnd需要使用
-            taskContext = taskList.map((item, index) => this.renderTask(item, index));
+            taskContext = taskList.map((item: ITaskData, index: number) => this.renderTask(item, index));
         }
 
         return <Droppable droppableId={droppableId}>

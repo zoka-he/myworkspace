@@ -1,25 +1,26 @@
+import mysql from './server';
+import {ISqlCondMap, ISqlCondMapParsed} from "@/src/utils/mysql/types";
+
 class MysqlService {
 
-    constructor(tableName) {
+    private readonly tableName: string;
+    private readonly priKey: string;
+    private validColumns: Array<string>;
+
+    constructor(tableName: string, priKey: string = 'ID') {
         this.tableName = tableName;
-        this.priKey = 'ID';
+        this.priKey = priKey;
         this.validColumns = [];
     }
 
-    check(fnName) {
-        if (!window?.mysql[fnName]) {
-            throw new Error('此接口需要在electron环境下使用！');
-        }
-    }
-
-    setValidColumns(cols) {
+    setValidColumns(cols: Array<string>) {
         this.validColumns = cols;
     }
 
-    verifyInsertOrUpdate(obj) {
+    verifyInsertOrUpdate(obj: ISqlCondMap) {
         // console.debug('valid columns', this.validColumns);
         if (this.validColumns?.length) {
-            let obj2 = {};
+            let obj2: ISqlCondMap = {};
             for (let item of this.validColumns) {
                 if (obj.hasOwnProperty(item)) {
                     // console.debug(`${obj} has prop ${item}`);
@@ -32,16 +33,13 @@ class MysqlService {
         }
     }
 
-    parseConditionObject(obj) {
-        // 入参校验
-        if (typeof obj !== 'object') {
-            return null;
-        }
+    parseConditionObject(obj: ISqlCondMap): ISqlCondMapParsed {
 
         let keys = Object.keys(obj), values = [], condStrs = [];
 
         for (let [k, v] of Object.entries(obj)) {
             keys.push(k);
+
             switch (typeof v) {
                 case "undefined":
                 case "function":
@@ -49,12 +47,25 @@ class MysqlService {
                     break;
 
                 case 'object':
-                    if (v.hasOwnProperty('$like')) {
+                    if (v === null) {
+                        condStrs.push(`${k} is null`);
+                    } else if (v instanceof Date) {
+                        condStrs.push(`${k}=?`);
+                        values.push(v);
+                    } else if (v instanceof Array) {
+                        condStrs.push(`${k} in (${ Array.from(v, () => '?').toString() })`);
+                        values.push(...v);
+                    } else if (v.hasOwnProperty('$like')) {
                         condStrs.push(`${k} like ?`);
                         values.push(v.$like);
                     } else if (v.hasOwnProperty('$ne')) {
-                        condStrs.push(`${k}!=?`);
-                        values.push(v.$ne);
+                        let value = v.$ne;
+                        if (value === null) {
+                            condStrs.push(`${k} is not null`);
+                        } else {
+                            condStrs.push(`${k}!=?`);
+                            values.push(v.$ne);
+                        }
                     } else if (v.hasOwnProperty('$in')) {
                         let array = v.$in;
                         if (typeof array === 'object' && array instanceof Array) {
@@ -67,7 +78,7 @@ class MysqlService {
                     } else if (v.hasOwnProperty('$gt')) {
                         condStrs.push(`${k}>?`);
                         values.push(v.$gt);
-                    } else if (v.hasOwnProperty('$btw')) {
+                    } else if (v?.$btw instanceof Array) {
                         condStrs.push(`${k} between ? and ?`);
                         values.push(...v.$btw);
                     }
@@ -82,7 +93,10 @@ class MysqlService {
 
         // 出参校验
         if (condStrs.length === 0) {
-            return null;
+            return {
+                sql: '',
+                values: []
+            }
         }
 
         return {
@@ -91,9 +105,14 @@ class MysqlService {
         }
     }
 
-    async query(conditionOrSql = '', values = [], order = [`${this.priKey} asc`], page = 1, limit = 20, noCount = false) {
-        this.check('selectBySql');
-
+    async query(
+        conditionOrSql: string | ISqlCondMap = '',
+        values: Array<any> = [],
+        order: Array<string> = [`${this.priKey} asc`],
+        page: number = 1,
+        limit: number = 20,
+        noCount: boolean = false
+    ) {
         let baseSql = '';
         if (typeof conditionOrSql === 'string' && conditionOrSql) {
             baseSql = conditionOrSql;
@@ -125,7 +144,7 @@ class MysqlService {
         }
 
         console.debug('query page -> ', pageSql, values);
-        let pageData = await window.mysql.selectBySql(pageSql, values);
+        let pageData = await mysql.selectBySql(pageSql, values);
 
         let count = 0;
         if (noCount) {
@@ -133,7 +152,7 @@ class MysqlService {
         } else {
             let countSql = `select count(0) as count from (${baseSql}) t`;
             console.debug('query count -> ', countSql, values);
-            let countRs = await window.mysql.selectBySql(countSql, values);
+            let countRs = await mysql.selectBySql(countSql, values);
             count = countRs[0]?.count || 0;
         }
 
@@ -143,32 +162,34 @@ class MysqlService {
         }
     }
 
-    async insertOne(obj, ...args) {
+    async insertOne(obj: ISqlCondMap, ...args: any[]) {
         let obj2 = this.verifyInsertOrUpdate(obj);
 
         console.debug('insert', this.tableName, obj2);
-        return await window.mysql.insertOne(this.tableName, obj2, ...args);
+        // @ts-ignore
+        return await mysql.insertOne(this.tableName, obj2, ...args);
     }
 
-    async updateOne(oldObj, obj, ...args) {
+    async updateOne(oldObj: ISqlCondMap, obj: ISqlCondMap, ...args: any[]) {
         let prikeyValue = oldObj[this.priKey];
         let obj2 = { ...obj };
         delete obj2[this.priKey];
 
         let obj3 = this.verifyInsertOrUpdate(obj2);
-        return await window.mysql.updateOne(this.tableName, {[this.priKey]: prikeyValue}, obj3, ...args);
+        // @ts-ignore
+        return await mysql.updateOne(this.tableName, {[this.priKey]: prikeyValue}, obj3, ...args);
     }
 
-    async deleteOne(obj) {
+    async deleteOne(obj: ISqlCondMap) {
         let prikeyValue = obj[this.priKey];
-        return await window.mysql.deleteFrom(this.tableName, {[this.priKey]: prikeyValue});
+        return await mysql.deleteFrom(this.tableName, {[this.priKey]: prikeyValue});
     }
 
-    queryBySql(sql, values) {
-        return window.mysql.selectBySql(sql, values);
+    queryBySql(sql: string, values: any[]) {
+        return mysql.selectBySql(sql, values);
     }
 
-    async queryOne(conditionOrSql = '', values = [], order = [`${this.priKey} asc`]) {
+    async queryOne(conditionOrSql: string | ISqlCondMap = '', values = [], order = [`${this.priKey} asc`]) {
         let { data } = await this.query(conditionOrSql, values, order, 1, 1, true);
         if (data[0]) {
             return data[0];

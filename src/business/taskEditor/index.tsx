@@ -1,11 +1,22 @@
 import React from "react";
-import {Form, Modal, Input, Select, Button, message, DatePicker} from "antd";
+import {Form, Modal, Input, Select, Button, message, DatePicker, FormInstance} from "antd";
 import _ from 'lodash';
-import TaskService from "../taskManage/taskService";
+// import TaskService from "../taskManage/taskService";
 import moment from "moment";
-import EmployeeInput from './employeeInput';
+import EmployeeInput from '../commonComponent/employeeInput';
+import {ITaskData} from "@/src/types/ITaskData";
+import fetch from '@/src/fetch';
 
-function date2string(date, format) {
+interface ITaskEditorProp {
+    onFinish?: Function
+}
+
+interface ITaskEditorState {
+    modalOpen: boolean,
+    loading: boolean,
+}
+
+function date2string(date: any, format: string) {
     if (date) {
         return moment(date).format(format);
     } else {
@@ -13,7 +24,7 @@ function date2string(date, format) {
     }
 }
 
-function string2date(s) {
+function string2date(s?: string) {
     if (s) {
         return moment(s);
     } else {
@@ -21,8 +32,16 @@ function string2date(s) {
     }
 }
 
-class TaskEditor extends React.Component {
-    constructor(props) {
+class TaskEditor extends React.Component<ITaskEditorProp, ITaskEditorState & {}> {
+    private formDefault: ITaskData = {
+        priority: 0,
+        status: 0
+    }
+
+    private mForm: FormInstance | null;
+    private oldTask: ITaskData | null;
+
+    constructor(props: {}) {
         super(props);
 
         this.state = {
@@ -47,23 +66,24 @@ class TaskEditor extends React.Component {
         this.oldTask = null;
     }
 
-    parseAndFixData(data) {
+    parseAndFixData(data: any) {
         // 避开antd识别日期的坑
         data.fuck_date = string2date(data.fuck_date);
         data.deadline_time = string2date(data.deadline_time);
         this.mForm?.setFieldsValue(_.clone(data));
     }
 
-    async showAndEdit(task) {
+    async showAndEdit(task: ITaskData) {
         this.setState({
             modalOpen: true
         });
 
-        this.oldTask = await new TaskService().queryOne({ ID: task.ID });
+        this.oldTask = await fetch.get('/api/task', { params: { ID: task.ID } });
+        // this.oldTask = await new TaskService().queryOne({ ID: task.ID });
         this.parseAndFixData(this.oldTask);
     }
 
-    onFormRef(comp) {
+    onFormRef(comp: FormInstance) {
         this.mForm = comp;
         if (this.oldTask) {
             this.parseAndFixData(this.oldTask);
@@ -77,7 +97,7 @@ class TaskEditor extends React.Component {
         this.mForm?.resetFields();
     }
 
-    async onFinish(values) {
+    async onFinish(values: any) {
         this.hide();
 
         if (this.oldTask) {
@@ -89,14 +109,16 @@ class TaskEditor extends React.Component {
             updateObj.update_time = moment().format('YYYY-MM-DD HH:mm:ss');
 
             // await taskDao.updateTask(this.oldTask, updateObj);
-            await new TaskService().updateOne(this.oldTask, updateObj);
+            // await new TaskService().updateOne(this.oldTask, updateObj);
+            await fetch.post('/api/task', updateObj, { params: { ID: this.oldTask.ID } })
         } else {
             let createObj = _.clone(values);
             createObj.create_time = moment().format('YYYY-MM-DD HH:mm:ss');
             createObj.fuck_date = date2string(createObj.fuck_date,'YYYY-MM-DD');
             createObj.deadline_time = date2string(createObj.deadline_time, 'YYYY-MM-DD');
 
-            await new TaskService().insertOne(createObj);
+            // await new TaskService().insertOne(createObj);
+            await fetch.post('/api/task', createObj);
         }
 
         if (this.props.onFinish) {
@@ -105,7 +127,7 @@ class TaskEditor extends React.Component {
         message.success('提交成功！');
     }
 
-    onFinishedFailed() {
+    onFinishedFailed(e: any) {
         message.warning('表单校验失败，请修改');
     }
 
@@ -116,7 +138,7 @@ class TaskEditor extends React.Component {
     render() {
         return (
             <>
-                <Modal title={'编辑任务'} open={this.state.modalOpen} onOk={e => this.onOk(e)} onCancel={e => this.onCancel(e)} footer={null}>
+                <Modal title={'编辑任务'} open={this.state.modalOpen} onCancel={e => this.onCancel()} footer={null}>
                     <Form ref={comp => this.onFormRef(comp)} labelCol={{ span: 6 }} wrapperCol={{ span: 16 }} initialValues={this.formDefault}
                         onFinish={e => this.onFinish(e)}
                         onFinishFailed={e => this.onFinishedFailed(e)}

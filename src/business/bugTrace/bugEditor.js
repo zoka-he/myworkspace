@@ -1,7 +1,7 @@
 import React from "react";
 import {Form, Modal, Input, Select, Button, message, DatePicker, Radio} from "antd";
 import _ from 'lodash';
-import BugService from "./bugService";
+// import BugService from "./bugService";
 import moment from "moment";
 import EmployeeInput from '../commonComponent/employeeInput';
 import TaskSelect from '../commonComponent/taskSelect';
@@ -99,12 +99,12 @@ class BugEditor extends React.Component {
             delete updateObj['create_time'];
             updateObj.update_time = moment().format('YYYY-MM-DD HH:mm:ss');
 
-            await new BugService().updateOne(this.oldData, updateObj);
+            // await new BugService().updateOne(this.oldData, updateObj);
         } else {
             let createObj = _.clone(values);
             createObj.create_time = moment().format('YYYY-MM-DD HH:mm:ss');
 
-            await new BugService().insertOne(createObj);
+            // await new BugService().insertOne(createObj);
         }
 
         if (this.props.onFinish) {

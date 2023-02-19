@@ -1,4 +1,4 @@
-import Service from '../utils/mysql/service';
+import Service from '../../utils/mysql/service';
 
 export default class UplineCheckService extends Service {
 

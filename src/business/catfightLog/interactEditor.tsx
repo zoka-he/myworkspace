@@ -1,29 +1,28 @@
 import React from "react";
-import {Form, Modal, Input, Select, Button, message, DatePicker, Radio} from "antd";
+import {Form, Modal, Input, Button, message, Radio, FormInstance} from "antd";
 import _ from 'lodash';
-import InteractService from "./interactService";
+// import InteractService from "./interactService";
 import moment from "moment";
 import EmployeeInput from '../commonComponent/employeeInput';
 import TaskSelect from '../commonComponent/taskSelect';
+import {ITaskData} from "@/src/types/ITaskData";
 
-function date2string(date, format) {
-    if (date) {
-        return moment(date).format(format);
-    } else {
-        return null;
-    }
+interface IInteractEditorProps {
+    onFinish: Function
 }
 
-function string2date(s) {
-    if (s) {
-        return moment(s);
-    } else {
-        return null;
-    }
+interface IInteractEditorState {
+    modalOpen: boolean,
+    loading: boolean
 }
 
-class TaskEditor extends React.Component {
-    constructor(props) {
+class InteractEditor extends React.Component<IInteractEditorProps, IInteractEditorState> {
+
+    private mForm: FormInstance | null;
+    private oldData: any;
+    private formDefault: ITaskData;
+
+    constructor(props: any) {
         super(props);
 
         this.state = {
@@ -48,12 +47,12 @@ class TaskEditor extends React.Component {
         this.oldData = null;
     }
 
-    parseAndFixData(data) {
+    parseAndFixData(data: any) {
         // 避开antd识别日期的坑
         this.mForm?.setFieldsValue(_.clone(data));
     }
 
-    showAndEdit(task) {
+    showAndEdit(task: any) {
         this.setState({
             modalOpen: true
         });
@@ -66,7 +65,7 @@ class TaskEditor extends React.Component {
      * 打开，并自动附带上任务ID
      * @param task
      */
-    showWithTask(task) {
+    showWithTask(task: any) {
         let { ID } = task;
         this.setState({
             modalOpen: true
@@ -76,9 +75,9 @@ class TaskEditor extends React.Component {
         this.mForm?.setFieldsValue(this.oldData);
     }
 
-    onFormRef(comp) {
+    onFormRef(comp: FormInstance<any> | null) {
         this.mForm = comp;
-        if (this.oldData) {
+        if (comp && this.oldData) {
             this.parseAndFixData(this.oldData);
         }
     }
@@ -90,7 +89,7 @@ class TaskEditor extends React.Component {
         this.mForm?.resetFields();
     }
 
-    async onFinish(values) {
+    async onFinish(values: any) {
         this.hide();
 
         if (this.oldData?.ID) {
@@ -99,12 +98,12 @@ class TaskEditor extends React.Component {
             delete updateObj['create_time'];
             updateObj.update_time = moment().format('YYYY-MM-DD HH:mm:ss');
 
-            await new InteractService().updateOne(this.oldData, updateObj);
+            // await new InteractService().updateOne(this.oldData, updateObj);
         } else {
             let createObj = _.clone(values);
             createObj.create_time = moment().format('YYYY-MM-DD HH:mm:ss');
 
-            await new InteractService().insertOne(createObj);
+            // await new InteractService().insertOne(createObj);
         }
 
         if (this.props.onFinish) {
@@ -124,10 +123,10 @@ class TaskEditor extends React.Component {
     render() {
         return (
             <>
-                <Modal title={'编辑沟通日志'} open={this.state.modalOpen} onOk={e => this.onOk(e)} onCancel={e => this.onCancel(e)} footer={null}>
+                <Modal title={'编辑沟通日志'} open={this.state.modalOpen} onCancel={e => this.onCancel()} footer={null}>
                     <Form ref={comp => this.onFormRef(comp)} labelCol={{ span: 6 }} wrapperCol={{ span: 16 }} initialValues={this.formDefault}
                           onFinish={e => this.onFinish(e)}
-                          onFinishFailed={e => this.onFinishedFailed(e)}
+                          onFinishFailed={e => this.onFinishedFailed()}
                     >
                         <Form.Item label={'关联任务'} name={'task_id'} rules={[{ required: true, message: '任务名为必填！' }]}>
                             <TaskSelect/>
@@ -160,4 +159,4 @@ class TaskEditor extends React.Component {
     }
 }
 
-export default TaskEditor;
+export default InteractEditor;

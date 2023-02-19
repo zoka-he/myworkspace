@@ -1,4 +1,4 @@
-import MysqlService from "../utils/mysql/service";
+import MysqlService from "../../utils/mysql/service";
 
 export default class InteractService extends MysqlService {
     constructor() {

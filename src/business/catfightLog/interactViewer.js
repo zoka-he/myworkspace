@@ -1,6 +1,6 @@
 import React from "react";
 import {Button, Modal, Table} from "antd";
-import InteractService from "./interactService";
+// import InteractService from "./interactService";
 import moment from "moment";
 import InteractEditor from './interactEditor';
 
@@ -43,7 +43,8 @@ class TaskEditor extends React.Component {
 
 
     async onQuery() {
-        let { data } = await new InteractService().query({ task_id: this.refTask.ID }, [], ['create_time desc'], 1, 100);
+        // let { data } = await new InteractService().query({ task_id: this.refTask.ID }, [], ['create_time desc'], 1, 100);
+        let data = [];
         this.setState({ listData: data });
     }
 

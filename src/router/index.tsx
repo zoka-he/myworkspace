@@ -3,7 +3,8 @@ import { lazy } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useMatches } from 'react-router-dom';
 
 import MainFrame from '../framework';
-let Dashboard = lazy(() => import("../business/taskManage/dashboard"));
+const Dashboard = lazy(() => import("../business/dashboard"));
+const TaskManage = lazy(() => import('../business/taskManage'));
 
 async function mainFrameLoader() {
   let matches = useMatches();
@@ -16,6 +17,7 @@ export default function() {
       <Routes>
         <Route path="/" loader={mainFrameLoader} element={<MainFrame/>}>
           <Route path="taskManage/dashboard" element={<Dashboard />} />
+          <Route path="taskManage/taskManage" element={<TaskManage />} />
           <Route path="*" element={<div><h1>此页面尚未实现！</h1></div>}/>
         </Route>
       </Routes>

@@ -7,7 +7,8 @@ import TaskEditor from "../taskEditor";
 import {message} from "antd";
 import _ from 'lodash';
 import confirm from "antd/es/modal/confirm";
-import TaskService from './taskService';
+// import TaskService from './taskService';
+import fetch from '@/src/fetch';
 
 const { Column } = Table;
 
@@ -30,20 +31,23 @@ export default function () {
         try {
             updateSpinning(true);
 
-            let queryObject = {};
+            let params = {
+                page: pageNum,
+                limit: pageSize
+            };
             if (queryTaskName) {
-                queryObject.task_name = { $like: `%${queryTaskName}%` };
+              params.task_name = queryTaskName;
             }
             if (queryEmployee) {
-                queryObject.employee = { $like: `%${queryEmployee}%` };
+              params.employee = queryEmployee;
             }
             if (queryStatus) {
-                queryObject.status = { $in: Array.from(queryStatus) };
+              params.status = queryStatus;
             }
 
-            let service = new TaskService();
-            let { data, count } = await service.query(queryObject, [], ['priority desc', 'create_time asc'], pageNum, pageSize);
-
+            // let service = new TaskService();
+            // let { data, count } = await service.query(queryObject, [], ['priority desc', 'create_time asc'], pageNum, pageSize);
+            let { data, count } = await fetch.get('/api/task/list', { params });
 
 
             updateListData(data);
@@ -106,7 +110,9 @@ export default function () {
         }
 
         const deleteRow = async () => {
-            await new TaskService().deleteOne(row);
+            // await new TaskService().deleteOne(row);
+            await fetch.delete('/api/task', { params: { ID: row.ID } });
+
             message.success('已删除');
             onQuery();
         }
@@ -133,7 +139,7 @@ export default function () {
         return (
             <Space>
                 <Button type={'primary'} onClick={editRow}>编辑</Button>
-                <Button type={'danger'} onClick={showDeleteConfirm}>删除</Button>
+                <Button type={'primary'} danger onClick={showDeleteConfirm}>删除</Button>
             </Space>
         )
     }
@@ -175,7 +181,9 @@ export default function () {
 
         const onChange = async (v) => {
             let is_week_report = v ? 1 : 0;
-            await new TaskService().updateOne(row, { is_week_report });
+            // await new TaskService().updateOne(row, { is_week_report });
+            await fetch.post('/api/task', { is_week_report }, { params: { ID: row.ID } });
+
             onQuery();
         }
 

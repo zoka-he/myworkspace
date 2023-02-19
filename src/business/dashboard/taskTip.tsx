@@ -1,26 +1,29 @@
-import './taskTip.scss';
-
 import { Component } from "react";
 import {Button, Space} from "antd";
 import {EditOutlined} from "@ant-design/icons";
 import moment from 'moment';
 
-class TaskTip extends Component{
-    constructor(props) {
+import type { ITaskData } from '../../types/ITaskData';
+import type { ITaskTipProps } from './ITaskTipProps';
+
+class TaskTip extends Component<ITaskTipProps>{
+    constructor(props: ITaskTipProps) {
         super(props);
     }
 
-    emitToEditor(task) {
+    emitToEditor(task?: ITaskData) {
         let emitter = this.props.onEdit;
-        if (typeof emitter !== 'function') {
+        if (!emitter) {
             console.error('请传入onEdit事件！');
+            return;
         }
 
-        emitter(task);
+        emitter(task)
     }
 
     render() {
         let taskData = this.props.taskData;
+        // @ts-ignore
         let { ID, task_name, employee, problems, detail, priority, fuck_date, deadline_time, msg_cnt, bug_cnt, sys_name } = taskData;
         if (!msg_cnt) msg_cnt = 0;
         if (!bug_cnt) bug_cnt = 0;

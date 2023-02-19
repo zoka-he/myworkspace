@@ -2,7 +2,8 @@ import React, {useEffect, useState} from "react";
 import {Button, Input, Space, Table} from "antd";
 import {SearchOutlined} from "@ant-design/icons";
 import _ from 'lodash';
-import TaskService from './taskService';
+// import TaskService from './taskService';
+import fetch from '@/src/fetch';
 
 const { Column } = Table;
 
@@ -16,15 +17,15 @@ export default function () {
     async function onQuery() {
         try {
             updateSpinning(true);
-            let queryObject = {};
+            let params = {};
 
             if (queryEmployee) {
-                queryObject.employee = { $like: `%${queryEmployee}%` };
+                params.employee = queryEmployee;
             }
 
-
-            let service = new TaskService();
-            let data = await service.getTaskCount();
+            // let service = new TaskService();
+            // let data = await service.getTaskCount();
+            let data = await fetch.get('/api/task/count', { params });
 
             updateListData(data);
 

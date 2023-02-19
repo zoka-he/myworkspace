@@ -1,6 +1,6 @@
 import React from "react";
 import {Button, Modal, Radio, Table} from "antd";
-import BugService from "./bugService";
+// import BugService from "./bugService";
 import moment from "moment";
 import BugEditor from './bugEditor';
 
@@ -33,7 +33,8 @@ class TaskEditor extends React.Component {
     }
 
     async onQuery() {
-        let { data } = await new BugService().query({ task_id: this.refTask.ID }, [], ['create_time desc'], 1, 100);
+        // let { data } = await new BugService().query({ task_id: this.refTask.ID }, [], ['create_time desc'], 1, 100);
+        let data = [];
         this.setState({ listData: data });
     }
 

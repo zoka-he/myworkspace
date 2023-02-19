@@ -1,4 +1,4 @@
-import EmployeeService from "../employeeManage/employeeService";
+// import EmployeeService from "../employeeManage/employeeService";
 import { AutoComplete } from "antd";
 import { useState } from "react";
 
@@ -10,7 +10,7 @@ export default function EmployeeInput(props) {
     }
 
     async function onSearch(text) {
-        let { data } = await new EmployeeService().query({ name: { $like: `%${text}%` } });
+        // let { data } = await new EmployeeService().query({ name: { $like: `%${text}%` } });
         if (data instanceof Array) {
             setOptions(data.map(item => ({value: item.name})));
 

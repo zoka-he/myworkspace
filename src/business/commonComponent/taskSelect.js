@@ -1,4 +1,4 @@
-import TaskService from "../taskManage/taskService";
+// import TaskService from "../taskManage/taskService";
 import {Select} from "antd";
 import {useEffect, useState} from "react";
 const { Option } = Select;
@@ -11,7 +11,8 @@ export default function (props) {
     }, []);
 
     async function loadOptions() {
-        let { data } = await new TaskService().query({ status: { $ne: 5 } }, [], ['priority desc', 'task_name asc'], 1, 200);
+        // let { data } = await new TaskService().query({ status: { $ne: 5 } }, [], ['priority desc', 'task_name asc'], 1, 200);
+        let data = [];
         setOptions(data.map(item => ( { value: item.ID, label: item.task_name } )));
     }
 

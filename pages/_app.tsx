@@ -4,6 +4,9 @@ import '@/styles/colors.scss';
 import '@/styles/antd-fix.scss';
 import 'antd/dist/reset.css';
 
+import '@/styles/dashboard/dashboard.scss';
+import '@/styles/dashboard/taskTip.scss';
+
 
 import type { AppProps } from 'next/app';
 import { useRouter } from 'next/router';
