@@ -109,6 +109,32 @@ class Dashboard extends React.Component<{}, IDashboardState & IDashboardLists & 
         _.debounce(() => this.onQuery(), 300)();
     }
 
+    async updateDispOrder(listName: string, refList: ITaskData[]) {
+        let list = refList;
+        if (!(list instanceof Array)) {
+            console.error(refList);
+            return;
+        }
+
+        let dispOrder = 0;
+
+        for (let item of list) {
+            await fetch.post(
+                '/api/task', 
+                { disp_order: dispOrder++ },
+                { params: { ID: item.ID } }
+            )
+        }
+    }
+
+    async changeTaskStatus(task: ITaskData, statusName: string) {
+        await fetch.post(
+            '/api/task', 
+            { status: this.statusName2status(statusName) },
+            { params: { ID: task.ID } }
+        )
+    }
+
     /**
      * 拖拽完成，变更state，并触发保存入库
      * @param result
@@ -211,28 +237,6 @@ class Dashboard extends React.Component<{}, IDashboardState & IDashboardLists & 
 
     componentDidMount() {
         this.onQuery();
-    }
-
-    getItemStyle() {
-        return {};
-    }
-
-    async updateDispOrder(listName: string, refList: Array<any>) {
-        let list = refList;
-        if (!(list instanceof Array)) {
-            console.error(refList);
-            return;
-        }
-
-        let dispOrder = 0;
-        // let service = new TaskService();
-        // for (let item of list) {
-        //     await service.updateOne(item, { disp_order: dispOrder++ });
-        // }
-    }
-
-    async changeTaskStatus(task: ITaskData, statusName: string) {
-        // await new TaskService().updateOne(task, { status: this.statusName2status(statusName) });
     }
 
     onCreateTask() {
