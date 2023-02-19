@@ -1,11 +1,3 @@
-// import RiskDetail from '../RiskDetail';
-// import Dashboard from "../dashboard";
-// import TaskManage from '../taskManage';
-// import EmployeeManage from "../employeeManage";
-// import CatfightLog from "../catfightLog";
-// import BugTrace from "../bugTrace";
-// import UplineCheck from '../fuckCheck';
-// import WeeklyReport from '../weeklyReport';
 import React from 'react';
 
 interface INavMenu {

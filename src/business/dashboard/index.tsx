@@ -266,6 +266,10 @@ class Dashboard extends React.Component<{}, IDashboardState & IDashboardLists & 
      * @returns {JSX.Element}
      */
     renderTask(item: ITaskData, index: number) {
+        if (!item.ID) {
+            return null;
+        }
+
         // @ts-ignore
         return (
             <Draggable key={item.ID} draggableId={item.ID.toString()} index={index}>

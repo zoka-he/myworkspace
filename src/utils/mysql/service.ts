@@ -53,7 +53,8 @@ class MysqlService {
                         condStrs.push(`${k}=?`);
                         values.push(v);
                     } else if (v instanceof Array) {
-                        condStrs.push(`${k} in (${ Array.from(v, () => '?').toString() })`);
+                        let arrLen = v.length;
+                        condStrs.push(`${k} in (${ Array.from({ length: arrLen }, () => '?').toString() })`);
                         values.push(...v);
                     } else if (v.hasOwnProperty('$like')) {
                         condStrs.push(`${k} like ?`);
@@ -69,7 +70,8 @@ class MysqlService {
                     } else if (v.hasOwnProperty('$in')) {
                         let array = v.$in;
                         if (typeof array === 'object' && array instanceof Array) {
-                            condStrs.push(`${k} in (${ Array.from(array, () => '?').toString() })`);
+                            let arrLen = array.length;
+                            condStrs.push(`${k} in (${ Array.from({ length: arrLen }, () => '?').toString() })`);
                             values.push(...array);
                         }
                     } else if (v.hasOwnProperty('$lt')) {

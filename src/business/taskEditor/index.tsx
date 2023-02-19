@@ -83,7 +83,11 @@ class TaskEditor extends React.Component<ITaskEditorProp, ITaskEditorState & {}>
         this.parseAndFixData(this.oldTask);
     }
 
-    onFormRef(comp: FormInstance) {
+    onFormRef(comp: FormInstance | null) {
+        if (!comp) {
+            return;
+        }
+
         this.mForm = comp;
         if (this.oldTask) {
             this.parseAndFixData(this.oldTask);

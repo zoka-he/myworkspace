@@ -29,11 +29,14 @@ class TaskService extends MysqlService {
             status: { $ne: 5 }
         });
 
-        let condSql = parseRes.sql, values = parseRes.values;
+        let condSql = '', values = [];
+        if (parseRes) {
+            condSql = ` WHERE ${parseRes.sql}`, values = parseRes.values;
+        }
 
         let sql = `select * 
             from (
-                SELECT * FROM t_task tt WHERE ${condSql}
+                SELECT * FROM t_task tt${condSql}
             ) tt 
             left join (
                 SELECT task_id msg_tid, count(*) msg_cnt FROM t_interact group by msg_tid
