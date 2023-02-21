@@ -1,0 +1,8 @@
+version: '3'
+
+services:
+  my-worksite:
+    build: .
+    ports:
+      - "23001:5000"
+      - "3306:3306"

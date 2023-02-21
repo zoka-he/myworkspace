@@ -6,6 +6,7 @@ import moment from "moment";
 import EmployeeInput from '../commonComponent/employeeInput';
 import {ITaskData} from "@/src/types/ITaskData";
 import fetch from '@/src/fetch';
+import Dayjs from 'dayjs';
 
 interface ITaskEditorProp {
     onFinish?: Function
@@ -18,7 +19,7 @@ interface ITaskEditorState {
 
 function date2string(date: any, format: string) {
     if (date) {
-        return moment(date).format(format);
+        return Dayjs(date).format(format);
     } else {
         return null;
     }
@@ -26,7 +27,7 @@ function date2string(date: any, format: string) {
 
 function string2date(s?: string) {
     if (s) {
-        return moment(s);
+        return Dayjs(s);
     } else {
         return null;
     }

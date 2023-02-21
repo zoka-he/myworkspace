@@ -44,10 +44,15 @@ const navObj: INavMenu = {
       ]
     },
     {
-      label: '系统配置',
+      label: '路书',
       menu: [
         {
-          label: '规则详情',
+          label: '计划板',
+          url: '/roadBook/planBoard'
+        },
+        {
+          label: '编辑器',
+          url: '/roadBook/editor'
         }
       ]
     },

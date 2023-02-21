@@ -31,6 +31,6 @@ process.on('exit', async (code) => {
     try {
         await connections.end()
     } catch (error) {}
-})
+});
 
 export default connections.promise();

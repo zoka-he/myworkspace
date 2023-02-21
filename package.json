@@ -5,8 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "start": "next start &",
+    "lint": "next lint",
+    "docker-run": "docker-compose up -d"
   },
   "dependencies": {
     "@next/font": "13.1.6",

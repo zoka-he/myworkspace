@@ -50,6 +50,11 @@ class Dashboard extends React.Component<{}, IDashboardState & IDashboardLists & 
 
     }
 
+    /**
+     * 状态显示名转标识
+     * @param statusName 
+     * @returns 
+     */
     statusName2status(statusName: string) {
         let ret = ['notStarted', 'developing', 'testing', 'fuckable', 'finished'].indexOf(statusName);
         console.debug('statusName2status', statusName, ret);
@@ -61,7 +66,12 @@ class Dashboard extends React.Component<{}, IDashboardState & IDashboardLists & 
         return ret;
     }
 
-    status2statusName(status: number) {
+    /**
+     * 状态标志转显示
+     * @param status 
+     * @returns 
+     */
+    status2statusName(status: number): string {
         return ['notStarted', 'developing', 'testing', 'fuckable', 'finished'][status];
     }
 
@@ -200,7 +210,9 @@ class Dashboard extends React.Component<{}, IDashboardState & IDashboardLists & 
     }
 
 
-
+    /**
+     * 查询数据
+     */
     async onQuery() {
         // let { data } = await new TaskService().query({ status: { $ne: 5 } }, [], ['priority desc', 'create_time asc'], 1, 10000);
 
@@ -239,24 +251,39 @@ class Dashboard extends React.Component<{}, IDashboardState & IDashboardLists & 
         this.onQuery();
     }
 
+    /**
+     * 创建任务
+     */
     onCreateTask() {
         if (this.mTaskEditor) {
             this.mTaskEditor.show();
         }
     }
 
+    /**
+     * 编辑任务
+     * @param task 
+     */
     onEditTask(task: ITaskData) {
         if (this.mTaskEditor) {
             this.mTaskEditor.showAndEdit(task);
         }
     }
 
+    /**
+     * 显示任务沟通详情
+     * @param task 
+     */
     onShowInteract(task: ITaskData) {
         if (this.mInteractViewer) {
             this.mInteractViewer.show(task);
         }
     }
 
+    /**
+     * 显示任务bug详情
+     * @param task 
+     */
     onShowBug(task: ITaskData) {
         if (this.mBugViewer) {
             this.mBugViewer.show(task);
@@ -327,6 +354,10 @@ class Dashboard extends React.Component<{}, IDashboardState & IDashboardLists & 
         </Droppable>;
     }
 
+    /**
+     * 渲染界面
+     * @returns 
+     */
     render() {
         let self = this;
 

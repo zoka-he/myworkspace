@@ -1,6 +1,6 @@
-import { Breadcrumb, Layout, Menu } from 'antd';
+import { Breadcrumb, Layout, Menu, FloatButton } from 'antd';
 import { connect } from 'react-redux';
-import React, {useEffect} from 'react';
+import React, {useEffect, useRef} from 'react';
 import g_config from '../config';
 import { setLv1Key, setLv2Key } from '../store/navigatorSlice';
 import store from '../store';
@@ -24,8 +24,6 @@ function MainFrame (props: any) {
 
   let location = useLocation();
   let navigate = useNavigate();
-
-  
 
   /**
    * 选择一级菜单
@@ -153,7 +151,8 @@ function MainFrame (props: any) {
           />
         </Sider>
         <Content style={{ backgroundColor: 'white' }}>
-          <div style={{ padding: '0 24px' }} className="f-fit-height f-flex-col f-bg-white f-vertical-scroll">
+          <div style={{ padding: '0 24px' }} 
+              className="f-fit-height f-flex-col f-bg-white f-vertical-scroll">
             <div>
               {renderBreadcrumb()}
             </div>
@@ -161,9 +160,11 @@ function MainFrame (props: any) {
               {/* 主界面 */}
               <Outlet/>
             </div>
+            
           </div>
         </Content>
       </Layout>
+      <FloatButton.BackTop/>
     </Layout>
   );
 };
