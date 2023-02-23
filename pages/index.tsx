@@ -4,6 +4,7 @@ import store from '../src/store';
 import zhCN from 'antd/locale/zh_CN';
 import { ConfigProvider } from 'antd';
 import dynamic from "next/dynamic";
+import bmapConfig from '@/src/config/bmap';
 
 const MyRouter = dynamic(() => import("../src/router"), { ssr: false });
 
@@ -24,6 +25,7 @@ export default function Home() {
           </ConfigProvider>
         </Provider>
       </main>
+      <script type="text/javascript" src={`//api.map.baidu.com/api?type=webgl&v=1.0&ak=${bmapConfig.AK}`}></script>
     </>
   )
 }

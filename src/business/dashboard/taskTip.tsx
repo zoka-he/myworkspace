@@ -74,7 +74,7 @@ class TaskTip extends Component<ITaskTipProps>{
             if (msg_cnt) {
                 msgClassName.push('f-orange');
             }
-            renderCatflight = <Button className={msgClassName.join(' ')} type={"text"} size={"small"} onClick={emitMsgViewer}>沟通记录({msg_cnt})</Button>
+            renderCatflight = <Button className={msgClassName.join(' ')} type={"text"} onClick={emitMsgViewer}>沟通记录({msg_cnt})</Button>
         // }
 
         // 显示问题简要描述

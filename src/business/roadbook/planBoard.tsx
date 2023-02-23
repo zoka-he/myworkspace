@@ -2,8 +2,14 @@ import { Card, Input, Space, Button } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import PlanEditor from './planEditor';
 import fetch from '@/src/fetch';
+import { EditOutlined, CarOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
+ 
+import type { IRoadPlan } from '@/src/types/IRoadPlan';
 
 export default function() {
+
+    let navigate = useNavigate();
 
     let [cards, setCards] = useState([]);
     let [queryName, setQueryName] = useState('');
@@ -29,10 +35,31 @@ export default function() {
         }
     }
 
+    function onEditPlan(row: IRoadPlan) {
+        if (mPlanEditor.current) {
+            mPlanEditor.current.showAndEdit(row);
+        }
+    }
+
+    function onEditRoad(row: IRoadPlan) {
+        navigate(`/roadBook/editor?ID=${row.ID}`);
+    }
+
     function renderCards() {
-        return cards.map(item => {
+        return cards.map((item: IRoadPlan) => {
             return (
-                <Card></Card>
+                <Card className='m-road_plan-card'>
+                    <h3>
+                        <span>{item.name}</span>
+                        <Button type="link" onClick={() => onEditPlan(item)}>
+                            <EditOutlined/>
+                        </Button>
+                        <Button type="link" onClick={() => onEditRoad(item)}>
+                            <CarOutlined/>
+                        </Button>
+                    </h3>
+                    <p>{item.remark}</p>
+                </Card>
             )
         })
     }

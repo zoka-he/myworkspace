@@ -2,9 +2,10 @@ import React from "react";
 import {Form, Modal, Input, Select, Button, message, DatePicker, FormInstance} from "antd";
 import _ from 'lodash';
 import moment from "moment";
-import {ITaskData} from "@/src/types/ITaskData";
 import fetch from '@/src/fetch';
 import Dayjs from 'dayjs';
+
+import type { IRoadPlan } from "@/src/types/IRoadPlan";
 
 interface IPlanEditorProp {
     onFinish?: Function
@@ -32,13 +33,10 @@ function string2date(s?: string) {
 }
 
 class TaskEditor extends React.Component<IPlanEditorProp, IPlanEditorState & {}> {
-    private formDefault: ITaskData = {
-        priority: 0,
-        status: 0
-    }
+    private formDefault: IRoadPlan = {}
 
     private mForm: FormInstance | null;
-    private oldData: ITaskData | null;
+    private oldData: IRoadPlan | null;
 
     constructor(props: {}) {
         super(props);
@@ -48,10 +46,7 @@ class TaskEditor extends React.Component<IPlanEditorProp, IPlanEditorState & {}>
             loading: false,
         }
 
-        this.formDefault = {
-            priority: 0,
-            status: 0
-        }
+        this.formDefault = {}
 
         this.mForm = null;
         this.oldData = null;
@@ -72,12 +67,12 @@ class TaskEditor extends React.Component<IPlanEditorProp, IPlanEditorState & {}>
         this.mForm?.setFieldsValue(_.clone(data));
     }
 
-    async showAndEdit(task: ITaskData) {
+    async showAndEdit(plan: IRoadPlan) {
         this.setState({
             modalOpen: true
         });
 
-        this.oldData = await fetch.get('/api/task', { params: { ID: task.ID } });
+        this.oldData = await fetch.get('/api/roadPlan', { params: { ID: plan.ID } });
         // this.oldData = await new TaskService().queryOne({ ID: task.ID });
         this.parseAndFixData(this.oldData);
     }
@@ -145,7 +140,7 @@ class TaskEditor extends React.Component<IPlanEditorProp, IPlanEditorState & {}>
                         <Form.Item label={'名称'} name={'name'} rules={[{ required: true, message: '任务名为必填！' }]}>
                             <Input/>
                         </Form.Item>
-                        <Form.Item label={'描述'} name={'detail'}>
+                        <Form.Item label={'描述'} name={'remark'}>
                             <Input.TextArea/>
                         </Form.Item>
                         
