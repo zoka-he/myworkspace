@@ -16,7 +16,9 @@ async function insertOne(table: string, obj: ISqlCondMap) {
         return;
     }
 
-    await connPool.execute(`insert into ${table}(${names.join(',')}) values(${placeholders.join(',')})`, values);
+    let conn = await connPool.getConnection();
+    await conn.execute(`insert into ${table}(${names.join(',')}) values(${placeholders.join(',')})`, values);
+    conn.release();
 }
 
 async function insertMany(table: string, obj: ISqlCondMap) {
@@ -51,7 +53,9 @@ async function updateOne(table: string, conditions: ISqlCondMap, obj: any) {
         conStr = conNames.join(' AND ');
     }
 
-    await connPool.execute(`update ${table} set ${sets.join(',')} where ${conStr}`, values);
+    let conn = await connPool.getConnection();
+    await conn.execute(`update ${table} set ${sets.join(',')} where ${conStr}`, values);
+    conn.release();
 }
 
 async function updateMany(table: string, conditions: ISqlCondMap, obj: any) {
@@ -73,12 +77,17 @@ async function deleteFrom(table: string, conditions: ISqlCondMap, values: any[] 
         conStr = conNames.join(' AND ');
     }
 
-    await connPool.execute(`delete from ${table} where ${conStr}`, values);
+    let conn = await connPool.getConnection();
+    await conn.execute(`delete from ${table} where ${conStr}`, values);
+    conn.release();
 }
 
 async function selectBySql(sql: string, ...options: any[]) {
     console.debug('selectBySql', sql);
-    let [rows] = await connPool.query(sql, ...options);
+    let conn = await connPool.getConnection();
+    // @ts-ignore
+    let [rows] = await conn.query(sql, ...options);
+    conn.release();
     return rows;
 }
 

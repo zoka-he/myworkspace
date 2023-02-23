@@ -1,6 +1,5 @@
 import Head from 'next/head'
 import { Provider } from 'react-redux';
-import { BrowserRouter } from 'react-router-dom';
 import store from '../src/store';
 import zhCN from 'antd/locale/zh_CN';
 import { ConfigProvider } from 'antd';

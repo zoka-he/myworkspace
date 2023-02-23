@@ -4,6 +4,7 @@ import '@/styles/colors.scss';
 import '@/styles/antd-fix.scss';
 import 'antd/dist/reset.css';
 
+import '@/styles/mainframe.scss';
 import '@/styles/dashboard/dashboard.scss';
 import '@/styles/dashboard/taskTip.scss';
 import '@/styles/task-manage/week-report.scss';

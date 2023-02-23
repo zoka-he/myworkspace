@@ -1,7 +1,7 @@
-import mysql from 'mysql2';
+import mysql from 'mysql2/promise';
 import config from '@/src/config/mysql';
 
-const connections = mysql.createPool({
+const connPool = mysql.createPool({
     host: config.MYSQL_HOST,
     database: config.MYSQL_DATABASE,
     port: config.MYSQL_PORT,
@@ -9,28 +9,11 @@ const connections = mysql.createPool({
     password: config.MYSQL_PASSWORD
 })
 
-// 测试数据库是否连接成功
-connections.getConnection((err, conn) => {
-    if (err) {
-        console.log('mysql连接失败');
-        console.error(err);
-        return;
-    }
-
-    conn.connect((err) => {
-        if (err) {
-            console.log('mysql连接失败');
-            console.error(err);
-        } else {
-            console.log('mysql连接成功');
-        }
-    })
-});
-
 process.on('exit', async (code) => {
     try {
-        await connections.end()
+        await connPool.end()
     } catch (error) {}
 });
 
-export default connections.promise();
+
+export default connPool;

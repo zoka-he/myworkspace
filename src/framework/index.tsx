@@ -1,6 +1,6 @@
 import { Breadcrumb, Layout, Menu, FloatButton } from 'antd';
 import { connect } from 'react-redux';
-import React, {useEffect, useRef} from 'react';
+import React, {useEffect} from 'react';
 import g_config from '../config';
 import { setLv1Key, setLv2Key } from '../store/navigatorSlice';
 import store from '../store';
@@ -135,7 +135,7 @@ function MainFrame (props: any) {
         </div>
         <Menu 
           className="f-flex-1"
-          theme="dark" 
+          theme="dark"
           mode="horizontal"
           items={getLv1Menus()} 
           onSelect={e => onLv1Select(e)}
@@ -151,12 +151,11 @@ function MainFrame (props: any) {
           />
         </Sider>
         <Content style={{ backgroundColor: 'white' }}>
-          <div style={{ padding: '0 24px' }} 
-              className="f-fit-height f-flex-col f-bg-white f-vertical-scroll">
-            <div>
+          <div className="m-mainframe_context f-fit-height f-flex-col f-bg-white f-vertical-scroll">
+            <div className="m-mainframe_context-breadcomb">
               {renderBreadcrumb()}
             </div>
-            <div className="f-flex-1" style={{ margin: '12px 0' }}>
+            <div className="m-mainframe_context-outlet f-flex-1" style={{ margin: '12px 0' }}>
               {/* 主界面 */}
               <Outlet/>
             </div>
