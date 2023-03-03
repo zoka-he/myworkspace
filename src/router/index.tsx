@@ -12,6 +12,7 @@ const UplineCheck = lazy(() => import('../business/fuckCheck'));
 const WeekReport = lazy(() => import('../business/weeklyReport'));
 const RoadBookPlanBoard = lazy(() => import('../business/roadbook/planBoard'));
 const RoadBookEditor = lazy(() => import('../business/roadbook/roadBookEditor'));
+const AccountManage = lazy(() => import('../business/accountManage'));
 
 async function mainFrameLoader() {
   let matches = useMatches();
@@ -30,8 +31,12 @@ export default function() {
           <Route path="taskManage/catfightLog" element={<CatfightLog />} />
           <Route path="taskManage/uplineCheck" element={<UplineCheck />} />
           <Route path="taskManage/weeklyReport" element={<WeekReport />} />
+
           <Route path="roadBook/planBoard" element={<RoadBookPlanBoard />} />
           <Route path="roadBook/editor" element={<RoadBookEditor />} />
+
+          <Route path="infos/accounts" element={<AccountManage />} />
+
           <Route path="*" element={<div><h1>此页面尚未实现！</h1></div>}/>
         </Route>
       </Routes>

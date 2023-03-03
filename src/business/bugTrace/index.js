@@ -14,7 +14,7 @@ const { Column } = Table;
 
 export default function BugTrace() {
     let [queryEmployee, updateQueryEmployee] = useState('');
-    let [queryStatus, updateQueryStatus] = useState([0, 1, 2, 3, 4]);
+    let [queryStatus, updateQueryStatus] = useState([0, 1, 2, 3]);
     let [listData, updateListData] = useState('');
     let [spinning, updateSpinning] = useState(false);
     let [pageNum, updatePageNum] = useState(1);

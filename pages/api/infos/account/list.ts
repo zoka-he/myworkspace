@@ -1,12 +1,12 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from 'next'
-import BugService from "@/src/services/bug/bugService";
+import AccountService from "@/src/services/account/accountService";
 import _ from 'lodash';
 import { ISqlCondMap } from '@/src/utils/mysql/types';
 
 type Data = Object;
 
-const service = new BugService();
+const service = new AccountService();
 
 
 async function research(req: NextApiRequest, res: NextApiResponse) {
@@ -23,22 +23,17 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
         }
 
         switch(k) {
-            case 'task_id':
-                queryObject.task_id = v;
+            case 'sys_name':
+                queryObject.sys_name = { $like: `%${v}%` };
                 break;
 
-            case 'employee':
-                queryObject.employee = { $like: `%${v}%` };
+            case 'username':
+                queryObject.username = { $like: `%${v}%` };
                 break;
-
-            case 'status':
-            case 'status[]':
-                queryObject.status = v;
-                break;    
         }
     }
 
-    let ret = await service.queryWithTaskName(queryObject, page, limit);
+    let ret = await service.query(queryObject, [], ['username asc'], page, limit);
     res.status(200).json(ret);
 }
 

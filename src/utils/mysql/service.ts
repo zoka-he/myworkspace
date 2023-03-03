@@ -4,10 +4,10 @@ import {ISqlCondMap, ISqlCondMapParsed} from "@/src/utils/mysql/types";
 class MysqlService {
 
     private readonly tableName: string;
-    private readonly priKey: string;
+    private readonly priKey: string | string[];
     private validColumns: Array<string>;
 
-    constructor(tableName: string, priKey: string = 'ID') {
+    constructor(tableName: string, priKey: string | string[] = 'ID') {
         this.tableName = tableName;
         this.priKey = priKey;
         this.validColumns = [];
@@ -104,10 +104,20 @@ class MysqlService {
         }
     }
 
+    private getDefaultPrikey(): string[] {
+        if (typeof this.priKey === 'string') {
+            return [`${this.priKey} asc`]
+        } else {
+            return this.priKey.map(item => {
+                return `${item} asc`
+            })
+        }
+    }
+
     async query(
         conditionOrSql: string | ISqlCondMap = '',
         values: Array<any> = [],
-        order: Array<string> = [`${this.priKey} asc`],
+        order: Array<string> = this.getDefaultPrikey(),
         page: number = 1,
         limit: number = 20,
         noCount: boolean = false
@@ -170,18 +180,53 @@ class MysqlService {
     }
 
     async updateOne(oldObj: ISqlCondMap, obj: ISqlCondMap, ...args: any[]) {
-        let prikeyValue = oldObj[this.priKey];
-        let obj2 = { ...obj };
-        delete obj2[this.priKey];
+        let queryObj = {};
+        let updateObj = {};
+        for (let [k, v] of Object.entries(oldObj)) {
+            if (typeof this.priKey === 'string') {
+                if (k === this.priKey) {
+                    queryObj[k] = v;
+                } 
+            } else {
+                if (this.priKey.includes(k)) {
+                    queryObj[k] = v;
+                } 
+            }
+        }
 
-        let obj3 = this.verifyInsertOrUpdate(obj2);
+        for (let [k, v] of Object.entries(obj)) {
+            if (typeof this.priKey === 'string') {
+                if (k !== this.priKey) {
+                    updateObj[k] = v;
+                }
+            } else {
+                if (!this.priKey.includes(k)) {
+                    updateObj[k] = v;
+                }
+            }
+        }
+
+        let obj3 = this.verifyInsertOrUpdate(updateObj);
         // @ts-ignore
-        return await mysql.updateOne(this.tableName, {[this.priKey]: prikeyValue}, obj3, ...args);
+        return await mysql.updateOne(this.tableName, queryObj, obj3, ...args);
     }
 
     async deleteOne(obj: ISqlCondMap) {
-        let prikeyValue = obj[this.priKey];
-        return await mysql.deleteFrom(this.tableName, {[this.priKey]: prikeyValue});
+        let queryObj = {};
+        for (let [k, v] of Object.entries(obj)) {
+            if (typeof this.priKey === 'string') {
+                if (k === this.priKey) {
+                    queryObj[k] = v;
+                } 
+            } else {
+                if (this.priKey.includes(k)) {
+                    queryObj[k] = v;
+                } 
+            }
+        }
+
+        // let prikeyValue = obj[this.priKey];
+        return await mysql.deleteFrom(this.tableName, queryObj);
     }
 
     queryBySql(sql: string, values: any[]) {

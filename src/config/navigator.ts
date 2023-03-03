@@ -44,6 +44,15 @@ const navObj: INavMenu = {
       ]
     },
     {
+      label: '信息管理',
+      menu: [
+        {
+          label: '账号密码管理',
+          url: '/infos/accounts'
+        }
+      ]
+    },
+    {
       label: '路书',
       menu: [
         {
