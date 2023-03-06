@@ -13,7 +13,10 @@ interface IAccountHistViewerProps {
 }
 
 interface IAccountHistViewerState {
-    
+    modalOpen: boolean,
+    modalTitle: string,
+    loading: boolean,
+    listData: any[]
 }
 
 class AccountHistViewer extends React.Component<IAccountHistViewerProps, IAccountHistViewerState> {
@@ -69,7 +72,7 @@ class AccountHistViewer extends React.Component<IAccountHistViewerProps, IAccoun
         }
     }
 
-    renderAction(cell: any, row) {
+    renderAction(cell: any, row: any) {
 
         const deleteRow = async () => {
             await fetch.delete('/api/interact', { params: { ID: row.ID } });
@@ -107,7 +110,7 @@ class AccountHistViewer extends React.Component<IAccountHistViewerProps, IAccoun
     render() {
         return (
             <>
-                <Modal title={this.renderTitle()} open={this.state.modalOpen} onCancel={e => this.onCancel(e)} footer={null} width={1000}>
+                <Modal title={this.renderTitle()} open={this.state.modalOpen} onCancel={e => this.onCancel()} footer={null} width={1000}>
                     <div>
                         <Table dataSource={this.state.listData} size={'small'}>
                             <Column title="平台" dataIndex="sys_name" key="task_name"/>

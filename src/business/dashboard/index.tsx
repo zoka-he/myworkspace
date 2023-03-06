@@ -344,7 +344,7 @@ class Dashboard extends React.Component<{}, IDashboardState & IDashboardLists & 
         return <Droppable droppableId={droppableId}>
             {(provided, snapshot) => {
                 return (
-                    <div ref={provided.innerRef} {...provided.droppableProps}>
+                    <div className="m-dashboard_tips-wrapper" ref={provided.innerRef} {...provided.droppableProps}>
                         {taskContext}
                         {provided.placeholder}
                         {myplaceholder}
@@ -362,7 +362,7 @@ class Dashboard extends React.Component<{}, IDashboardState & IDashboardLists & 
         let self = this;
 
         return (
-            <div className={'f-fit-content'}>
+            <div className={'f-fit-content f-flex-col'}>
                 <div className={'f-flex-two-side'}>
                     <Space>
                         <label>任务名称：</label>
@@ -376,9 +376,9 @@ class Dashboard extends React.Component<{}, IDashboardState & IDashboardLists & 
                     </Space>
                 </div>
 
-                <div style={{ margin: '5px -10px' }}>
+                <div className={'f-flex-1'} style={{ margin: '5px -10px', overflow: 'auto' }}>
                     <DragDropContext onDragEnd={e => this.onDragEnd(e)}>
-                        <div className="f-flex-row">
+                        <div className="f-flex-row f-fit-height">
                             <div className="m-dashboard_main-list">
                                 <h3 className="f-inline-block f-fit-width f-bg-red18 f-align-center">未开始</h3>
                                 {this.renderTaskList('notStarted')}

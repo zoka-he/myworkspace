@@ -22,10 +22,6 @@ const navObj: INavMenu = {
           url: '/taskManage/taskManage'
         },
         {
-          label: '人员管理',
-          url: '/taskManage/employeeManage'
-        },
-        {
           label: '问题跟踪',
           url: '/taskManage/bugTrace'
         },
@@ -46,6 +42,10 @@ const navObj: INavMenu = {
     {
       label: '信息管理',
       menu: [
+        {
+          label: '人员管理',
+          url: '/taskManage/employeeManage'
+        },
         {
           label: '账号密码管理',
           url: '/infos/accounts'

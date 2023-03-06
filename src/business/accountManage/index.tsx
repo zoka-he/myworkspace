@@ -7,6 +7,7 @@ import moment from 'moment';
 import _ from 'lodash';
 import AccountEditor from './accountEditor';
 import HistroyViewer from './historyViewer';
+import { IAccount } from '@/src/types/IAccount';
 
 const { Column } = Table;
 
@@ -19,8 +20,8 @@ export default function AccountManage() {
     let [pageSize, updatePageSize] = useState(10);
     let [total, updateTotal] = useState(0);
 
-    let mEditor = useRef();
-    let mHistViewer = useRef();
+    let mEditor = useRef<AccountEditor>();
+    let mHistViewer = useRef<HistroyViewer>();
 
     useEffect(() => {
         onQuery();
@@ -52,7 +53,7 @@ export default function AccountManage() {
 
             updateListData(data);
             updateTotal(count);
-        } catch (e) {
+        } catch (e:any) {
             console.error(e);
             message.error(e.message);
         } finally {
@@ -64,17 +65,9 @@ export default function AccountManage() {
         mEditor.current?.show();
     }
 
-    function onPageChange({ page, pageSize }) {
+    function onPageChange({ page, pageSize }: { page: number, pageSize: number }) {
         updatePageNum(page);
         updatePageSize(pageSize);
-    }
-
-    function renderTime(cell) {
-        if (cell) {
-            return moment(cell).format('YYYY-MM-DD HH:mm:ss');
-        } else {
-            return '/';
-        }
     }
 
     function renderSource(cell: string) {
@@ -85,7 +78,7 @@ export default function AccountManage() {
         }[cell];
     }
 
-    function renderAction(cell: any, row) {
+    function renderAction(cell: any, row: IAccount) {
 
         function onEdit() {
             mEditor.current?.showAndEdit(row);
@@ -129,7 +122,7 @@ export default function AccountManage() {
         </Space>
     }
 
-    function renderTotal(total) {
+    function renderTotal(total: number) {
         return `共 ${total} 个记录`;
     }
 
@@ -165,7 +158,7 @@ export default function AccountManage() {
 
             {/* @ts-ignore */}
             <AccountEditor ref={mEditor} onFinish={() => onQuery()}/>
-            
+
             {/* @ts-ignore */}
             <HistroyViewer ref={mHistViewer}/>
         </div>
