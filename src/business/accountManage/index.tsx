@@ -3,7 +3,6 @@ import fetch from '@/src/fetch';
 import { Button, Input, Space, Table, message } from 'antd';
 import { SearchOutlined, ExclamationCircleFilled } from '@ant-design/icons';
 import confirm from "antd/es/modal/confirm";
-import moment from 'moment';
 import _ from 'lodash';
 import AccountEditor from './accountEditor';
 import HistroyViewer from './historyViewer';
@@ -126,6 +125,10 @@ export default function AccountManage() {
         return `共 ${total} 个记录`;
     }
 
+    function renderRemark(cell: string) {
+        return <pre className="f-no-margin">{cell}</pre>
+    }
+
     return (
         <div className="f-fit-height f-flex-col">
             <div className="f-flex-two-side">
@@ -151,7 +154,7 @@ export default function AccountManage() {
                     <Column title="平台" dataIndex="sys_name" key="task_name"/>
                     <Column title="账户" dataIndex="username" key="employee"/>
                     <Column title="密码" dataIndex="passwd" key="message"/>
-                    <Column title="备注" dataIndex="remark" key="source"/>
+                    <Column title="备注" dataIndex="remark" key="source" render={renderRemark}/>
                     <Column title="操作" dataIndex="action" key="action" fixed="right" width={260} render={renderAction}/>
                 </Table>
             </div>

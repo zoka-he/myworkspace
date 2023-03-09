@@ -111,7 +111,7 @@ class accountEditor extends React.Component {
                             <Input/>
                         </Form.Item>
                         <Form.Item label={'备注'} name={'remark'}>
-                            <Input/>
+                            <Input.TextArea/>
                         </Form.Item>
                         <div className={'f-align-center'}>
                             <Button style={{ width: '200px' }} type="primary" htmlType="submit">
