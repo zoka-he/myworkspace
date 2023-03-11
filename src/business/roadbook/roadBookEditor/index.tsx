@@ -20,12 +20,7 @@ export default function() {
 
     let mDayPlanEditor = useRef();
 
-    let sstr = location.search;
-    if (sstr.startsWith('?')) {
-        sstr = sstr.substring(1);
-    }
-    let sobj = qs.parse(sstr);
-    console.debug('sobj', sobj);
+    
 
     function toggleEditState() {
         setEditState(!editState);
@@ -89,11 +84,26 @@ export default function() {
             })
         }
     }
-    
+
     useEffect(() => {
         if (rowPlanID !== null)
             onLoadPlan(rowPlanID);
-    }, [rowPlanID])
+    }, [rowPlanID]);
+
+
+    useEffect(() => {
+        let sstr = location.search;
+        if (sstr.startsWith('?')) {
+            sstr = sstr.substring(1);
+        }
+        let { ID } = qs.parse(sstr);
+        if (ID) {
+            setRowPlanID(ID);
+        }
+
+    }, []);
+    
+
 
     return (
         <div className="f-fit-height f-flex-two-side">
