@@ -499,9 +499,9 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
     drawPoints(ptList: any[]) {
         ptList.forEach(pInfo => {
             let pt = new BMapGL.Point(pInfo.lng, pInfo.lat);
+            let comp = pInfo.comp;
 
             let marker = new BMapGL.Marker(pt);
-
             this.bmap.addOverlay(marker);
             this.mk_nodePoints.push(marker);
 
@@ -510,7 +510,6 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
                 position: pt, // 指定文本标注所在的地理位置
                 offset: new BMapGL.Size(30, -30) // 设置文本偏移量
             });
-
             label.setStyle({
                 color: 'blue',
                 borderRadius: '4px',
@@ -524,6 +523,23 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
 
             this.bmap.addOverlay(label);
             this.mk_nodePoints.push(label);
+
+
+            // 给节点增加拖拽功能，拖拽后，需要同步更改标签位置及comp数据
+            if (comp) {
+                marker.addEventListener('dragging', e => {
+                    // console.debug('dragging', e.point?.lng, e.point?.lat);
+                    label.setPosition(e.point);
+                });
+                marker.addEventListener('dragend', e => {
+                    // console.debug('dragend', e.point?.lng, e.point?.lat);
+                    comp.acceptLocation({
+                        lat: e.point.lat,
+                        lng: e.point.lng,
+                    });
+                });
+                marker.enableDragging();
+            }
         });
     }
 
@@ -550,15 +566,20 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
 
     // 更新地图上所有点位
     updateMapPoints() {
-        this.setState({ shouldCalculate: true });
+        // 结束打标状态
+        this.setState({ 
+            shouldCalculate: true,
+            isLocatingNode: false,
+            locateNodeIndex: null
+        });
 
+        // 首先移除所有的点位
         this.mk_nodePoints.forEach(item => {
             this.bmap.removeOverlay(item);
         });
         this.mk_nodePoints = [];
 
         let ptList: any[] = [];
-        
         this.mNodeComps.forEach((comp, index) => {
 
             if (!comp?.state) {
@@ -573,7 +594,8 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
             ptList.push({
                 lng,
                 lat,
-                addr: addr || `${index}号节点`
+                addr: addr || `${index}号节点`,
+                // comp    // 关联的comp组件
             })
         });
 
@@ -588,6 +610,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         let pt = e.latlng;
         let addr = await this.getPointAddress(pt);
 
+        // 判断是否工作在节点打标状态，如果是，则点击的时候创建Marker
         if (this.state.isLocatingNode && this.state.locateNodeIndex !== null) {
             let nodeComp = this.mNodeComps[this.state.locateNodeIndex];
             if (!nodeComp) {
@@ -931,7 +954,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
             <>
                 <Modal title={this.renderEditorTitle()} width="90%" open={this.state.modalOpen} maskClosable={false}
                         onCancel={e => this.onCancel()} footer={null}>
-                    <div className="f-flex-row" style={{ height: "80vh" }}>
+                    <div className="f-flex-row" style={{ height: "70vh" }}>
                         {/* 左操作区 */}
                         <div className="f-flex-col" style={{ width: "550px" }}>
                             <section className="f-flex-1 f-vertical-scroll">
