@@ -16,7 +16,7 @@ export default function AccountManage() {
     let [listData, updateListData] = useState<[]>([]);
     let [spinning, updateSpinning] = useState(false);
     let [pageNum, updatePageNum] = useState(1);
-    let [pageSize, updatePageSize] = useState(10);
+    let [pageSize, updatePageSize] = useState(20);
     let [total, updateTotal] = useState(0);
 
     let mEditor = useRef<AccountEditor>();
@@ -84,7 +84,15 @@ export default function AccountManage() {
         }
 
         const deleteRow = async () => {
-            await fetch.delete('/api/interact', { params: { ID: row.ID } });
+            await fetch.delete(
+                '/api/infos/account', 
+                { 
+                    params: { 
+                        sys_name: row.sys_name,
+                        username: row.username 
+                    } 
+                }
+            );
 
             message.success('已删除');
             onQuery();
