@@ -48,17 +48,17 @@ export default function() {
     function renderCards() {
         return cards.map((item: IRoadPlan) => {
             return (
-                <Card className='m-road_plan-card'>
-                    <h3>
-                        <span>{item.name}</span>
-                        <Button type="link" onClick={() => onEditPlan(item)}>
-                            <EditOutlined/>
-                        </Button>
-                        <Button type="link" onClick={() => onEditRoad(item)}>
-                            <CarOutlined/>
-                        </Button>
-                    </h3>
+                <Card className='m-road_plan-card' title={item.name}>
                     <p>{item.remark}</p>
+                    <p>
+                        <Button type="link" onClick={() => onEditPlan(item)} icon={<EditOutlined/>}>
+                            修改信息
+                        </Button>
+                        <Button type="link" onClick={() => onEditRoad(item)} icon={<CarOutlined/>}>
+                            修改路线
+                        </Button>
+                    </p>
+                    
                 </Card>
             )
         })
@@ -78,7 +78,9 @@ export default function() {
                 </Space>
             </div>
             <div className="f-flex-1" style={{ margin: '12px 0' }}>
-                {renderCards()}
+                <Space size={[8, 16]} wrap>
+                    {renderCards()}
+                </Space>
             </div>
 
             { /* @ts-ignore */ }

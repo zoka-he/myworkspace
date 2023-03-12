@@ -35,11 +35,38 @@ export default class NodeEditor extends React.Component<IDayNodeProps, IDayNodeS
     constructor(props: IDayNodeProps) {
         super(props);
         let data = props.initData;
+        console.debug('initData', data);
+
+        function secondsToDayjs(n: number) {
+            if (!n) {
+                return null;
+            }
+
+            let t0 = Dayjs().startOf('day');
+            return t0.add(Dayjs.duration({ seconds: n }));
+        }
+
+        function getPreferTime(ns?: number[]) {
+            if (!ns) {
+                return undefined;
+            }
+
+            let preferTime= [];
+            if (ns instanceof Array) {
+                preferTime = ns.map(n => secondsToDayjs(n));
+            }
+            return preferTime;
+        }
         
         this.state = {
             type: data.type,
+            lng: data.lng,
+            lat: data.lat,
             addr: data.addr,
-            stayTime: data.stayTime
+            dist: data.dist,
+            dura: data.dura,
+            stayTime: secondsToDayjs(data.stayTime),
+            preferTime: getPreferTime(data.preferTime)
         };
 
         this.locateChangeFlag = false;
@@ -81,6 +108,34 @@ export default class NodeEditor extends React.Component<IDayNodeProps, IDayNodeS
         let t1 = this.state.stayTime;
         let dura = Dayjs.duration(t1.diff(t0));
         return dura;
+    }
+
+    public getSecondOfDay(djs?: Dayjs.Dayjs) {
+        let dura = Dayjs.duration(0);
+        if (djs) {
+            let t0 = Dayjs().startOf('day');
+            dura = Dayjs.duration(djs.diff(t0));
+        }
+        return dura.asSeconds();
+    }
+
+    public getDbData() {
+        let obj: any = {
+            type: this.state.type,
+            lng: this.state.lng,
+            lat: this.state.lat,
+            addr: this.state.addr,
+            dura: this.state.dura,
+            dist: this.state.dist,
+            stayTime: this.getSecondOfDay(this.state.stayTime),
+            preferTime: null
+        };
+
+        if (this.state.preferTime) {
+            obj.preferTime = this.state.preferTime.map(item => this.getSecondOfDay(item));
+        }
+
+        return obj;
     }
 
     componentDidUpdate(prevProps: Readonly<IDayNodeProps>, prevState: Readonly<IDayNodeStates>, snapshot?: any): void {
@@ -133,6 +188,16 @@ export default class NodeEditor extends React.Component<IDayNodeProps, IDayNodeS
             isMeLocating = true;
         }
 
+        let isMeLocateSet = false;
+        if (this.state.lng && this.state.lat) {
+            isMeLocateSet = true;
+        }
+
+        let addrPlaceholder = `第${index}号节点`;
+        if (!isMeLocateSet) {
+            addrPlaceholder += '，当前未设置坐标';
+        }
+
         return (
             <div className="m-day_tips">
                 <div className="f-flex-row">
@@ -143,10 +208,12 @@ export default class NodeEditor extends React.Component<IDayNodeProps, IDayNodeS
                             <Select.Option value="hotel">住宿</Select.Option>
                             <Select.Option value="sights">景点</Select.Option>
                         </Select>
-                        <Input style={{ width: '300px' }} placeholder={`第${index}号节点`}  value={this.state.addr} allowClear
+                        <Input style={{ width: '300px' }} placeholder={addrPlaceholder}  
+                                value={this.state.addr} allowClear
                                 onInput={e => this.setAddrText(e.target.value )}/>
                         <Button icon={<EnvironmentOutlined />} 
-                                type={ isMeLocating ? "primary" : "default" } 
+                                type={ isMeLocating ? "primary" : "default" }
+                                danger={!isMeLocateSet} 
                                 disabled={!locateEnable}
                                 onClick={() => requestLocate()}/>
                     </Input.Group>
