@@ -1,3 +1,4 @@
+import '@/src/init';
 import Head from 'next/head'
 import { Provider } from 'react-redux';
 import store from '../src/store';

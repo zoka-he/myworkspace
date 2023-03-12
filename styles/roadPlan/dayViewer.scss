@@ -5,5 +5,29 @@
 
     .m-dvtable {
         font-size: 10px;
+        width: 100%;
+
+        th:nth-child(1), th:nth-child(2) {
+            text-align: left;
+        }
+
+        td:nth-child(3) {
+            text-align: center;
+        }
+    }
+}
+
+.m-day_bmap-toolbox {
+    padding: 5px 0;
+}
+
+.m-day_tips {
+    width: 530px;
+    border: #eee 1px solid;
+    padding: 5px 10px;
+    margin: 5px 10px 5px 0;
+
+    > div {
+        margin: 5px 0 0;
     }
 }
