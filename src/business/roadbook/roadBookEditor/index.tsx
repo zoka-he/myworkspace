@@ -331,18 +331,20 @@ export default function() {
         })
 
         dayRoutes.forEach((path, index) => {
-            let strokeColor = (index % 2 === 0) ? 'blue' : 'green';
-
             let poly = new BMapGL.Polyline(
                 path.map((ptObj: any) => new BMapGL.Point(ptObj.lng, ptObj.lat)),
                 {
-                    strokeColor,
+                    strokeColor: (index % 2 === 0) ? 'blue' : 'green',
                     strokeWeight: 4,
                     strokeOpacity: 0.8
                 }
             );
 
-            bmap.addOverlay(poly);
+            try {
+                bmap.addOverlay(poly);
+            } catch(e) {
+                console.error(e);
+            }
         })
     }
 

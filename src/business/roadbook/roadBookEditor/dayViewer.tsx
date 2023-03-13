@@ -51,8 +51,8 @@ export default function(props: IDayViewerProps) {
     function renderRemark() {
         if (props.data?.remark) {
             return (
-                <div>
-                    {props.data.remark};
+                <div className="m-dayviewer-remark">
+                    <p>{props.data.remark}</p>
                 </div>
             )
         } else {
@@ -135,7 +135,7 @@ export default function(props: IDayViewerProps) {
 
     return (
         <div className="m-dayviewer">
-            <Card title={renderTitle()} extra={renderExtra()}>
+            <Card size="small" title={renderTitle()} extra={renderExtra()}>
                 { renderRemark() }
                 { renderDetail() }
             </Card>

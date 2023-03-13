@@ -55,7 +55,7 @@ export default function() {
                             修改信息
                         </Button>
                         <Button type="link" onClick={() => onEditRoad(item)} icon={<CarOutlined/>}>
-                            修改路线
+                            查看路线
                         </Button>
                     </p>
                     

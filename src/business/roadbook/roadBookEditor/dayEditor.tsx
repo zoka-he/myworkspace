@@ -85,7 +85,7 @@ function GeoSearch(props) {
         }
     }
 
-    return <Select style={{ width: '200px' }}
+    return <Select style={{ width: '450px' }}
                     options={compOpts} filterOption={false} 
                     showSearch onSearch={onSearch} onSelect={onSelect}></Select>
 }
@@ -815,19 +815,22 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
                 return;
             }
 
+            try {
+                let strokeColor = (index % 2 === 0) ? 'blue' : 'green';
+                let poly = new BMapGL.Polyline(
+                    path.map((ptObj: any) => new BMapGL.Point(ptObj.lng, ptObj.lat)),
+                    {
+                        strokeColor,
+                        strokeWeight: 4,
+                        strokeOpacity: 0.8
+                    }
+                );
 
-            let strokeColor = (index % 2 === 0) ? 'blue' : 'green';
-            let poly = new BMapGL.Polyline(
-                path.map((ptObj: any) => new BMapGL.Point(ptObj.lng, ptObj.lat)),
-                {
-                    strokeColor,
-                    strokeWeight: 4,
-                    strokeOpacity: 0.8
-                }
-            );
-
-            this.bmap.addOverlay(poly);
-            this.mk_planRoutes.push(poly);
+                this.bmap.addOverlay(poly);
+                this.mk_planRoutes.push(poly);
+            } catch(e) {
+                console.error(e);
+            }
         })
     }
 
