@@ -1,12 +1,28 @@
-import { Card, Input, Space, Button, Select, message } from 'antd';
+import { Input, Space, Button, message, InputNumber } from 'antd';
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import qs from 'querystring';
 import PlanSelect from '../planSelect';
 import DayViewer from './dayViewer';
 import fetch from '@/src/fetch';
 import DayPlanEditor from './dayEditor';
 import _ from 'lodash';
+
+function decodeBuffer(barr?: number[]) {
+    if (!barr) {
+        return {};
+    }
+
+    let decoder = new TextDecoder('utf-8');
+    let json = decoder.decode(new Uint8Array(barr));
+    try {
+        return JSON.parse(json);
+    } catch(e: any) {
+        console.error(e);
+        message.error(e.message);
+        return {};
+    }
+}
 
 export default function() {
 
@@ -16,6 +32,12 @@ export default function() {
     let [editState, setEditState] = useState(false);
 
     let [remark, setRemark] = useState('');
+    let [carDayCost, setCarDayCost] = useState(0);
+    let [fuelLCost, setFuelLCost] = useState(0);
+    let [fuel100KmCost, setFuel100KmCost] = useState(0);
+    let [mealDayCost, setMealDayCost] = useState(0);
+    let [hotelDayCost, setHotelDayCost] = useState(0);
+
     let [planData, setPlanData] = useState([]);
 
     let mDayPlanEditor = useRef();
@@ -24,8 +46,42 @@ export default function() {
     let [bmap, setBmap] = useState<any>(null);
     let [loadPlanFlag, setLoadPlanFlag] = useState(false);
 
-    function toggleEditState() {
-        setEditState(!editState);
+
+
+    async function toggleEditState() {
+        if (typeof roadPlanID !== 'number') {
+            message.error('操作无法执行，因为未指定路书！');
+            return;
+        }
+
+        if (!editState) {
+            setEditState(true);
+        } else {
+            let { totalCost } = getCostOfPlan();
+
+            let updateObj = {
+                ID: roadPlanID,
+                remark,
+                data: JSON.stringify({
+                    carDayCost,
+                    fuelLCost,
+                    fuel100KmCost,
+                    mealDayCost,
+                    hotelDayCost,
+                    totalCost
+                })
+            };
+
+            try {
+                await fetch.post('/api/roadPlan', updateObj, { params: { ID: roadPlanID } });
+                setEditState(false);
+            } catch(e) {
+                console.error(e);
+                message.error(e.message);
+            }
+
+            
+        }
     }
 
     /**
@@ -38,13 +94,18 @@ export default function() {
         let plan: any = await fetch.get('/api/roadPlan', { params: { ID: planId } });
         setRemark(plan.remark);
 
+        let roadData = decodeBuffer(plan.data?.data);
+        console.debug('roadData ===> ', roadData)
+        setCarDayCost(roadData.carDayCost || 0);
+        setFuelLCost(roadData.fuelLCost || 0);
+        setFuel100KmCost(roadData.fuel100KmCost || 0);
+        setMealDayCost(roadData.mealDayCost || 0);
+        setHotelDayCost(roadData.hotelDayCost || 0);
+
         // 加载日程信息
         let daysResp = await fetch.get('/api/roadPlan/day/list', { params: { road_id: planId } });
         setPlanData(daysResp.data);
         drawPlanRoute(daysResp.data);
-
-        console.debug('plan', plan);
-        console.debug('days', daysResp.data);
     }
 
     function appendDay(index?: number) {
@@ -87,12 +148,122 @@ export default function() {
         return comps;
     }
 
+    function renderCostFrom() {
+        if (editState) {
+            return [
+                <p className='m-plan_editor-more_info is_edit'>
+                    <Space>
+                        <span>租车费用：</span>
+                        <InputNumber addonAfter="￥/天" value={carDayCost} onChange={e => setCarDayCost(e)}/>
+                    </Space>
+                </p>,
+                <p className='m-plan_editor-more_info is_edit'>
+                    <Space>
+                        <span>燃油费用：</span>
+                        <InputNumber addonAfter="￥/L" value={fuelLCost} onChange={e => setFuelLCost(e)}/>
+                    </Space>
+                    
+                </p>,
+                <p className='m-plan_editor-more_info is_edit'>
+                    <Space>
+                        <span>百公里油耗：</span>
+                        <InputNumber addonAfter="L/100km" value={fuel100KmCost} onChange={e => setFuel100KmCost(e)}/>
+                    </Space>
+                    
+                </p>,
+                <p className='m-plan_editor-more_info is_edit'>
+                    <Space>
+                        <span>饮食费用：</span>
+                        <InputNumber addonAfter="￥/天" value={mealDayCost} onChange={e => setMealDayCost(e)}/>
+                    </Space>
+                </p>,
+                <p className='m-plan_editor-more_info is_edit'>
+                    <Space>
+                        <span>住宿费用：</span>
+                        <InputNumber addonAfter="￥/天" value={hotelDayCost} onChange={e => setHotelDayCost(e)}/>
+                    </Space>
+                </p>,
+            ];
+        } else {
+            return [
+                <p className='m-plan_editor-more_info'>租车费用：{carDayCost}￥/天</p>,
+                <p className='m-plan_editor-more_info'>燃油费用：{fuelLCost}￥/L</p>,
+                <p className='m-plan_editor-more_info'>百公里油耗：{fuel100KmCost}L/100km</p>,
+                <p className='m-plan_editor-more_info'>饮食费用：{mealDayCost}￥/天</p>,
+                <p className='m-plan_editor-more_info'>住宿费用：{hotelDayCost}￥/天</p>,
+            ];
+        }
+    }
+
     function renderRemark() {
         if (editState) {
             return <Input.TextArea value={remark} onInput={e => setRemark(e.target.value)}/>;
         } else {
-            return <p>{remark}</p>
+            return <p className='m-plan_editor-remark'>{remark}</p>
         }
+    }
+
+    
+
+    function getCostOfPlan() {
+        let dayCnt = planData?.length || 0;
+
+        let planJsons = planData.map(item => {
+            return decodeBuffer(item.data?.data);
+        });
+        console.debug('planJsons ===> ', planJsons);
+
+        let meterCnt = 0;
+        if (planJsons instanceof Array) {
+            planJsons.forEach(dayPlan => {
+                if (dayPlan?.points?.length) {
+                    dayPlan.points.forEach((ptInfo: any) => {
+                        meterCnt += ptInfo?.dist || 0;
+                    })
+                }
+            });
+        }
+
+        let totalCarCost = dayCnt * carDayCost;
+        let totalFuelL = meterCnt * fuel100KmCost / 100 / 1000;
+        let totalFuelCost = totalFuelL * fuelLCost;
+        let totalHotelCost = dayCnt * hotelDayCost;
+        let totalMealCost = dayCnt * mealDayCost;
+        let totalCost = totalCarCost + totalFuelCost + totalHotelCost + totalMealCost;
+
+        return {
+            dayCnt,
+            meterCnt,
+            totalCarCost,
+            totalFuelL,
+            totalFuelCost,
+            totalHotelCost,
+            totalMealCost,
+            totalCost
+        };
+    }
+
+    function renderPlanMoreInfo() {
+        let {
+            dayCnt,
+            meterCnt,
+            totalCarCost,
+            totalFuelL,
+            totalFuelCost,
+            totalHotelCost,
+            totalMealCost,
+            totalCost
+        } = getCostOfPlan();
+
+        return [
+            <p className='m-plan_editor-more_info'>总时长：{dayCnt} 天</p>,
+            <p className='m-plan_editor-more_info'>总里程：{ (meterCnt / 1000).toFixed(2) } km</p>,
+            <p className='m-plan_editor-more_info'>预计油耗：{ totalFuelL.toFixed(2) }L { totalFuelCost.toFixed(2) }￥</p>,
+            <p className='m-plan_editor-more_info'>租车费用：{totalCarCost.toFixed(2)}￥</p>,
+            <p className='m-plan_editor-more_info'>住宿费用：{totalHotelCost.toFixed(2)}￥</p>,
+            <p className='m-plan_editor-more_info'>饮食费用：{totalMealCost.toFixed(2)}￥</p>,
+            <p className='m-plan_editor-more_info'>合计费用：{totalCost.toFixed(2)}￥</p>,
+        ]
     }
 
     function drawPlanRoute(planData) {
@@ -101,23 +272,6 @@ export default function() {
         }
 
         bmap.clearOverlays();
-
-        console.debug('planData =>', planData);
-        function decodeBuffer(barr?: number[]) {
-            if (!barr) {
-                return {};
-            }
-
-            let decoder = new TextDecoder('utf-8');
-            let json = decoder.decode(new Uint8Array(barr));
-            try {
-                return JSON.parse(json);
-            } catch(e: any) {
-                console.error(e);
-                message.error(e.message);
-                return {};
-            }
-        }
 
         let viewportPoints: any[] = [];
         let keyPoints: any[] = [];
@@ -246,7 +400,7 @@ export default function() {
 
 
     return (
-        <div className="f-fit-height f-flex-two-side">
+        <div className="f-fit-height f-flex-two-side m-plan_editor">
             <div style={{ minWidth: 400, height: '100%', overflow: 'auto' }} className="f-flex-col">
                 <Space>
                     <PlanSelect style={{ width: 325 }}
@@ -256,14 +410,30 @@ export default function() {
                     <Button type="primary" danger={editState} 
                             disabled={roadPlanID === null}
                             onClick={toggleEditState}>
-                        {editState ? '编辑中' : '编辑'}
+                        {editState ? '保存' : '编辑'}
                     </Button>
                 </Space>
                 <div>
                     <h3>计划详情：</h3>
-                    {renderRemark()}
-                    <h5>日程：</h5>
-                    { renderDayPlans() }
+                    <section>
+                        { renderRemark() }
+                    </section>
+
+                    <section>
+                        <h5>费用来源</h5>
+                        { renderCostFrom() }
+                    </section>
+
+                    <section>
+                        <h5>费用明细：</h5>
+                        { renderPlanMoreInfo() }
+                    </section>
+                    
+                    <section>
+                        <h5>日程：</h5>
+                        { renderDayPlans() }
+                    </section>
+                    
                 </div>
             </div>
             <div className="f-flex-1 f-relative" style={{marginLeft: '10px'}}>

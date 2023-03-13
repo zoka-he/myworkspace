@@ -1,4 +1,36 @@
+.m-plan_editor {
+    h3 {
+        margin: 10px 0 15px;
+    }
+
+    h5 {
+        margin: 0px 0 10px;
+    }
+
+    &-remark {
+        text-indent: 2em;
+    }
+
+    &-more_info {
+        text-indent: 2em;
+
+        * {
+            text-indent: 0;
+        }
+
+        .ant-input-number {
+            width: 100px;
+        }
+    }
+
+    section {
+        margin: 10px 0 25px;
+    }
+}
+
 .m-dayviewer {
+    margin-bottom: 10px;
+
     .m-dvtitle {
         margin: 10px 0 5px;
     }
