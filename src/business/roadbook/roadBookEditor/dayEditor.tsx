@@ -40,10 +40,13 @@ function GeoSearch(props) {
             onSearchComplete: function(results){
                 // 判断状态是否正确
                 if (local.getStatus() == BMAP_STATUS_SUCCESS){
+                    console.debug('poi result ====>>>>>', results);
+
+                    // poi的地名数据包括title和addr，title是常用地名，addr是街区号
                     let _pois = results._pois;
                     let poiOpts = _pois.map((poi, index) => {
                         return {
-                            label: poi.address,
+                            label: poi.title,
                             value: index
                         }
                     });
@@ -118,7 +121,6 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
     private mk_planRoutes: any[];
     private o_oplanRoutes: any[];
     private b_willUpdateBmapPoints: boolean;
-    private o_daydb: any;
     private b_willParseAndFixData: boolean;
     private o_openPayload: any;
 
@@ -154,8 +156,8 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
     }
 
     loadDefaultData() {
-        // 默认每天出发时间为7天
-        let startTime = Dayjs().startOf('day').add(7, 'hour');
+        // 默认每天出发时间为7:30
+        let startTime = Dayjs().startOf('day').add(7.5, 'hour');
 
         // 默认添加一个节点
         let dayPlanDetail = [{ uuid: uuid() }];
@@ -214,7 +216,13 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
 
         // 设置点位（如果有）
         if (detail.points?.length) {
-            up_state.dayPlanDetail = detail.points;
+            // 给每个点位增加uuid，否则react判别不出它们的关系，无法实现上下移位
+            up_state.dayPlanDetail = detail.points.map(item => {
+                return {
+                    ...item,
+                    uuid: uuid()
+                }
+            });
             this.drawPoints(detail.points);
             this.adjustPoints(detail.points);
         }

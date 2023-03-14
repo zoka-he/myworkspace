@@ -341,7 +341,7 @@ export default function() {
             );
 
             try {
-                bmap.addOverlay(poly);
+            bmap.addOverlay(poly);
             } catch(e) {
                 console.error(e);
             }
@@ -415,6 +415,7 @@ export default function() {
                         {editState ? '保存' : '编辑'}
                     </Button>
                 </Space>
+
                 <div>
                     <h3>计划详情：</h3>
                     <section>
@@ -438,6 +439,7 @@ export default function() {
                     
                 </div>
             </div>
+
             <div className="f-flex-1 f-relative" style={{marginLeft: '10px'}}>
                 { /* @ts-ignore */ }
                 <div ref={mBmapDiv}  className="f-fit-content">&nbsp;</div>
