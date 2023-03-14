@@ -1,4 +1,4 @@
-import { Input, Space, Button, message, InputNumber } from 'antd';
+import { Input, Space, Button, message, InputNumber, Checkbox } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import qs from 'querystring';
@@ -46,7 +46,7 @@ export default function() {
     let [bmap, setBmap] = useState<any>(null);
     let [loadPlanFlag, setLoadPlanFlag] = useState(false);
 
-
+    let [showWeathers, setShowWeathers] = useState(true);
 
     async function toggleEditState() {
         if (typeof roadPlanID !== 'number') {
@@ -129,13 +129,27 @@ export default function() {
         }
     }
 
+    /**
+     * 渲染所有日程计划
+     * @returns 
+     */
     function renderDayPlans() {
 
-        let comps = [];
+        let comps = [
+            <div className='f-flex-two-side'>
+                <h5>日程：</h5>
+                {/* <Space>
+                    <Checkbox value={showWeathers} 
+                            onChange={e => setShowWeathers(e)}
+                        >天气</Checkbox>
+                </Space> */}
+            </div>
+        ];
         let days = planData.map((item, index) => {
             return <DayViewer 
                         day={index + 1} key={index}
                         data={item}
+                        showWeather={showWeathers}
                         onAppend={() => appendDay(index)}
                         onPrepend={() => prependDay(index)}
                         onEdit={() => editDay(item, index)}
@@ -433,7 +447,6 @@ export default function() {
                     </section>
                     
                     <section>
-                        <h5>日程：</h5>
                         { renderDayPlans() }
                     </section>
                     

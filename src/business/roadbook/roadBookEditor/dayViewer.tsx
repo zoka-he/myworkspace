@@ -1,18 +1,47 @@
 import { Card, Button, message } from "antd";
 import { 
-    VerticalAlignTopOutlined, 
-    VerticalAlignBottomOutlined,
     EditOutlined
 } from '@ant-design/icons';
 import * as Dayjs from 'dayjs';
+import Openweather from '@/src/utils/openweather';
+import { useEffect, useState } from "react";
 
+interface IWeatherViewProps {
+    lng: number,
+    lat: number
+}
+
+function WeatherView(props: IWeatherViewProps) {
+    let [data, setData] = useState(null);
+
+    useEffect(() => {
+        let openweather = new (Openweather as any)(props.lng, props.lat);
+
+        openweather.getWeather().then((weather: any) => {
+            console.debug('weather comp data', weather);
+            setData(weather);
+
+            // setDesc(weather.description);
+            // setTemp(weather.temp);
+            // setIconUrl(Openweather.getIconUrl(weather.icon));
+        })
+    }, []);
+
+    if (!data) {
+        return <span>--</span>;
+    } else {
+        // @ts-ignore
+        return <span>{data.description} {data.temp}°C <img style={{ width:'24px' }} src={data.iconUrl}/></span>
+    }
+}
 
 interface IDayViewerProps {
     day: number,
     onPrepend?: Function,
     onAppend?: Function,
     onEdit?: Function,
-    data: any
+    data: any,
+    showWeather?: boolean
 }
 
 enum EDayViewerHookNames {
@@ -106,25 +135,36 @@ export default function(props: IDayViewerProps) {
         let trs = [];
         if (detail?.points?.length) {
             for (let item of detail.points) {
-                trs.push(<tr>
-                    <td>{type2disp(item.type)}</td>
-                    <td>{item.addr}</td>
+                let tds = [
+                    <td>{type2disp(item.type)}</td>,
+                    <td>{item.addr}</td>,
                     <td>{preferTime2Str(item.preferTime)}</td>
-                </tr>)
+                ];
+                if (props.showWeather) {
+                    tds.push(
+                        <td>
+                            <WeatherView lng={item.lng} lat={item.lat}/>
+                        </td>
+                    )
+                }
+
+                trs.push(<tr>{tds}</tr>)
             }
         }
 
-        
+        let ths = [
+            <th>日程</th>,
+            <th>地点</th>,
+            <th>参考时间</th>
+        ];
+        if (props.showWeather) {
+            ths.push(<th>当前天气</th>);
+        }
 
         return (
             <table className="m-dvtable">
                 <thead>
-                    <tr>
-                        <th>日程</th>
-                        <th>地点</th>
-                        <th>参考时间</th>
-                        {/* <th>参考海拔</th> */}
-                    </tr>
+                    <tr>{ ths }</tr>
                 </thead>
                 <tbody>
                     { trs }
