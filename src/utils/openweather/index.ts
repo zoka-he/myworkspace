@@ -25,7 +25,7 @@ function Openweather(this:any, lon:number, lat:number) {
                         lang: 'zh_cn',
                         units: 'metric'
                     },
-                    timeout: 10 * 1000
+                    timeout: 30 * 1000
                 }
             )
 
@@ -63,6 +63,10 @@ function Openweather(this:any, lon:number, lat:number) {
             }
             weather.temp = data.main.temp;
             weather.iconUrl = Openweather.getIconUrl(weather.icon);
+
+            weather.sunrise = data.sys.sunrise;
+            weather.sunset = data.sys.sunset;
+
             return weather;
         }
     }

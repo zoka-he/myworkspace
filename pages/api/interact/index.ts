@@ -58,7 +58,7 @@ export default function handler(
             processerFn = createOrUpdateOne;
             break;
         case 'DELETE':
-            processerFn = deleteOne
+            processerFn = deleteOne;
             break;
     }
 
