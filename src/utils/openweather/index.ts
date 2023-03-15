@@ -1,10 +1,11 @@
 /**
  * 官方网站：https://openweathermap.org/
  */
+import config from '@/src/config/openweather';
 import axios from 'axios';
 
 // const axios = require('axios');
-const API_KEY = '071027ab7bbd2b6ba5a313f407156ba1';
+const API_KEY = config.appid;
 
 interface Openweather {
     getIconUrl: Function
