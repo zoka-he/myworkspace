@@ -123,7 +123,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
     private o_oplanRoutes: any[];
     private b_willUpdateBmapPoints: boolean;
     private b_willParseAndFixData: boolean;
-    private o_openPayload: any;
+    private o_openPayload: any[];
 
     constructor(props: IDayPlanEditorProps) {
         super(props);
@@ -149,6 +149,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         this.o_oplanRoutes = [];
         this.b_willUpdateBmapPoints = false;
         this.b_willParseAndFixData = false;
+        this.o_openPayload = [];
     }
 
     show() {
@@ -157,30 +158,10 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         });
     }
 
-    loadDefaultData() {
-        // 默认每天出发时间为7:30
-        let startTime = Dayjs().startOf('day').add(7.5, 'hour');
-
-        // 默认添加一个节点
-        let dayPlanDetail = [{ uuid: uuid() }];
-
-        this.setState({
-            startTime,
-            dayPlanDetail
-        })
-    }
-
-    /**
-     * 从数据库装载日程
-     * @param dayDb 
-     */
-    loadDbData(dayDb: any) {
-        console.debug('loadDbData', dayDb);
-        let up_state: any = {};
-
-        // 设置描述
-        up_state.title = dayDb.name;
-        up_state.remark = dayDb.remark;
+    private parseDayDetail(dayDb: any) {
+        if (dayDb === null || dayDb === undefined || typeof dayDb !== 'object') {
+            return null;
+        }
 
         let detailData = dayDb.data;
         let detailJson = '';
@@ -200,6 +181,56 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
             }
         }
 
+        return detail;
+    }
+
+    loadDefaultData(prev: any) {
+        // 默认每天出发时间为7:30
+        let startTime = Dayjs().startOf('day').add(7.5, 'hour');
+
+        // 默认添加一个节点
+        let defaultPoint: any = {
+            uuid: uuid()
+        };
+
+        let shouldDrawPoint = false;
+        if (prev) {
+            let prevDetail: any = this.parseDayDetail(prev);
+            if (prevDetail.points?.length) {
+                let ptStart = prevDetail.points[prevDetail.points.length - 1];
+                defaultPoint.lng = ptStart.lng;
+                defaultPoint.lat = ptStart.lat;
+                defaultPoint.addr = ptStart.addr;
+                shouldDrawPoint = true;
+            }
+        }
+
+        let dayPlanDetail = [defaultPoint];
+
+        this.setState({
+            startTime,
+            dayPlanDetail
+        });
+
+        if (shouldDrawPoint) {
+            this.adjustPoints([ new BMapGL.Point(defaultPoint.lng, defaultPoint.lat) ]);
+            this.drawPoints([ defaultPoint ])
+        }
+    }
+
+    /**
+     * 从数据库装载日程
+     * @param dayDb 
+     */
+    loadDbData(dayDb: any) {
+        console.debug('loadDbData', dayDb);
+        let up_state: any = {};
+
+        // 设置描述
+        up_state.title = dayDb.name;
+        up_state.remark = dayDb.remark;
+
+        let detail: any = this.parseDayDetail(dayDb);
         console.debug('dayDetail ========>> ', detail);
 
         function secondToDayjs(n: number) {
@@ -239,16 +270,19 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         this.setState(up_state)
     }
 
-    async parseAndFixData(data: any) {
+    async parseAndFixData(data: any, index: number, prev: any, next: any) {
         if (!this.bmap) {
-            console.debug('parseAndFixData => no bmap retry:', data);
+            
 
             this.b_willParseAndFixData = true;
-            this.o_openPayload = data;
+            this.o_openPayload = [ data, index, prev, next ];
+
+            console.debug('parseAndFixData => no bmap retry:', this.o_openPayload);
+
             return;
         }
 
-        console.debug('parseAndFixData', data);
+        console.debug('parseAndFixData', data, index, prev);
 
         let road_id = data.road_id;
         let day_id = data.ID;
@@ -271,13 +305,13 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         this.setState({ dayDb: o_daydb });
 
         if (!day_id) {
-            this.loadDefaultData();
+            this.loadDefaultData(prev);
         } else {
             this.loadDbData(o_daydb);
         }
     }
 
-    showAndEdit(data: any) {
+    showAndEdit(data: any, index: number, prev: any, next: any) {
         this.setState({
             modalOpen: true,
             dayPlanDetail: []
@@ -285,7 +319,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
 
         this.clearMap();
 
-        this.parseAndFixData(data);
+        this.parseAndFixData(data, index, prev, next);
     }
 
     /**
@@ -684,7 +718,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
 
         if (this.b_willParseAndFixData) {
             this.b_willParseAndFixData = false;
-            this.parseAndFixData(this.o_openPayload);
+            this.parseAndFixData(...this.o_openPayload);
         }
         
     }
@@ -1023,7 +1057,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
                         {/* 右操作区 */}
                         <div className="f-flex-1">
                             <div className="f-fit-height f-flex-col m-day_bmap-container">
-                                <div>{this.renderMapHint()}</div>
+                                {/* <div>{this.renderMapHint()}</div> */}
 
                                 <div className="m-day_bmap-toolbox">
                                     <span>查询位置：</span>

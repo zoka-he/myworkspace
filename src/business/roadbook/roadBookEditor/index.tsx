@@ -1,4 +1,4 @@
-import { Input, Space, Button, message, InputNumber, Checkbox } from 'antd';
+import { Input, Space, Button, message, InputNumber, Modal } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import qs from 'querystring';
@@ -88,7 +88,10 @@ export default function() {
      * 加载路书
      * @param planId 
      */
-    async function onLoadPlan(planId: number) {
+    async function onLoadPlan(planId: number | null) {
+        if (typeof planId !== 'number') {
+            return;
+        }
 
         // 加载路书信息
         let plan: any = await fetch.get('/api/roadPlan', { params: { ID: planId } });
@@ -119,13 +122,51 @@ export default function() {
         }
     }
 
-    function editDay(dayData: any, index: number) {
+    function editDay(dayData: any, index: number, prev: any, next: any) {
         if (mDayPlanEditor.current) {
-            mDayPlanEditor.current.showAndEdit({
-                ID: dayData?.ID,
-                day_index: index,
-                road_id: roadPlanID
-            });
+            mDayPlanEditor.current.showAndEdit(
+                {
+                    ID: dayData?.ID,
+                    day_index: index,
+                    road_id: roadPlanID
+                },
+                index, 
+                prev,
+                next
+            );
+        }
+    }
+
+    function deleteDay(index: number) {
+        if (!planData[index]) {
+            console.error(`第${index}天不存在！`);
+            return;
+        }
+
+        let planData2 = [...planData];
+
+        let itemData: any = planData[index];
+        if (typeof itemData?.ID !== 'number') {
+            planData2.splice(index, 1);
+            setPlanData(planData2);
+        } else {
+            Modal.confirm({
+                title: '二次确认',
+                content: <p>警告！将删除节点，请二次确认！</p>,
+                onCancel() {
+                    message.warning('请求已取消！');
+                },
+                async onOk() {
+                    try {
+                        await fetch.delete('/api/roadPlan/day', { params: { ID: itemData.ID } });
+                    } catch(e) {
+                        message.error('删除出错，已重新载入数据！');
+                        console.error(e);
+                    } finally {
+                        await onLoadPlan(roadPlanID);
+                    }
+                }
+            })
         }
     }
 
@@ -138,21 +179,19 @@ export default function() {
         let comps = [
             <div className='f-flex-two-side'>
                 <h5>日程：</h5>
-                {/* <Space>
-                    <Checkbox value={showWeathers} 
-                            onChange={e => setShowWeathers(e)}
-                        >天气</Checkbox>
-                </Space> */}
             </div>
         ];
-        let days = planData.map((item, index) => {
+        let days = planData.map((item, index, arr) => {
+            let next = arr[index + 1];
+            let prev = arr[index - 1];
             return <DayViewer 
                         day={index + 1} key={index}
                         data={item}
+                        isEdit={editState}
                         showWeather={showWeathers}
-                        onAppend={() => appendDay(index)}
-                        onPrepend={() => prependDay(index)}
-                        onEdit={() => editDay(item, index)}
+                        onEdit={() => editDay(item, index, prev, next)}
+                        onDelete={() => deleteDay(index)}
+                        next={next} prev={prev}
                     />
         });
         comps.push(...days);
@@ -161,6 +200,8 @@ export default function() {
         </div>);
         return comps;
     }
+
+    
 
     function renderCostFrom() {
         if (editState) {

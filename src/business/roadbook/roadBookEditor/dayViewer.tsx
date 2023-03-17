@@ -1,6 +1,7 @@
-import { Card, Button, message } from "antd";
+import { Card, Button, message, Space } from "antd";
 import { 
-    EditOutlined
+    EditOutlined,
+    CloseOutlined
 } from '@ant-design/icons';
 import * as Dayjs from 'dayjs';
 import Openweather from '@/src/utils/openweather';
@@ -138,14 +139,19 @@ interface IDayViewerProps {
     onPrepend?: Function,
     onAppend?: Function,
     onEdit?: Function,
+    onDelete?: Function,
     data: any,
-    showWeather?: boolean
+    showWeather?: boolean,
+    isEdit: boolean,
+    next: any,
+    prev: any
 }
 
 enum EDayViewerHookNames {
     onPrepend = 'onPrepend',
     onAppend = 'onAppend',
-    onEdit = 'onEdit'
+    onEdit = 'onEdit',
+    onDelete = 'onDelete'
 }
 
 /**
@@ -169,6 +175,10 @@ export default function(props: IDayViewerProps) {
         }
     }
 
+    /**
+     * 渲染日程标题
+     * @returns 
+     */
     function renderTitle() {
         let s_title = `D${props.day}`
         if (props.data?.name) {
@@ -177,12 +187,29 @@ export default function(props: IDayViewerProps) {
         return s_title;
     }
 
+    /**
+     * 渲染修改、删除按钮
+     * @returns 
+     */
     function renderExtra() {
-        return <Button type="link" icon={<EditOutlined/>}
-            onClick={() => callHook(EDayViewerHookNames.onEdit)}
-        >编辑行程</Button>
+        if (!props.isEdit) {
+            return null;
+        }
+
+        return <Space>
+            <Button type="link" icon={<EditOutlined/>} size="small"
+                onClick={() => callHook(EDayViewerHookNames.onEdit)}
+            >修改</Button>
+            <Button type="link" icon={<CloseOutlined/>} size="small" danger disabled={!!props.next}
+                onClick={() => callHook(EDayViewerHookNames.onDelete)}
+            ></Button>
+        </Space>
     }
 
+    /**
+     * 渲染日程说明
+     * @returns 
+     */
     function renderRemark() {
         if (props.data?.remark) {
             return (
@@ -195,6 +222,10 @@ export default function(props: IDayViewerProps) {
         }
     }
 
+    /**
+     * 渲染日程列表
+     * @returns 
+     */
     function renderDetail() {
         let detailData = props.data.data;
 
@@ -217,13 +248,16 @@ export default function(props: IDayViewerProps) {
 
         
 
-        let trs = [];
+        let trs: JSX.Element[] = [];
         if (detail?.points?.length) {
             detail.points.forEach((item: any, index: number) => {
                 trs.push(<TrForNode point={item}/>)
             });
         }
 
+        /**
+         * 表头
+         */
         let ths = [
             <th>日程</th>,
             <th>地点</th>,

@@ -2,7 +2,7 @@ import { Card, Input, Space, Button, Modal } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import PlanEditor from './planEditor';
 import fetch from '@/src/fetch';
-import { EditOutlined, CarOutlined, CloseOutlined } from '@ant-design/icons';
+import { EditOutlined, CarOutlined, CloseOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
  
 import type { IRoadPlan } from '@/src/types/IRoadPlan';
@@ -64,7 +64,7 @@ export default function() {
             }
 
             const extra = <Space>
-                <Button danger type="link" icon={<CloseOutlined/>} onClick={confirmDelete}>删除</Button>
+                <Button danger type="link" icon={<DeleteOutlined/>} onClick={confirmDelete}>删除</Button>
             </Space>;
 
             return (
