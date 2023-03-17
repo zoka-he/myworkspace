@@ -142,7 +142,7 @@ function MainFrame (props: any) {
         />
       </Header>
       <Layout>
-        <Sider width={200}>
+        <Sider width={140}>
           <Menu 
             mode="inline" 
             style={{ height: '100%' }}

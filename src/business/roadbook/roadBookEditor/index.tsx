@@ -48,6 +48,8 @@ export default function() {
 
     let [showWeathers, setShowWeathers] = useState(true);
 
+    let [personCnt, setPersonCnt] = useState(2);
+
     async function toggleEditState() {
         if (typeof roadPlanID !== 'number') {
             message.error('操作无法执行，因为未指定路书！');
@@ -259,7 +261,10 @@ export default function() {
     }
 
     
-
+    /**
+     * 计算总行程费用
+     * @returns 
+     */
     function getCostOfPlan() {
         let dayCnt = planData?.length || 0;
 
@@ -311,6 +316,7 @@ export default function() {
         } = getCostOfPlan();
 
         return [
+            <h5>费用明细：</h5>,
             <p className='m-plan_editor-more_info'>总时长：{dayCnt} 天</p>,
             <p className='m-plan_editor-more_info'>总里程：{ (meterCnt / 1000).toFixed(2) } km</p>,
             <p className='m-plan_editor-more_info'>预计油耗：{ totalFuelL.toFixed(2) }L { totalFuelCost.toFixed(2) }￥</p>,
@@ -483,7 +489,7 @@ export default function() {
                     </section>
 
                     <section>
-                        <h5>费用明细：</h5>
+                        {/* 费用明细： */}
                         { renderPlanMoreInfo() }
                     </section>
                     

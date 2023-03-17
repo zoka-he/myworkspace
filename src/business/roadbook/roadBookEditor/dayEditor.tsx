@@ -639,7 +639,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
             ptList.push({
                 lng,
                 lat,
-                addr: addr || `${index}号节点`,
+                addr: addr || `导航点${index}`,
                 // comp    // 关联的comp组件
             })
         });
@@ -897,7 +897,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
      */
     renderMapHint() {
         if (this.state.isLocatingNode) {
-            return <p className="f-red">{this.state.locateNodeIndex}号节点正在更改定位，请点击地图！如需修改节点名称，请手动清除原有名称！</p>;
+            return <p className="f-red">导航点{this.state.locateNodeIndex}正在更改定位，请点击地图！如需修改节点名称，请手动清除原有名称！</p>;
         }
 
         if (this.state.shouldCalculate) {
