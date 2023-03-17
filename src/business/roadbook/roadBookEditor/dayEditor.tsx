@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { Modal, Input, Button, message, AutoComplete, Select, Space, TimePicker } from "antd";
+import React, { useState } from "react";
+import { Modal, Input, Button, message, Select, Space, TimePicker } from "antd";
 import _ from 'lodash';
 import { ExclamationCircleFilled, PlusOutlined } from '@ant-design/icons';
 import confirm from "antd/es/modal/confirm";
@@ -107,6 +107,7 @@ interface IDayPlanEditorState {
     shouldCalculate: boolean,
     startTime: Dayjs | null,
     remark: string,
+    title: string,
     roadDb?: any,
     dayDb?: any
 }
@@ -136,9 +137,10 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
             locateNodeIndex: null,
             shouldCalculate: false,
             startTime: null,
+            title: '',
             remark: '',
             roadDb: undefined,
-            dayDb: undefined
+            dayDb: undefined,
         }
 
         this.mNodeComps = [];
@@ -177,6 +179,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         let up_state: any = {};
 
         // 设置描述
+        up_state.title = dayDb.name;
         up_state.remark = dayDb.remark;
 
         let detailData = dayDb.data;
@@ -929,6 +932,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
             isCreate = true;
         }
 
+        o_update_daydb.name = this.state.title;
         o_update_daydb.remark = this.state.remark;
 
         let day_data: any = {};
@@ -969,6 +973,13 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
                         {/* 左操作区 */}
                         <div className="f-flex-col" style={{ width: "550px" }}>
                             <section className="f-flex-1 f-vertical-scroll">
+                                <div style={{ marginBottom: '5px' }}>
+                                    <h3>日程标题：</h3>
+                                    <Input value={this.state.title} 
+                                            onInput={e => this.setState({ title: e.target.value })}
+                                            style={{ width: "530px" }}/>
+                                </div>
+
                                 <div style={{ marginBottom: '5px' }}>
                                     <h3>日程描述：</h3>
                                     <Input.TextArea value={this.state.remark} 

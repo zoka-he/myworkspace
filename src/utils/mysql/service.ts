@@ -225,8 +225,19 @@ class MysqlService {
             }
         }
 
+        if (Object.keys(obj).length === 0) {
+            throw new Error('deleteOne必须包含主键！');
+        };
+
         // let prikeyValue = obj[this.priKey];
         return await mysql.deleteFrom(this.tableName, queryObj);
+    }
+
+    async deleteMany(obj: ISqlCondMap) {
+        if (Object.keys(obj).length === 0) {
+            throw new Error('deleteMany必须包含条件！');
+        };
+        return await mysql.deleteFrom(this.tableName, obj);
     }
 
     queryBySql(sql: string, values: any[]) {

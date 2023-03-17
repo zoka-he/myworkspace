@@ -93,7 +93,8 @@ function TrForNode(props: ITrForNodeProps) {
         let t1HHmm = secondToHHmm(point.preferTime[1]);
 
 
-        /* states:
+        /* 关于这一块的设计，开夜车（安全问题）、日出日落（摄影需要）的显示优先级应该高于白天 
+         * states:
          * [t0, t1, sunrise, sunset]  night
          * [t0, sunrise, t1, sunset]  sunrise
          * [sunrise, t0, t1, sunset]  daytime
@@ -110,9 +111,12 @@ function TrForNode(props: ITrForNodeProps) {
             className = 'daytime';
         } else if (sunriseHHmm < t0HHmm && t0HHmm < sunsetHHmm && sunsetHHmm < t1HHmm) { // sunset
             className = 'sunset';
-        } 
-
-        console.table({ sunriseHHmm, sunsetHHmm, t0HHmm, t1HHmm, className });
+        } else {
+            console.table(
+                ['t0', 't1', 'sunrise', 'sunset'],
+                [t0HHmm, t1HHmm, sunriseHHmm, sunsetHHmm]
+            )
+        }
 
         setTrClassName(className);
     }
@@ -166,7 +170,11 @@ export default function(props: IDayViewerProps) {
     }
 
     function renderTitle() {
-        return `D${props.day}`;
+        let s_title = `D${props.day}`
+        if (props.data?.name) {
+            s_title += '：' + props.data.name;
+        }
+        return s_title;
     }
 
     function renderExtra() {

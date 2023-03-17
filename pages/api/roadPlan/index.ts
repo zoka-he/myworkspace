@@ -1,10 +1,12 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from 'next'
 import RoadPlanService from "@/src/services/roadbook/RoadBookPlanService";
+import DayPlanService from '@/src/services/roadbook/DayPlanService'
 
 type Data = Object;
 
 const service = new RoadPlanService();
+const dayPlanService = new DayPlanService();
 
 async function createOrUpdateOne(req: NextApiRequest, res: NextApiResponse) {
     const { ID } = req.query;
@@ -35,13 +37,19 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
     }
 }
 
+// 删除：要删两层
 async function deleteOne(req: NextApiRequest, res: NextApiResponse) {
     const { ID } = req.query;
     if (typeof ID === 'undefined') {
         res.status(500).json({ message: 'ID is required' });
     } else {
-        await service.deleteOne({ ID });
-        res.status(200).json({ message: 'deleted, ID:' + ID });
+        try {
+            await service.deleteOne({ ID });
+            await dayPlanService.deleteMany({ road_id: ID });
+            res.status(200).json({ message: 'deleted, ID:' + ID });
+        } catch(e: any) {
+            res.status(500).json({ message: e.message });
+        }
     }
 }
 

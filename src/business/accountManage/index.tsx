@@ -69,14 +69,6 @@ export default function AccountManage() {
         updatePageSize(pageSize);
     }
 
-    function renderSource(cell: string) {
-        return {
-            email: '邮件',
-            oa: 'OA',
-            bb: '口头',
-        }[cell];
-    }
-
     function renderAction(cell: any, row: IAccount) {
 
         function onEdit() {

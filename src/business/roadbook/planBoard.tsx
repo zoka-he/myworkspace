@@ -1,8 +1,8 @@
-import { Card, Input, Space, Button } from 'antd';
+import { Card, Input, Space, Button, Modal } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import PlanEditor from './planEditor';
 import fetch from '@/src/fetch';
-import { EditOutlined, CarOutlined } from '@ant-design/icons';
+import { EditOutlined, CarOutlined, CloseOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
  
 import type { IRoadPlan } from '@/src/types/IRoadPlan';
@@ -45,19 +45,39 @@ export default function() {
         navigate(`/roadBook/editor?ID=${row.ID}`);
     }
 
+    async function deletePlan(plan: IRoadPlan) {
+        await fetch.delete('/api/roadPlan', { params: { ID: plan.ID } });
+        await onQuery();
+    }
+
     function renderCards() {
         return cards.map((item: IRoadPlan) => {
+
+            function confirmDelete() {
+                Modal.confirm({
+                    title: '二次确认！',
+                    content: <span>即将删除计划：{item.name}</span>,
+                    onOk() {
+                        deletePlan(item);
+                    }
+                })
+            }
+
+            const extra = <Space>
+                <Button danger type="link" icon={<CloseOutlined/>} onClick={confirmDelete}>删除</Button>
+            </Space>;
+
             return (
-                <Card className='m-road_plan-card' title={item.name}>
+                <Card className='m-road_plan-card' title={item.name} extra={extra}>
                     <p>{item.remark}</p>
-                    <p>
-                        <Button type="link" onClick={() => onEditPlan(item)} icon={<EditOutlined/>}>
+                    <Space>
+                        <Button size='small' onClick={() => onEditPlan(item)} icon={<EditOutlined/>}>
                             修改信息
                         </Button>
-                        <Button type="link" onClick={() => onEditRoad(item)} icon={<CarOutlined/>}>
+                        <Button size="small" type="primary" onClick={() => onEditRoad(item)} icon={<CarOutlined/>}>
                             查看路线
                         </Button>
-                    </p>
+                    </Space>
                     
                 </Card>
             )
