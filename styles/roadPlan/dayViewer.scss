@@ -1,4 +1,14 @@
 .m-plan_editor {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+
+    .ant-spin-container {
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+    }
+
     h3 {
         margin: 10px 0 15px;
     }
@@ -25,6 +35,12 @@
 
     section {
         margin: 10px 0 25px;
+    }
+
+    &-map {
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        overflow: hidden;
     }
 }
 

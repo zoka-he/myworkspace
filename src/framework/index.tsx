@@ -155,7 +155,7 @@ function MainFrame (props: any) {
             <div className="m-mainframe_context-breadcomb">
               {renderBreadcrumb()}
             </div>
-            <div className="m-mainframe_context-outlet f-flex-1" style={{ margin: '12px 0' }}>
+            <div className="m-mainframe_context-outlet f-flex-1" style={{ margin: '12px 0 0' }}>
               {/* 主界面 */}
               <Outlet/>
             </div>

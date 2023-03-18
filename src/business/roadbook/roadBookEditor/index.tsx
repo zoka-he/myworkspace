@@ -1,4 +1,4 @@
-import { Input, Space, Button, message, InputNumber, Modal } from 'antd';
+import { Input, Space, Button, message, InputNumber, Modal, Spin, FloatButton } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import qs from 'querystring';
@@ -8,6 +8,35 @@ import fetch from '@/src/fetch';
 import DayPlanEditor from './dayEditor';
 import _ from 'lodash';
 
+
+/******************************
+ * 这里是路书编辑器页面的主入口
+ * 
+ * 这里的业务太多了，以至于代码是a bull of shit，看PRD吧
+ * 
+ * 本组件PRD如下：
+ * 1）显示路书的名称、简介；
+ * 2）显示路书的费用依据；
+ * 3）* 显示每日行程的明细数据，如地点、参考时间、天气等；
+ * 4）在百度地图上显示总体行程的路径；
+ * 5）提供路书基本信息及费用的编辑功能；
+ * 6）* 提供每日行程的增加及删除功能，提供编辑入口；
+ * 7）TODO: 提供导出md文件功能；
+ * 
+ * 其中：
+ * 3）显示每日行程的明细数据，如地点、参考时间、天气等；
+ * 6）提供每日行程的增加及删除功能，提供编辑入口；
+ * 由于这两点数据结构较为复杂，组件dayViewer代为实现全部或部分
+ * 
+ ******************************/
+
+
+
+/**
+ * dayDb.data使用了mlob作为存储格式，输出的是number[]，这里要把number[]变成jsonObject
+ * @param barr 
+ * @returns 
+ */
 function decodeBuffer(barr?: number[]) {
     if (!barr) {
         return {};
@@ -30,24 +59,24 @@ export default function() {
 
     let [roadPlanID, setroadPlanID] = useState<number | null>(null);
     let [editState, setEditState] = useState(false);
+    let [spinning, setSpinning] = useState(false);
 
     let [remark, setRemark] = useState('');
-    let [carDayCost, setCarDayCost] = useState(0);
-    let [fuelLCost, setFuelLCost] = useState(0);
-    let [fuel100KmCost, setFuel100KmCost] = useState(0);
-    let [mealDayCost, setMealDayCost] = useState(0);
-    let [hotelDayCost, setHotelDayCost] = useState(0);
+    let [carDayCost, setCarDayCost] = useState<number | null>(0);
+    let [fuelLCost, setFuelLCost] = useState<number | null>(0);
+    let [fuel100KmCost, setFuel100KmCost] = useState<number | null>(0);
+    let [mealDayCost, setMealDayCost] = useState<number | null>(0);
+    let [hotelDayCost, setHotelDayCost] = useState<number | null>(0);
 
     let [planData, setPlanData] = useState([]);
 
     let mDayPlanEditor = useRef();
     let mBmapDiv = useRef();
+    let mLeftArea = useRef();
 
     let [bmap, setBmap] = useState<any>(null);
     let [loadPlanFlag, setLoadPlanFlag] = useState(false);
-
     let [showWeathers, setShowWeathers] = useState(true);
-
     let [personCnt, setPersonCnt] = useState(2);
 
     async function toggleEditState() {
@@ -95,22 +124,28 @@ export default function() {
             return;
         }
 
-        // 加载路书信息
-        let plan: any = await fetch.get('/api/roadPlan', { params: { ID: planId } });
-        setRemark(plan.remark);
+        try {
+            setSpinning(true);
 
-        let roadData = decodeBuffer(plan.data?.data);
-        console.debug('roadData ===> ', roadData)
-        setCarDayCost(roadData.carDayCost || 0);
-        setFuelLCost(roadData.fuelLCost || 0);
-        setFuel100KmCost(roadData.fuel100KmCost || 0);
-        setMealDayCost(roadData.mealDayCost || 0);
-        setHotelDayCost(roadData.hotelDayCost || 0);
+            // 加载路书信息
+            let plan: any = await fetch.get('/api/roadPlan', { params: { ID: planId } });
+            setRemark(plan.remark);
 
-        // 加载日程信息
-        let daysResp = await fetch.get('/api/roadPlan/day/list', { params: { road_id: planId } });
-        setPlanData(daysResp.data);
-        drawPlanRoute(daysResp.data);
+            let roadData = decodeBuffer(plan.data?.data);
+            console.debug('roadData ===> ', roadData)
+            setCarDayCost(roadData.carDayCost || 0);
+            setFuelLCost(roadData.fuelLCost || 0);
+            setFuel100KmCost(roadData.fuel100KmCost || 0);
+            setMealDayCost(roadData.mealDayCost || 0);
+            setHotelDayCost(roadData.hotelDayCost || 0);
+
+            // 加载日程信息
+            let daysResp = await fetch.get('/api/roadPlan/day/list', { params: { road_id: planId } });
+            setPlanData(daysResp.data);
+            drawPlanRoute(daysResp.data);
+        } finally {
+            setSpinning(false);
+        }
     }
 
     function appendDay(index?: number) {
@@ -284,11 +319,11 @@ export default function() {
             });
         }
 
-        let totalCarCost = dayCnt * carDayCost;
-        let totalFuelL = meterCnt * fuel100KmCost / 100 / 1000;
-        let totalFuelCost = totalFuelL * fuelLCost;
-        let totalHotelCost = dayCnt * hotelDayCost;
-        let totalMealCost = dayCnt * mealDayCost;
+        let totalCarCost = dayCnt * (carDayCost || 0);
+        let totalFuelL = meterCnt * (fuel100KmCost || 0) / 100 / 1000;
+        let totalFuelCost = totalFuelL * (fuelLCost || 0);
+        let totalHotelCost = dayCnt * (hotelDayCost || 0);
+        let totalMealCost = dayCnt * (mealDayCost || 0);
         let totalCost = totalCarCost + totalFuelCost + totalHotelCost + totalMealCost;
 
         return {
@@ -315,6 +350,8 @@ export default function() {
             totalCost
         } = getCostOfPlan();
 
+        let personCost = totalCost / personCnt;
+
         return [
             <h5>费用明细：</h5>,
             <p className='m-plan_editor-more_info'>总时长：{dayCnt} 天</p>,
@@ -324,6 +361,14 @@ export default function() {
             <p className='m-plan_editor-more_info'>住宿费用：{totalHotelCost.toFixed(2)}￥</p>,
             <p className='m-plan_editor-more_info'>饮食费用：{totalMealCost.toFixed(2)}￥</p>,
             <p className='m-plan_editor-more_info'>合计费用：{totalCost.toFixed(2)}￥</p>,
+            <br />,
+            <p className='m-plan_editor-more_info'>
+                <Space>
+                    <label>分摊人数：</label>
+                    <InputNumber value={personCnt} onChange={e => setPersonCnt(e)} size="small"/>
+                </Space>
+            </p>,
+            <p className='m-plan_editor-more_info'>人均费用：{personCost.toFixed(2)}￥</p>,
         ]
     }
 
@@ -463,50 +508,62 @@ export default function() {
 
 
     return (
-        <div className="f-fit-height f-flex-two-side m-plan_editor">
-            <div style={{ minWidth: 400, height: '100%', overflow: 'auto' }} className="f-flex-col">
-                <Space>
-                    <PlanSelect style={{ width: 325 }}
-                        value={roadPlanID} 
-                        onChange={(ID: any) => setroadPlanID(ID)}
-                    />
-                    <Button type="primary" danger={editState} 
-                            disabled={roadPlanID === null}
-                            onClick={toggleEditState}>
-                        {editState ? '保存' : '编辑'}
-                    </Button>
-                </Space>
+        <div className='m-plan_editor'>
+            <Spin wrapperClassName="f-fit-content" spinning={spinning} size="large">
+                <div className="f-fit-height f-flex-two-side">
 
-                <div>
-                    <h3>计划详情：</h3>
-                    <section>
-                        { renderRemark() }
-                    </section>
+                    {/* 左侧区域 */}
+                    <div className="f-flex-col" style={{ width: 425, height: '100%' }} >
+                        <div ref={mLeftArea} className='f-fit-content f-relative f-vertical-scroll'>
+                            <Space>
+                                <PlanSelect style={{ width: 325 }}
+                                    value={roadPlanID} 
+                                    onChange={(ID: any) => setroadPlanID(ID)}
+                                />
+                                <Button type="primary" danger={editState} 
+                                        disabled={roadPlanID === null}
+                                        onClick={toggleEditState}>
+                                    {editState ? '保存' : '编辑'}
+                                </Button>
+                            </Space>
 
-                    <section>
-                        <h5>费用来源</h5>
-                        { renderCostFrom() }
-                    </section>
+                            <div>
+                                <h3>计划详情：</h3>
+                                <section>
+                                    { renderRemark() }
+                                </section>
 
-                    <section>
-                        {/* 费用明细： */}
-                        { renderPlanMoreInfo() }
-                    </section>
-                    
-                    <section>
-                        { renderDayPlans() }
-                    </section>
-                    
+                                <section>
+                                    <h5>费用来源</h5>
+                                    { renderCostFrom() }
+                                </section>
+
+                                <section>
+                                    {/* 费用明细： */}
+                                    { renderPlanMoreInfo() }
+                                </section>
+                                
+                                <section>
+                                    { renderDayPlans() }
+                                </section>
+                                
+                            </div>
+
+                            {/* 注意该按钮是以window为相对位置 */}
+                            <FloatButton.BackTop style={{ left: 520 }} target={() => (mLeftArea.current || window)}/>
+                        </div>
+                    </div>
+
+                    {/* 右侧区域 */}
+                    <div className="f-flex-1 f-relative m-plan_editor-map" style={{margin: '0 0 10px 10px'}}>
+                        { /* @ts-ignore */ }
+                        <div ref={mBmapDiv}  className="f-fit-content">&nbsp;</div>
+                    </div>
+
+                    { /* @ts-ignore */ }
+                    <DayPlanEditor ref={mDayPlanEditor} onFinish={e => onLoadPlan(roadPlanID)}/>
                 </div>
-            </div>
-
-            <div className="f-flex-1 f-relative" style={{marginLeft: '10px'}}>
-                { /* @ts-ignore */ }
-                <div ref={mBmapDiv}  className="f-fit-content">&nbsp;</div>
-            </div>
-
-            { /* @ts-ignore */ }
-            <DayPlanEditor ref={mDayPlanEditor} onFinish={e => onLoadPlan(roadPlanID)}/>
+            </Spin>
         </div>
     );
 }
