@@ -8,6 +8,13 @@ import uuid from "@/src/utils/common/uuid";
 import * as Dayjs from 'dayjs';
 import fetch from '@/src/fetch';
 
+// import svg_searchAddr from '@/public/mapicons/Target.svg';
+
+async function httpGetAsString(url: string) {
+    let ret = await fetch.get(url);
+    return '' + ret;
+}
+
 
 /**
  * 地理位置检索控件
@@ -124,6 +131,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
     private b_willUpdateBmapPoints: boolean;
     private b_willParseAndFixData: boolean;
     private o_openPayload: any[];
+    private mk_search: any;
 
     constructor(props: IDayPlanEditorProps) {
         super(props);
@@ -525,16 +533,46 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
      * 更新地图点位
      * @param pts 
      */
-    onGeoSearchAddress(...pts) {
+    async onGeoSearchAddress(...pts) {
         if (pts.length === 0) {
             return;
         }
 
-        if (pts.length === 1) {
-            this.bmap.centerAndZoom(pts[0], 15);
+        let pt = pts[0];
+        if (!pt) {
             return;
         }
+
+        // 移除旧搜索点
+        if (this.mk_search) {
+            this.bmap.removeOverlay(this.mk_search);
+            this.mk_search = undefined;
+        }
+
+        // 移动地图
+        this.bmap.centerAndZoom(pt, 15);
         
+        // 添加新搜索点
+        let svg_searchAddr = await httpGetAsString('/mapicons/Target.svg');
+        let mk = new BMapGL.Marker(
+            pt,
+            {
+                // 设置自定义path路径25325l99
+                icon: new BMapGL.SVGSymbol(
+                    svg_searchAddr,
+                    {
+                        rotation: 0,
+                        fillColor: 'red',
+                        fillOpacity : 1,
+                        scale: 0.05,
+                        anchor: new BMapGL.Size(530, 560)
+                    }
+                )
+            }
+        );
+
+        this.mk_search = mk;
+        this.bmap.addOverlay(mk);
     }
 
     /**
@@ -542,6 +580,13 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
      * @param ptList 
      */
     drawPoints(ptList: any[]) {
+
+        // 移除搜索点
+        if (this.mk_search) {
+            this.bmap.removeOverlay(this.mk_search);
+            this.mk_search = undefined;
+        }
+
         ptList.forEach(pInfo => {
             let pt = new BMapGL.Point(pInfo.lng, pInfo.lat);
             let comp = pInfo.comp;

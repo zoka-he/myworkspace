@@ -99,7 +99,8 @@ export default function() {
                     fuel100KmCost,
                     mealDayCost,
                     hotelDayCost,
-                    totalCost
+                    totalCost,
+                    personCnt
                 })
             };
 
@@ -138,6 +139,7 @@ export default function() {
             setFuel100KmCost(roadData.fuel100KmCost || 0);
             setMealDayCost(roadData.mealDayCost || 0);
             setHotelDayCost(roadData.hotelDayCost || 0);
+            setPersonCnt(roadData.personCnt || 2);
 
             // 加载日程信息
             let daysResp = await fetch.get('/api/roadPlan/day/list', { params: { road_id: planId } });
@@ -266,7 +268,7 @@ export default function() {
                 <p className='m-plan_editor-more_info is_edit'>
                     <Space>
                         <span>饮食费用：</span>
-                        <InputNumber addonAfter="￥/天" value={mealDayCost} onChange={e => setMealDayCost(e)}/>
+                        <InputNumber addonAfter="￥/人天" value={mealDayCost} onChange={e => setMealDayCost(e)}/>
                     </Space>
                 </p>,
                 <p className='m-plan_editor-more_info is_edit'>
@@ -281,7 +283,7 @@ export default function() {
                 <p className='m-plan_editor-more_info'>租车费用：{carDayCost}￥/天</p>,
                 <p className='m-plan_editor-more_info'>燃油费用：{fuelLCost}￥/L</p>,
                 <p className='m-plan_editor-more_info'>百公里油耗：{fuel100KmCost}L/100km</p>,
-                <p className='m-plan_editor-more_info'>饮食费用：{mealDayCost}￥/天</p>,
+                <p className='m-plan_editor-more_info'>饮食费用：{mealDayCost}￥/人天</p>,
                 <p className='m-plan_editor-more_info'>住宿费用：{hotelDayCost}￥/天</p>,
             ];
         }
@@ -323,7 +325,7 @@ export default function() {
         let totalFuelL = meterCnt * (fuel100KmCost || 0) / 100 / 1000;
         let totalFuelCost = totalFuelL * (fuelLCost || 0);
         let totalHotelCost = dayCnt * (hotelDayCost || 0);
-        let totalMealCost = dayCnt * (mealDayCost || 0);
+        let totalMealCost = dayCnt * (mealDayCost || 0) * personCnt;
         let totalCost = totalCarCost + totalFuelCost + totalHotelCost + totalMealCost;
 
         return {
