@@ -1,9 +1,10 @@
-import { Card, Input, Space, Button, Modal } from 'antd';
+import { Card, Input, Space, Button, Modal, message } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import PlanEditor from './planEditor';
 import fetch from '@/src/fetch';
 import { EditOutlined, CarOutlined, CloseOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import parseDayDetail from './roadBookEditor/parseDayDetail';
  
 import type { IRoadPlan } from '@/src/types/IRoadPlan';
 
@@ -67,9 +68,27 @@ export default function() {
                 <Button danger type="link" icon={<DeleteOutlined/>} onClick={confirmDelete}>删除</Button>
             </Space>;
 
+            let planDetail: any = {};
+            try {
+                planDetail = parseDayDetail(item);
+                console.debug(planDetail);
+            } catch(e) {
+                console.error(e);
+                message.error(e.message);
+            }
+
+            let personCnt = planDetail.personCnt || 2;
+            let totalCost = planDetail.totalCost || 0;
+
+
             return (
                 <Card className='m-road_plan-card' title={item.name} extra={extra}>
                     <p>{item.remark}</p>
+                    <p>
+                        <strong>人均：</strong>
+                        <span>{`${(totalCost / personCnt).toFixed(2)}￥`}</span>
+                    </p>
+
                     <Space>
                         <Button size='small' onClick={() => onEditPlan(item)} icon={<EditOutlined/>}>
                             修改信息

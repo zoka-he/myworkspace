@@ -7,6 +7,7 @@ import NodeEditor from "./nodeEditor";
 import uuid from "@/src/utils/common/uuid";
 import * as Dayjs from 'dayjs';
 import fetch from '@/src/fetch';
+import parseDayDetail from "./parseDayDetail";
 
 // import svg_searchAddr from '@/public/mapicons/Target.svg';
 
@@ -165,32 +166,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
             modalOpen: true
         });
     }
-
-    private parseDayDetail(dayDb: any) {
-        if (dayDb === null || dayDb === undefined || typeof dayDb !== 'object') {
-            return null;
-        }
-
-        let detailData = dayDb.data;
-        let detailJson = '';
-        if (detailData.type === 'Buffer') {
-            let nums: Array<number> = detailData.data;
-            let decoder = new TextDecoder('utf-8');
-            detailJson = decoder.decode(new Uint8Array(nums));
-        }
-
-        let detail: any = {};
-        if (detailJson) {
-            try {
-                detail = JSON.parse(detailJson);
-            } catch(e) {
-                console.error(e);
-                message.error(e.message);
-            }
-        }
-
-        return detail;
-    }
+    
 
     loadDefaultData(prev: any) {
         // 默认每天出发时间为7:30
@@ -203,7 +179,14 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
 
         let shouldDrawPoint = false;
         if (prev) {
-            let prevDetail: any = this.parseDayDetail(prev);
+            let prevDetail: any = {};
+            try {
+                prevDetail = parseDayDetail(prev);
+            } catch(e) {
+                console.error(e);
+                message.error(e.message);
+            }
+            
             if (prevDetail.points?.length) {
                 let ptStart = prevDetail.points[prevDetail.points.length - 1];
                 defaultPoint.lng = ptStart.lng;
@@ -238,7 +221,14 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         up_state.title = dayDb.name;
         up_state.remark = dayDb.remark;
 
-        let detail: any = this.parseDayDetail(dayDb);
+        let detail: any = {};
+        try {
+            detail = parseDayDetail(dayDb);
+        } catch(e) {
+            console.error(e);
+            message.error(e.message);
+        }
+
         console.debug('dayDetail ========>> ', detail);
 
         function secondToDayjs(n: number) {
