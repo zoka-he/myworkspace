@@ -195,10 +195,10 @@ export default function () {
             <div className="f-flex-two-side">
                 <Space>
                     <label>任务名称：</label>
-                    <Input value={queryTaskName} onInput={e => updateQueryTaskName(e.target.value)}/>
+                    <Input value={queryTaskName} onInput={e => updateQueryTaskName(e.currentTarget.value)}/>
 
                     <label>承接人：</label>
-                    <Input value={queryEmployee} onInput={e => updateQueryEmployee(e.target.value)}/>
+                    <Input value={queryEmployee} onInput={e => updateQueryEmployee(e.currentTarget.value)}/>
 
                     <label>任务状态：</label>
                     <TaskStatusSelect value={queryStatus} onChange={e => updateQueryStatus(e)}/>

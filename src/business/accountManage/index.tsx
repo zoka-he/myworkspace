@@ -129,15 +129,19 @@ export default function AccountManage() {
         return <pre className="f-no-margin">{cell}</pre>
     }
 
+    useEffect(() => {
+        onQuery();
+    }, [querySysName, queryUsername]);
+
     return (
         <div className="f-fit-height f-flex-col">
             <div className="f-flex-two-side">
                 <Space>
                     <label>平台：</label>
-                    <Input value={querySysName} onInput={e => updateQuerySysName(e.target.value)}/>
+                    <Input value={querySysName} onInput={e => updateQuerySysName(e.currentTarget.value)}/>
 
                     <label>账户：</label>
-                    <Input value={queryUsername} onInput={e => updateQueryUsername(e.target.value)}/>
+                    <Input value={queryUsername} onInput={e => updateQueryUsername(e.currentTarget.value)}/>
 
                     <Button icon={<SearchOutlined/>} type="primary" onClick={onQuery} loading={spinning}>查询</Button>
                 </Space>
@@ -149,8 +153,8 @@ export default function AccountManage() {
 
 
             <div className="f-flex-1" style={{ margin: '12px 0' }}>
-                <Table dataSource={listData} size={'small'}
-                        pagination={{ pageSize, total, onChange: onPageChange, showTotal: renderTotal }}>
+                { /** @ts-ignore */ }
+                <Table dataSource={listData} size={'small'} pagination={{ pageSize, total, onChange: onPageChange, showTotal: renderTotal }}>
                     <Column title="平台" dataIndex="sys_name" key="task_name"/>
                     <Column title="账户" dataIndex="username" key="employee"/>
                     <Column title="密码" dataIndex="passwd" key="message"/>

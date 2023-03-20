@@ -22,7 +22,7 @@ export default function() {
             page: 1,
             limit: 100
         }
-        let { data, count } = await fetch.get('/api/roadPlan/list', { params });
+        let { data } = await fetch.get('/api/roadPlan/list', { params });
         setCards(data);
     }
 
@@ -72,7 +72,7 @@ export default function() {
             try {
                 planDetail = parseDayDetail(item);
                 console.debug(planDetail);
-            } catch(e) {
+            } catch(e: any) {
                 console.error(e);
                 message.error(e.message);
             }

@@ -157,11 +157,13 @@ class MysqlService {
 
         let count = 0;
         if (noCount) {
-            count = pageData.length;
+            // @ts-ignore
+            count = pageData?.length || 0;
         } else {
             let countSql = `select count(0) as count from (${baseSql}) t`;
             console.debug('query count -> ', countSql, values);
             let countRs = await mysql.selectBySql(countSql, values);
+            // @ts-ignore
             count = countRs[0]?.count || 0;
         }
 
@@ -185,10 +187,12 @@ class MysqlService {
         for (let [k, v] of Object.entries(oldObj)) {
             if (typeof this.priKey === 'string') {
                 if (k === this.priKey) {
+                    // @ts-ignore
                     queryObj[k] = v;
                 } 
             } else {
                 if (this.priKey.includes(k)) {
+                    // @ts-ignore
                     queryObj[k] = v;
                 } 
             }
@@ -197,10 +201,12 @@ class MysqlService {
         for (let [k, v] of Object.entries(obj)) {
             if (typeof this.priKey === 'string') {
                 if (k !== this.priKey) {
+                    // @ts-ignore
                     updateObj[k] = v;
                 }
             } else {
                 if (!this.priKey.includes(k)) {
+                    // @ts-ignore
                     updateObj[k] = v;
                 }
             }
@@ -216,10 +222,12 @@ class MysqlService {
         for (let [k, v] of Object.entries(obj)) {
             if (typeof this.priKey === 'string') {
                 if (k === this.priKey) {
+                    // @ts-ignore
                     queryObj[k] = v;
                 } 
             } else {
                 if (this.priKey.includes(k)) {
+                    // @ts-ignore
                     queryObj[k] = v;
                 } 
             }
@@ -246,7 +254,9 @@ class MysqlService {
 
     async queryOne(conditionOrSql: string | ISqlCondMap = '', values = [], order = [`${this.priKey} asc`]) {
         let { data } = await this.query(conditionOrSql, values, order, 1, 1, true);
+        // @ts-ignore
         if (data[0]) {
+            // @ts-ignore
             return data[0];
         } else {
             return null;
