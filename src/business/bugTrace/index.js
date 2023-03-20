@@ -132,7 +132,7 @@ export default function BugTrace() {
             <div className="f-flex-two-side">
                 <Space>
                     <label>承接人：</label>
-                    <Input value={queryEmployee} onInput={e => updateQueryEmployee(e.target.value)}/>
+                    <Input value={queryEmployee} onInput={e => updateQueryEmployee(e.currentTarget.value)}/>
 
                     <label>状态：</label>
                     <BugStatusSelect value={queryStatus} onChange={e => updateQueryStatus(e)}/>

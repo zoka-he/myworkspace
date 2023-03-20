@@ -17,12 +17,17 @@ async function httpGetAsString(url: string) {
 }
 
 
+interface IGeoSearchProps {
+    map?: any
+    onAddress?: Function
+}
+
 /**
  * 地理位置检索控件
  * @param props 
  * @returns 
  */
-function GeoSearch(props) {
+function GeoSearch(props: IGeoSearchProps) {
     let [compOpts, setCompOpts] = useState([]);
     let [pois, setPois] = useState([]);
 
@@ -45,14 +50,15 @@ function GeoSearch(props) {
         }
 
         var sOpts = {
-            onSearchComplete: function(results){
+            onSearchComplete: function(results: any){
                 // 判断状态是否正确
+                // @ts-ignore
                 if (local.getStatus() == BMAP_STATUS_SUCCESS){
                     console.debug('poi result ====>>>>>', results);
 
                     // poi的地名数据包括title和addr，title是常用地名，addr是街区号
                     let _pois = results._pois;
-                    let poiOpts = _pois.map((poi, index) => {
+                    let poiOpts = _pois.map((poi: any, index: number) => {
                         return {
                             label: poi.title,
                             value: index
@@ -78,7 +84,7 @@ function GeoSearch(props) {
      * @param val 
      * @returns 
      */
-    function onSelect(val) {
+    function onSelect(val: any) {
         if (!props.map) {
             console.debug('map is not defined!');
             return;
@@ -90,7 +96,7 @@ function GeoSearch(props) {
         }
 
         // console.debug('select poi', val, pois[_.toNumber(val)]);
-        let poi = pois[_.toNumber(val)];
+        let poi: any = pois[_.toNumber(val)];
         if (poi && typeof props.onAddress === 'function') {
             props.onAddress(poi.point);
         }
@@ -113,6 +119,7 @@ interface IDayPlanEditorState {
     isLocatingNode: boolean,
     locateNodeIndex: number | null,
     shouldCalculate: boolean,
+    // @ts-ignore
     startTime: Dayjs | null,
     remark: string,
     title: string,
@@ -170,6 +177,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
 
     loadDefaultData(prev: any) {
         // 默认每天出发时间为7:30
+        // @ts-ignore
         let startTime = Dayjs().startOf('day').add(7.5, 'hour');
 
         // 默认添加一个节点
@@ -182,7 +190,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
             let prevDetail: any = {};
             try {
                 prevDetail = parseDayDetail(prev);
-            } catch(e) {
+            } catch(e: any) {
                 console.error(e);
                 message.error(e.message);
             }
@@ -224,7 +232,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         let detail: any = {};
         try {
             detail = parseDayDetail(dayDb);
-        } catch(e) {
+        } catch(e: any) {
             console.error(e);
             message.error(e.message);
         }
@@ -232,6 +240,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         console.debug('dayDetail ========>> ', detail);
 
         function secondToDayjs(n: number) {
+            // @ts-ignore
             let t0 = Dayjs().startOf('day');
             return t0.add(Dayjs.duration({ seconds: n }));
         }
@@ -249,7 +258,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         // 设置点位（如果有）
         if (detail.points?.length) {
             // 给每个点位增加uuid，否则react判别不出它们的关系，无法实现上下移位
-            up_state.dayPlanDetail = detail.points.map(item => {
+            up_state.dayPlanDetail = detail.points.map((item: any) => {
                 return {
                     ...item,
                     uuid: uuid()
@@ -268,7 +277,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         this.setState(up_state)
     }
 
-    async parseAndFixData(data: any, index: number, prev: any, next: any) {
+    async parseAndFixData(data: any, index: number, prev: any, next: any, ...args: any[]) {
         if (!this.bmap) {
             
 
@@ -467,7 +476,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
      * @param comp 
      * @param index 
      */
-    updateNodeComps(comp, index) {
+    updateNodeComps(comp: any, index: number) {
         this.mNodeComps[index] = comp;
         console.debug(this.mNodeComps);
     }
@@ -523,7 +532,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
      * 更新地图点位
      * @param pts 
      */
-    async onGeoSearchAddress(...pts) {
+    async onGeoSearchAddress(...pts: any[]) {
         if (pts.length === 0) {
             return;
         }
@@ -607,11 +616,11 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
 
             // 给节点增加拖拽功能，拖拽后，需要同步更改标签位置及comp数据
             if (comp) {
-                marker.addEventListener('dragging', e => {
+                marker.addEventListener('dragging', (e: any) => {
                     // console.debug('dragging', e.point?.lng, e.point?.lat);
                     label.setPosition(e.point);
                 });
-                marker.addEventListener('dragend', e => {
+                marker.addEventListener('dragend', (e: any)  => {
                     // console.debug('dragend', e.point?.lng, e.point?.lat);
                     comp.acceptLocation({
                         lat: e.point.lat,
@@ -687,8 +696,8 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
      * @param e 
      */
     async onClickMap(e: any) {
-        let pt = e.latlng;
-        let addr = await this.getPointAddress(pt);
+        let pt: any = e.latlng;
+        let addr: any = await this.getPointAddress(pt);
 
         // 判断是否工作在节点打标状态，如果是，则点击的时候创建Marker
         if (this.state.isLocatingNode && this.state.locateNodeIndex !== null) {
@@ -746,13 +755,14 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
             map.centerAndZoom(point, 15);
 
             // 添加点击事件
-            map.addEventListener('click', e => this.onClickMap(e));
+            map.addEventListener('click', (e: any) => this.onClickMap(e));
 
             this.bmap = map;
         }
 
         if (this.b_willParseAndFixData) {
             this.b_willParseAndFixData = false;
+            // @ts-ignore
             this.parseAndFixData(...this.o_openPayload);
         }
         
@@ -802,6 +812,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
                         this.bmap, 
                         {
                             onSearchComplete(results: any) {
+                                // @ts-ignore
                                 if (transit.getStatus() === BMAP_STATUS_SUCCESS){
                                     plan = results.getPlan(0);   
                                 } 
@@ -819,8 +830,8 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         console.info('routesPlan', routesPlans);
 
         // 从百度地图数据拆解出关键节点数据及路径数据
-        let routesDatas = routesPlans.map(item => {
-            if (item === null) {
+        let routesDatas = routesPlans.map((item: any) => {
+            if (item === null || item === undefined) {
                 return {
                     path: [],
                     distance: 0,
@@ -908,7 +919,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
 
                 this.bmap.addOverlay(poly);
                 this.mk_planRoutes.push(poly);
-            } catch(e) {
+            } catch(e: any) {
                 console.error(e);
             }
         })
@@ -968,7 +979,8 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
 
         if (this.b_willParseAndFixData) {
             this.b_willParseAndFixData = false;
-            this.parseAndFixData(this.o_openPayload);
+            // @ts-ignore
+            this.parseAndFixData(...this.o_openPayload);
         }
 
     }
@@ -992,11 +1004,13 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
 
         o_update_daydb.road_id = o_daydb.road_id;
         o_update_daydb.day_index = o_daydb.day_index;
+        // @ts-ignore
         o_update_daydb.update_time = Dayjs().format('YYYY-MM-DD HH:mm:ss');
 
         if (typeof o_daydb.ID === 'number') {
             o_update_daydb.ID = o_daydb.ID;
         } else {
+            // @ts-ignore
             o_update_daydb.create_time = Dayjs().format('YYYY-MM-DD HH:mm:ss');
             isCreate = true;
         }
@@ -1045,14 +1059,14 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
                                 <div style={{ marginBottom: '5px' }}>
                                     <h3>日程标题：</h3>
                                     <Input value={this.state.title} 
-                                            onInput={e => this.setState({ title: e.target.value })}
+                                            onInput={e => this.setState({ title: e.currentTarget.value })}
                                             style={{ width: "530px" }}/>
                                 </div>
 
                                 <div style={{ marginBottom: '5px' }}>
                                     <h3>日程描述：</h3>
                                     <Input.TextArea value={this.state.remark} 
-                                                    onInput={e => this.setState({ remark: e.target.value })}
+                                                    onInput={e => this.setState({ remark: e.currentTarget.value })}
                                                     style={{ width: "530px" }}/>
                                 </div>
                             
@@ -1096,7 +1110,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
 
                                 <div className="m-day_bmap-toolbox">
                                     <span>查询位置：</span>
-                                    <GeoSearch map={() => this.bmap} onAddress={pt => this.onGeoSearchAddress(pt)}/>
+                                    <GeoSearch map={() => this.bmap} onAddress={(pt: any) => this.onGeoSearchAddress(pt)}/>
                                 </div>
 
                                 <div className="f-flex-1 f-relative">

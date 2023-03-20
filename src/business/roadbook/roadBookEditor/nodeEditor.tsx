@@ -20,11 +20,13 @@ interface IDayNodeProps {
 interface IDayNodeStates {
     type?: string
     addr?: string
+    // @ts-ignore
     stayTime?: Dayjs | null | undefined,
     lng?: number
     lat?: number
     dist?: number
     dura?: number,
+    // @ts-ignore
     preferTime?: Dayjs[]
 }
 
@@ -42,6 +44,7 @@ export default class NodeEditor extends React.Component<IDayNodeProps, IDayNodeS
                 return null;
             }
 
+            // @ts-ignore
             let t0 = Dayjs().startOf('day');
             return t0.add(Dayjs.duration({ seconds: n }));
         }
@@ -83,6 +86,7 @@ export default class NodeEditor extends React.Component<IDayNodeProps, IDayNodeS
         
     }
 
+    // @ts-ignore
     public acceptDistAndDura(dist: number, dura: number, preferTime: Dayjs[]) {
         this.setState({
             dist,
@@ -91,7 +95,7 @@ export default class NodeEditor extends React.Component<IDayNodeProps, IDayNodeS
         });
     }
 
-    setAddrText(text) {
+    setAddrText(text:string) {
         this.locateChangeFlag = true;
 
         this.setState({
@@ -104,6 +108,7 @@ export default class NodeEditor extends React.Component<IDayNodeProps, IDayNodeS
             return 0;
         }
 
+        // @ts-ignore
         let t0 = Dayjs().startOf('day');
         let t1 = this.state.stayTime;
         let dura = Dayjs.duration(t1.diff(t0));
@@ -113,6 +118,7 @@ export default class NodeEditor extends React.Component<IDayNodeProps, IDayNodeS
     public getSecondOfDay(djs?: Dayjs.Dayjs) {
         let dura = Dayjs.duration(0);
         if (djs) {
+            // @ts-ignore
             let t0 = Dayjs().startOf('day');
             dura = Dayjs.duration(djs.diff(t0));
         }
@@ -210,7 +216,7 @@ export default class NodeEditor extends React.Component<IDayNodeProps, IDayNodeS
                         </Select>
                         <Input style={{ width: '300px' }} placeholder={addrPlaceholder}  
                                 value={this.state.addr} allowClear
-                                onInput={e => this.setAddrText(e.target.value )}/>
+                                onInput={e => this.setAddrText(e.currentTarget.value )}/>
                         <Button icon={<EnvironmentOutlined />} 
                                 type={ isMeLocating ? "primary" : "default" }
                                 danger={!isMeLocateSet} 

@@ -122,7 +122,7 @@ export default function CatfightLog() {
             <div className="f-flex-two-side">
                 <Space>
                     <label>承接人：</label>
-                    <Input value={queryEmployee} onInput={e => updateQueryEmployee(e.target.value)}/>
+                    <Input value={queryEmployee} onInput={e => updateQueryEmployee(e.currentTarget.value)}/>
 
                     <Button icon={<SearchOutlined/>} type="primary" onClick={onQuery} loading={spinning}>查询</Button>
                 </Space>

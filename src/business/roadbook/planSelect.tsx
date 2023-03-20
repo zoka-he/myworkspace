@@ -4,7 +4,11 @@ import fetch from '@/src/fetch';
 
 const { Option } = Select;
 
-export default function (props) {
+interface IPlanSelectProps {
+    onChange?: Function
+}
+
+export default function (props: IPlanSelectProps) {
     let [options, setOptions] = useState([]);
 
     useEffect(() => {
@@ -34,20 +38,21 @@ export default function (props) {
         return (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
     }
 
-    function onChange(...args) {
-        if (typeof props.onChange === 'function') {
-            props.onChange(...args);
-        }
-    }
+    // function onChange(...args: any[]) {
+    //     if (typeof props.onChange === 'function') {
+    //         props.onChange(...args);
+    //     }
+    // }
 
     return (
+        /** @ts-ignore */
         <Select 
             showSearch 
             filterOption={filterOption} 
             optionFilterProp="children"
             {...props}
         >
-            {options.map(item => <Option value={item.value} key={item.value}>{item.label}</Option>)}
+            {options.map((item: any) => <Option value={item.value} key={item.value}>{item.label}</Option>)}
         </Select>
     )
 }

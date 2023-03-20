@@ -34,7 +34,7 @@ function Openweather(this:any, lon:number, lat:number) {
             g_weatherData = resp.data;
 
             return g_weatherData;
-        } catch(e) {
+        } catch(e: any) {
             console.error(e);
         }
     }

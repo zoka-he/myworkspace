@@ -77,7 +77,7 @@ export default function() {
     let [bmap, setBmap] = useState<any>(null);
     let [loadPlanFlag, setLoadPlanFlag] = useState(false);
     let [showWeathers, setShowWeathers] = useState(true);
-    let [personCnt, setPersonCnt] = useState(2);
+    let [personCnt, setPersonCnt] = useState<number | null>(2);
 
     async function toggleEditState() {
         if (typeof roadPlanID !== 'number') {
@@ -107,7 +107,7 @@ export default function() {
             try {
                 await fetch.post('/api/roadPlan', updateObj, { params: { ID: roadPlanID } });
                 setEditState(false);
-            } catch(e) {
+            } catch(e: any) {
                 console.error(e);
                 message.error(e.message);
             }
@@ -153,9 +153,11 @@ export default function() {
     function appendDay(index?: number) {
         let planData2 = [...planData];
         if (index === undefined) {
+            // @ts-ignore
             planData2.push({});
             setPlanData(planData2);
         } else {
+            // @ts-ignore
             planData2.splice(index, 0, {});
             setPlanData(planData2);
         }
@@ -163,6 +165,7 @@ export default function() {
 
     function editDay(dayData: any, index: number, prev: any, next: any) {
         if (mDayPlanEditor.current) {
+            // @ts-ignore
             mDayPlanEditor.current.showAndEdit(
                 {
                     ID: dayData?.ID,
@@ -198,7 +201,7 @@ export default function() {
                 async onOk() {
                     try {
                         await fetch.delete('/api/roadPlan/day', { params: { ID: itemData.ID } });
-                    } catch(e) {
+                    } catch(e: any) {
                         message.error('删除出错，已重新载入数据！');
                         console.error(e);
                     } finally {
@@ -291,7 +294,7 @@ export default function() {
 
     function renderRemark() {
         if (editState) {
-            return <Input.TextArea value={remark} onInput={e => setRemark(e.target.value)}/>;
+            return <Input.TextArea value={remark} onInput={e => setRemark(e.currentTarget.value)}/>;
         } else {
             return <p className='m-plan_editor-remark'>{remark}</p>
         }
@@ -305,7 +308,7 @@ export default function() {
     function getCostOfPlan() {
         let dayCnt = planData?.length || 0;
 
-        let planJsons = planData.map(item => {
+        let planJsons = planData.map((item: any) => {
             return decodeBuffer(item.data?.data);
         });
         console.debug('planJsons ===> ', planJsons);
@@ -325,7 +328,7 @@ export default function() {
         let totalFuelL = meterCnt * (fuel100KmCost || 0) / 100 / 1000;
         let totalFuelCost = totalFuelL * (fuelLCost || 0);
         let totalHotelCost = dayCnt * (hotelDayCost || 0);
-        let totalMealCost = dayCnt * (mealDayCost || 0) * personCnt;
+        let totalMealCost = dayCnt * (mealDayCost || 0) * (personCnt || 2);
         let totalCost = totalCarCost + totalFuelCost + totalHotelCost + totalMealCost;
 
         return {
@@ -352,7 +355,7 @@ export default function() {
             totalCost
         } = getCostOfPlan();
 
-        let personCost = totalCost / personCnt;
+        let personCost = totalCost / (personCnt || 2);
 
         return [
             <h5>费用明细：</h5>,
@@ -374,7 +377,7 @@ export default function() {
         ]
     }
 
-    function drawPlanRoute(planData) {
+    function drawPlanRoute(planData: any) {
         if (!bmap) {
             return;
         }
@@ -401,7 +404,7 @@ export default function() {
                     }
 
                     if (routes) {
-                        dayRoutes.push(_.concat(...routes.map(item => item.path)));
+                        dayRoutes.push(_.concat(...routes.map((item: any) => item.path)));
                     }
                 }
             });
@@ -450,7 +453,7 @@ export default function() {
 
             try {
             bmap.addOverlay(poly);
-            } catch(e) {
+            } catch(e: any) {
                 console.error(e);
             }
         })
@@ -516,8 +519,10 @@ export default function() {
 
                     {/* 左侧区域 */}
                     <div className="f-flex-col" style={{ width: 425, height: '100%' }} >
+                        {/* @ts-ignore */}
                         <div ref={mLeftArea} className='f-fit-content f-relative f-vertical-scroll'>
                             <Space>
+                                {/* @ts-ignore */}
                                 <PlanSelect style={{ width: 325 }}
                                     value={roadPlanID} 
                                     onChange={(ID: any) => setroadPlanID(ID)}

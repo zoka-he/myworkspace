@@ -56,12 +56,14 @@ function TrForNode(props: ITrForNodeProps) {
     let { point } = props;  
 
     function secondToHHmm(n: number) {
+        // @ts-ignore
         let t0 = Dayjs().startOf('day');
         t0 = t0.add(Dayjs.duration({ seconds: n }));
         return t0.format('HH:mm');
     }
 
     function timestampToHHmm(ts: number) {
+        // @ts-ignore
         return Dayjs(ts).format('HH:mm');
     }
 
@@ -240,7 +242,7 @@ export default function(props: IDayViewerProps) {
         if (detailJson) {
             try {
                 detail = JSON.parse(detailJson);
-            } catch(e) {
+            } catch(e: any) {
                 console.error(e);
                 message.error(e.message);
             }
