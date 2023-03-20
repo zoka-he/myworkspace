@@ -7,6 +7,8 @@ import DayViewer from './dayViewer';
 import fetch from '@/src/fetch';
 import DayPlanEditor from './dayEditor';
 import _ from 'lodash';
+import * as Dayjs from 'dayjs';
+import copyToClip from '@/src/utils/common/copy';
 
 
 /******************************
@@ -234,9 +236,7 @@ export default function() {
                     />
         });
         comps.push(...days);
-        comps.push(<div style={{marginTop: '5px'}}>
-            <Button disabled={!editState} style={{ width: '100%' }} onClick={() => appendDay()}>添加</Button>
-        </div>);
+
         return comps;
     }
 
@@ -456,6 +456,135 @@ export default function() {
         })
     }
 
+    function exportPlanAsMd() {
+        let {
+            dayCnt,
+            meterCnt,
+            totalCarCost,
+            totalFuelL,
+            totalFuelCost,
+            totalHotelCost,
+            totalMealCost,
+            totalCost
+        } = getCostOfPlan();
+
+        let personCost = totalCost / personCnt;
+
+        let sections = [
+            '# 制表测试',
+            '',
+            '## 计划详情',
+            remark,
+            '',
+            '#### 费用来源',
+            '',
+            `租车费用：${carDayCost}￥/天`,
+            `燃油费用：${fuelLCost}￥/L`,
+            `百公里油耗：${fuel100KmCost}L/100km`,
+            `饮食费用：${mealDayCost}￥/人天`,
+            `住宿费用：${hotelDayCost}￥/天`,
+            '',
+            '#### 费用明细：',
+            `总时长：${dayCnt} 天`,
+            `总里程：${(meterCnt / 1000).toFixed(2)} km`,
+            `预计油耗：${totalFuelL.toFixed(2)}L ${totalFuelCost.toFixed(2)}￥`,
+            `租车费用：${totalCarCost.toFixed(2)}￥`,
+            `住宿费用：${totalHotelCost.toFixed(2)}￥`,
+            `饮食费用：${totalMealCost.toFixed(2)}￥`,
+            `合计费用：${totalCost.toFixed(2)}￥`,
+            '',
+            `分摊人数：${personCnt}`,
+            `人均费用：${personCost.toFixed(2)}￥`,
+            '',
+            '## 日程',
+            '',
+        ];
+
+        function type2disp(type: string) {
+            return {
+                meal: '用餐',
+                position: '途经',
+                hotel: '住宿',
+                sights: '景点',
+            }[type] || '';
+        }
+
+        function secondToHHmm(n: number) {
+            //@ts-ignore
+            let t0 = Dayjs().startOf('day');
+            //@ts-ignore
+            t0 = t0.add(Dayjs.duration({ seconds: n }));
+            return t0.format('HH:mm');
+        }
+    
+        function preferTime2Str(preferTime: any) {
+            let ss = null;
+            if (preferTime instanceof Array) {
+                ss = preferTime.map(n => secondToHHmm(n)).join(' - ');
+            }
+            return ss;
+        }
+
+        if (planData instanceof Array) {
+            planData.forEach((item: any, index: number) => {
+                let dayPlan = decodeBuffer(item.data?.data);
+                if (!dayPlan) {
+                    return;
+                }
+
+                let oneDayData = [];
+
+                if (item.name) {
+                    oneDayData.push(`#### D${index}：${item.name}`);
+                } else {
+                    oneDayData.push(`#### D${index}`);
+                }
+
+                if (item.remark) {
+                    oneDayData.push(item.remark);
+                }
+
+                oneDayData.push('');
+
+                let { points } = dayPlan;
+                if (points?.length) {
+                    oneDayData.push(...[
+                        '|日程|地点|参考时间|',
+                        '|----|:----|----|',
+                    ]);
+
+                    points.forEach((item: any, index: number) => {
+                        oneDayData.push(
+                            `|${type2disp(item.type)}|${item.addr || `导航点${index}`}|${preferTime2Str(item.preferTime)}|`
+                        );
+                    })
+                }
+
+                sections.push(...oneDayData, '');
+            });
+        }
+
+        let mdText = sections.join('\r\n');
+        copyToClip(mdText);
+        message.success('数据已复制，请粘贴到印象笔记md文件！');
+    }
+
+    function renderBottomArea() {
+        if (editState) {
+            return (
+                <div style={{marginTop: '5px'}}>
+                    <Button style={{ width: '100%' }} onClick={() => appendDay()}>添加</Button>
+                </div>
+            )
+        } else {
+            return (
+                <div style={{marginTop: '5px'}}>
+                    <Button style={{ width: '100%' }} onClick={() => exportPlanAsMd()}>导出</Button>
+                </div>
+            )
+        }
+    }
+
     useEffect(() => {
         if (roadPlanID !== null) {
             if (!bmap) {
@@ -547,6 +676,10 @@ export default function() {
                                 
                                 <section>
                                     { renderDayPlans() }
+                                </section>
+
+                                <section>
+                                    { renderBottomArea() }
                                 </section>
                                 
                             </div>
