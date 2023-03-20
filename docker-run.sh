@@ -1,4 +1,4 @@
-v_tag=$(git tag)
+v_tag=$(git log -1 --decorate=short --oneline|grep -Eo 'tag: (.*)[,)]+'|awk '{print $2}'|sed 's/)//g'|sed 's/,//g')
 if [ ! $v_tag ]; then
     echo '运行docker镜像需要知道git标签，但当前版本没有设置！'
     exit 0

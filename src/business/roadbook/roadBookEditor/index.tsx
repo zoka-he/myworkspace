@@ -471,7 +471,7 @@ export default function() {
             totalCost
         } = getCostOfPlan();
 
-        let personCost = totalCost / personCnt;
+        let personCost = totalCost / (personCnt || 2);
 
         let sections = [
             '# 制表测试',
