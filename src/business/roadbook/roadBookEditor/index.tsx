@@ -60,6 +60,7 @@ export default function() {
     let location = useLocation();
 
     let [roadPlanID, setroadPlanID] = useState<number | null>(null);
+    let [roadPlanLabel, setRoadPlanLabel] = useState<string | null>(null);
     let [editState, setEditState] = useState(false);
     let [spinning, setSpinning] = useState(false);
 
@@ -80,6 +81,11 @@ export default function() {
     let [loadPlanFlag, setLoadPlanFlag] = useState(false);
     let [showWeathers, setShowWeathers] = useState(true);
     let [personCnt, setPersonCnt] = useState<number | null>(2);
+
+    async function onRoadPlanChange(ID: any) {
+        setroadPlanID(ID);
+        // setRoadPlanLabel(label);
+    }
 
     async function toggleEditState() {
         if (typeof roadPlanID !== 'number') {
@@ -459,7 +465,27 @@ export default function() {
         })
     }
 
-    function exportPlanAsMd() {
+    async function exportPlanAsMd() {
+
+        let label = '';
+        try {
+            let planData: any = await fetch.get(
+                '/api/roadPlan', 
+                { params: { ID: roadPlanID } }
+            );
+
+            if (!planData?.name) {
+                message.error('路书数据异常，ID为' + roadPlanID + '，请查看数据库情况');
+                return;
+            }
+
+            label = planData.name;
+        } catch(e: any) {
+            console.error(e);
+            message.error(e.message);
+            return;
+        }
+
         let {
             dayCnt,
             meterCnt,
@@ -474,7 +500,7 @@ export default function() {
         let personCost = totalCost / (personCnt || 2);
 
         let sections = [
-            '# 制表测试',
+            `# ${label}`,
             '',
             '## 计划详情',
             remark,
@@ -538,9 +564,9 @@ export default function() {
                 let oneDayData = [];
 
                 if (item.name) {
-                    oneDayData.push(`#### D${index}：${item.name}`);
+                    oneDayData.push(`#### D${index + 1}：${item.name}`);
                 } else {
-                    oneDayData.push(`#### D${index}`);
+                    oneDayData.push(`#### D${index + 1}`);
                 }
 
                 if (item.remark) {
@@ -654,7 +680,7 @@ export default function() {
                                 {/* @ts-ignore */}
                                 <PlanSelect style={{ width: 325 }}
                                     value={roadPlanID} 
-                                    onChange={(ID: any) => setroadPlanID(ID)}
+                                    onChange={(ID: any) => onRoadPlanChange(ID)}
                                 />
                                 <Button type="primary" danger={editState} 
                                         disabled={roadPlanID === null}
