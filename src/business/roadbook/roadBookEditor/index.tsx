@@ -55,6 +55,11 @@ function decodeBuffer(barr?: number[]) {
     }
 }
 
+async function httpGetAsString(url: string) {
+    let ret = await fetch.get(url);
+    return '' + ret;
+}
+
 export default function() {
 
     let location = useLocation();
@@ -72,6 +77,7 @@ export default function() {
     let [hotelDayCost, setHotelDayCost] = useState<number | null>(0);
 
     let [planData, setPlanData] = useState([]);
+    let [addrMk, setAddrMk] = useState(null);
 
     let mDayPlanEditor = useRef();
     let mBmapDiv = useRef();
@@ -81,6 +87,7 @@ export default function() {
     let [loadPlanFlag, setLoadPlanFlag] = useState(false);
     let [showWeathers, setShowWeathers] = useState(true);
     let [personCnt, setPersonCnt] = useState<number | null>(2);
+
 
     async function onRoadPlanChange(ID: any) {
         setroadPlanID(ID);
@@ -221,6 +228,46 @@ export default function() {
     }
 
     /**
+     * 在地图上显示位置
+     * @param point 
+     */
+    async function onLocateAddr(data: any) {
+        if (addrMk) {
+            bmap.removeOverlay(addrMk);
+        }
+
+        if (!data?.lng || !data?.lat) {
+            setAddrMk(null);
+            return;
+        }
+
+        // alert('显示位置' + JSON.stringify(data));
+        let svg_searchAddr = await httpGetAsString('/mapicons/Target.svg');
+        let pt: any = new BMapGL.Point(data.lng, data.lat);
+        let mk: any = new BMapGL.Marker(
+            pt,
+            {
+                // 设置自定义path路径25325l99
+                icon: new BMapGL.SVGSymbol(
+                    svg_searchAddr,
+                    {
+                        rotation: 0,
+                        fillColor: 'red',
+                        fillOpacity : 1,
+                        scale: 0.05,
+                        anchor: new BMapGL.Size(530, 560)
+                    }
+                )
+            }
+        );
+
+        bmap.addOverlay(mk);
+        setAddrMk(mk);
+
+        bmap.centerAndZoom(pt, 12);
+    }
+
+    /**
      * 渲染所有日程计划
      * @returns 
      */
@@ -242,6 +289,7 @@ export default function() {
                         onEdit={() => editDay(item, index, prev, next)}
                         onDelete={() => deleteDay(index)}
                         next={next} prev={prev}
+                        onLocateAddr={ (pt: any) => onLocateAddr(pt) }
                     />
         });
         comps.push(...days);
@@ -635,7 +683,7 @@ export default function() {
 
             // 设置初始中心点
             let point = new BMapGL.Point(116.404, 39.915);
-            map.centerAndZoom(point, 15);
+            map.centerAndZoom(point, 12);
 
             setBmap(map);
         }
@@ -644,7 +692,6 @@ export default function() {
             onLoadPlan(roadPlanID);
         }
     }, [mBmapDiv]);
-
 
     useEffect(() => {
         let sstr = location.search;

@@ -1,7 +1,8 @@
 import { Card, Button, message, Space } from "antd";
 import { 
     EditOutlined,
-    CloseOutlined
+    CloseOutlined,
+    AimOutlined
 } from '@ant-design/icons';
 import * as Dayjs from 'dayjs';
 import Openweather from '@/src/utils/openweather';
@@ -38,7 +39,8 @@ function WeatherView(props: IWeatherViewProps) {
 
 
 interface ITrForNodeProps {
-    point: any
+    point: any,
+    onLocateAddr: Function
 }
 
 /**
@@ -123,13 +125,21 @@ function TrForNode(props: ITrForNodeProps) {
 
         setTrClassName(className);
     }
+
+    
     
 
     let tds = [
         <td>{type2disp(point.type)}</td>,
-        <td>{point.addr}</td>,
+        <td>
+            <Button type="link" size="small" icon={<AimOutlined/>}
+                    onClick={e => props.onLocateAddr()}/>
+            <span>{point.addr}</span>
+        </td>,
         <td>{preferTime2Str(point.preferTime)}</td>,
-        <td><WeatherView lng={point.lng} lat={point.lat} onData={onWeatherData}/></td>
+        <td>
+            <WeatherView lng={point.lng} lat={point.lat} onData={onWeatherData}/>
+        </td>
     ];
 
     return (<tr className={trClassName}>{tds}</tr>)
@@ -146,7 +156,8 @@ interface IDayViewerProps {
     showWeather?: boolean,
     isEdit: boolean,
     next: any,
-    prev: any
+    prev: any,
+    onLocateAddr?: Function
 }
 
 enum EDayViewerHookNames {
@@ -224,6 +235,14 @@ export default function(props: IDayViewerProps) {
         }
     }
 
+    function onLocateAddr(point: any) {
+        if (typeof props.onLocateAddr !== 'function') {
+            return;
+        }
+
+        props.onLocateAddr(point);
+    }
+
     /**
      * 渲染日程列表
      * @returns 
@@ -253,7 +272,7 @@ export default function(props: IDayViewerProps) {
         let trs: JSX.Element[] = [];
         if (detail?.points?.length) {
             detail.points.forEach((item: any, index: number) => {
-                trs.push(<TrForNode point={item}/>)
+                trs.push(<TrForNode point={item} onLocateAddr={() => onLocateAddr(item)}/>)
             });
         }
 
