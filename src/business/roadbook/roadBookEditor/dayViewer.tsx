@@ -70,9 +70,40 @@ function TrForNode(props: ITrForNodeProps) {
     function preferTime2Str(preferTime: any) {
         let ss = null;
         if (preferTime instanceof Array) {
-            ss = preferTime.map(n => secondToHHmm(n)).join(' - ');
+            // ss = preferTime.map(n => secondToHHmm(n)).join(' - ');
+            ss = secondToHHmm(preferTime[0]);
         }
         return ss;
+    }
+
+    function duration2HHmm(preferTime: any) {
+        let dura = 0;
+        if (preferTime instanceof Array) {
+            // ss = preferTime.map(n => secondToHHmm(n)).join(' - ');
+            dura = preferTime[1] - preferTime[0];
+        }
+
+        let s_HH = Math.floor(dura / 3600);
+        let s_mm = Math.floor((dura % 3600) / 60);
+
+        let s = '';
+        if (s_HH) {
+            s += s_HH + 'h'
+        }
+
+        if (s_mm) {
+            s += s_mm + 'm'
+        }
+
+        return s || '--';
+    }
+
+    function dist2km(m: number) {
+        if (!m) {
+            return '--';
+        } else {
+            return (m / 1000).toFixed(1) + 'km';
+        }
     }
 
     function type2disp(type: string) {
@@ -128,7 +159,9 @@ function TrForNode(props: ITrForNodeProps) {
     let tds = [
         <td>{type2disp(point.type)}</td>,
         <td>{point.addr}</td>,
+        <td>{dist2km(point.dist)}</td>,
         <td>{preferTime2Str(point.preferTime)}</td>,
+        <td>{duration2HHmm(point.preferTime)}</td>,
         <td><WeatherView lng={point.lng} lat={point.lat} onData={onWeatherData}/></td>
     ];
 
@@ -263,7 +296,9 @@ export default function(props: IDayViewerProps) {
         let ths = [
             <th>日程</th>,
             <th>地点</th>,
-            <th>参考时间</th>
+            <th>路程</th>,
+            <th>到达</th>,
+            <th>游玩</th>,
         ];
         if (props.showWeather) {
             ths.push(<th>当前天气</th>);

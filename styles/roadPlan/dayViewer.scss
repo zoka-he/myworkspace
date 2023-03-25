@@ -63,20 +63,41 @@
             text-align: left;
         }
 
-        td:nth-child(3), td:nth-child(4) {
+        td:nth-child(1), 
+        td:nth-child(3), 
+        td:nth-child(4), 
+        td:nth-child(5),
+        td:nth-child(6) 
+        {
             text-align: center;
         }
 
-        tr.night td {
-            background-color: #e9d5ff;
+        tr {
+            &.night td {
+                background-color: #e9d5ff;
+            }
+
+            &.sunset td, &.sunrise td {
+                background-color: #ffedc9;
+            }
+
+            &.daytime td {
+                background-color: #d6f3ff;
+            }
         }
 
-        tr.sunset td, tr.sunrise td {
-            background-color: #ffedc9;
-        }
+        tr:nth-child(2n) {
+            &.night td {
+                background-color: #f5ecff;
+            }
 
-        tr.daytime td {
-            background-color: #d6f3ff;
+            &.sunset td, &.sunrise td {
+                background-color: #fff7e7;
+            }
+
+            &.daytime td {
+                background-color: #ebf9ff;
+            }
         }
     }
 }
