@@ -252,7 +252,7 @@ export default function() {
                     svg_searchAddr,
                     {
                         rotation: 0,
-                        fillColor: 'red',
+                        fillColor: 'orange',
                         fillOpacity : 1,
                         scale: 0.05,
                         anchor: new BMapGL.Size(530, 560)

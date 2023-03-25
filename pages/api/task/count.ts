@@ -2,7 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import TaskService from "@/src/services/task/taskService";
 import _ from 'lodash';
-import { ISqlCondMap } from '@/src/utils/mysql/types';
+
 
 type Data = Object;
 

@@ -126,9 +126,8 @@ function TrForNode(props: ITrForNodeProps) {
         setTrClassName(className);
     }
 
+    // TODO:遗漏点，增加路程、路上耗时、海拔高度
     
-    
-
     let tds = [
         <td>{type2disp(point.type)}</td>,
         <td>

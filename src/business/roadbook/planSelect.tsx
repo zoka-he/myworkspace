@@ -38,12 +38,6 @@ export default function (props: IPlanSelectProps) {
         return (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
     }
 
-    // function onChange(...args: any[]) {
-    //     if (typeof props.onChange === 'function') {
-    //         props.onChange(...args);
-    //     }
-    // }
-
     return (
         /** @ts-ignore */
         <Select 
