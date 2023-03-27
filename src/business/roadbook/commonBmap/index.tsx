@@ -33,6 +33,30 @@ function CommonBmap(props: ICommonBmap) {
             );
             map.centerAndZoom(point, 12);
 
+            let scaleCtrl = new BMapGL.ScaleControl();  // 添加比例尺控件
+            map.addControl(scaleCtrl);
+            let zoomCtrl = new BMapGL.ZoomControl();  // 添加缩放控件
+            map.addControl(zoomCtrl);
+
+            let cityControl = new BMapGL.CityListControl({
+                // 控件的停靠位置（可选，默认左上角）
+                anchor: BMAP_ANCHOR_TOP_LEFT,
+                // 控件基于停靠位置的偏移量（可选）
+                offset: new BMapGL.Size(10, 5)
+            });
+            // 将控件添加到地图上
+            map.addControl(cityControl);
+
+             // 创建定位控件
+            let locationControl = new BMapGL.LocationControl({
+                // 控件的停靠位置（可选，默认左上角）
+                anchor: BMAP_ANCHOR_TOP_RIGHT,
+                // 控件基于停靠位置的偏移量（可选）
+                offset: new BMapGL.Size(5, 5)
+            });
+            // 将控件添加到地图上
+            map.addControl(locationControl);
+
             setBmap(map);
 
             // 回传map对象

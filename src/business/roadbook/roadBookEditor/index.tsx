@@ -11,6 +11,7 @@ import * as Dayjs from 'dayjs';
 import copyToClip from '@/src/utils/common/copy';
 import CommonBmap from '../commonBmap';
 import uuid from '@/src/utils/common/uuid';
+import roadBookUtils from '../roadBookUtils';
 
 
 /******************************
@@ -473,7 +474,7 @@ export default function() {
             return {
                 lng: pt.lng,
                 lat: pt.lat,
-                label: `D${index+1}`
+                label: `D${index+1} ${roadBookUtils.preferTime2Str(pt.preferTime)}`
             } 
         }));
 

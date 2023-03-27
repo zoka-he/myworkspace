@@ -32,7 +32,7 @@ export default function(props: IMarkerProps) {
                 label, 
                 {
                     position: pt, // 指定文本标注所在的地理位置
-                    offset: new BMapGL.Size(30, -30) // 设置文本偏移量
+                    offset: new BMapGL.Size(15, -25) // 设置文本偏移量
                 }
             );
 
@@ -40,10 +40,10 @@ export default function(props: IMarkerProps) {
                 color: 'blue',
                 borderRadius: '4px',
                 borderColor: '#ccc',
-                padding: '5px',
+                padding: '3px 5px',
                 fontSize: '10px',
-                height: '30px',
-                lineHeight: '18px',
+                height: '20px',
+                lineHeight: '10px',
                 fontFamily: '微软雅黑'
             });
 
