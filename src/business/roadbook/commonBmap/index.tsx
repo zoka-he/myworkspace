@@ -40,6 +40,7 @@ function CommonBmap(props: ICommonBmap) {
 
             let cityControl = new BMapGL.CityListControl({
                 // 控件的停靠位置（可选，默认左上角）
+                // @ts-ignore
                 anchor: BMAP_ANCHOR_TOP_LEFT,
                 // 控件基于停靠位置的偏移量（可选）
                 offset: new BMapGL.Size(10, 5)
@@ -50,6 +51,7 @@ function CommonBmap(props: ICommonBmap) {
              // 创建定位控件
             let locationControl = new BMapGL.LocationControl({
                 // 控件的停靠位置（可选，默认左上角）
+                // @ts-ignore
                 anchor: BMAP_ANCHOR_TOP_RIGHT,
                 // 控件基于停靠位置的偏移量（可选）
                 offset: new BMapGL.Size(5, 5)
