@@ -8,8 +8,8 @@ const cfg = {
 
 console.info('node env: ', process.env.NODE_ENV);
 if (process.env.NODE_ENV === 'development') {
-    // cfg.MYSQL_HOST = 'localhost';
-    cfg.MYSQL_HOST = '192.168.2.175';
+    cfg.MYSQL_HOST = 'localhost';
+    // cfg.MYSQL_HOST = '192.168.2.175';
 }
 
 export default cfg;
