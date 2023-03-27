@@ -7,7 +7,8 @@ interface ICommonBmap {
     children?: any,
     initPoint?: { lng: number, lat: number },
     center?: { lng: number, lat: number }
-    viewport?: { lng: number, lat: number }[]
+    viewport?: { lng: number, lat: number }[],
+    onReady?: Function
 }
 
 function CommonBmap(props: ICommonBmap) {
@@ -33,6 +34,11 @@ function CommonBmap(props: ICommonBmap) {
             map.centerAndZoom(point, 12);
 
             setBmap(map);
+
+            // 回传map对象
+            if (typeof props.onReady === 'function') {
+                props.onReady(map);
+            }
         }
 
     }, [mBmapDiv]);
