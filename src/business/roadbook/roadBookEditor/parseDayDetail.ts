@@ -5,7 +5,7 @@ export default function parseDayDetail(dayDb: any) {
 
     let detailData = dayDb.data;
     let detailJson = '';
-    if (detailData.type === 'Buffer') {
+    if (detailData?.type === 'Buffer') {
         let nums: Array<number> = detailData.data;
         let decoder = new TextDecoder('utf-8');
         detailJson = decoder.decode(new Uint8Array(nums));
