@@ -4,7 +4,7 @@ import PlanEditor from './planEditor';
 import fetch from '@/src/fetch';
 import { EditOutlined, CarOutlined, CloseOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import parseDayDetail from './roadBookEditor/parseDayDetail';
+import parseDayDetail from '../roadBookEditor/parseDayDetail';
  
 import type { IRoadPlan } from '@/src/types/IRoadPlan';
 

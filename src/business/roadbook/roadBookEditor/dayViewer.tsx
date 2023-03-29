@@ -1,7 +1,8 @@
 import { Card, Button, message, Space } from "antd";
 import { 
     EditOutlined,
-    CloseOutlined
+    CloseOutlined,
+    AimOutlined
 } from '@ant-design/icons';
 import * as Dayjs from 'dayjs';
 import Openweather from '@/src/utils/openweather';
@@ -38,7 +39,8 @@ function WeatherView(props: IWeatherViewProps) {
 
 
 interface ITrForNodeProps {
-    point: any
+    point: any,
+    onLocateAddr: Function
 }
 
 /**
@@ -70,9 +72,40 @@ function TrForNode(props: ITrForNodeProps) {
     function preferTime2Str(preferTime: any) {
         let ss = null;
         if (preferTime instanceof Array) {
-            ss = preferTime.map(n => secondToHHmm(n)).join(' - ');
+            // ss = preferTime.map(n => secondToHHmm(n)).join(' - ');
+            ss = secondToHHmm(preferTime[0]);
         }
         return ss;
+    }
+
+    function duration2HHmm(preferTime: any) {
+        let dura = 0;
+        if (preferTime instanceof Array) {
+            // ss = preferTime.map(n => secondToHHmm(n)).join(' - ');
+            dura = preferTime[1] - preferTime[0];
+        }
+
+        let s_HH = Math.floor(dura / 3600);
+        let s_mm = Math.floor((dura % 3600) / 60);
+
+        let s = '';
+        if (s_HH) {
+            s += s_HH + 'h'
+        }
+
+        if (s_mm) {
+            s += s_mm + 'm'
+        }
+
+        return s || '--';
+    }
+
+    function dist2km(m: number) {
+        if (!m) {
+            return '--';
+        } else {
+            return (m / 1000).toFixed(1) + 'km';
+        }
     }
 
     function type2disp(type: string) {
@@ -124,12 +157,19 @@ function TrForNode(props: ITrForNodeProps) {
         setTrClassName(className);
     }
     
-
     let tds = [
         <td>{type2disp(point.type)}</td>,
-        <td>{point.addr}</td>,
+        <td>
+            <Button type="link" size="small" icon={<AimOutlined/>}
+                    onClick={e => props.onLocateAddr()}/>
+            <span>{point.addr}</span>
+        </td>,
+        <td>{dist2km(point.dist)}</td>,
         <td>{preferTime2Str(point.preferTime)}</td>,
-        <td><WeatherView lng={point.lng} lat={point.lat} onData={onWeatherData}/></td>
+        <td>{duration2HHmm(point.preferTime)}</td>,
+        <td>
+            <WeatherView lng={point.lng} lat={point.lat} onData={onWeatherData}/>
+        </td>
     ];
 
     return (<tr className={trClassName}>{tds}</tr>)
@@ -146,7 +186,8 @@ interface IDayViewerProps {
     showWeather?: boolean,
     isEdit: boolean,
     next: any,
-    prev: any
+    prev: any,
+    onLocateAddr?: Function
 }
 
 enum EDayViewerHookNames {
@@ -203,8 +244,7 @@ export default function(props: IDayViewerProps) {
                 onClick={() => callHook(EDayViewerHookNames.onEdit)}
             >修改</Button>
             <Button type="link" icon={<CloseOutlined/>} size="small" danger disabled={!!props.next}
-                onClick={() => callHook(EDayViewerHookNames.onDelete)}
-            ></Button>
+                onClick={() => callHook(EDayViewerHookNames.onDelete)}/>
         </Space>
     }
 
@@ -222,6 +262,14 @@ export default function(props: IDayViewerProps) {
         } else {
             return null;
         }
+    }
+
+    function onLocateAddr(point: any) {
+        if (typeof props.onLocateAddr !== 'function') {
+            return;
+        }
+
+        props.onLocateAddr(point);
     }
 
     /**
@@ -253,7 +301,7 @@ export default function(props: IDayViewerProps) {
         let trs: JSX.Element[] = [];
         if (detail?.points?.length) {
             detail.points.forEach((item: any, index: number) => {
-                trs.push(<TrForNode point={item}/>)
+                trs.push(<TrForNode point={item} onLocateAddr={() => onLocateAddr(item)}/>)
             });
         }
 
@@ -263,7 +311,9 @@ export default function(props: IDayViewerProps) {
         let ths = [
             <th>日程</th>,
             <th>地点</th>,
-            <th>参考时间</th>
+            <th>路程</th>,
+            <th>到达</th>,
+            <th>游玩</th>,
         ];
         if (props.showWeather) {
             ths.push(<th>当前天气</th>);

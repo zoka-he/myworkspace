@@ -9,6 +9,9 @@ import DayPlanEditor from './dayEditor';
 import _ from 'lodash';
 import * as Dayjs from 'dayjs';
 import copyToClip from '@/src/utils/common/copy';
+import CommonBmap from '../commonBmap';
+import uuid from '@/src/utils/common/uuid';
+import roadBookUtils from '../roadBookUtils';
 
 
 /******************************
@@ -23,7 +26,7 @@ import copyToClip from '@/src/utils/common/copy';
  * 4）在百度地图上显示总体行程的路径；
  * 5）提供路书基本信息及费用的编辑功能；
  * 6）* 提供每日行程的增加及删除功能，提供编辑入口；
- * 7）TODO: 提供导出md文件功能；
+ * 7）提供导出md文件功能；
  * 
  * 其中：
  * 3）显示每日行程的明细数据，如地点、参考时间、天气等；
@@ -55,14 +58,23 @@ function decodeBuffer(barr?: number[]) {
     }
 }
 
+async function httpGetAsString(url: string) {
+    let ret = await fetch.get(url);
+    return '' + ret;
+}
+
 export default function() {
 
     let location = useLocation();
+
+    let [mapCenter, setMapCenter] = useState<any>(null);
+    let [mapViewport, setMapViewport] = useState<any>(null);
 
     let [roadPlanID, setroadPlanID] = useState<number | null>(null);
     let [editState, setEditState] = useState(false);
     let [spinning, setSpinning] = useState(false);
 
+    
     let [remark, setRemark] = useState('');
     let [carDayCost, setCarDayCost] = useState<number | null>(0);
     let [fuelLCost, setFuelLCost] = useState<number | null>(0);
@@ -71,15 +83,22 @@ export default function() {
     let [hotelDayCost, setHotelDayCost] = useState<number | null>(0);
 
     let [planData, setPlanData] = useState([]);
+    let [addrMk, setAddrMk] = useState<any>(null);
+    let [roadPaths, setRoadPaths] = useState<any>(null);
+    let [dayMks, setDayMks] = useState<any>(null);
 
     let mDayPlanEditor = useRef();
-    let mBmapDiv = useRef();
     let mLeftArea = useRef();
 
-    let [bmap, setBmap] = useState<any>(null);
-    let [loadPlanFlag, setLoadPlanFlag] = useState(false);
+
     let [showWeathers, setShowWeathers] = useState(true);
     let [personCnt, setPersonCnt] = useState<number | null>(2);
+
+
+    async function onRoadPlanChange(ID: any) {
+        setroadPlanID(ID);
+        // setRoadPlanLabel(label);
+    }
 
     async function toggleEditState() {
         if (typeof roadPlanID !== 'number') {
@@ -215,6 +234,47 @@ export default function() {
     }
 
     /**
+     * 在地图上显示位置
+     * @param point 
+     */
+    async function onLocateAddr(data: any) {
+
+        if (!data?.lng || !data?.lat) {
+            setAddrMk(null);
+            return;
+        }
+
+        // alert('显示位置' + JSON.stringify(data));
+        let svg_searchAddr = await httpGetAsString('/mapicons/Target.svg');
+        setAddrMk({
+            lng: data.lng,
+            lat: data.lat,
+            config: {
+                icon: new BMapGL.SVGSymbol(
+                    svg_searchAddr,
+                    {
+                        rotation: 0,
+                        fillColor: 'orange',
+                        fillOpacity : 1,
+                        scale: 0.05,
+                        anchor: new BMapGL.Size(530, 560)
+                    }
+                )
+            }
+        });
+
+        setMapCenter({
+            lng: data.lng,
+            lat: data.lat,
+        });
+    }
+
+    function renderAddrMk() {
+        if (!addrMk) return null;
+        return <CommonBmap.Marker lng={addrMk.lng} lat={addrMk.lat} config={addrMk.config} key={uuid()}/>
+    }
+
+    /**
      * 渲染所有日程计划
      * @returns 
      */
@@ -236,6 +296,7 @@ export default function() {
                         onEdit={() => editDay(item, index, prev, next)}
                         onDelete={() => deleteDay(index)}
                         next={next} prev={prev}
+                        onLocateAddr={ (pt: any) => onLocateAddr(pt) }
                     />
         });
         comps.push(...days);
@@ -378,11 +439,7 @@ export default function() {
     }
 
     function drawPlanRoute(planData: any) {
-        if (!bmap) {
-            return;
-        }
 
-        bmap.clearOverlays();
 
         let viewportPoints: any[] = [];
         let keyPoints: any[] = [];
@@ -396,11 +453,11 @@ export default function() {
 
                     if (points?.length) {
                         viewportPoints.push(
-                            new BMapGL.Point(points[0].lng, points[0].lat),
-                            new BMapGL.Point(points[points.length - 1].lng, points[points.length - 1].lat)
+                            points[0],
+                            points[points.length - 1]
                         )
 
-                        keyPoints.push(new BMapGL.Point(points[points.length - 1].lng, points[points.length - 1].lat));
+                        keyPoints.push(points[points.length - 1]);
                     }
 
                     if (routes) {
@@ -410,56 +467,75 @@ export default function() {
             });
         }
 
-        console.debug('keypoints', keyPoints, 'dayRoutes', dayRoutes);
 
-        bmap.setViewport(viewportPoints);
-        keyPoints.forEach((pt, index) => {
-            let marker = new BMapGL.Marker(pt);
+        setMapViewport(viewportPoints);
 
-            bmap.addOverlay(marker);
+        setDayMks(keyPoints.map((pt, index) => {
+            return {
+                lng: pt.lng,
+                lat: pt.lat,
+                label: `D${index+1} ${roadBookUtils.preferTime2Str(pt.preferTime)}`
+            } 
+        }));
 
-            // 创建文本标注对象
-            var label = new BMapGL.Label(
-                `D${index+1}`, 
-                {
-                    position: pt, // 指定文本标注所在的地理位置
-                    offset: new BMapGL.Size(30, -30) // 设置文本偏移量
-                }
-            );
+        let polylines = dayRoutes.map((path, index) => {
+            let polyData = path.map((ptObj: any) => ({ lng: ptObj.lng, lat: ptObj.lat }));
+            let config = {
+                strokeColor: (index % 2 === 0) ? 'blue' : 'green',
+                strokeWeight: 4,
+                strokeOpacity: 0.8
+            };
+            return { pts: polyData, config };
+        });
 
-            label.setStyle({
-                color: 'blue',
-                borderRadius: '4px',
-                borderColor: '#ccc',
-                padding: '5px',
-                fontSize: '10px',
-                height: '30px',
-                lineHeight: '18px',
-                fontFamily: '微软雅黑'
-            });
+        setRoadPaths(polylines);
+    }
 
-            bmap.addOverlay(label);
-        })
+    function renderRoadPaths() {
+        if (!roadPaths?.length) {
+            return null;
+        }
 
-        dayRoutes.forEach((path, index) => {
-            let poly = new BMapGL.Polyline(
-                path.map((ptObj: any) => new BMapGL.Point(ptObj.lng, ptObj.lat)),
-                {
-                    strokeColor: (index % 2 === 0) ? 'blue' : 'green',
-                    strokeWeight: 4,
-                    strokeOpacity: 0.8
-                }
-            );
-
-            try {
-            bmap.addOverlay(poly);
-            } catch(e: any) {
-                console.error(e);
+        return roadPaths.map((polyData: any) => {
+            if (!polyData.pts.length) {
+                return null;
             }
+
+            return <CommonBmap.Polyline path={polyData.pts} config={polyData.config} key={uuid()}/>
+        });
+    }
+
+    function renderKeyPoints() {
+        if (!dayMks?.length) {
+            return;
+        }
+
+        return dayMks.map((item: any) => {
+            return <CommonBmap.Marker lng={item.lng} lat={item.lat} label={item.label} key={uuid()}/>
         })
     }
 
-    function exportPlanAsMd() {
+    async function exportPlanAsMd() {
+
+        let label = '';
+        try {
+            let planData: any = await fetch.get(
+                '/api/roadPlan', 
+                { params: { ID: roadPlanID } }
+            );
+
+            if (!planData?.name) {
+                message.error('路书数据异常，ID为' + roadPlanID + '，请查看数据库情况');
+                return;
+            }
+
+            label = planData.name;
+        } catch(e: any) {
+            console.error(e);
+            message.error(e.message);
+            return;
+        }
+
         let {
             dayCnt,
             meterCnt,
@@ -474,7 +550,7 @@ export default function() {
         let personCost = totalCost / (personCnt || 2);
 
         let sections = [
-            '# 制表测试',
+            `# ${label}`,
             '',
             '## 计划详情',
             remark,
@@ -538,9 +614,9 @@ export default function() {
                 let oneDayData = [];
 
                 if (item.name) {
-                    oneDayData.push(`#### D${index}：${item.name}`);
+                    oneDayData.push(`#### D${index + 1}：${item.name}`);
                 } else {
-                    oneDayData.push(`#### D${index}`);
+                    oneDayData.push(`#### D${index + 1}`);
                 }
 
                 if (item.remark) {
@@ -590,35 +666,13 @@ export default function() {
 
     useEffect(() => {
         if (roadPlanID !== null) {
-            if (!bmap) {
-                setLoadPlanFlag(true);
-            } else {
+            // if (!bmap) {
+            //     setLoadPlanFlag(true);
+            // } else {
                 onLoadPlan(roadPlanID);
-            }
+            // }
         }
     }, [roadPlanID]);
-
-    useEffect(() => {
-        if (!bmap) {
-            let div = mBmapDiv.current;
-            console.debug('bmap容器已就绪！', div);
-
-            let map = new BMapGL.Map(div);
-            map.enableScrollWheelZoom();
-            map.disableDoubleClickZoom();
-
-            // 设置初始中心点
-            let point = new BMapGL.Point(116.404, 39.915);
-            map.centerAndZoom(point, 15);
-
-            setBmap(map);
-        }
-
-        if (loadPlanFlag && typeof roadPlanID === 'number') {
-            onLoadPlan(roadPlanID);
-        }
-    }, [mBmapDiv]);
-
 
     useEffect(() => {
         let sstr = location.search;
@@ -628,13 +682,6 @@ export default function() {
         let { ID } = qs.parse(sstr);
         if (ID) {
             setroadPlanID(_.toNumber(ID));
-        }
-
-        return function onDestroy() {
-            console.debug('组件销毁!');
-            if (bmap) {
-                bmap.destroy();
-            }
         }
 
     }, []);
@@ -654,7 +701,7 @@ export default function() {
                                 {/* @ts-ignore */}
                                 <PlanSelect style={{ width: 325 }}
                                     value={roadPlanID} 
-                                    onChange={(ID: any) => setroadPlanID(ID)}
+                                    onChange={(ID: any) => onRoadPlanChange(ID)}
                                 />
                                 <Button type="primary" danger={editState} 
                                         disabled={roadPlanID === null}
@@ -696,8 +743,11 @@ export default function() {
 
                     {/* 右侧区域 */}
                     <div className="f-flex-1 f-relative m-plan_editor-map" style={{margin: '0 0 10px 10px'}}>
-                        { /* @ts-ignore */ }
-                        <div ref={mBmapDiv}  className="f-fit-content">&nbsp;</div>
+                        <CommonBmap center={mapCenter} viewport={mapViewport}>
+                            { renderAddrMk() }
+                            { renderRoadPaths() }
+                            { renderKeyPoints() }
+                        </CommonBmap>
                     </div>
 
                     { /* @ts-ignore */ }

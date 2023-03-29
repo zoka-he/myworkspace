@@ -49,7 +49,6 @@ export default function () {
             // let { data, count } = await service.query(queryObject, [], ['priority desc', 'create_time asc'], pageNum, pageSize);
             let { data, count } = await fetch.get('/api/task/list', { params });
 
-
             updateListData(data);
             updateTotal(count);
 
@@ -78,18 +77,6 @@ export default function () {
 
     function onCreateTask() {
         mEditor.current.show();
-    }
-
-    function renderTime(cell, row) {
-        let timeStr = '/';
-        if (cell) {
-            try {
-                timeStr = moment(cell).format('YYYY-MM-DD HH:mm:ss');
-            } catch (e) {
-                timeStr = `错误的数据类型：${typeof cell}`
-            }
-        }
-        return <span>{timeStr}</span>;
     }
 
     function renderDate(cell, row) {
@@ -224,9 +211,9 @@ export default function () {
                     <Column title="优先级" dataIndex="priority" key="priority" render={renderPriority} align={'center'}/>
                     <Column title="任务描述" dataIndex="detail" key="detail" width={400}/>
                     <Column title="状态" dataIndex="status" key="status" render={renderState} width={90}/>
-                    <Column title="上线日期" dataIndex="fuck_date" key="fuck_date" render={renderDate} width={160}/>
-                    <Column title="截止日期" dataIndex="deadline_time" key="deadline_time" render={renderDate} width={160}/>
-                    <Column title="创建时间" dataIndex="create_time" key="create_time" render={renderDate} width={160}/>
+                    <Column title="上线日期" dataIndex="fuck_date" key="fuck_date" align="center" render={renderDate} width={160}/>
+                    <Column title="截止日期" dataIndex="deadline_time" key="deadline_time" align="center" render={renderDate} width={160}/>
+                    <Column title="创建时间" dataIndex="create_time" key="create_time" align="center" render={renderDate} width={160}/>
                     {/*<Column title="修改时间" dataIndex="update_time" key="update_time" render={renderTime}/>*/}
                     <Column title="周报" dataIndex="is_week_report" key="is_week_report" render={renderWeekReportSwitch} fixed={'right'}/>
                     <Column title="操作" dataIndex="action" key="action" render={renderAction} fixed={'right'}/>

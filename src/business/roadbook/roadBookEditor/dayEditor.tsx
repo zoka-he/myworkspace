@@ -549,7 +549,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         }
 
         // 移动地图
-        this.bmap.centerAndZoom(pt, 15);
+        this.bmap.centerAndZoom(pt, 12);
         
         // 添加新搜索点
         let svg_searchAddr = await httpGetAsString('/mapicons/Target.svg');
@@ -752,7 +752,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
 
             // 设置初始中心点
             let point = new BMapGL.Point(116.404, 39.915);
-            map.centerAndZoom(point, 15);
+            map.centerAndZoom(point, 12);
 
             // 添加点击事件
             map.addEventListener('click', (e: any) => this.onClickMap(e));
