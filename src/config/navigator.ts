@@ -43,7 +43,7 @@ const navObj: INavMenu = {
       label: '信息管理',
       menu: [
         {
-          label: '人员管理',
+          label: '联系人管理',
           url: '/taskManage/employeeManage'
         },
         {

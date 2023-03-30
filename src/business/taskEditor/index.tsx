@@ -156,6 +156,7 @@ class TaskEditor extends React.Component<ITaskEditorProp, ITaskEditorState & {}>
                         </Form.Item>
                         <Form.Item label={'优先级'} name={'priority'}>
                             <Select>
+                                <Select.Option value={-1}>搁置</Select.Option>
                                 <Select.Option value={0}>普通</Select.Option>
                                 <Select.Option value={1}>紧急</Select.Option>
                             </Select>
