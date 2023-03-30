@@ -30,6 +30,7 @@ class TaskTip extends Component<ITaskTipProps>{
 
 
         let emergFlag = priority == 1;
+        let pauseFlag = priority == -1
 
         // 显示title
         let taskNameStyle = '';
@@ -37,6 +38,10 @@ class TaskTip extends Component<ITaskTipProps>{
         if (emergFlag) {
             taskNameStyle = 'f-red';
             tipStyle = 'emerg';
+        }
+
+        if (pauseFlag) {
+            tipStyle = 'pause';
         }
 
         // 显示任务描述
