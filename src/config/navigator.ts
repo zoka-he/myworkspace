@@ -68,11 +68,11 @@ const navObj: INavMenu[] = [
       },
       {
         label: '旅行日历',
-        url: '/roadBook/calendar'
+        key: '/calendar'
       },
       {
         label: '心愿墙',
-        url: '/roadBook/wishBoard'
+        key: '/wishBoard'
       }
     ]
   },
