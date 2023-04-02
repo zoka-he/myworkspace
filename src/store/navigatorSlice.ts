@@ -7,37 +7,6 @@ interface INavigatorState {
   lv2Key: number,
 }
 
-function updateUrl(state: INavigatorState) {
-  let { lv1Key, lv2Key } = state;
-  if (!navConfig?.menu) {
-    useRouter().push('/404');
-    return;
-  }
-
-  let lv2Menu = navConfig.menu[lv1Key];
-  if (!lv2Menu) {
-    useRouter().push('/404');
-    return;
-  }
-
-  if (!lv2Menu.menu) {
-    if (lv2Menu.url) {
-      useRouter().push(lv2Menu.url);
-      return;
-    } else {
-      useRouter().push('/404');
-      return;
-    }
-  }
-
-  let lv2Item = lv2Menu.menu[lv2Key];
-  if (!lv2Item?.url) {
-    useRouter().push('/404');
-    return;
-  }
-
-  useRouter().push(lv2Item.url);
-}
 
 const navigatorSlice = createSlice({
   name: 'navigator',
