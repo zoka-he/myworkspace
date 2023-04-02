@@ -115,18 +115,19 @@ function MainFrame (props: any) {
 
   return (
     <Layout className="f-fit-height">
-      <Header className="f-flex-row" >
-        <div style={{ display: 'inline-block' }}>
-          <h2 style={{ color: 'white', marginRight: '50px' }}>工作台</h2>
+      <Sider width={160}>
+        <div className='f-fit-width f-align-center' style={{ backgroundColor: 'rgb(40 83 155)' }}>
+          <h2 style={{ color: 'white', lineHeight: '46px' }}>工作台</h2>
         </div>
         <Menu 
           className="f-flex-1"
           theme="dark"
-          mode="horizontal"
+          mode="inline"
+          inlineIndent={16}
           items={getMenus()} 
           onClick={e => onMenuClick(e)}
         />
-      </Header>
+      </Sider>
       <Layout>
         <Content style={{ backgroundColor: 'white' }}>
           <div className="m-mainframe_context f-fit-height f-flex-col f-bg-white f-vertical-scroll">
