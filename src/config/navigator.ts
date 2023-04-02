@@ -64,8 +64,12 @@ const navObj: INavMenu = {
           url: '/roadBook/editor'
         },
         {
-          label: '天气板',
-          url: '/roadBook/weatherBoard'
+          label: '旅行日历',
+          url: '/roadBook/calendar'
+        },
+        {
+          label: '心愿墙',
+          url: '/roadBook/wishBoard'
         }
       ]
     },
