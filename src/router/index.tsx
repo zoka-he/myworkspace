@@ -27,7 +27,7 @@ export default function() {
         <Route path="/" loader={mainFrameLoader} element={<MainFrame/>}>
           <Route path="taskManage/dashboard" element={<Dashboard />} />
           <Route path="taskManage/taskManage" element={<TaskManage />} />
-          <Route path="taskManage/employeeManage" element={<EmployeeManage />} />
+          
           <Route path="taskManage/bugTrace" element={<BugTrace />} />
           <Route path="taskManage/catfightLog" element={<CatfightLog />} />
           <Route path="taskManage/uplineCheck" element={<UplineCheck />} />
@@ -38,6 +38,7 @@ export default function() {
           <Route path="roadBook/calendar" element={<RoadBookCalendar />} />
 
           <Route path="infos/accounts" element={<AccountManage />} />
+          <Route path="infos/employeeManage" element={<EmployeeManage />} />
 
           <Route path="*" element={<div><h1>此页面尚未实现！</h1></div>}/>
         </Route>
