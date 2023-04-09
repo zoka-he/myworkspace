@@ -7,7 +7,8 @@ interface AddLuggageModalProps {
 }
 
 interface AddLuggageModalState {
-    isOpen?: boolean
+    isOpen?: boolean,
+    luggageList?: string[]
 }
 
 class AddLuggageModal extends React.Component<AddLuggageModalProps, AddLuggageModalState> {
@@ -16,7 +17,8 @@ class AddLuggageModal extends React.Component<AddLuggageModalProps, AddLuggageMo
         super({});
 
         this.state = {
-            isOpen: false
+            isOpen: false,
+            luggageList: []
         }
     }
 
@@ -40,8 +42,21 @@ class AddLuggageModal extends React.Component<AddLuggageModalProps, AddLuggageMo
         }
     }
 
+    toggleLuggage(s: string, addOrRm: boolean) {
+        if (addOrRm) { // add
+            this.setState({
+                luggageList: [...(this.state.luggageList || []), s]
+            })
+        } else {
+            this.setState({
+                luggageList: this.state.luggageList?.filter(item => item != s) || []
+            })
+        }
+    }
+
     renderCheckers(context: string) {
-        return <Checkbox>{context}</Checkbox>;
+        let value = this.state.luggageList?.includes(context) || false;
+        return <Checkbox checked={value} onChange={() => this.toggleLuggage(context, !value)}>{context}</Checkbox>;
     }
 
     renderDividers(context: string) {
@@ -54,6 +69,10 @@ class AddLuggageModal extends React.Component<AddLuggageModalProps, AddLuggageMo
         return (
             <ul style={{ listStyle: 'decimal' }}>{wrappedChildren}</ul>
         )
+    }
+
+    componentDidUpdate(prevProps: Readonly<AddLuggageModalProps>, prevState: Readonly<AddLuggageModalState>, snapshot?: any): void {
+        console.debug('luggageList', this.state.luggageList);
     }
 
     render() {
@@ -146,14 +165,14 @@ class AddLuggageModal extends React.Component<AddLuggageModalProps, AddLuggageMo
                         ],
                     ])}
                     {this.renderDividers('三、化妆品类')}
-                    <div>{[
+                    <div style={{paddingLeft: '2em'}}>{[
                         this.renderCheckers('防晒霜'),
                         this.renderCheckers('润肤膏'),
                         this.renderCheckers('木瓜膏'),
                         this.renderCheckers('发胶'),
                     ]}</div>
                     {this.renderDividers('四、药品类')}
-                    <div>{[
+                    <div style={{paddingLeft: '2em'}}>{[
                         this.renderCheckers('止血贴'),
                         this.renderCheckers('达克宁'),
                         this.renderCheckers('眼药水'),
@@ -190,7 +209,7 @@ class AddLuggageModal extends React.Component<AddLuggageModalProps, AddLuggageMo
                         ],
                     ])}
                     {this.renderDividers('六、食品类')}
-                    <div>
+                    <div style={{paddingLeft: '2em'}}>
                         {this.renderCheckers('小压缩饼干')}
                     </div>
                 </Modal>
