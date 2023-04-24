@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { Modal, Input, Button, message, Select, Space, TimePicker } from "antd";
 import _ from 'lodash';
 import { ExclamationCircleFilled, PlusOutlined } from '@ant-design/icons';
-import confirm from "antd/es/modal/confirm";
 import NodeEditor from "./nodeEditor";
 import uuid from "@/src/utils/common/uuid";
 import * as Dayjs from 'dayjs';
@@ -405,9 +404,9 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
             
         }
 
-        confirm({
+        Modal.confirm({
             title: '删除确认',
-            icon: <ExclamationCircleFilled />,
+            // icon: <ExclamationCircleFilled />,
             content: '警告！将删除节点，请二次确认！',
             okText: '删除',
             okType: 'danger',

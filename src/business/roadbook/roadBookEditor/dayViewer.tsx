@@ -33,8 +33,68 @@ function WeatherView(props: IWeatherViewProps) {
         return <span>--</span>;
     } else {
         // @ts-ignore
-        return <span>{data.description} {data.temp}°C <img style={{ width:'24px' }} src={data.iconUrl}/></span>
+        return <span><img style={{ width:'24px' }} src={data.iconUrl}/> {data.temp}°C</span>
     }
+}
+
+function secondToHHmm(n: number) {
+    // @ts-ignore
+    let t0 = Dayjs().startOf('day');
+    t0 = t0.add(Dayjs.duration({ seconds: n }));
+    return t0.format('HH:mm');
+}
+
+function timestampToHHmm(ts: number) {
+    // @ts-ignore
+    return Dayjs(ts).format('HH:mm');
+}
+
+function preferTime2Str(preferTime: any) {
+    let ss = null;
+    if (preferTime instanceof Array) {
+        // ss = preferTime.map(n => secondToHHmm(n)).join(' - ');
+        ss = secondToHHmm(preferTime[0]);
+    }
+    return ss;
+}
+
+function duration2HHmm(preferTime: any) {
+    let dura = 0;
+    if (preferTime instanceof Array) {
+        // ss = preferTime.map(n => secondToHHmm(n)).join(' - ');
+        dura = preferTime[1] - preferTime[0];
+    }
+
+    let s_HH = Math.floor(dura / 3600);
+    let s_mm = Math.floor((dura % 3600) / 60);
+
+    let s = '';
+    if (s_HH) {
+        s += s_HH + 'h'
+    }
+
+    if (s_mm) {
+        s += s_mm + 'm'
+    }
+
+    return s || '--';
+}
+
+function dist2km(m: number) {
+    if (!m) {
+        return '--';
+    } else {
+        return (m / 1000).toFixed(1) + 'km';
+    }
+}
+
+function type2disp(type: string) {
+    return {
+        meal: '用餐',
+        position: '途经',
+        hotel: '住宿',
+        sights: '景点',
+    }[type];
 }
 
 
@@ -57,65 +117,7 @@ function TrForNode(props: ITrForNodeProps) {
 
     let { point } = props;  
 
-    function secondToHHmm(n: number) {
-        // @ts-ignore
-        let t0 = Dayjs().startOf('day');
-        t0 = t0.add(Dayjs.duration({ seconds: n }));
-        return t0.format('HH:mm');
-    }
-
-    function timestampToHHmm(ts: number) {
-        // @ts-ignore
-        return Dayjs(ts).format('HH:mm');
-    }
-
-    function preferTime2Str(preferTime: any) {
-        let ss = null;
-        if (preferTime instanceof Array) {
-            // ss = preferTime.map(n => secondToHHmm(n)).join(' - ');
-            ss = secondToHHmm(preferTime[0]);
-        }
-        return ss;
-    }
-
-    function duration2HHmm(preferTime: any) {
-        let dura = 0;
-        if (preferTime instanceof Array) {
-            // ss = preferTime.map(n => secondToHHmm(n)).join(' - ');
-            dura = preferTime[1] - preferTime[0];
-        }
-
-        let s_HH = Math.floor(dura / 3600);
-        let s_mm = Math.floor((dura % 3600) / 60);
-
-        let s = '';
-        if (s_HH) {
-            s += s_HH + 'h'
-        }
-
-        if (s_mm) {
-            s += s_mm + 'm'
-        }
-
-        return s || '--';
-    }
-
-    function dist2km(m: number) {
-        if (!m) {
-            return '--';
-        } else {
-            return (m / 1000).toFixed(1) + 'km';
-        }
-    }
-
-    function type2disp(type: string) {
-        return {
-            meal: '用餐',
-            position: '途经',
-            hotel: '住宿',
-            sights: '景点',
-        }[type];
-    }
+    
 
     function onWeatherData(data: any) {
         if (!point?.preferTime?.length || !data) {
@@ -222,11 +224,21 @@ export default function(props: IDayViewerProps) {
      * 渲染日程标题
      * @returns 
      */
-    function renderTitle() {
+    function renderTitle(detail: any) {
         let s_title = `D${props.day}`
         if (props.data?.name) {
             s_title += '：' + props.data.name;
         }
+
+        let totalDist = 0;
+        if (detail?.points?.length) {
+            detail.points.forEach((item1: any) => {
+                totalDist += item1.dist;
+            });
+
+            s_title += '，' + dist2km(totalDist);
+        }
+
         return s_title;
     }
 
@@ -276,27 +288,7 @@ export default function(props: IDayViewerProps) {
      * 渲染日程列表
      * @returns 
      */
-    function renderDetail() {
-        let detailData = props.data.data;
-
-        let detailJson = '';
-        if (detailData?.type === 'Buffer') {
-            let nums: Array<number> = detailData.data;
-            let decoder = new TextDecoder('utf-8');
-            detailJson = decoder.decode(new Uint8Array(nums));
-        }
-
-        let detail: any = {};
-        if (detailJson) {
-            try {
-                detail = JSON.parse(detailJson);
-            } catch(e: any) {
-                console.error(e);
-                message.error(e.message);
-            }
-        }
-
-        
+    function renderDetail(detail: any) {
 
         let trs: JSX.Element[] = [];
         if (detail?.points?.length) {
@@ -331,11 +323,37 @@ export default function(props: IDayViewerProps) {
         )
     }
 
+
+    function getDetailObj() {
+        let detailData = props.data.data;
+
+        let detailJson = '';
+        if (detailData?.type === 'Buffer') {
+            let nums: Array<number> = detailData.data;
+            let decoder = new TextDecoder('utf-8');
+            detailJson = decoder.decode(new Uint8Array(nums));
+        }
+
+        let detail: any = {};
+        if (detailJson) {
+            try {
+                detail = JSON.parse(detailJson);
+            } catch(e: any) {
+                console.error(e);
+                message.error(e.message);
+            }
+        }
+
+        return detail;
+    }
+
+    let detailObj = getDetailObj();
+
     return (
         <div className="m-dayviewer">
-            <Card size="small" title={renderTitle()} extra={renderExtra()}>
+            <Card size="small" title={renderTitle(detailObj)} extra={renderExtra()}>
                 { renderRemark() }
-                { renderDetail() }
+                { renderDetail(detailObj) }
             </Card>
         </div>
     )
