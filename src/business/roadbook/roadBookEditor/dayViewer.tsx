@@ -8,6 +8,9 @@ import * as Dayjs from 'dayjs';
 import Openweather from '@/src/utils/openweather';
 import { useEffect, useState } from "react";
 
+/** 当日里程过长的告警值 */
+const g_alertDailyKm = 500;
+
 interface IWeatherViewProps {
     lng: number,
     lat: number,
@@ -239,7 +242,12 @@ export default function(props: IDayViewerProps) {
             s_title += '，' + dist2km(totalDist);
         }
 
-        return s_title;
+        let spanProps: any = {};
+        if (totalDist > g_alertDailyKm * 1000) {
+            spanProps.className = 'f-red';
+        }
+
+        return <span {...spanProps}>{s_title}</span>;
     }
 
     /**
