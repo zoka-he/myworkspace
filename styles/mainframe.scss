@@ -12,3 +12,7 @@
         overflow: auto;
     }
 }
+
+.ant-layout .ant-layout-sider .ant-layout-sider-children {
+    overflow-y: auto;
+}
