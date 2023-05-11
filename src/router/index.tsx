@@ -13,6 +13,7 @@ const WeekReport = lazy(() => import('../business/weeklyReport'));
 const RoadBookPlanBoard = lazy(() => import('../business/roadbook/planBoard'));
 const RoadBookEditor = lazy(() => import('../business/roadbook/roadBookEditor'));
 const AccountManage = lazy(() => import('../business/accountManage'));
+const RoadBookCalendar = lazy(() => import('../business/roadbook/calendar'));
 
 async function mainFrameLoader() {
   let matches = useMatches();
@@ -34,6 +35,7 @@ export default function() {
 
           <Route path="roadBook/planBoard" element={<RoadBookPlanBoard />} />
           <Route path="roadBook/editor" element={<RoadBookEditor />} />
+          <Route path="roadBook/calendar" element={<RoadBookCalendar />} />
 
           <Route path="infos/accounts" element={<AccountManage />} />
           <Route path="infos/employeeManage" element={<EmployeeManage />} />
