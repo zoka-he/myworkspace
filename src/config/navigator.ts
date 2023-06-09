@@ -67,7 +67,7 @@ const navObj: INavMenu[] = [
         key: '/editor'
       },
       {
-        label: '旅行日历',
+        label: '天气日历',
         key: '/calendar'
       },
       {
