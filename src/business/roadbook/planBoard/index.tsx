@@ -5,6 +5,7 @@ import fetch from '@/src/fetch';
 import { EditOutlined, CarOutlined, CloseOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import parseDayDetail from '../roadBookEditor/parseDayDetail';
+import PlanTree from './planTree';
  
 import type { IRoadPlan } from '@/src/types/IRoadPlan';
 
@@ -104,26 +105,29 @@ export default function() {
     }
 
     return (
-        <div className="f-fit-height f-flex-col">
-            <div className='f-flex-two-side'>
-                <Space>
-                    <label>路书名称：</label>
-                    { /* @ts-ignore */ }
-                    <Input value={queryName} onInput={e => setQueryName(e.target?.value)}/>
-                    <Button type='primary' onClick={onQuery}>查询</Button>
-                </Space>
-                <Space>
-                    <Button onClick={onAddPlan}>添加</Button>
-                </Space>
-            </div>
-            <div className="f-flex-1" style={{ margin: '12px 0' }}>
-                <Space size={[8, 16]} wrap>
-                    {renderCards()}
-                </Space>
-            </div>
+        <div className="f-fit-height f-flex-row">
+            <PlanTree/>
+            <div className="f-flex-1 f-fit-height f-flex-col">
+                <div className='f-flex-two-side'>
+                    <Space>
+                        <label>路书名称：</label>
+                        { /* @ts-ignore */ }
+                        <Input value={queryName} onInput={e => setQueryName(e.target?.value)}/>
+                        <Button type='primary' onClick={onQuery}>查询</Button>
+                    </Space>
+                    <Space>
+                        <Button onClick={onAddPlan}>添加</Button>
+                    </Space>
+                </div>
+                <div className="f-flex-1" style={{ margin: '12px 0' }}>
+                    <Space size={[8, 16]} wrap>
+                        {renderCards()}
+                    </Space>
+                </div>
 
-            { /* @ts-ignore */ }
-            <PlanEditor ref={mPlanEditor} onFinish={onQuery}/>
+                { /* @ts-ignore */ }
+                <PlanEditor ref={mPlanEditor} onFinish={onQuery}/>
+            </div>
         </div>
     )
 

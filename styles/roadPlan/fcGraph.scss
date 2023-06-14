@@ -1,0 +1,33 @@
+.m-roadplan-fcgraph {
+    $clr_cold: #54BAD2;
+    $clr_hot: #F4AA2D;
+
+    .text-cold {
+        fill: $clr_cold;
+        font-weight: bold;
+    }
+
+    .text-hot {
+        fill: $clr_hot;
+        font-weight: bold;
+    }
+
+    .text-super-hot {
+        fill: #c20000;
+        font-weight: bold;
+        font-size: larger;
+    }
+
+    #temp-fill-gradient {
+        --color-stop: #e7e7e7;
+        --color-stop: #e7e7e7;
+    }
+
+    .temp-fill {
+        fill: url(#temp-fill-gradient);
+    }
+
+    .icon {
+        pointer-events: none;
+    }
+}

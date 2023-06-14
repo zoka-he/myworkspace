@@ -9,12 +9,42 @@ interface ICommonBmap {
     center?: { lng: number, lat: number }
     viewport?: { lng: number, lat: number }[],
     onReady?: Function
+    onClick?: Function
 }
 
 function CommonBmap(props: ICommonBmap) {
     let mBmapDiv = useRef();
 
     let [bmap, setBmap] = useState<any>(null);
+
+    /**
+     * 获取地图某一点位置
+     * @param point 
+     * @returns 
+     */
+    function getPointAddress(point: any) {
+        return new Promise(cb => {
+            let myGeo = new BMapGL.Geocoder();     
+
+            // 根据坐标得到地址描述    
+            myGeo.getLocation(point, function(rs: any) {      
+                let addComp = rs.addressComponents;    
+                cb({
+                    longAddr: [ addComp.city, addComp.district, addComp.street, addComp.streetNumber ].join(''),
+                    shortAddr: [ addComp.city, addComp.district ].join('')
+                });      
+            });
+        });
+    }
+
+    async function onClickMap(e: any) {
+        let pt: any = e.latlng;
+        let addr: any = await getPointAddress(pt);
+
+        if (typeof props.onClick === 'function') {
+            props.onClick(pt, addr);
+        }
+    }
 
     useEffect(() => {
         let div = mBmapDiv.current;
@@ -59,6 +89,9 @@ function CommonBmap(props: ICommonBmap) {
             // 将控件添加到地图上
             map.addControl(locationControl);
 
+            // 添加点击事件
+            map.addEventListener('click', (e: any) => onClickMap(e));
+
             setBmap(map);
 
             // 回传map对象
@@ -78,10 +111,13 @@ function CommonBmap(props: ICommonBmap) {
     }, []);
 
     useEffect(() => {
-        if (bmap && props.center) {
-            let pt = new BMapGL.Point(props.center.lng, props.center.lat);
-            bmap.centerAndZoom(pt, 12);
+        if (!bmap || !props.center) {
+            return;
         }
+
+        let pt = new BMapGL.Point(props.center.lng, props.center.lat);
+        bmap.centerAndZoom(pt, 12);
+
     }, [props.center]);
 
     useEffect(() => {
