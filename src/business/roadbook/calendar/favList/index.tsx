@@ -4,6 +4,8 @@ import AddPlaceModal from './addPlaceModal';
 import {MutableRefObject, useEffect, useRef, useState} from "react";
 import fetch from '@/src/fetch';
 import Openweather from "@/src/utils/openweather";
+import FcGraph from "./fcGraph";
+import { InfoCircleFilled } from '@ant-design/icons';
 
 interface IShowable {
     show: Function
@@ -23,7 +25,7 @@ export default function() {
     let [listData, setListData] = useState<any[]>([]);
     let [spinning, setSpinning] = useState(false);
     let [fcLen, setFcLen] = useState(5);
-    let [fcDispMode, setFcDispMode] = useState(E_fcDisplayMode.DETAIL);
+    let [fcDispMode, setFcDispMode] = useState(E_fcDisplayMode.FIGURE);
     
 
     /**
@@ -190,11 +192,27 @@ export default function() {
             clazzName = 'f-silver';
         }
 
+        let s_feels_like = '';
+        if (typeof item.feels_like === 'number') {
+            s_feels_like = item.feels_like;
+        } else if (item.feels_like?.length) {
+            s_feels_like = item.feels_like[0] + '-' + item.feels_like[1];
+        }
+        s_feels_like += '°C';
+
+        let s_grnd_level = '';
+        if (typeof item.grnd_level === 'number') {
+            s_grnd_level = item.grnd_level;
+        } else if (item.grnd_level?.length) {
+            s_grnd_level = item.grnd_level[0] + '-' + item.grnd_level[1];
+        }
+        s_grnd_level += 'hPa';
+
         return <p>
             <img style={{ width:'24px' }} src={Openweather.getIconUrl(item.icon)}/>
             <span className={clazzName}>{item.desc}，</span>
-            <span className={clazzName}>{item.feels_like}°C，</span>
-            <span className={clazzName}>{item.grnd_level}hPa</span>
+            <span className={clazzName}>{s_feels_like}，</span>
+            <span className={clazzName}>{s_grnd_level}</span>
         </p>;
     }
 
@@ -202,7 +220,12 @@ export default function() {
         return t0.add(DayJS.duration({ days: d_day })).format('YYYY-MM-DD');
     }
 
-    function renderForecast(d_day: number) {
+    /**
+     * 渲染详细的天气预报
+     * @param d_day 
+     * @returns 
+     */
+    function renderDetailForecast(d_day: number) {
         return function(cell: any, row: any) {
             if (typeof row?.fc?.map !== 'function') {
                 return null;
@@ -217,14 +240,135 @@ export default function() {
         }
     }
 
-    function renderFcColumn() {
-        let fullComps = [
-            <Table.Column title={`今天 ${t0.format('YYYY-MM-DD')}`} width={'260px'} key="t0" render={renderForecast(0)}/>,
-            <Table.Column title={`明天 ${t1.format('YYYY-MM-DD')}`} width={'260px'} key="t1" render={renderForecast(1)}/>,
-            <Table.Column title={renderForecastTitle(2)}            width={'260px'} key="t2" render={renderForecast(2)}/>,
-            <Table.Column title={renderForecastTitle(3)}            width={'260px'} key="t3" render={renderForecast(3)}/>,
-            <Table.Column title={renderForecastTitle(4)}            width={'260px'} key="t4" render={renderForecast(4)}/>,
+    function getModeElement(arr: string[]) {
+        let map: any = {};
+        let maxCnt = 0;
+        let modeElement = null;
+
+        arr.forEach(item => {
+            if (map.hasOwnProperty(item)) {
+                map[item] += 1;
+            } else {
+                map[item] = 1;
+            }
+
+            if (map[item] > maxCnt) {
+                maxCnt = map[item];
+                modeElement = item;
+            }
+        });
+
+        return modeElement;
+    }
+
+    function getNumberRange(nums: number[]) {
+        if (!nums?.length) {
+            return [NaN, NaN];
+        }
+
+        let min = nums[0];
+        let max = nums[0];
+
+        for (let i = 1; i < nums.length; i++) {
+            if (nums[i] < min) {
+                min = nums[i];
+            }
+
+            if (nums[i] > max) {
+                max = nums[i];
+            }
+        }
+
+        return [min, max];
+    }
+
+    /**
+     * 渲染简单的天气预报
+     * @param d_day 
+     * @returns 
+     */
+    function renderSimpleForecast(d_day: number) {
+        return function(cell: any, row: any) {
+            if (typeof row?.fc?.map !== 'function') {
+                return null;
+            }
+
+            let weather: any = {};
+            weather.icon = getModeElement(row.fc.map((item: any) => item.icon));
+            weather.desc = getModeElement(row.fc.map((item: any) => item.desc));
+            weather.feels_like = getNumberRange(row.fc.map((item: any) => item.feels_like));
+            weather.grnd_level = getNumberRange(row.fc.map((item: any) => item.grnd_level));
+
+            // TODO 尚未实现简单显示模式
+            return formatWeather(weather);
+        }
+    }
+
+    /**
+     * 渲染图表天气预报
+     * @param d_day 
+     * @returns 
+     */
+    function renderFigureForecast(d_day: number) {
+        return function(cell: any, row: any) {
+            // TODO 尚未实现图表显示模式
+            return <FcGraph data={row.fc}/>
+        }
+    }
+
+    /**
+     * 渲染天气预报
+     * @param d_day 
+     * @returns 
+     */
+    function renderForecast(d_day: number) {
+        if (fcDispMode === E_fcDisplayMode.DETAIL) {
+            return renderDetailForecast(d_day);
+        } else if (fcDispMode === E_fcDisplayMode.SIMPLE) {
+            return renderSimpleForecast(d_day);
+        } else if (fcDispMode === E_fcDisplayMode.FIGURE) {
+            return renderFigureForecast(d_day);
+        }
+    }
+
+    function renderGrndLevel(cell: any, row: any) {
+        let range = getNumberRange(row.fc?.map((item: any) => item.grnd_level));
+
+        let strings: any[] = [
+            range.join(' - ') + 'hPa'
         ];
+
+        if (range[0] < 700) {
+            strings.unshift(<InfoCircleFilled className="f-orange"/>, ' ');
+        }
+
+        return <span>{strings}</span>;
+    }
+
+    function renderFcColumn() {
+
+        let width = {
+            [E_fcDisplayMode.DETAIL]: 260,
+            [E_fcDisplayMode.SIMPLE]: 300,
+            [E_fcDisplayMode.FIGURE]: 1030,
+        }
+
+        let fullComps = [
+            <Table.Column title={`今天 ${renderForecastTitle(0)}`} width={width[fcDispMode]} key="t0" render={renderForecast(0)}/>,
+            <Table.Column title={`明天 ${renderForecastTitle(1)}`} width={width[fcDispMode]} key="t1" render={renderForecast(1)}/>,
+            <Table.Column title={renderForecastTitle(2)}           width={width[fcDispMode]} key="t2" render={renderForecast(2)}/>,
+            <Table.Column title={renderForecastTitle(3)}           width={width[fcDispMode]} key="t3" render={renderForecast(3)}/>,
+            <Table.Column title={renderForecastTitle(4)}           width={width[fcDispMode]} key="t4" render={renderForecast(4)}/>,
+        ];
+
+        if (fcDispMode === E_fcDisplayMode.FIGURE) {
+            let title = t0.format('YYYY-MM-DD') + ' - ' + t0.add(DayJS.duration({ days: fcLen - 1 })).format('YYYY-MM-DD');
+
+            return [
+                <Table.Column title="气温及降水" width={width[fcDispMode]} key="t0" render={renderForecast(0)}/>,
+                <Table.Column title="气压" width={160} key="grnd_level" render={renderGrndLevel}/>
+            ]
+        }
 
         return fullComps.slice(0, fcLen);
     }
