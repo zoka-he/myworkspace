@@ -1,6 +1,6 @@
 import { Modal, Form, DatePicker, InputNumber } from "antd";
 import React, { useState } from "react";
-import PlanSelect from "../planSelect";
+import PlanSelect from "../../planSelect";
 
 
 interface AddPlanModalProps {

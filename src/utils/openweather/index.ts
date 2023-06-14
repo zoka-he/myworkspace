@@ -69,6 +69,38 @@ function Openweather(this:any, lon:number, lat:number) {
             weather.sunset = data.sys.sunset;
 
             return weather;
+        },
+        async getForecast() {
+            let resp = await axios.get(
+                'https://api.openweathermap.org/data/2.5/forecast',
+                {
+                    params: {
+                        lat,
+                        lon,
+                        appid: API_KEY,
+                        lang: 'zh_cn',
+                        units: 'metric'
+                    },
+                    timeout: 30 * 1000
+                }
+            );
+
+            if (resp?.data?.cod != 200) {
+                throw new Error(resp?.data?.message || 'Openweather 未知错误');
+            }
+
+            let forecast = resp?.data?.list;
+
+            return forecast.map((item: any) => {
+                return {
+                    dt: item.dt,
+                    temp: item.main.temp,
+                    feels_like: item.main.feels_like,
+                    grnd_level: item.main.grnd_level,
+                    icon: item.weather[0].icon,
+                    desc: item.weather[0].description
+                }
+            });
         }
     }
 };
