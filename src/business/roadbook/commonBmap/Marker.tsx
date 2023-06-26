@@ -50,15 +50,19 @@ export default function(props: IMarkerProps) {
             overlays.push(lb);
         }
 
-        overlays.forEach(item => bmap.addOverlay(item));
+        if (typeof bmap?.addOverlay === 'function') { // 百度地图接口
+            overlays.forEach(item => bmap.addOverlay(item));
+        }
 
         return overlays;
     }
 
     function removeMarker(overlays?: any[]) {
         if (!overlays?.length) return;
-
-        overlays.forEach(item => bmap.removeOverlay(item));
+        if (bmap?.removeOverlay) { // 百度地图接口
+            overlays.forEach(item => bmap?.removeOverlay(item));
+        }
+        
     }
 
     useEffect(() => {

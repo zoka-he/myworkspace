@@ -346,31 +346,27 @@ export default function() {
     }
 
     function renderFcColumn() {
-
-        let width = {
-            [E_fcDisplayMode.DETAIL]: 260,
-            [E_fcDisplayMode.SIMPLE]: 300,
-            [E_fcDisplayMode.FIGURE]: 1030,
-        }
-
-        let fullComps = [
-            <Table.Column title={`今天 ${renderForecastTitle(0)}`} width={width[fcDispMode]} key="t0" render={renderForecast(0)}/>,
-            <Table.Column title={`明天 ${renderForecastTitle(1)}`} width={width[fcDispMode]} key="t1" render={renderForecast(1)}/>,
-            <Table.Column title={renderForecastTitle(2)}           width={width[fcDispMode]} key="t2" render={renderForecast(2)}/>,
-            <Table.Column title={renderForecastTitle(3)}           width={width[fcDispMode]} key="t3" render={renderForecast(3)}/>,
-            <Table.Column title={renderForecastTitle(4)}           width={width[fcDispMode]} key="t4" render={renderForecast(4)}/>,
-        ];
-
         if (fcDispMode === E_fcDisplayMode.FIGURE) {
-            let title = t0.format('YYYY-MM-DD') + ' - ' + t0.add(DayJS.duration({ days: fcLen - 1 })).format('YYYY-MM-DD');
-
             return [
-                <Table.Column title="气温及降水" width={width[fcDispMode]} key="t0" render={renderForecast(0)}/>,
+                <Table.Column title="气温及降水" width={1030} key="t0" render={renderForecast(0)}/>,
                 <Table.Column title="气压" width={160} key="grnd_level" render={renderGrndLevel}/>
             ]
+        } else {
+            let width = {
+                [E_fcDisplayMode.DETAIL]: 260,
+                [E_fcDisplayMode.SIMPLE]: 300,
+            };
+
+            let fullComps = [
+                <Table.Column title={`今天 ${renderForecastTitle(0)}`} width={width[fcDispMode]} key="t0" render={renderForecast(0)}/>,
+                <Table.Column title={`明天 ${renderForecastTitle(1)}`} width={width[fcDispMode]} key="t1" render={renderForecast(1)}/>,
+                <Table.Column title={renderForecastTitle(2)}           width={width[fcDispMode]} key="t2" render={renderForecast(2)}/>,
+                <Table.Column title={renderForecastTitle(3)}           width={width[fcDispMode]} key="t3" render={renderForecast(3)}/>,
+                <Table.Column title={renderForecastTitle(4)}           width={width[fcDispMode]} key="t4" render={renderForecast(4)}/>,
+            ];
+            return fullComps.slice(0, fcLen);
         }
 
-        return fullComps.slice(0, fcLen);
     }
 
 

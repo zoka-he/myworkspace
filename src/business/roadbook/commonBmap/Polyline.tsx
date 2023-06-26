@@ -11,30 +11,46 @@ export default function(props: IPolylineProps) {
     let bmap: any = useContext(BmapContext);
 
     function addPolyline() {
+        if (!bmap) {
+            return;
+        }
+
         let { path, config } = props;
 
-        if (!config) {
-            config = {
-                strokeColor: 'blue',
-                strokeWeight: 4,
-                strokeOpacity: 0.8
-            };
+        
+
+        try {
+            if (!config) {
+                config = {
+                    strokeColor: 'blue',
+                    strokeWeight: 4,
+                    strokeOpacity: 0.8
+                };
+            }
+            
+            let poly = new BMapGL.Polyline(
+                path.map((ptObj: any) => new BMapGL.Point(ptObj.lng, ptObj.lat)),
+                config
+            );
+
+            bmap?.addOverlay(poly);
+
+            return poly;
+        } catch(e) {
+            console.error(e);
         }
         
-        let poly = new BMapGL.Polyline(
-            path.map((ptObj: any) => new BMapGL.Point(ptObj.lng, ptObj.lat)),
-            config
-        );
-
-        bmap.addOverlay(poly);
         
-        return poly;
     }
 
     function removePolyline(poly?: any) {
-        if (!poly) return;
+        if (!poly || !bmap) return;
 
-        bmap.removeOverlay(poly);
+        try {
+            bmap?.removeOverlay(poly);
+        } catch(e) {
+            console.error(e);
+        }
     }
 
     useEffect(() => {

@@ -26,7 +26,10 @@ export default function Home() {
           </ConfigProvider>
         </Provider>
       </main>
-      <script type="text/javascript" src={`//api.map.baidu.com/api?type=webgl&v=1.0&ak=${bmapConfig.AK}`}></script>
+      <script type="text/javascript" src={`https://api.map.baidu.com/api?type=webgl&v=1.0&ak=${bmapConfig.AK}`}></script>
+      {/* <script type='text/javascript' src='https://webapi.amap.com/maps?v=2.0&key=aaf9abee1eb38e393da832ed8d387f4b'></script> */}
+      <script src="https://webapi.amap.com/loader.js"></script>
+      <script src="/scripts/loadAmap.js"></script>
     </>
   )
 }
