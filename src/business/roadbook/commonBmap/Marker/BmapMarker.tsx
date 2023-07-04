@@ -1,18 +1,15 @@
-import { useContext, useEffect } from "react";
-import BmapContext from "./BmapContext";
-
-interface IMarkerProps {
-    lng: number,
-    lat: number,
-    label?: string,
-    config?: any
-}
+import { useContext, useEffect, useState } from "react";
+import BmapContext from "../BmapContext";
+import type IMarkerProps from "./IMarkerProps";
 
 export default function(props: IMarkerProps) {
 
-    let bmap: any = useContext(BmapContext);
+    let bmap: any;
+    ({ bmap } = useContext(BmapContext));
 
-    function addMarker() {
+    function addBmapMarker() {
+        console.debug('baidu添加锚点');
+
         let { lng, lat, label, config } = props;
         let overlays = [];
 
@@ -57,19 +54,46 @@ export default function(props: IMarkerProps) {
         return overlays;
     }
 
-    function removeMarker(overlays?: any[]) {
+    function removeBmapMarker(overlays?: any[]) {
         if (!overlays?.length) return;
+        
+        
         if (bmap?.removeOverlay) { // 百度地图接口
             overlays.forEach(item => bmap?.removeOverlay(item));
+        }
+    }
+
+
+    function createBmapMarkers() {
+        if (!bmap) {
+            return [];
+        }
+
+        try {
+            let overlays = addBmapMarker();
+            return overlays;
+        } catch(e) {
+            console.error(e);
+            return [];
         }
         
     }
 
-    useEffect(() => {
-        if (!bmap) return;
+    function destroyBmapMarkers(overlays: any[]) {
+        if (!bmap) {
+            return;
+        }
 
-        let overlays = addMarker();
-        return () => removeMarker(overlays);
+        try {
+            removeBmapMarker(overlays);
+        } catch(e) {
+            console.error(e);
+        }
+    }
+
+    useEffect(() => {
+        let bmapMarkers = createBmapMarkers();
+        return () => destroyBmapMarkers(bmapMarkers);
     }, []);
 
     return <></>;

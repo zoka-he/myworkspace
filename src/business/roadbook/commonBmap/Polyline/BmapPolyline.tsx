@@ -1,14 +1,11 @@
 import { useContext, useEffect } from "react";
-import BmapContext from "./BmapContext";
-
-interface IPolylineProps {
-    path: { lng: number, lat: number }[],
-    config?: any
-}
+import BmapContext from "../BmapContext";
+import type IPolylineProps from "./IPolylineProps";
 
 export default function(props: IPolylineProps) {
 
-    let bmap: any = useContext(BmapContext);
+    let bmap: any;
+    ({ bmap } = useContext(BmapContext));
 
     function addPolyline() {
         if (!bmap) {

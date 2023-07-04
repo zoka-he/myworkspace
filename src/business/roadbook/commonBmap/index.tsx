@@ -51,6 +51,14 @@ function CommonBmap(props: ICommonBmap) {
         }
     }
 
+    function getMapType() {
+        if (props.mapType) {
+            return props.mapType;
+        } else {
+            return 'baidu'; // 缺省为百度地图
+        }
+    }
+
     function initBaiduMap(div: HTMLDivElement) {
         console.debug('初始化百度地图');
 
@@ -103,17 +111,154 @@ function CommonBmap(props: ICommonBmap) {
         return map;
     }
 
+    /**
+     * 初始化高德地图
+     * @param div 
+     * @returns 
+     */
     function initGaodeMap(div: HTMLDivElement) {
         console.debug('初始化高德地图');
+
+        let center = [116.397428, 39.90923]; // 北京
+        if (props.center) {
+            center = [props.center.lng, props.center.lat];
+        }
 
         let map = new AMap.Map(div, {
             viewMode: '2D',  // 默认使用 2D 模式
             zoom: 11,  //初始化地图层级
-            center: [116.397428, 39.90923]  //初始化地图中心点
+            center
         });
         return map;
     }
 
+    function simplifyViewport() {
+        if (!props.viewport?.length) {
+            return [];
+        }
+
+        let top: number = props.viewport[0].lat;
+        let right: number = props.viewport[0].lng;
+        let bottom: number = props.viewport[0].lat;
+        let left: number = props.viewport[0].lng;
+
+        for (let i = 1; i < props.viewport.length; i++) {
+            let pt = props.viewport[i];
+            top = Math.max(top, pt.lat);
+            right = Math.max(right, pt.lng);
+            bottom = Math.min(bottom, pt.lat);
+            left = Math.min(left, pt.lng);
+        }
+
+        return [left, top, right, bottom];
+    }
+
+    /**
+     * 修改百度地图显示区域
+     * @param lng1 
+     * @param lat1 
+     * @param lng2 
+     * @param lat2 
+     */
+    function setBmapViewport(map?: any, lng1?: number, lat1?: number, lng2?: number, lat2?: number) {
+
+        console.debug('更新百度地图区域');
+
+        if (props.viewport?.length && arguments.length === 0) {
+            [lng1, lat1, lng2, lat2] = simplifyViewport();
+            map = bmap;
+        } else if (props.viewport?.length && arguments.length === 1) {
+            [lng1, lat1, lng2, lat2] = simplifyViewport();
+        } else if (arguments.length !== 5) {
+            return;
+        }
+
+        if (map?.setViewport) { // 百度地图接口
+            map.setViewport([
+                new BMapGL.Point(lng1, lat1),
+                new BMapGL.Point(lng2, lat2)
+            ])
+        }
+    }
+
+    /**
+     * 修改高德地图显示区域
+     * @param lng1 
+     * @param lat1 
+     * @param lng2 
+     * @param lat2 
+     */
+    function setAmapViewport(map?: any, lng1?: number, lat1?: number, lng2?: number, lat2?: number) {
+
+        console.debug('更新高德地图区域');
+
+        if (props.viewport?.length && arguments.length === 0) {
+            [lng1, lat1, lng2, lat2] = simplifyViewport();
+            map = amap;
+        } else if (props.viewport?.length && arguments.length === 1) {
+            [lng1, lat1, lng2, lat2] = simplifyViewport();
+        } else if (arguments.length !== 5) {
+            return;
+        }
+
+        try {
+            if (map?.setBounds) {
+                let bounds = new AMap.Bounds(
+                    [lng1, lat1],
+                    [lng2, lat2]
+                );
+                map.setBounds(bounds);
+            }
+        } catch(e) {
+            console.error(e);
+        }
+    }
+
+    /**
+     * 设置百度地图中心
+     * @param map 
+     * @param lng 
+     * @param lat 
+     */
+    function setBmapCenter(map?: any, lng?: number, lat?: number) {
+        if (props.center && arguments.length === 0) {
+            ({lng, lat} = props.center);
+            map = bmap;
+        } else if (props.center && arguments.length === 1) {
+            ({lng, lat} = props.center);
+        } else if (arguments.length !== 5) {
+            return;
+        }
+
+        let pt = new BMapGL.Point(lng, lat);
+        map.centerAndZoom(pt, 12);
+    }
+
+    /**
+     * 设置高德地图中心
+     * @param map 
+     * @param lng 
+     * @param lat 
+     */
+    function setAmapCenter(map?: any, lng?: number, lat?: number) {
+        if (props.center && arguments.length === 0) {
+            ({lng, lat} = props.center);
+            map = amap;
+        } else if (props.center && arguments.length === 1) {
+            ({lng, lat} = props.center);
+        } else if (arguments.length !== 5) {
+            return;
+        }
+
+        try {
+            map.setCenter([lng, lat]);
+            map.setZoom(12);
+        } catch(e) {
+            console.error(e);
+        }
+    }
+
+    // 当地图类型、容器发生变更时，触发此事件
     useEffect(() => {
         let mapType = props.mapType;
         if (!mapType) {
@@ -122,19 +267,43 @@ function CommonBmap(props: ICommonBmap) {
 
         if (mapType === 'baidu') {
             let div = mBmapDiv.current;
-            if (!div || bmap) {
+            if (!div) {
                 return;
             }
 
-            let map = initBaiduMap(div);
-            setBmap(map);
+            // 如果百度地图不存在，初始化百度地图
+            let map = bmap;
+            if (!map) {
+                map = initBaiduMap(div);
+                setBmap(map);
+            }
+
+            // 如果存在viewPort，更新地图显示范围
+            if (props.viewport?.length) {
+                setTimeout(() => {
+                    setBmapViewport(map);
+                }, 200);
+            }
+            
         } else if (mapType === 'gaode') {
             let div = mAmapDiv.current;
-            if (!div || amap) {
+            if (!div) {
                 return;
             }
-            let map = initGaodeMap(div);
-            setAmap(map);
+
+            // 如果高德地图不存在，初始化高德地图
+            let map = amap;
+            if (!map) {
+                map = initGaodeMap(div);
+                setAmap(map);
+            }
+
+            // 如果存在viewPort，更新地图显示范围
+            if (props.viewport?.length) {
+                setTimeout(() => {
+                    setAmapViewport(map);
+                }, 200);
+            }
         }
 
         
@@ -146,47 +315,42 @@ function CommonBmap(props: ICommonBmap) {
 
     useEffect(() => {
         return function onDestroy() {
+            if (amap) {
+                amap.destroy();
+            }
+
             if (bmap) {
                 bmap.destroy();
             }
         }
     }, []);
 
+    // 如果中心点发生变化，让地图做出同步修改
     useEffect(() => {
-        if (!bmap || !props.center) {
-            return;
+        if (getMapType() === 'baidu') {
+            setBmapCenter();
+        } else if (getMapType() === 'gaode') {
+            setAmapCenter();
         }
-
-        let pt = new BMapGL.Point(props.center.lng, props.center.lat);
-        bmap.centerAndZoom(pt, 12);
 
     }, [props.center]);
 
+    // 如果地图范围发生变化，让地图做出同步修改
     useEffect(() => {
-        if (bmap && props.viewport?.length) {
-            let top: number = props.viewport[0].lat;
-            let right: number = props.viewport[0].lng;
-            let bottom: number = props.viewport[0].lat;
-            let left: number = props.viewport[0].lng;
+        if (!props.viewport?.length) {
+            return;
+        }
 
-            for (let i = 1; i < props.viewport.length; i++) {
-                let pt = props.viewport[i];
-                top = Math.max(top, pt.lat);
-                right = Math.max(right, pt.lng);
-                bottom = Math.min(bottom, pt.lat);
-                left = Math.min(left, pt.lng);
-            }
-
-            if (bmap?.setViewport) { // 百度地图接口
-                bmap.setViewport([
-                    new BMapGL.Point(left, top),
-                    new BMapGL.Point(right, bottom)
-                ])
-            }
-            
+        if (getMapType() === 'baidu') {
+            setBmapViewport();
+        } else if (getMapType() === 'gaode') {
+            setAmapViewport();
         }
     }, [props.viewport]);
 
+
+
+    // 控制哪张地图显示在界面上
     let amapStyle: any = {};
     let bmapStyle: any = {};
 
@@ -203,7 +367,7 @@ function CommonBmap(props: ICommonBmap) {
             { /* @ts-ignore */ }
             <div ref={mAmapDiv} className="f-fit-content" style={amapStyle} data-containerid={containerId}>&nbsp;</div>
             <div ref={mBmapDiv} className="f-fit-content" style={bmapStyle} data-containerid={containerId}>&nbsp;</div>
-            <BmapContext.Provider value={bmap}>
+            <BmapContext.Provider value={{ mapType: getMapType(), bmap, amap}}>
                 { props.children }
             </BmapContext.Provider>
         </>
