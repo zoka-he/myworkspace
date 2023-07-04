@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import BmapContext from "./BmapContext";
 import Marker from "./Marker";
 import Polyline from "./Polyline";
+import uuid from "@/src/utils/common/uuid";
 
 interface ICommonBmap {
     children?: any,
@@ -118,13 +119,14 @@ function CommonBmap(props: ICommonBmap) {
      */
     function initGaodeMap(div: HTMLDivElement) {
         console.debug('初始化高德地图');
+        div.id = 'gaodeMap-' + uuid();
 
         let center = [116.397428, 39.90923]; // 北京
         if (props.center) {
             center = [props.center.lng, props.center.lat];
         }
 
-        let map = new AMap.Map(div, {
+        let map = new AMap.Map(div.id, {
             viewMode: '2D',  // 默认使用 2D 模式
             zoom: 11,  //初始化地图层级
             center

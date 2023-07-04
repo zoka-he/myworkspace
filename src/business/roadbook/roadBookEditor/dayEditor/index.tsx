@@ -1,112 +1,21 @@
 import React, { useState } from "react";
 import { Modal, Input, Button, message, Select, Space, TimePicker } from "antd";
 import _ from 'lodash';
-import { ExclamationCircleFilled, PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined } from '@ant-design/icons';
 import NodeEditor from "./nodeEditor";
 import uuid from "@/src/utils/common/uuid";
 import * as Dayjs from 'dayjs';
 import fetch from '@/src/fetch';
-import parseDayDetail from "./parseDayDetail";
-
-// import svg_searchAddr from '@/public/mapicons/Target.svg';
-
-async function httpGetAsString(url: string) {
-    let ret = await fetch.get(url);
-    return '' + ret;
-}
+import parseDayDetail from "../parseDayDetail";
+import GeoSearch from "./GeoSearch";
+import EditorBmap from "./EditorBmap";
+import EditorAmap from "./EditorAmap";
 
 
-interface IGeoSearchProps {
-    map?: any
-    onAddress?: Function
-}
 
-/**
- * 地理位置检索控件
- * @param props 
- * @returns 
- */
-function GeoSearch(props: IGeoSearchProps) {
-    let [compOpts, setCompOpts] = useState([]);
-    let [pois, setPois] = useState([]);
-
-    /**
-     * 查询地理位置
-     */
-    const onSearch = _.debounce(function(s: string) {
-        if (!s) {
-            return;
-        }
-
-        if (!props.map) {
-            console.debug('map is not defined!');
-            return;
-        }
-
-        let map = props.map;
-        if (typeof map === 'function') {
-            map = map();
-        }
-
-        var sOpts = {
-            onSearchComplete: function(results: any){
-                // 判断状态是否正确
-                // @ts-ignore
-                if (local.getStatus() == BMAP_STATUS_SUCCESS){
-                    console.debug('poi result ====>>>>>', results);
-
-                    // poi的地名数据包括title和addr，title是常用地名，addr是街区号
-                    let _pois = results._pois;
-                    let poiOpts = _pois.map((poi: any, index: number) => {
-                        return {
-                            label: poi.title,
-                            value: index
-                        }
-                    });
-                    
-                    setCompOpts(poiOpts);
-                    setPois(_pois);
-                } else {
-                    message.error('地理搜索失败', local.getStatus());
-                }
-            }
-        };
-
-        console.debug('搜索', s);
-
-        var local = new BMapGL.LocalSearch(map, sOpts);
-        local.search(s);
-    }, 500);
-
-    /**
-     * 下拉列表选中
-     * @param val 
-     * @returns 
-     */
-    function onSelect(val: any) {
-        if (!props.map) {
-            console.debug('map is not defined!');
-            return;
-        }
-
-        let map = props.map;
-        if (typeof map === 'function') {
-            map = map();
-        }
-
-        // console.debug('select poi', val, pois[_.toNumber(val)]);
-        let poi: any = pois[_.toNumber(val)];
-        if (poi && typeof props.onAddress === 'function') {
-            props.onAddress(poi.point);
-        }
-    }
-
-    return <Select style={{ width: '450px' }}
-                    options={compOpts} filterOption={false} 
-                    showSearch onSearch={onSearch} onSelect={onSelect}></Select>
-}
 
 interface IDayPlanEditorProps {
+    mapType: string
     onFinish?: Function,
 }
 
@@ -128,17 +37,18 @@ interface IDayPlanEditorState {
 
 class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorState> {
 
-    private oldData: any;
-    private mMapContainer: HTMLDivElement | null = null;
+    private amap: any;
     private bmap: any;
+    private map: any;
     private mNodeComps: Array<NodeEditor | null>;
-    private mk_nodePoints: any[];
-    private mk_planRoutes: any[];
+    
     private o_oplanRoutes: any[];
     private b_willUpdateBmapPoints: boolean;
     private b_willParseAndFixData: boolean;
     private o_openPayload: any[];
-    private mk_search: any;
+
+    private amapId: string
+    
 
     constructor(props: IDayPlanEditorProps) {
         super(props);
@@ -159,18 +69,45 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         }
 
         this.mNodeComps = [];
-        this.mk_nodePoints = [];
-        this.mk_planRoutes = [];
+        
         this.o_oplanRoutes = [];
         this.b_willUpdateBmapPoints = false;
         this.b_willParseAndFixData = false;
         this.o_openPayload = [];
+
+        this.amapId = 'gaodeMap-' + uuid();
     }
 
     show() {
         this.setState({
             modalOpen: true
         });
+    }
+
+    getEditorMap() {
+        if (this.props.mapType === 'gaode') {
+            return this.amap;
+        } else if (this.props.mapType === 'baidu') {
+            return this.bmap;
+        } else {
+            return this.bmap;
+        }
+    }
+
+    getAmapStyle() {
+        if (this.props.mapType === 'gaode') {
+            return { position: 'absolute', top: '0' };
+        } else {
+            return { position: 'absolute', transform: 'translateY(114514px)' };
+        }
+    }
+
+    getBmapStyle() {
+        if (this.props.mapType === 'baidu') {
+            return { position: 'absolute', top: '0' };
+        } else {
+            return { position: 'absolute', transform: 'translateY(114514px)' };
+        }
     }
     
 
@@ -210,9 +147,17 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
             dayPlanDetail
         });
 
+        // 加载到了点位
         if (shouldDrawPoint) {
-            this.adjustPoints([ new BMapGL.Point(defaultPoint.lng, defaultPoint.lat) ]);
-            this.drawPoints([ defaultPoint ])
+            this.getEditorMap().adjustPoints(defaultPoint);
+            this.getEditorMap().drawPoints([ defaultPoint ])
+        } else {
+            if (this.props.mapType === 'gaode') {
+                console.debug('refresh gaode');
+                setTimeout(() => {
+                    this.getEditorMap().adjustPoints([]);
+                }, 200)
+            }
         }
     }
 
@@ -263,21 +208,22 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
                     uuid: uuid()
                 }
             });
-            this.drawPoints(detail.points);
-            this.adjustPoints(detail.points);
-        }
+            this.getEditorMap().drawPoints(detail.points);
+            this.getEditorMap().adjustPoints(detail.points);
+        } 
 
         // 设置路径（如果有）
         if (detail.routes?.length) {
             // 画了会自动保存到 this.o_oplanRoutes
-            this.drawPlans(detail.routes);
+            this.o_oplanRoutes = detail.routes;
+            this.getEditorMap().drawPlans(detail.routes);
         }
         
         this.setState(up_state)
     }
 
     async parseAndFixData(data: any, index: number, prev: any, next: any, ...args: any[]) {
-        if (!this.bmap) {
+        if (!this.getEditorMap()) {
             
 
             this.b_willParseAndFixData = true;
@@ -323,22 +269,9 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
             dayPlanDetail: []
         });
 
-        this.clearMap();
+        this.getEditorMap()?.clearMap();
 
         this.parseAndFixData(data, index, prev, next);
-    }
-
-    /**
-     * 打开，并自动附带上任务ID
-     * @param task
-     */
-    showWithTask(task: any) {
-        let { ID } = task;
-        this.setState({
-            modalOpen: true
-        });
-
-        this.oldData = { task_id: ID };
     }
 
 
@@ -508,26 +441,6 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
     }
 
     /**
-     * 获取地图某一点位置
-     * @param point 
-     * @returns 
-     */
-    getPointAddress(point: any) {
-        return new Promise(cb => {
-            let myGeo = new BMapGL.Geocoder();     
-
-            // 根据坐标得到地址描述    
-            myGeo.getLocation(point, function(rs: any) {      
-                let addComp = rs.addressComponents;    
-                cb({
-                    longAddr: [ addComp.city, addComp.district, addComp.street, addComp.streetNumber ].join(''),
-                    shortAddr: [ addComp.city, addComp.district ].join('')
-                });      
-            });
-        });
-    }
-
-    /**
      * 更新地图点位
      * @param pts 
      */
@@ -542,108 +455,16 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         }
 
         // 移除旧搜索点
-        if (this.mk_search) {
-            this.bmap.removeOverlay(this.mk_search);
-            this.mk_search = undefined;
-        }
+        this.getEditorMap().clearSearch();
 
         // 移动地图
-        this.bmap.centerAndZoom(pt, 12);
+        this.getEditorMap().centerAndZoom(pt.lat, pt.lng, 12);
         
         // 添加新搜索点
-        let svg_searchAddr = await httpGetAsString('/mapicons/Target.svg');
-        let mk = new BMapGL.Marker(
-            pt,
-            {
-                // 设置自定义path路径25325l99
-                icon: new BMapGL.SVGSymbol(
-                    svg_searchAddr,
-                    {
-                        rotation: 0,
-                        fillColor: 'red',
-                        fillOpacity : 1,
-                        scale: 0.05,
-                        anchor: new BMapGL.Size(530, 560)
-                    }
-                )
-            }
-        );
-
-        this.mk_search = mk;
-        this.bmap.addOverlay(mk);
+        this.getEditorMap().drawSearch(pt.lng, pt.lat);
     }
 
-    /**
-     * 在地图上画点
-     * @param ptList 
-     */
-    drawPoints(ptList: any[]) {
-
-        // 移除搜索点
-        if (this.mk_search) {
-            this.bmap.removeOverlay(this.mk_search);
-            this.mk_search = undefined;
-        }
-
-        ptList.forEach(pInfo => {
-            let pt = new BMapGL.Point(pInfo.lng, pInfo.lat);
-            let comp = pInfo.comp;
-
-            let marker = new BMapGL.Marker(pt);
-            this.bmap.addOverlay(marker);
-            this.mk_nodePoints.push(marker);
-
-            // 创建文本标注对象
-            var label = new BMapGL.Label(pInfo.addr, {
-                position: pt, // 指定文本标注所在的地理位置
-                offset: new BMapGL.Size(30, -30) // 设置文本偏移量
-            });
-            label.setStyle({
-                color: 'blue',
-                borderRadius: '4px',
-                borderColor: '#ccc',
-                padding: '5px',
-                fontSize: '10px',
-                height: '30px',
-                lineHeight: '18px',
-                fontFamily: '微软雅黑'
-            });
-
-            this.bmap.addOverlay(label);
-            this.mk_nodePoints.push(label);
-
-
-            // 给节点增加拖拽功能，拖拽后，需要同步更改标签位置及comp数据
-            if (comp) {
-                marker.addEventListener('dragging', (e: any) => {
-                    // console.debug('dragging', e.point?.lng, e.point?.lat);
-                    label.setPosition(e.point);
-                });
-                marker.addEventListener('dragend', (e: any)  => {
-                    // console.debug('dragend', e.point?.lng, e.point?.lat);
-                    comp.acceptLocation({
-                        lat: e.point.lat,
-                        lng: e.point.lng,
-                    });
-                });
-                marker.enableDragging();
-            }
-        });
-    }
-
-    adjustPoints(ptList: any[]) {
-        let points: any = [];
-        ptList.forEach(pInfo => {
-            if (pInfo.lng && pInfo.lat) {
-                let pt = new BMapGL.Point(pInfo.lng, pInfo.lat);
-                points.push(pt);
-            }
-        });
-
-        if (this.bmap) {
-            this.bmap.setViewport(points);
-        }
-    }
+    
 
     /**
      * 下一次渲染时更新地图上所有点位
@@ -662,10 +483,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         });
 
         // 首先移除所有的点位
-        this.mk_nodePoints.forEach(item => {
-            this.bmap.removeOverlay(item);
-        });
-        this.mk_nodePoints = [];
+        this.getEditorMap().clearPoints();
 
         let ptList: any[] = [];
         this.mNodeComps.forEach((comp, index) => {
@@ -687,16 +505,15 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
             })
         });
 
-        this.drawPoints(ptList);
+        this.getEditorMap().drawPoints(ptList);
     }
 
     /**
      * 地图点击动作
      * @param e 
      */
-    async onClickMap(e: any) {
-        let pt: any = e.latlng;
-        let addr: any = await this.getPointAddress(pt);
+    async onClickMap(pt: any) {
+        let addr: any = await this.getEditorMap().getPointAddress(pt.lng, pt.lat);
 
         // 判断是否工作在节点打标状态，如果是，则点击的时候创建Marker
         if (this.state.isLocatingNode && this.state.locateNodeIndex !== null) {
@@ -720,7 +537,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
             let msg = [
                 pt.lng, 
                 pt.lat,
-                addr.longAddr
+                addr?.longAddr || ''
             ]
     
     
@@ -736,27 +553,19 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
      * @param comp div节点
      * @returns 无返回
      */
-    onMapContainerRef(comp: HTMLDivElement | null) {
-        this.mMapContainer = comp;
-        console.debug('mMapContainer', this.mMapContainer);
+    onBMapContainerRef(comp: HTMLDivElement | null) {
 
         if (!comp) {
             return;
         }
 
         if (!this.bmap) {
-            let map = new BMapGL.Map(comp);
-            map.enableScrollWheelZoom();
-            map.disableDoubleClickZoom();
-
-            // 设置初始中心点
-            let point = new BMapGL.Point(116.404, 39.915);
-            map.centerAndZoom(point, 12);
-
-            // 添加点击事件
-            map.addEventListener('click', (e: any) => this.onClickMap(e));
-
-            this.bmap = map;
+            this.bmap = new EditorBmap(
+                comp,
+                {
+                    onClick: (e: any) => this.onClickMap(e)
+                }
+            );
         }
 
         if (this.b_willParseAndFixData) {
@@ -765,6 +574,37 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
             this.parseAndFixData(...this.o_openPayload);
         }
         
+    }
+
+    /**
+     * 初始化百度地图
+     * @param comp div节点
+     * @returns 无返回
+     */
+    onAMapContainerRef(comp: HTMLDivElement | null) {
+
+        if (!comp) {
+            return;
+        }
+
+        if (!this.amap) {
+            setTimeout(() => {
+                // 高德地图与id强制绑定，需要等待到下一个周期等div刷新后再加载
+                this.amap = new EditorAmap(
+                    this.amapId,
+                    {
+                        onClick: (e: any) => this.onClickMap(e)
+                    }
+                );
+
+                if (this.b_willParseAndFixData) {
+                    this.b_willParseAndFixData = false;
+                    // @ts-ignore
+                    this.parseAndFixData(...this.o_openPayload);
+                }
+            }, 200);
+            
+        }
     }
 
     /**
@@ -779,76 +619,20 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
             if (!comp?.state?.lng || !comp?.state?.lat)
                 return;
 
-            pts.push(new BMapGL.Point(comp.state.lng, comp.state.lat));
+            pts.push({ 
+                lng: comp.state.lng, 
+                lat: comp.state.lat
+            });
         });
 
-        // 少于2个节点无法计算
-        if (pts.length < 1) {
-            message.error('可使用的点位少于2个，请编辑后再进行计算！');
-            return;
-        }
-
-        // 路径点两两组成分段
-        let routes = pts.map((item, index, arr) => {
-            if (index === 0) {
-                return [];
-            } else {
-                return [arr[index - 1], item];
-            }
-        });
-
-        console.debug('routes', routes);
-
-        // 从百度地图获取路径规划数据
-        let routesPlans = await Promise.all(routes.map((item, index) => {
-            if (item.length < 2) {
-                return Promise.resolve(null);
-            } else {
-                return new Promise((cb) => {
-                    let plan: any = null;
-        
-                    let transit = new BMapGL.DrivingRoute(
-                        this.bmap, 
-                        {
-                            onSearchComplete(results: any) {
-                                // @ts-ignore
-                                if (transit.getStatus() === BMAP_STATUS_SUCCESS){
-                                    plan = results.getPlan(0);   
-                                } 
-    
-                                cb(plan);
-                            },
-                        }
-                    )
-
-                    transit.search(item[0], item[1]);
-                })
-            }
-        }));
-
-        console.info('routesPlan', routesPlans);
-
-        // 从百度地图数据拆解出关键节点数据及路径数据
-        let routesDatas = routesPlans.map((item: any) => {
-            if (item === null || item === undefined) {
-                return {
-                    path: [],
-                    distance: 0,
-                    duration: 0
-                }
-            } else {
-                return {
-                    path: item.getRoute(0).getPath(),
-                    distance: item.getDistance(false),
-                    duration: item.getDuration(false)
-                }
-            }
-        });
-
+        let routesDatas = await this.getEditorMap().calculatePlan(pts);
         console.info('routesDatas', JSON.stringify(routesDatas));
 
+        // 缓存路径数据
+        this.o_oplanRoutes = routesDatas;
+
         // 划线
-        this.drawPlans(routesDatas);
+        this.getEditorMap().drawPlans(routesDatas);
 
         // 修改各组件的距离、时间
         this.modifyDistanceAndDurations(routesDatas);
@@ -885,55 +669,6 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
                 comp.acceptDistAndDura(data.distance, data.duration, [ preferT0, preferT1 ]);
             }
         })
-    }
-
-
-    /**
-     * 在地图上画出路线
-     * @param routeDatas 
-     */
-    drawPlans(routeDatas: any[]) {
-        this.mk_planRoutes.forEach(item => {
-            this.bmap.removeOverlay(item);
-        });
-        this.mk_planRoutes = [];
-
-        this.o_oplanRoutes = routeDatas;
-        routeDatas.forEach((data, index) => {
-            let path = data.path;
-            if (path.length === 0) {
-                return;
-            }
-
-            try {
-                let strokeColor = (index % 2 === 0) ? 'blue' : 'green';
-                let poly = new BMapGL.Polyline(
-                    path.map((ptObj: any) => new BMapGL.Point(ptObj.lng, ptObj.lat)),
-                    {
-                        strokeColor,
-                        strokeWeight: 4,
-                        strokeOpacity: 0.8
-                    }
-                );
-
-                this.bmap.addOverlay(poly);
-                this.mk_planRoutes.push(poly);
-            } catch(e: any) {
-                console.error(e);
-            }
-        })
-    }
-
-    clearMap() {
-        this.mk_planRoutes.forEach(item => {
-            this.bmap.removeOverlay(item);
-        });
-        this.mk_planRoutes = [];
-
-        this.mk_nodePoints.forEach(item => {
-            this.bmap.removeOverlay(item);
-        });
-        this.mk_nodePoints = [];
     }
 
     /**
@@ -988,6 +723,11 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         if (this.bmap) {
             this.bmap.destroy();
             this.bmap = null;
+        }
+
+        if (this.amap) {
+            this.amap.destroy();
+            this.amap = null;
         }
     }
 
@@ -1109,12 +849,16 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
 
                                 <div className="m-day_bmap-toolbox">
                                     <span>查询位置：</span>
-                                    <GeoSearch map={() => this.bmap} onAddress={(pt: any) => this.onGeoSearchAddress(pt)}/>
+                                    <GeoSearch mapType={this.props.mapType} map={() => this.getEditorMap()} onAddress={(pt: any) => this.onGeoSearchAddress(pt)}/>
                                 </div>
 
-                                <div className="f-flex-1 f-relative">
+                                <div className="f-flex-1 f-relative f-no-overflow">
                                     {/* 百度地图容器 */}
-                                    <div ref={ comp => this.onMapContainerRef(comp) } className="f-fit-content">
+                                    <div ref={ comp => this.onBMapContainerRef(comp) } className="f-fit-content m-editor-bmap" style={this.getBmapStyle()}>
+                                        &nbsp;
+                                    </div>
+
+                                    <div id={this.amapId} ref={ comp => this.onAMapContainerRef(comp) } className="f-fit-content m-editor-amap" style={this.getAmapStyle()}>
                                         &nbsp;
                                     </div>
 

@@ -75,7 +75,7 @@ export default function() {
     let [spinning, setSpinning] = useState(false);
 
     let [mapType, setMapType] = useState<string | null>(null);
-
+    let [o_mapType, setOMapType] = useState<string | null>(null);
     
     let [remark, setRemark] = useState('');
     let [carDayCost, setCarDayCost] = useState<number | null>(0);
@@ -155,6 +155,7 @@ export default function() {
             let plan: any = await fetch.get('/api/roadPlan', { params: { ID: planId } });
             setRemark(plan.remark);
             setMapType(plan.map_type);
+            setOMapType(plan.map_type);
 
             let roadData = decodeBuffer(plan.data?.data);
             console.debug('roadData ===> ', roadData)
@@ -667,6 +668,16 @@ export default function() {
         }
     }
 
+    function getEditorMapType() {
+        if (o_mapType) {
+            return o_mapType;
+        } else if (mapType) {
+            return mapType;
+        } else {
+            return 'gaode';
+        }
+    }
+
     useEffect(() => {
         if (roadPlanID !== null) {
             // if (!bmap) {
@@ -765,7 +776,7 @@ export default function() {
                     </div>
 
                     { /* @ts-ignore */ }
-                    <DayPlanEditor ref={mDayPlanEditor} onFinish={e => onLoadPlan(roadPlanID)}/>
+                    <DayPlanEditor ref={mDayPlanEditor} mapType={getEditorMapType()} onFinish={e => onLoadPlan(roadPlanID)}/>
                 </div>
             </Spin>
         </div>
