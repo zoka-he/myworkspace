@@ -454,11 +454,13 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
             return;
         }
 
+        console.debug('转移到搜索位置', pt);
+
         // 移除旧搜索点
         this.getEditorMap().clearSearch();
 
         // 移动地图
-        this.getEditorMap().centerAndZoom(pt.lat, pt.lng, 12);
+        this.getEditorMap().centerAndZoom(pt.lng, pt.lat, 12);
         
         // 添加新搜索点
         this.getEditorMap().drawSearch(pt.lng, pt.lat);

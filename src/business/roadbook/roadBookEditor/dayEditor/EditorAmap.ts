@@ -1,4 +1,6 @@
 import fetch from '@/src/fetch';
+import { message } from 'antd';
+import { resolve } from 'path';
 
 interface IHandlers {
     onClick?: Function
@@ -221,7 +223,8 @@ export default class EditorAmap {
     }
 
     centerAndZoom(lng: number, lat: number, zoom: number) {
-        this.map.centerAndZoom(new BMapGL.Point(lng, lat), zoom);
+        this.map.setCenter([lng, lat]);
+        this.map.setZoom(zoom);
     }
 
     adjustPoints(ptList: any[]) {
@@ -229,8 +232,7 @@ export default class EditorAmap {
         console.debug('amap editor adjustPoints', ptList);
 
         if (!ptList?.length) {
-            this.map.setCenter([116.397428, 39.90923]); // 北京;
-            this.map.setZoom(12);
+            this.centerAndZoom(116.397428, 39.90923, 12); // 北京;
             return;
         }
 
@@ -252,5 +254,135 @@ export default class EditorAmap {
             [right, bottom]
         );
         this.map.setBounds(bounds);
+    }
+
+    /**
+     * 在地图上画出路线
+     * @param routeDatas 
+     */
+    drawPlans(routeDatas: any[]) {
+        this.mk_planRoutes.forEach(item => {
+            item.setMap(null)
+        });
+        this.mk_planRoutes = [];
+
+        routeDatas.forEach((data, index) => {
+            let path = data.path;
+            if (path.length === 0) {
+                return;
+            }
+
+            try {
+                let strokeColor = (index % 2 === 0) ? 'blue' : 'green';
+                let apath = path.map((item: any) => [item.lng, item.lat]);
+                let poly = new AMap.Polyline({
+                    strokeColor,
+                    strokeWeight: 4,
+                    strokeOpacity: 0.8,
+                    path: apath,
+                    isOutline: false,
+                    borderWeight: 0,
+                    strokeStyle: "solid",
+                    lineJoin: 'round',
+                    lineCap: 'round',
+                    zIndex: 50,
+                });
+
+                poly.setMap(this.map);
+                this.mk_planRoutes.push(poly);
+            } catch(e: any) {
+                console.error(e);
+            }
+        })
+    }
+
+    async calculatePlan(pts: any[]) {
+        // 少于2个节点无法计算
+        if (pts.length < 1) {
+            message.error('可使用的点位少于2个，请编辑后再进行计算！');
+            return;
+        }
+
+        // 路径点两两组成分段
+        let routes = pts.map((item, index, arr) => {
+            if (index === 0) {
+                return [];
+            } else {
+                let prev = [arr[index - 1].lng, arr[index - 1].lat];
+                let next = [item.lng, item.lat];
+                return [prev, next];
+            }
+        });
+
+        console.debug('routes', routes);
+
+        // 从百度地图获取路径规划数据
+        let routesPlans: any = await Promise.all(routes.map((item, index) => {
+            if (item.length < 2) {
+                return Promise.resolve(null);
+            } else {
+                return new Promise((cb) => {
+                    let driving = new AMap.Driving({
+                        policy: AMap.DrivingPolicy.LEAST_TIME
+                    }); 
+                    // 根据起终点经纬度规划驾车导航路线
+                    driving.search(
+                        new AMap.LngLat(...item[0]), new AMap.LngLat(...item[1]), 
+                        function(status: string, result: any) {
+                            console.debug(status, result);
+                            
+                            // result 即是对应的驾车导航信息，相关数据结构文档请参考  https://lbs.amap.com/api/javascript-api/reference/route-search#m_DrivingResult
+                            if (status === 'complete') {
+                                console.warn('绘制驾车路线完成')
+                                cb(result.routes[0])
+                            } else {
+                                console.error('获取驾车数据失败')
+                                cb(null)
+                            }
+                        });
+                })
+            }
+        }));
+
+        console.info('routesPlan', routesPlans);
+
+        // 从百度地图数据拆解出关键节点数据及路径数据
+        let routesDatas = routesPlans.map((item: any) => {
+            if (item === null || item === undefined) {
+                return {
+                    path: [],
+                    distance: 0,
+                    duration: 0
+                }
+            } else {
+                let path = [];
+                let distance = 0;
+                let duration = 0;
+                
+                let steps = item.steps;
+                for (let step of steps) {
+                    let stepPath = step.path || [];
+                    for (let pItem of stepPath) {
+                        path.push({
+                            lng: pItem.lng,
+                            lat: pItem.lat
+                        })
+                    }
+                    
+                    distance += step.distance;
+                    duration += step.time;
+                }
+
+                console.debug(distance, duration, path);
+
+                return {
+                    path,
+                    distance,
+                    duration
+                }
+            }
+        });
+
+        return routesDatas;
     }
 }
