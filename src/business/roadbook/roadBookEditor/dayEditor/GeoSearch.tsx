@@ -76,14 +76,15 @@ export default function GeoSearch(props: IGeoSearchProps) {
                 map = map();
             }
 
-            function doOneSearch(key: string, city?: string) {
-                if (!city) {
-                    city = '全国';
+            function doOneSearch(key: string, city?: string, research = true) {
+                let _city = city;
+                if (!_city) {
+                    _city = '全国';
                 }
 
-                let placeSearch = new AMap.PlaceSearch({ city });
+                let placeSearch = new AMap.PlaceSearch({ city: _city });
                 
-                placeSearch.search(s, function (status:any, result:any) {
+                placeSearch.search(key, function (status:any, result:any) {
                     // 查询成功时，result即对应匹配的POI信息
                     console.log('poi result ====>>>>>', result)
                     
@@ -99,24 +100,23 @@ export default function GeoSearch(props: IGeoSearchProps) {
                         
                         setCompOpts(poiOpts);
                         setPois(_pois);
-                    } else if (result.info === 'TIP_CITIES') {
+                    } else if (result.info === 'TIP_CITIES' && !city && research) {
                         console.debug('geosearch 参考 map', map, city);
                         // 这里拿到的是EditorAMap
                         map.getMap().getCity((info: any) => {
-                            if (city === '全国') {
-                                console.debug('getCity', info);
-                                doOneSearch(s, info.cityCode);
-                            } else {
-                                message.info('当前视图未找到结果');
-                            }
+                            console.debug('getCity', info);
+                            doOneSearch(key, info.citycode, false);
                         })
+                    } else {
+                        console.error('搜索遇到问题', status, result);
+                        message.error('搜索遇到问题，编码：' + (result?.info || result));
                     }
                 });
             }
 
             doOneSearch(s);
         }
-    }, 500);
+    }, 800);
 
     /**
      * 下拉列表选中
