@@ -249,7 +249,6 @@ export default class EditorAmap {
         console.debug('amap editor adjustPoints', ptList);
 
         if (!ptList?.length) {
-            this.centerAndZoom(116.397428, 39.90923, 12); // 北京;
             return;
         }
 

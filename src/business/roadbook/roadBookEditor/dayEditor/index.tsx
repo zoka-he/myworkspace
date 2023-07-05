@@ -149,7 +149,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
 
         // 加载到了点位
         if (shouldDrawPoint) {
-            this.getEditorMap().adjustPoints(defaultPoint);
+            this.getEditorMap().adjustPoints([ defaultPoint ]);
             this.getEditorMap().drawPoints([ defaultPoint ])
         } else {
             if (this.props.mapType === 'gaode') {
