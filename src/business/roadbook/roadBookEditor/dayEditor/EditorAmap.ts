@@ -222,6 +222,23 @@ export default class EditorAmap {
         this.mk_nodePoints = [];
     }
 
+    clearMap() {
+        this.mk_planRoutes.forEach(item => {
+            item.setMap(null);
+        });
+        this.mk_planRoutes = [];
+
+        this.mk_nodePoints.forEach(item => {
+            item.setMap(null);
+        });
+        this.mk_nodePoints = [];
+
+        if (this.mk_search) {
+            this.mk_search.setMap(null);
+            this.mk_search = null;
+        }
+    }
+
     centerAndZoom(lng: number, lat: number, zoom: number) {
         this.map.setCenter([lng, lat]);
         this.map.setZoom(zoom);
@@ -253,7 +270,7 @@ export default class EditorAmap {
             [left, top],
             [right, bottom]
         );
-        this.map.setBounds(bounds);
+        this.map.setBounds(bounds, false, [50, 50, 50, 50]);
     }
 
     /**

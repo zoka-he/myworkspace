@@ -209,7 +209,7 @@ function CommonBmap(props: ICommonBmap) {
                     [lng1, lat1],
                     [lng2, lat2]
                 );
-                map.setBounds(bounds);
+                map.setBounds(bounds, false, [50, 50, 50, 50]);
             }
         } catch(e) {
             console.error(e);
