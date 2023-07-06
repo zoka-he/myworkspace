@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { CSSProperties, useState } from "react";
 import { Modal, Input, Button, message, Select, Space, TimePicker } from "antd";
 import _ from 'lodash';
 import { PlusOutlined } from '@ant-design/icons';
@@ -94,7 +94,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         }
     }
 
-    getAmapStyle() {
+    getAmapStyle(): CSSProperties {
         if (this.props.mapType === 'gaode') {
             return { position: 'absolute', top: '0' };
         } else {
@@ -102,7 +102,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         }
     }
 
-    getBmapStyle() {
+    getBmapStyle(): CSSProperties {
         if (this.props.mapType === 'baidu') {
             return { position: 'absolute', top: '0' };
         } else {

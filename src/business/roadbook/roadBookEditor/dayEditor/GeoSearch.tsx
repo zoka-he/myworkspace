@@ -79,7 +79,7 @@ export default function GeoSearch(props: IGeoSearchProps) {
                 map = map();
             }
 
-            function doOneSearch(key: string, city?: string, research = true) {
+            const doOneSearch = (key: string, city?: string, research = true) => {
                 let _city = city;
                 if (!_city) {
                     _city = '全国';
