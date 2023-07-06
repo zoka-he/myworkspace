@@ -862,13 +862,9 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
 
                                 <div className="f-flex-1 f-relative f-no-overflow">
                                     {/* 百度地图容器 */}
-                                    <div ref={ comp => this.onBMapContainerRef(comp) } className="f-fit-content m-editor-bmap" style={this.getBmapStyle()}>
-                                        &nbsp;
-                                    </div>
+                                    <div ref={ comp => this.onBMapContainerRef(comp) } className="f-fit-content m-editor-bmap" style={this.getBmapStyle()}></div>
 
-                                    <div id={this.amapId} ref={ comp => this.onAMapContainerRef(comp) } className="f-fit-content m-editor-amap" style={this.getAmapStyle()}>
-                                        &nbsp;
-                                    </div>
+                                    <div id={this.amapId} ref={ comp => this.onAMapContainerRef(comp) } className="f-fit-content m-editor-amap" style={this.getAmapStyle()}></div>
 
                                 </div>
                             </div>
