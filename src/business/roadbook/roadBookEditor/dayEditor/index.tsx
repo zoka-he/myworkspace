@@ -851,7 +851,13 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
 
                                 <div className="m-day_bmap-toolbox">
                                     <span>查询位置：</span>
-                                    <GeoSearch mapType={this.props.mapType} map={() => this.getEditorMap()} onAddress={(pt: any) => this.onGeoSearchAddress(pt)}/>
+                                    <GeoSearch 
+                                        mapType={this.props.mapType} 
+                                        map={() => this.getEditorMap()} 
+                                        amap={this.amap}
+                                        bmap={this.bmap}
+                                        onAddress={(pt: any) => this.onGeoSearchAddress(pt)}
+                                    />
                                 </div>
 
                                 <div className="f-flex-1 f-relative f-no-overflow">
