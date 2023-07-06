@@ -1,0 +1,5 @@
+.m-common-amap-container, .m-editor-amap {
+    & > iframe {
+        display: none !important;
+    }
+}
