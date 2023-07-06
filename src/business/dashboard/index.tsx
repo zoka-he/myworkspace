@@ -3,7 +3,7 @@ import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 
 import fetch from '@/src/fetch';
 import TaskTip from "./taskTip";
-import {Button, Input, message, Space} from "antd";
+import {Button, Input, message, Space, Switch, Select} from "antd";
 
 // import TaskService from "../taskManage/taskService";
 import TaskEditor from "../taskEditor";
@@ -26,6 +26,7 @@ interface IDashboardLists {
 interface IDashboardState {
     queryTaskName: string,
     queryEmployee: string,
+    dispDir: string
 }
 
 class Dashboard extends React.Component<{}, IDashboardState & IDashboardLists & {}> {
@@ -45,6 +46,7 @@ class Dashboard extends React.Component<{}, IDashboardState & IDashboardLists & 
             finished: [],
             queryTaskName: '',
             queryEmployee: '',
+            dispDir: 'col',
         }
 
 
@@ -341,10 +343,15 @@ class Dashboard extends React.Component<{}, IDashboardState & IDashboardLists & 
             taskContext = taskList.map((item: ITaskData, index: number) => this.renderTask(item, index));
         }
 
-        return <Droppable droppableId={droppableId}>
+        let extendDroppableProps: any = {};
+        if (this.state.dispDir === 'row') {
+            extendDroppableProps.direction = 'horizontal';
+        }
+
+        return <Droppable droppableId={droppableId} {...extendDroppableProps}>
             {(provided, snapshot) => {
                 return (
-                    <div className="m-dashboard_tips-wrapper" ref={provided.innerRef} {...provided.droppableProps}>
+                    <div className="tips-wrapper" ref={provided.innerRef} {...provided.droppableProps}>
                         {taskContext}
                         {provided.placeholder}
                         {myplaceholder}
@@ -361,6 +368,14 @@ class Dashboard extends React.Component<{}, IDashboardState & IDashboardLists & 
     render() {
         let self = this;
 
+        let listClassName = `m-dashboard_main-list is-${this.state.dispDir}`;
+        let contextClassName = 'f-fit-height';
+        if (this.state.dispDir === 'row') {
+            contextClassName += ' f-flex-col';
+        } else if (this.state.dispDir === 'col') {
+            contextClassName += ' f-flex-row';
+        }
+
         return (
             <div className={'f-fit-content f-flex-col'}>
                 <div className={'f-flex-two-side'}>
@@ -369,6 +384,11 @@ class Dashboard extends React.Component<{}, IDashboardState & IDashboardLists & 
                         <Input style={{ width: '20em' }} value={this.state.queryTaskName} onInput={e => this.onConditionInput('queryTaskName', e)}/>
                         <label>负责人：</label>
                         <Input style={{ width: '10em' }} value={this.state.queryEmployee} onInput={e => this.onConditionInput('queryEmployee', e)}/>
+                        <label>显示方式：</label>
+                        <Select value={this.state.dispDir} onChange={e => this.setState({ dispDir: e })}>
+                            <Select.Option value={'col'}>按列</Select.Option>
+                            <Select.Option value={'row'}>按行</Select.Option>
+                        </Select>
                         <Button icon={<SearchOutlined/>} type="primary" onClick={() => this.onQuery()}>刷新</Button>
                     </Space>
                     <Space>
@@ -378,24 +398,24 @@ class Dashboard extends React.Component<{}, IDashboardState & IDashboardLists & 
 
                 <div className={'f-flex-1'} style={{ margin: '5px -10px', overflow: 'auto' }}>
                     <DragDropContext onDragEnd={e => this.onDragEnd(e)}>
-                        <div className="f-flex-row f-fit-height">
-                            <div className="m-dashboard_main-list">
+                        <div className={contextClassName}>
+                            <div className={listClassName}>
                                 <h3 className="f-inline-block f-fit-width f-bg-red18 f-align-center">未开始</h3>
                                 {this.renderTaskList('notStarted')}
                             </div>
-                            <div className="m-dashboard_main-list">
+                            <div className={listClassName}>
                                 <h3 className="f-inline-block f-fit-width f-bg-yellow18 f-align-center">开发中</h3>
                                 {this.renderTaskList('developing')}
                             </div>
-                            <div className="m-dashboard_main-list">
+                            <div className={listClassName}>
                                 <h3 className="f-inline-block f-fit-width f-bg-blue18 f-align-center">测试中</h3>
                                 {this.renderTaskList('testing')}
                             </div>
-                            <div className="m-dashboard_main-list">
+                            <div className={listClassName}>
                                 <h3 className="f-inline-block f-fit-width f-bg-red f-yellow f-align-center">待上线</h3>
                                 {this.renderTaskList('fuckable')}
                             </div>
-                            <div className="m-dashboard_main-list">
+                            <div className={listClassName}>
                                 <h3 className="f-inline-block f-fit-width f-bg-green18 f-align-center">已完成</h3>
                                 {this.renderTaskList('finished')}
                             </div>

@@ -1,97 +1,104 @@
-.m_tasktip {
-  width: 100%;
+.m-dashboard_main-list {
+  .m_tasktip {
+    box-sizing: border-box;
+    border: 1px #9cc solid;
+    background-color: white;
+    transition: 0.2s all;
 
-  box-sizing: border-box;
-  margin-bottom: 10px;
-
-  border: 1px #9cc solid;
-  background-color: white;
-
-  transition: 0.2s all;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  }
-
-  &.emerg {
-    border: 1px #fdd solid;
-  }
-
-  &.pause {
-    border: 1px #eee solid;
-  }
-
-  &-title {
-    background-color: #cee;
-    padding: 2px 6px 0px;
-  }
-
-  &.emerg &-title {
-    background-color: #fee;
-  }
-
-  &.pause &-title {
-    background-color: #e7e7e7;
-    color: gray;
-  }
-
-  &-context {
-    padding: 2px 6px 2px;
-  }
-
-  &-props {
-    dl, dd, dt {
-      margin-bottom: 2px;
-      font-size: 12px;
-      line-height: 1.2;
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     }
 
-    dl {
-      height: auto;
-      display: block;
-      overflow: auto;
+    &.emerg {
+      border: 1px #fdd solid;
+    }
 
-      > * {
-        float: left;
+    &.pause {
+      border: 1px #eee solid;
+    }
+
+    &-title {
+      background-color: #cee;
+      padding: 2px 6px 0px;
+    }
+
+    &.emerg &-title {
+      background-color: #fee;
+    }
+
+    &.pause &-title {
+      background-color: #e7e7e7;
+      color: gray;
+    }
+
+    &-context {
+      padding: 2px 6px 2px;
+    }
+
+    &-props {
+      dl, dd, dt {
+        margin-bottom: 2px;
+        font-size: 12px;
+        line-height: 1.2;
+      }
+
+      dl {
+        height: auto;
+        display: block;
+        overflow: auto;
+
+        > * {
+          float: left;
+        }
       }
     }
-  }
 
-  &-detail {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1.2;
-    font-size: 10px;
-    color: gray;
-    padding-top: 5px;
-  }
-
-  &-problems {
-    pre, h5 {
-      font-size: 10px;
-      padding: 0;
-      margin: 0;
+    &-detail {
+      overflow: hidden;
+      text-overflow: ellipsis;
       line-height: 1.2;
+      font-size: 10px;
+      color: gray;
+      padding-top: 5px;
+    }
+
+    &-problems {
+      pre, h5 {
+        font-size: 10px;
+        padding: 0;
+        margin: 0;
+        line-height: 1.2;
+      }
+    }
+
+    &-extra_btn {
+      transition: all .2s;
+      overflow: hidden;
+    }
+
+    & &-extra_btn.auto_hide {
+      height: 0;
+    }
+
+    &:hover &-extra_btn.auto_hide {
+      height: 25px;
+    }
+
+    &-txtbtn {
+      font-size: 10px;
+      padding: 0 2px;
     }
   }
 
-  &-extra_btn {
-    transition: all .2s;
-    overflow: hidden;
+  &.is-col .m_tasktip {
+    width: 100%;
+    margin-bottom: 10px;
   }
 
-  & &-extra_btn.auto_hide {
-    height: 0;
+  &.is-row .m_tasktip {
+    margin-right: 10px;
+    margin-bottom: 10px;
+    min-width: 200px;
   }
-
-  &:hover &-extra_btn.auto_hide {
-    height: 25px;
-  }
-
-  &-txtbtn {
-    font-size: 10px;
-    padding: 0 2px;
-  }
-
 }

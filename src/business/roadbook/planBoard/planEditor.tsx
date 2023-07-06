@@ -46,7 +46,9 @@ class TaskEditor extends React.Component<IPlanEditorProp, IPlanEditorState & {}>
             loading: false,
         }
 
-        this.formDefault = {}
+        this.formDefault = {
+            map_type: 'gaode'
+        }
 
         this.mForm = null;
         this.oldData = null;
@@ -142,6 +144,13 @@ class TaskEditor extends React.Component<IPlanEditorProp, IPlanEditorState & {}>
                         </Form.Item>
                         <Form.Item label={'描述'} name={'remark'}>
                             <Input.TextArea/>
+                        </Form.Item>
+
+                        <Form.Item label="地图类型" name="map_type">
+                            <Select>
+                                <Select.Option value="baidu">百度地图</Select.Option>
+                                <Select.Option value="gaode">高德地图</Select.Option>
+                            </Select>
                         </Form.Item>
                         
                         <div className={'f-align-center'}>

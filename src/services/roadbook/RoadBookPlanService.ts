@@ -10,7 +10,8 @@ class RoadBookPlanService extends service {
             'remark',
             'create_time',
             'update_time',
-            'data'
+            'data',
+            'map_type'
         ]);
     }
 
