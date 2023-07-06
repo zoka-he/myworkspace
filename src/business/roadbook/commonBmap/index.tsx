@@ -367,8 +367,8 @@ function CommonBmap(props: ICommonBmap) {
     return (
         <>
             { /* @ts-ignore */ }
-            <div ref={mAmapDiv} className="f-fit-content" style={amapStyle} data-containerid={containerId}>&nbsp;</div>
-            <div ref={mBmapDiv} className="f-fit-content" style={bmapStyle} data-containerid={containerId}>&nbsp;</div>
+            <div ref={mAmapDiv} className="f-fit-content" style={amapStyle} data-containerid={containerId}></div>
+            <div ref={mBmapDiv} className="f-fit-content" style={bmapStyle} data-containerid={containerId}></div>
             <BmapContext.Provider value={{ mapType: getMapType(), bmap, amap}}>
                 { props.children }
             </BmapContext.Provider>
