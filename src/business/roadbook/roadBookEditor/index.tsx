@@ -1,4 +1,4 @@
-import { Input, Space, Button, message, InputNumber, Modal, Spin, FloatButton } from 'antd';
+import { Input, Space, Button, message, InputNumber, Modal, Spin, FloatButton, Radio } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import qs from 'querystring';
@@ -74,6 +74,8 @@ export default function() {
     let [editState, setEditState] = useState(false);
     let [spinning, setSpinning] = useState(false);
 
+    let [mapType, setMapType] = useState<string | null>(null);
+    let [o_mapType, setOMapType] = useState<string | null>(null);
     
     let [remark, setRemark] = useState('');
     let [carDayCost, setCarDayCost] = useState<number | null>(0);
@@ -152,6 +154,8 @@ export default function() {
             // 加载路书信息
             let plan: any = await fetch.get('/api/roadPlan', { params: { ID: planId } });
             setRemark(plan.remark);
+            setMapType(plan.map_type);
+            setOMapType(plan.map_type);
 
             let roadData = decodeBuffer(plan.data?.data);
             console.debug('roadData ===> ', roadData)
@@ -664,6 +668,16 @@ export default function() {
         }
     }
 
+    function getEditorMapType() {
+        if (o_mapType) {
+            return o_mapType;
+        } else if (mapType) {
+            return mapType;
+        } else {
+            return 'gaode';
+        }
+    }
+
     useEffect(() => {
         if (roadPlanID !== null) {
             // if (!bmap) {
@@ -742,16 +756,27 @@ export default function() {
                     </div>
 
                     {/* 右侧区域 */}
-                    <div className="f-flex-1 f-relative m-plan_editor-map" style={{margin: '0 0 10px 10px'}}>
-                        <CommonBmap center={mapCenter} viewport={mapViewport}>
-                            { renderAddrMk() }
-                            { renderRoadPaths() }
-                            { renderKeyPoints() }
-                        </CommonBmap>
+                    <div className="f-flex-1" style={{margin: '0 0 10px 10px'}}>
+                        <div className='f-flex-col f-fit-height'>
+                            <Space style={{ marginBottom: 10 }}>
+                                <label>地图类型：</label>
+                                <Radio.Group value={mapType} onChange={e => setMapType(e.target.value || null)}>
+                                    <Radio value={'baidu'}>百度地图</Radio>
+                                    <Radio value={'gaode'}>高德地图</Radio>
+                                </Radio.Group>
+                            </Space>
+                            <div className="f-flex-1 f-relative m-plan_editor-map">
+                                <CommonBmap center={mapCenter} viewport={mapViewport} mapType={mapType}>
+                                    { renderAddrMk() }
+                                    { renderRoadPaths() }
+                                    { renderKeyPoints() }
+                                </CommonBmap>
+                            </div>
+                        </div>
                     </div>
 
                     { /* @ts-ignore */ }
-                    <DayPlanEditor ref={mDayPlanEditor} onFinish={e => onLoadPlan(roadPlanID)}/>
+                    <DayPlanEditor ref={mDayPlanEditor} mapType={getEditorMapType()} onFinish={e => onLoadPlan(roadPlanID)}/>
                 </div>
             </Spin>
         </div>
