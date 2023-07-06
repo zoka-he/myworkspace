@@ -1,0 +1,13 @@
+.m-wheel-dev {
+    .m-wheel-preview-label {
+        height: 32px;
+    }
+
+    .m-wheel-preview {
+        background-color: white;
+        border: 1px #eee solid;
+        border-radius: 4px;
+
+        height: calc(100% - 32px);
+    }
+}
