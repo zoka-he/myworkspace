@@ -5,6 +5,7 @@ import { SearchOutlined, ExclamationCircleFilled } from '@ant-design/icons';
 import confirm from "antd/es/modal/confirm";
 import _ from 'lodash';
 import { IAccount } from '@/src/types/IAccount';
+import Editor from './editor';
 
 const { Column } = Table;
 
@@ -140,7 +141,7 @@ export default function AccountManage() {
                             <span>预览</span>
                         </Space>
                         <div className='m-wheel-preview'>
-                            <svg></svg>
+                            <Editor/>
                         </div>
                     </div>
                 </div>

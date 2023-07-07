@@ -14,7 +14,7 @@ const RoadBookPlanBoard = lazy(() => import('../business/roadbook/planBoard'));
 const RoadBookEditor = lazy(() => import('../business/roadbook/roadBookEditor'));
 const AccountManage = lazy(() => import('../business/accountManage'));
 const RoadBookCalendar = lazy(() => import('../business/roadbook/calendar'));
-const WheelDev = lazy(() => import('../business/wheelDev/wheelDev'));
+const WheelDev = lazy(() => import('../business/wheelDev/index'));
 
 async function mainFrameLoader() {
   let matches = useMatches();

@@ -1,6 +1,8 @@
 import React, {useEffect, useRef, useState} from "react";
 import {Tabs} from "antd";
-import WheelDev from './wheelDev';
+import WheelDev from './WheelDev';
+import Hubs from './Hubs';
+import Rims from './Rims';
 
 export default function () {
 
@@ -9,6 +11,16 @@ export default function () {
             key: '1',
             label: `轮组设定`,
             children: <WheelDev/>,
+        },
+        {
+            key: '2',
+            label: `花鼓设定`,
+            children: <Hubs/>,
+        },
+        {
+            key: '3',
+            label: `车圈设定`,
+            children: <Rims/>,
         },
     ];
 
