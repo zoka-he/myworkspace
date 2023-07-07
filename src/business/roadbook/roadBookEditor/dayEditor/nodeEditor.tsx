@@ -27,7 +27,10 @@ interface IDayNodeStates {
     dist?: number
     dura?: number,
     // @ts-ignore
-    preferTime?: Dayjs[]
+    preferTime?: Dayjs[],
+    drivingType: string,
+    // @ts-ignore
+    travelTime?: Dayjs,
 }
 
 export default class NodeEditor extends React.Component<IDayNodeProps, IDayNodeStates> {
@@ -69,7 +72,8 @@ export default class NodeEditor extends React.Component<IDayNodeProps, IDayNodeS
             dist: data.dist,
             dura: data.dura,
             stayTime: secondsToDayjs(data.stayTime),
-            preferTime: getPreferTime(data.preferTime)
+            preferTime: getPreferTime(data.preferTime),
+            drivingType: 'car'
         };
 
         this.locateChangeFlag = false;
@@ -161,13 +165,22 @@ export default class NodeEditor extends React.Component<IDayNodeProps, IDayNodeS
     }
 
     renderDistAndDura() {
-        if (!(typeof this.state.dist === 'number') || !(typeof this.state.dura === 'number')) {
-            return <i className="f-silver">&lt;未规划&gt;</i>
-        } else {
-            let s_km = (this.state.dist / 1000).toFixed(1);
-            let s_HH = Math.floor(this.state.dura / 3600);
-            let s_mm = Math.floor((this.state.dura % 3600) / 60);
-            return <span>{s_km}km {s_HH}h{s_mm}m</span>
+        if (this.state.drivingType === 'car' || this.state.drivingType === 'bike') {
+            if (!(typeof this.state.dist === 'number') || !(typeof this.state.dura === 'number')) {
+                return <span>&nbsp;&nbsp;<i className="f-silver">&lt;未规划&gt;</i></span>
+            } else {
+                let s_km = (this.state.dist / 1000).toFixed(1);
+                let s_HH = Math.floor(this.state.dura / 3600);
+                let s_mm = Math.floor((this.state.dura % 3600) / 60);
+                return <span>&nbsp;&nbsp;{s_km}km {s_HH}h{s_mm}m</span>
+            }
+        } else if (this.state.drivingType === 'rail' || this.state.drivingType === 'fly') {
+            return [
+                <span>&nbsp;</span>,
+                <TimePicker style={{ width: '100px' }} 
+                            placeholder="乘坐时长" value={this.state.travelTime} 
+                            onChange={e => this.setState({ travelTime: e })}/>
+            ]
         }
     }
 
@@ -228,11 +241,20 @@ export default class NodeEditor extends React.Component<IDayNodeProps, IDayNodeS
                     <Button type="link" icon={<DeleteOutlined/>} danger onClick={() => deleteNode(index)}/>
                 </div>
                 <div>
-                    <div style={{ width: '170px', display: 'inline-block' }}>行驶：{this.renderDistAndDura()}</div>
-                    <TimePicker placeholder="停留" value={this.state.stayTime} 
+                    <div style={{ width: '180px', display: 'inline-block' }}>
+                        <Select value={this.state.drivingType} onChange={e => this.setState({ drivingType: e }) }>
+                            <Select.Option value="car">驾车</Select.Option>
+                            {/* <Select.Option value="bike">骑行</Select.Option> */}
+                            <Select.Option value="rail">高铁</Select.Option>
+                            <Select.Option value="fly">飞机</Select.Option>
+                        </Select>
+                        {this.renderDistAndDura()}
+                    </div>
+                    <TimePicker style={{ width: '100px' }}
+                                placeholder="停留" value={this.state.stayTime} 
                                 onChange={e => this.setState({ stayTime: e })}/>
 
-                    <div style={{ width: '200px', display: 'inline-block', textAlign: 'right' }}>参考时间：{ this.renderPreferTime() }</div>
+                    <div style={{ width: '190px', display: 'inline-block', textAlign: 'right' }}>参考时间：{ this.renderPreferTime() }</div>
 
                     {/* <Input style={{ width: '80px' }} placeholder="参考海拔"></Input> */}
                 </div>
