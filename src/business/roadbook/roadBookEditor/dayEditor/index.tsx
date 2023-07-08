@@ -623,7 +623,9 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
 
             pts.push({ 
                 lng: comp.state.lng, 
-                lat: comp.state.lat
+                lat: comp.state.lat,
+                drivingType: comp.state.drivingType || 'car',
+                travelTime: comp.state.travelTime
             });
         });
 
@@ -665,7 +667,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
                 dayTimer = dayTimer.add(data.duration, 'second');
                 let preferT0 = dayTimer.clone();
 
-                dayTimer = dayTimer.add(stayDura);
+                dayTimer = dayTimer.add(Dayjs.duration({ seconds: stayDura }));
                 let preferT1 = dayTimer.clone();
 
                 comp.acceptDistAndDura(data.distance, data.duration, [ preferT0, preferT1 ]);
@@ -771,7 +773,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
 
         o_update_daydb.data = JSON.stringify(day_data);
 
-        console.debug('isCreate', isCreate, o_update_daydb);
+        console.debug('saveDayPlan ======> ', o_update_daydb);
         try {
             if (isCreate) {
                 await fetch.post('/api/roadPlan/day', o_update_daydb);

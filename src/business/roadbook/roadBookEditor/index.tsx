@@ -482,14 +482,61 @@ export default function() {
             } 
         }));
 
-        let polylines = dayRoutes.map((path, index) => {
-            let polyData = path.map((ptObj: any) => ({ lng: ptObj.lng, lat: ptObj.lat }));
-            let config = {
+        let polylines: any[] = [];
+        
+        dayRoutes.forEach((path, index) => {
+
+            let baseConfig = {
                 strokeColor: (index % 2 === 0) ? 'blue' : 'green',
                 strokeWeight: 4,
                 strokeOpacity: 0.8
             };
-            return { pts: polyData, config };
+
+
+            let polyData: any[] = [];
+
+            const processPathEnd = () => {
+                let config = baseConfig;
+                if (polyData[0].type === 'rail' || polyData[0].type === 'fly') {
+                    config = {
+                        strokeColor: 'gray',
+                        strokeWeight: 2,
+                        strokeOpacity: 0.3
+                    }
+                }
+                polylines.push({ pts: polyData, config });
+                polyData = [];
+            }
+
+            const processPt = (ptObj: any, index: number, arr: any[]) => {
+                
+                let currType = ptObj?.type || 'car';
+
+                let prevObj = arr[index - 1];
+                if (index > 0) {
+                    let prevType = prevObj?.type || 'car';
+
+                    // 当路径类型发生变动时，上一个路径衔接上当前点
+                    if (currType !== prevType) {
+                        polyData.push({
+                            lng: ptObj.lng, 
+                            lat: ptObj.lat,
+                            type: prevType
+                        });
+                        processPathEnd();
+                    }
+                }
+
+                polyData.push({
+                    lng: ptObj.lng, 
+                    lat: ptObj.lat,
+                    type: currType
+                })
+            };
+
+            path.forEach(processPt);
+            processPathEnd();
+
         });
 
         setRoadPaths(polylines);

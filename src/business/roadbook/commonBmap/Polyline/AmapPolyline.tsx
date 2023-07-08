@@ -24,7 +24,7 @@ export default function(props: IPolylineProps) {
             }
             
             // TODO 插入曲线并返回
-            console.debug('path', path);
+            console.debug('path', path, config);
 
             let apath = path.map(item => [item.lng, item.lat]);
 

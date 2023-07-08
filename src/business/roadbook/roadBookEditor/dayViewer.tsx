@@ -1,4 +1,4 @@
-import { Card, Button, message, Space } from "antd";
+import { Card, Button, message, Space, Progress } from "antd";
 import { 
     EditOutlined,
     CloseOutlined,
@@ -7,6 +7,7 @@ import {
 import * as Dayjs from 'dayjs';
 import Openweather from '@/src/utils/openweather';
 import { useEffect, useState } from "react";
+import { red, green, orange } from '@ant-design/colors';
 
 /** 当日里程过长的告警值 */
 const g_alertDailyKm = 500;
@@ -233,13 +234,28 @@ export default function(props: IDayViewerProps) {
             s_title += '：' + props.data.name;
         }
 
+        let showSpeed = null;
         let totalDist = 0;
         if (detail?.points?.length) {
+            
             detail.points.forEach((item1: any) => {
                 totalDist += item1.dist;
             });
 
-            s_title += '，' + dist2km(totalDist);
+            let percent = Math.min(totalDist / 5000, 100); // /500/1000*100;
+            
+            let clr = null;
+            if (percent === 100) {
+                clr = red[5];
+            } else if (percent > 75) {
+                clr = orange[4];
+            } else {
+                clr = green[6];
+            }
+
+            let distPressure = <Progress steps={10} percent={percent} strokeColor={clr} size={'small'} showInfo={false}/>
+
+            showSpeed = [distPressure, <span style={{ color: clr }}>{dist2km(totalDist)}</span>];
         }
 
         let spanProps: any = {};
@@ -247,7 +263,12 @@ export default function(props: IDayViewerProps) {
             spanProps.className = 'f-red';
         }
 
-        return <span {...spanProps}>{s_title}</span>;
+        return (
+            <Space>
+                <span {...spanProps}>{s_title}</span>
+                {showSpeed}
+            </Space>
+        );
     }
 
     /**
