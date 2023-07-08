@@ -28,7 +28,7 @@ interface IDayNodeStates {
     dura?: number,
     // @ts-ignore
     preferTime?: Dayjs[],
-    drivingType: string,
+    drivingType?: string,
     // @ts-ignore
     travelTime?: Dayjs,
 }
@@ -74,6 +74,7 @@ export default class NodeEditor extends React.Component<IDayNodeProps, IDayNodeS
             stayTime: secondsToDayjs(data.stayTime),
             preferTime: getPreferTime(data.preferTime),
             drivingType: data.drivingType || 'car',
+            // @ts-ignore
             travelTime: Dayjs().startOf('day').add(Dayjs.duration({ seconds: data.travelTime }))
         };
 
