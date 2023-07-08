@@ -99,7 +99,7 @@ export default class EditorAmap {
             await fetch.get('/mapicons/Target.svg'),
             {
                 rotation: 0,
-                fillColor: 'orange',
+                fillColor: 'red',
                 fillOpacity : 1,
                 scale: 0.05,
                 anchor: new BMapGL.Size(530, 560)
