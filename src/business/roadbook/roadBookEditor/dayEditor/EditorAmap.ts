@@ -1,6 +1,6 @@
 import fetch from '@/src/fetch';
 import { message } from 'antd';
-import { resolve } from 'path';
+import DayJS from 'dayjs';
 
 interface IHandlers {
     onClick?: Function
@@ -99,7 +99,7 @@ export default class EditorAmap {
             await fetch.get('/mapicons/Target.svg'),
             {
                 rotation: 0,
-                fillColor: 'orange',
+                fillColor: 'red',
                 fillOpacity : 1,
                 scale: 0.05,
                 anchor: new BMapGL.Size(530, 560)
@@ -288,13 +288,25 @@ export default class EditorAmap {
                 return;
             }
 
+            let isFlyOrRail = false;
+            if (data.path[0].type === 'rail' || data.path[0].type === 'fly') {
+                isFlyOrRail = true;
+            }
+
             try {
                 let strokeColor = (index % 2 === 0) ? 'blue' : 'green';
+                let strokeWeight = 4, strokeOpacity = 0.8;
+                if (isFlyOrRail) {
+                    strokeColor = 'gray';
+                    strokeWeight = 2;
+                    strokeOpacity = 0.3;
+                }
+
                 let apath = path.map((item: any) => [item.lng, item.lat]);
                 let poly = new AMap.Polyline({
                     strokeColor,
-                    strokeWeight: 4,
-                    strokeOpacity: 0.8,
+                    strokeWeight,
+                    strokeOpacity,
                     path: apath,
                     isOutline: false,
                     borderWeight: 0,
@@ -320,13 +332,19 @@ export default class EditorAmap {
         }
 
         // 路径点两两组成分段
-        let routes = pts.map((item, index, arr) => {
+        let routes: (number[] | any)[] = pts.map((item, index, arr) => {
             if (index === 0) {
                 return [];
             } else {
                 let prev = [arr[index - 1].lng, arr[index - 1].lat];
                 let next = [item.lng, item.lat];
-                return [prev, next];
+
+                let config = {
+                    drivingType: item.drivingType || 'car',
+                    travelTime: item.travelTime || 0
+                }
+
+                return [prev, next, config];
             }
         });
 
@@ -334,7 +352,7 @@ export default class EditorAmap {
 
         // 从百度地图获取路径规划数据
         let routesPlans: any = await Promise.all(routes.map((item, index) => {
-            if (item.length < 2) {
+            if (item?.length < 2) {
                 return Promise.resolve(null);
             } else {
                 return new Promise((cb) => {
@@ -342,29 +360,57 @@ export default class EditorAmap {
                         policy: AMap.DrivingPolicy.LEAST_TIME
                     }); 
                     // 根据起终点经纬度规划驾车导航路线
-                    driving.search(
-                        new AMap.LngLat(...item[0]), new AMap.LngLat(...item[1]), 
-                        function(status: string, result: any) {
-                            console.debug(status, result);
-                            
-                            // result 即是对应的驾车导航信息，相关数据结构文档请参考  https://lbs.amap.com/api/javascript-api/reference/route-search#m_DrivingResult
-                            if (status === 'complete') {
-                                console.warn('绘制驾车路线完成')
-                                cb(result.routes[0])
-                            } else {
-                                console.error('获取驾车数据失败')
-                                cb(null)
+
+                    let [prev, next, config] = item;
+
+                    if (config?.drivingType === 'car') {
+                        driving.search(
+                            new AMap.LngLat(...prev), 
+                            new AMap.LngLat(...next), 
+                            function(status: string, result: any) {
+                                console.debug(status, result);
+                                
+                                // result 即是对应的驾车导航信息，相关数据结构文档请参考  https://lbs.amap.com/api/javascript-api/reference/route-search#m_DrivingResult
+                                if (status === 'complete') {
+                                    console.warn('绘制驾车路线完成')
+                                    cb(result.routes[0])
+                                } else {
+                                    console.error('获取驾车数据失败')
+                                    cb(null)
+                                }
                             }
-                        });
+                        );
+                    } else if (config?.drivingType === 'rail' || config?.drivingType === 'fly') {
+                        let time = 0;
+                        let t1 = config.travelTime;
+                        let t0 = t1.startOf('day');
+                        time = DayJS.duration(t1.diff(t0)).asSeconds();
+
+                        cb({
+                            steps: [
+                                {
+                                    path: [
+                                        new AMap.LngLat(...prev), 
+                                        new AMap.LngLat(...next), 
+                                    ],
+                                    distance: 0,
+                                    time,
+                                    type: config.drivingType
+                                }
+                            ]
+                        })
+                    }
                 })
             }
         }));
 
-        console.info('routesPlan', routesPlans);
+        console.info('routesPlan ==> ', routesPlans);
 
         // 从百度地图数据拆解出关键节点数据及路径数据
-        let routesDatas = routesPlans.map((item: any) => {
-            if (item === null || item === undefined) {
+        let routesDatas = routesPlans.map((planItem: any) => {
+            console.debug('planItem', planItem);
+
+            if (planItem === null || planItem === undefined) {
                 return {
                     path: [],
                     distance: 0,
@@ -375,14 +421,21 @@ export default class EditorAmap {
                 let distance = 0;
                 let duration = 0;
                 
-                let steps = item.steps;
+                let steps = planItem.steps;
                 for (let step of steps) {
                     let stepPath = step.path || [];
                     for (let pItem of stepPath) {
-                        path.push({
+                        let obj: any = {
                             lng: pItem.lng,
                             lat: pItem.lat
-                        })
+                        };
+
+                        console.debug('step?.type', step?.type)
+                        if (step?.type) {
+                            obj.type = step.type;
+                        }
+
+                        path.push(obj)
                     }
                     
                     distance += step.distance;
