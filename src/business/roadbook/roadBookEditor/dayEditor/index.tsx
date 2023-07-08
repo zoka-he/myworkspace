@@ -623,7 +623,9 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
 
             pts.push({ 
                 lng: comp.state.lng, 
-                lat: comp.state.lat
+                lat: comp.state.lat,
+                drivingType: comp.state.drivingType || 'car',
+                travelTime: comp.state.travelTime
             });
         });
 

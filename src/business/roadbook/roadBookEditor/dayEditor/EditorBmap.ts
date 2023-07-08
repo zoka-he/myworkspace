@@ -259,13 +259,19 @@ export default class EditorBmap {
         }
 
         // 路径点两两组成分段
-        let routes = pts.map((item, index, arr) => {
+        let routes: (number[] | any)[] = pts.map((item, index, arr) => {
             if (index === 0) {
                 return [];
             } else {
                 let prev = new BMapGL.Point(arr[index - 1].lng, arr[index - 1].lat);
                 let next = new BMapGL.Point(item.lng, item.lat);
-                return [prev, next];
+                
+                let config = {
+                    drivingType: item.drivingType || 'car',
+                    travelTime: item.travelTime || 0
+                }
+
+                return [prev, next, config];
             }
         });
 
@@ -277,23 +283,48 @@ export default class EditorBmap {
                 return Promise.resolve(null);
             } else {
                 return new Promise((cb) => {
-                    let plan: any = null;
-        
-                    let transit = new BMapGL.DrivingRoute(
-                        this.map, 
-                        {
-                            onSearchComplete(results: any) {
-                                // @ts-ignore
-                                if (transit.getStatus() === BMAP_STATUS_SUCCESS){
-                                    plan = results.getPlan(0);   
-                                } 
-    
-                                cb(plan);
-                            },
-                        }
-                    )
+                    let [prev, next, config] = item;
 
-                    transit.search(item[0], item[1]);
+                    if (config?.drivingType === 'car') {
+                        let plan: any = null;
+            
+                        let transit = new BMapGL.DrivingRoute(
+                            this.map, 
+                            {
+                                onSearchComplete(results: any) {
+                                    // @ts-ignore
+                                    if (transit.getStatus() === BMAP_STATUS_SUCCESS){
+                                        plan = results.getPlan(0);   
+                                    } 
+        
+                                    cb(plan);
+                                },
+                            }
+                        )
+
+                        transit.search(item[0], item[1]);
+                    } else if (config?.drivingType === 'rail' || config?.drivingType === 'fly') {
+                        let time = 0;
+                        let t1 = config.travelTime;
+                        let t0 = t1.startOf('day');
+                        time = t1.diff(t0);
+
+                        cb({
+                            getRoute() {
+                                return {
+                                    getPath() {
+                                        return [ prev, next ];
+                                    }
+                                }
+                            },
+                            getDistance() {
+                                return 0;
+                            },
+                            getDuration() {
+                                return time;
+                            }
+                        })
+                    }
                 })
             }
         }));

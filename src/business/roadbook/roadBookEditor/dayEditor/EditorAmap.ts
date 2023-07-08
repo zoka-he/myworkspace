@@ -320,13 +320,19 @@ export default class EditorAmap {
         }
 
         // 路径点两两组成分段
-        let routes = pts.map((item, index, arr) => {
+        let routes: (number[] | any)[] = pts.map((item, index, arr) => {
             if (index === 0) {
                 return [];
             } else {
                 let prev = [arr[index - 1].lng, arr[index - 1].lat];
                 let next = [item.lng, item.lat];
-                return [prev, next];
+
+                let config = {
+                    drivingType: item.drivingType || 'car',
+                    travelTime: item.travelTime || 0
+                }
+
+                return [prev, next, config];
             }
         });
 
@@ -334,7 +340,7 @@ export default class EditorAmap {
 
         // 从百度地图获取路径规划数据
         let routesPlans: any = await Promise.all(routes.map((item, index) => {
-            if (item.length < 2) {
+            if (item?.length < 2) {
                 return Promise.resolve(null);
             } else {
                 return new Promise((cb) => {
@@ -342,20 +348,45 @@ export default class EditorAmap {
                         policy: AMap.DrivingPolicy.LEAST_TIME
                     }); 
                     // 根据起终点经纬度规划驾车导航路线
-                    driving.search(
-                        new AMap.LngLat(...item[0]), new AMap.LngLat(...item[1]), 
-                        function(status: string, result: any) {
-                            console.debug(status, result);
-                            
-                            // result 即是对应的驾车导航信息，相关数据结构文档请参考  https://lbs.amap.com/api/javascript-api/reference/route-search#m_DrivingResult
-                            if (status === 'complete') {
-                                console.warn('绘制驾车路线完成')
-                                cb(result.routes[0])
-                            } else {
-                                console.error('获取驾车数据失败')
-                                cb(null)
+
+                    let [prev, next, config] = item;
+
+                    if (config?.drivingType === 'car') {
+                        driving.search(
+                            new AMap.LngLat(...prev), 
+                            new AMap.LngLat(...next), 
+                            function(status: string, result: any) {
+                                console.debug(status, result);
+                                
+                                // result 即是对应的驾车导航信息，相关数据结构文档请参考  https://lbs.amap.com/api/javascript-api/reference/route-search#m_DrivingResult
+                                if (status === 'complete') {
+                                    console.warn('绘制驾车路线完成')
+                                    cb(result.routes[0])
+                                } else {
+                                    console.error('获取驾车数据失败')
+                                    cb(null)
+                                }
                             }
-                        });
+                        );
+                    } else if (config?.drivingType === 'rail' || config?.drivingType === 'fly') {
+                        let time = 0;
+                        let t1 = config.travelTime;
+                        let t0 = t1.startOf('day');
+                        time = t1.diff(t0);
+
+                        cb({
+                            steps: [
+                                {
+                                    path: [
+                                        new AMap.LngLat(...prev), 
+                                        new AMap.LngLat(...next), 
+                                    ],
+                                    distance: 0,
+                                    time
+                                }
+                            ]
+                        })
+                    }
                 })
             }
         }));
