@@ -73,7 +73,8 @@ export default class NodeEditor extends React.Component<IDayNodeProps, IDayNodeS
             dura: data.dura,
             stayTime: secondsToDayjs(data.stayTime),
             preferTime: getPreferTime(data.preferTime),
-            drivingType: 'car'
+            drivingType: data.drivingType || 'car',
+            travelTime: Dayjs().startOf('day').add(Dayjs.duration({ seconds: data.travelTime }))
         };
 
         this.locateChangeFlag = false;
@@ -115,7 +116,7 @@ export default class NodeEditor extends React.Component<IDayNodeProps, IDayNodeS
         // @ts-ignore
         let t0 = Dayjs().startOf('day');
         let t1 = this.state.stayTime;
-        let dura = Dayjs.duration(t1.diff(t0));
+        let dura = Dayjs.duration(t1.diff(t0)).asSeconds();
         return dura;
     }
 
@@ -138,11 +139,19 @@ export default class NodeEditor extends React.Component<IDayNodeProps, IDayNodeS
             dura: this.state.dura,
             dist: this.state.dist,
             stayTime: this.getSecondOfDay(this.state.stayTime),
-            preferTime: null
+            preferTime: null,
+            drivingType: this.state.drivingType,
+            travelTime: null
         };
 
         if (this.state.preferTime) {
             obj.preferTime = this.state.preferTime.map(item => this.getSecondOfDay(item));
+        }
+
+        if (this.state.travelTime) {
+            let t1 = this.state.travelTime;
+            let t0 = this.state.travelTime.startOf('day');
+            obj.travelTime = Dayjs.duration(t1.diff(t0)).asSeconds();
         }
 
         return obj;
