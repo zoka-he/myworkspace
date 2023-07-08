@@ -114,8 +114,8 @@ export default class NodeEditor extends React.Component<IDayNodeProps, IDayNodeS
         }
 
         // @ts-ignore
-        let t0 = Dayjs().startOf('day');
         let t1 = this.state.stayTime;
+        let t0 = t1.startOf('day');
         let dura = Dayjs.duration(t1.diff(t0)).asSeconds();
         return dura;
     }

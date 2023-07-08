@@ -182,13 +182,25 @@ export default class EditorBmap {
             }
 
             try {
+                let isFlyOrRail = false;
+                if (path[0].type === 'rail' || path[0].type === 'fly') {
+                    isFlyOrRail = true;
+                }
+
                 let strokeColor = (index % 2 === 0) ? 'blue' : 'green';
+                let strokeWeight = 4, strokeOpacity = 0.8;
+                if (isFlyOrRail) {
+                    strokeColor = 'gray';
+                    strokeWeight = 2;
+                    strokeOpacity = 0.3;
+                }
+
                 let poly = new BMapGL.Polyline(
                     path.map((ptObj: any) => new BMapGL.Point(ptObj.lng, ptObj.lat)),
                     {
                         strokeColor,
-                        strokeWeight: 4,
-                        strokeOpacity: 0.8
+                        strokeWeight,
+                        strokeOpacity
                     }
                 );
 
@@ -322,7 +334,8 @@ export default class EditorBmap {
                             },
                             getDuration() {
                                 return time;
-                            }
+                            },
+                            type: config.drivingType
                         })
                     }
                 })
@@ -340,11 +353,17 @@ export default class EditorBmap {
                     duration: 0
                 }
             } else {
-                return {
+                let obj: any = {
                     path: item.getRoute(0).getPath(),
                     distance: item.getDistance(false),
                     duration: item.getDuration(false)
                 }
+
+                if (item.type) {
+                    obj.type = item.type;
+                }
+
+                return obj;
             }
         });
 

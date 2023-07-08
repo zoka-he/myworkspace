@@ -1,6 +1,6 @@
 import fetch from '@/src/fetch';
 import { message } from 'antd';
-import { resolve } from 'path';
+import DayJS from 'dayjs';
 
 interface IHandlers {
     onClick?: Function
@@ -288,13 +288,25 @@ export default class EditorAmap {
                 return;
             }
 
+            let isFlyOrRail = false;
+            if (data.path[0].type === 'rail' || data.path[0].type === 'fly') {
+                isFlyOrRail = true;
+            }
+
             try {
                 let strokeColor = (index % 2 === 0) ? 'blue' : 'green';
+                let strokeWeight = 4, strokeOpacity = 0.8;
+                if (isFlyOrRail) {
+                    strokeColor = 'gray';
+                    strokeWeight = 2;
+                    strokeOpacity = 0.3;
+                }
+
                 let apath = path.map((item: any) => [item.lng, item.lat]);
                 let poly = new AMap.Polyline({
                     strokeColor,
-                    strokeWeight: 4,
-                    strokeOpacity: 0.8,
+                    strokeWeight,
+                    strokeOpacity,
                     path: apath,
                     isOutline: false,
                     borderWeight: 0,
@@ -372,7 +384,7 @@ export default class EditorAmap {
                         let time = 0;
                         let t1 = config.travelTime;
                         let t0 = t1.startOf('day');
-                        time = t1.diff(t0);
+                        time = DayJS.duration(t1.diff(t0)).asSeconds();
 
                         cb({
                             steps: [
@@ -382,7 +394,8 @@ export default class EditorAmap {
                                         new AMap.LngLat(...next), 
                                     ],
                                     distance: 0,
-                                    time
+                                    time,
+                                    type: config.drivingType
                                 }
                             ]
                         })
@@ -391,11 +404,13 @@ export default class EditorAmap {
             }
         }));
 
-        console.info('routesPlan', routesPlans);
+        console.info('routesPlan ==> ', routesPlans);
 
         // 从百度地图数据拆解出关键节点数据及路径数据
-        let routesDatas = routesPlans.map((item: any) => {
-            if (item === null || item === undefined) {
+        let routesDatas = routesPlans.map((planItem: any) => {
+            console.debug('planItem', planItem);
+
+            if (planItem === null || planItem === undefined) {
                 return {
                     path: [],
                     distance: 0,
@@ -406,14 +421,21 @@ export default class EditorAmap {
                 let distance = 0;
                 let duration = 0;
                 
-                let steps = item.steps;
+                let steps = planItem.steps;
                 for (let step of steps) {
                     let stepPath = step.path || [];
                     for (let pItem of stepPath) {
-                        path.push({
+                        let obj: any = {
                             lng: pItem.lng,
                             lat: pItem.lat
-                        })
+                        };
+
+                        console.debug('step?.type', step?.type)
+                        if (step?.type) {
+                            obj.type = step.type;
+                        }
+
+                        path.push(obj)
                     }
                     
                     distance += step.distance;
