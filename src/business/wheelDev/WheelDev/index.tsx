@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import fetch from '@/src/fetch';
-import { Button, Input, Space, Table, message } from 'antd';
+import {Button, Input, Space, Table, message, Tree} from 'antd';
 import { SearchOutlined, ExclamationCircleFilled } from '@ant-design/icons';
 import confirm from "antd/es/modal/confirm";
 import _ from 'lodash';
 import { IAccount } from '@/src/types/IAccount';
 import Editor from './editor';
+
 
 const { Column } = Table;
 
@@ -127,14 +128,13 @@ export default function AccountManage() {
                 <div className='f-fit-height f-flex-row'>
                     <div style={{width: '30%'}}>
                         <Space>
-                            <label>轮组：</label>
+                            <label>搜索：</label>
                             <Input></Input>
+                            <Button type={'primary'}>添加</Button>
                         </Space>
                         { /** @ts-ignore */ }
-                        <Table dataSource={listData} size={'small'} pagination={{ pageSize, total, onChange: onPageChange, showTotal: renderTotal }}>
-                            <Column title="轮组" dataIndex="sys_name" key="task_name"/>
-                            <Column title="操作" dataIndex="action" key="action" fixed="right" width={260} render={renderAction}/>
-                        </Table>
+                        <Tree dataSource={listData} size={'small'} pagination={{ pageSize, total, onChange: onPageChange, showTotal: renderTotal }}>
+                        </Tree>
                     </div>
                     <div className='f-flex-1 f-fit-height' style={{ marginLeft: '20px' }}>
                         <Space className='m-wheel-preview-label'>

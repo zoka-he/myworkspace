@@ -1,6 +1,7 @@
 import { Form, InputNumber } from "antd";
 import IWheelData from "./IWheelData";
-import Preview from './preview';
+import RightView from "@/src/business/wheelDev/WheelDev/RightView";
+import BackView from "@/src/business/wheelDev/WheelDev/BackView";
 
 interface IEditorProps {
     data?: IWheelData
@@ -8,8 +9,8 @@ interface IEditorProps {
 
 export default function(props: IEditorProps) {
     return (
-        <div>
-            <div>
+        <div className={'f-flex-row'}>
+            <div style={{ width: "300px" }}>
                 <p>轮圈</p>
                 <Form>
                     <Form.Item label="轮圈直径">
@@ -27,9 +28,9 @@ export default function(props: IEditorProps) {
                     </Form.Item>
                 </Form>
             </div>
-            <div>
-                <Preview.RightView/>
-                <Preview.BackView/>
+            <div className={'f-flex-1'}>
+                <RightView rimProps={{ rimHeight: 35, rimRadius: 311 }}/>
+                <BackView/>
             </div>
         </div>
     )
