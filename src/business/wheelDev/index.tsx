@@ -3,10 +3,19 @@ import {Tabs} from "antd";
 import WheelDev from './WheelDev';
 import Hubs from './Hubs';
 import Rims from './Rims';
+import Structures from "./Structures";
 
 export default function () {
 
-    let items = [
+    let litems = [
+        {
+            key: '1',
+            label: `组件`,
+            children: <Structures/>,
+        },
+    ]
+
+    let ritems = [
         {
             key: '1',
             label: `轮组设定`,
@@ -25,8 +34,9 @@ export default function () {
     ];
 
     return (
-        <div className="m-wheel-dev f-fit-height f-flex-col">
-            <Tabs defaultActiveKey="1" items={items} type="card" className="f-fit-height"/>
+        <div className="m-wheel-dev f-fit-height f-flex-row">
+            <Tabs style={{ width: '30%' }} defaultActiveKey="1" items={litems} type="card" className="f-fit-height"/>
+            <Tabs style={{ flex: '1', marginLeft: '6px' }} defaultActiveKey="1" items={ritems} type="card" className="f-fit-height"/>
         </div>
     )
 }
