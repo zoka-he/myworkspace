@@ -14,7 +14,8 @@ const RoadBookPlanBoard = lazy(() => import('../business/roadbook/planBoard'));
 const RoadBookEditor = lazy(() => import('../business/roadbook/roadBookEditor'));
 const AccountManage = lazy(() => import('../business/accountManage'));
 const RoadBookCalendar = lazy(() => import('../business/roadbook/calendar'));
-const WheelDev = lazy(() => import('../business/wheelDev/index'));
+const WheelDev = lazy(() => import('../business/bike/WheelDev/index'));
+const BikeManage = lazy(() => import('../business/bike/bikeManage/index'));
 
 async function mainFrameLoader() {
   let matches = useMatches();
@@ -42,6 +43,7 @@ export default function() {
           <Route path="infos/employeeManage" element={<EmployeeManage />} />
 
           <Route path="bike/wheelDev" element={<WheelDev />} />
+          <Route path="bike/bikeManage" element={<BikeManage />} />
 
           <Route path="*" element={<div><h1>此页面尚未实现！</h1></div>}/>
         </Route>

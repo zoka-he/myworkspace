@@ -82,8 +82,12 @@ const navObj: INavMenu[] = [
     key: '/bike',
     children: [
         {
-            label: '轮组',
+            label: '轮组计算器',
             key: '/wheelDev'
+        },
+        {
+            label: '器材数据',
+            key: '/bikeManage'
         }
     ]
 }

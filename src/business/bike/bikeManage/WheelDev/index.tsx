@@ -1,5 +1,5 @@
 import {Table, Radio, Space} from 'antd';
-import Editor from './editor';
+import Editor from '../../WheelDev';
 
 
 const { Column } = Table;
@@ -13,7 +13,7 @@ export default function AccountManage() {
                     <Radio>后轮</Radio>
                 </Radio.Group>
             </Space>
-            <Editor/>
+            <Editor readonly={true}/>
         </div>
     )
 }
