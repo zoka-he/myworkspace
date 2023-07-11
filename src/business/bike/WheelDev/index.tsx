@@ -4,6 +4,7 @@ import RightView from "./RightView";
 import BackView from "./BackView";
 import IRimProps from "./IRimProps";
 import IHubProps from "./IHubProps";
+import calculateSpokeLength from "./calculateSpokeLength";
 
 interface IEditorProps {
     data?: IWheelData
@@ -49,106 +50,6 @@ export default function(props: IEditorProps) {
         } else {
             return '--';
         }
-    }
-
-    function calculateSpokeLength(rimProps: IRimProps, hubProps: IHubProps, mode: number[]) {
-        function getStartPos(
-            flangePos: number, 
-            flangeRadius: number
-        ): [number, number, number] {
-            let x = flangePos;  // 左右，左为负，右为正
-            let y = flangeRadius;  // 上下，无偏转时朝正上方
-            let z = 0;  // 前后
-
-            return [x, y, z];
-        }
-
-        function getEndPos(
-            rimRadius: number,
-            rimHeight: number,
-            holeCount: number,
-            holeShift: number
-        ): [number, number, number] {
-            let r = rimRadius - rimHeight;
-            let rad = 2 * Math.PI / holeCount * holeShift;
-
-            let x = 0;  // 左右
-            let y = r * Math.cos(rad);  // 上下，无偏转时为正上方
-            let z = r * Math.sin(rad);  // 前后
-
-            return [x, y, z];
-        }
-
-        function getDistance(pos1: [number, number, number], pos2: [number, number, number]) {
-            return Math.sqrt(
-                (pos1[0] - pos2[0]) ** 2 +
-                (pos1[1] - pos2[1]) ** 2 +
-                (pos1[2] - pos2[2]) ** 2
-            )
-        }
-
-        return [
-            [
-                getDistance(
-                    getStartPos(
-                        -0.5 * hubProps.hubLength + hubProps.flange1Pos, 
-                        hubProps.flange1Radius
-                    ),
-                    getEndPos(
-                        rimProps.rimRadius, 
-                        rimProps.rimHeight, 
-                        hubProps.holeCount, 
-                        mode[0]
-                    )
-                ),
-                hubProps.holeCount / mode.length
-            ],
-            [
-                getDistance(
-                    getStartPos(
-                        -0.5 * hubProps.hubLength + hubProps.flange2Pos, 
-                        hubProps.flange2Radius
-                    ),
-                    getEndPos(
-                        rimProps.rimRadius, 
-                        rimProps.rimHeight, 
-                        hubProps.holeCount, 
-                        mode[1]
-                    )
-                ),
-                hubProps.holeCount / mode.length
-            ],
-            [
-                getDistance(
-                    getStartPos(
-                        0.5 * hubProps.hubLength - hubProps.flange3Pos, 
-                        hubProps.flange3Radius
-                    ),
-                    getEndPos(
-                        rimProps.rimRadius, 
-                        rimProps.rimHeight, 
-                        hubProps.holeCount, 
-                        mode[2]
-                    )
-                ),
-                hubProps.holeCount / mode.length
-            ],
-            [
-                getDistance(
-                    getStartPos(
-                        0.5 * hubProps.hubLength - hubProps.flange4Pos, 
-                        hubProps.flange4Radius
-                    ),
-                    getEndPos(
-                        rimProps.rimRadius, 
-                        rimProps.rimHeight, 
-                        hubProps.holeCount, 
-                        mode[3]
-                    )
-                ),
-                hubProps.holeCount / mode.length
-            ]
-        ]
     }
 
     let result = calculateSpokeLength(rimProps, hubProps, [-6, 6, 6, -6]);
