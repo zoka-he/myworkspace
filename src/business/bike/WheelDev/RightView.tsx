@@ -1,3 +1,5 @@
+import { Result } from "antd";
+
 interface IRimProps {
     rimRadius: number,
     rimHeight: number
@@ -195,6 +197,18 @@ export default function RightView(props: IViewProps) {
     let size = props.size || [300, 300];
     if (typeof size === 'number') {
         size = [size, size];
+    }
+
+    if (!props.hubProps || !props.rimProps) {
+        return (
+            <div style={{ width: size[0], height: size[1] }}>
+                <Result
+                    status="error"
+                    title="参数错误"
+                    subTitle="该参数不能计算轮组尺寸，请更改别的参数"
+                />
+            </div>
+        );
     }
 
     return (

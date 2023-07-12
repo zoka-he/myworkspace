@@ -16,6 +16,7 @@ export default function(props: IEditorProps) {
 
     const [form] = Form.useForm();
     const [result, setResult] = useState([[0, 0], [0, 0], [0, 0], [0, 0]]);
+    const [viewData, setViewData] = useState<null | IRimProps & IHubProps>(null);
 
     let data: (IRimProps & IHubProps) = { 
         rimHeight: 25, 
@@ -47,12 +48,19 @@ export default function(props: IEditorProps) {
         }
     }
 
-    function onFormValuesChange() {
-
+    function onFormValuesChange(changedData: any) {
+        let formData = {
+            ...form.getFieldsValue(),
+            coreRadius: 9,
+        };
+        console.debug('formData', formData);
+        setViewData(formData);
+        setResult(calculateSpokeLength(formData, [-6, 6, 6, -6]));
     }
 
     useEffect(() => {
         form.setFieldsValue(data);
+        setViewData(data);
         setResult(calculateSpokeLength(data, [-6, 6, 6, -6]));
     }, []);
 
@@ -60,7 +68,7 @@ export default function(props: IEditorProps) {
     return (
         <Space size={30}>
             <div style={{width: 400}}>
-                <Form form={form} title="轮圈" labelCol={{ span: 4 }}>
+                <Form form={form} title="轮圈" labelCol={{ span: 4 }} onValuesChange={onFormValuesChange}>
                     <h3>轮圈</h3>
                     <Form.Item label="型号">
                         <Input/>
@@ -73,15 +81,23 @@ export default function(props: IEditorProps) {
                             <InputNumber style={{width: 150}}/>
                         </Form.Item>
                     </div>
-                    <Form.Item label="孔数" name="holeCount">
-                        <InputNumber style={{width: 150}}/>
-                    </Form.Item>
+                    <div className="f-flex-two-side">
+                        <Form.Item label="肽宽" labelCol={{span: 8}} name="tyreWidth">
+                            <InputNumber style={{width: 150}}/>
+                        </Form.Item>
+                        <Form.Item label="孔数" labelCol={{span: 7}} name="holeCount">
+                            <InputNumber style={{width: 150}}/>
+                        </Form.Item>
+                    </div>
 
                     <p></p>
                 
                     <h3>花鼓</h3>
                     <Form.Item label="型号">
                         <Input/>
+                    </Form.Item>
+                    <Form.Item label="开档长度" name="hubLength">
+                        <InputNumber style={{width: 120}}/>
                     </Form.Item>
                     <div className="f-flex-two-side">
                         <Form.Item label="左外PCD" labelCol={{span: 9}} name="flange1Radius">
@@ -119,8 +135,8 @@ export default function(props: IEditorProps) {
             </div>
             <div>
                 <div className="f-flex-row">
-                    <RightView rimProps={data} hubProps={data}/>
-                    <BackView rimProps={data} hubProps={data}/>
+                    <RightView rimProps={viewData} hubProps={viewData}/>
+                    <BackView rimProps={viewData} hubProps={viewData}/>
                 </div>
                 <p></p>
                 <Descriptions title="辐条" bordered column={2} size="small">

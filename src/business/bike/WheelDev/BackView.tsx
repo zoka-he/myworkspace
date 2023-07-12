@@ -1,3 +1,5 @@
+import { Result } from "antd";
+
 interface IRimProps {
     rimRadius: number,
     rimHeight: number,
@@ -195,12 +197,12 @@ function SpokeView(props: IViewProps) {
     let spokes = [
         <line x1={50 - flange1Ref[0]} y1={150 - flange1Ref[1]} x2={50} y2={150 - rim_dy} style={borderStyle}/>,
         <line x1={50 - flange1Ref[0]} y1={150 + flange1Ref[1]} x2={50} y2={150 + rim_dy} style={borderStyle}/>,
-        <line x1={50 - flange2Ref[0]} y1={150 - flange1Ref[1]} x2={50} y2={150 - rim_dy} style={borderStyle}/>,
-        <line x1={50 - flange2Ref[0]} y1={150 + flange1Ref[1]} x2={50} y2={150 + rim_dy} style={borderStyle}/>,
-        <line x1={50 + flange3Ref[0]} y1={150 - flange1Ref[1]} x2={50} y2={150 - rim_dy} style={borderStyle}/>,
-        <line x1={50 + flange3Ref[0]} y1={150 + flange1Ref[1]} x2={50} y2={150 + rim_dy} style={borderStyle}/>,
-        <line x1={50 + flange4Ref[0]} y1={150 - flange1Ref[1]} x2={50} y2={150 - rim_dy} style={borderStyle}/>,
-        <line x1={50 + flange4Ref[0]} y1={150 + flange1Ref[1]} x2={50} y2={150 + rim_dy} style={borderStyle}/>,
+        <line x1={50 - flange2Ref[0]} y1={150 - flange2Ref[1]} x2={50} y2={150 - rim_dy} style={borderStyle}/>,
+        <line x1={50 - flange2Ref[0]} y1={150 + flange2Ref[1]} x2={50} y2={150 + rim_dy} style={borderStyle}/>,
+        <line x1={50 + flange3Ref[0]} y1={150 - flange3Ref[1]} x2={50} y2={150 - rim_dy} style={borderStyle}/>,
+        <line x1={50 + flange3Ref[0]} y1={150 + flange3Ref[1]} x2={50} y2={150 + rim_dy} style={borderStyle}/>,
+        <line x1={50 + flange4Ref[0]} y1={150 - flange4Ref[1]} x2={50} y2={150 - rim_dy} style={borderStyle}/>,
+        <line x1={50 + flange4Ref[0]} y1={150 + flange4Ref[1]} x2={50} y2={150 + rim_dy} style={borderStyle}/>,
     ];
 
     return (
@@ -212,6 +214,18 @@ export default function BackView(props: IViewProps) {
     let size = props.size || [100, 300];
     if (typeof size === 'number') {
         size = [size / 3, size];
+    }
+
+    if (!props.hubProps || !props.rimProps) {
+        return (
+            <div style={{ width: size[0], height: size[1] }}>
+                <Result
+                    status="error"
+                    title="参数错误"
+                    subTitle="该参数不能计算轮组尺寸，请更改别的参数"
+                />
+            </div>
+        );
     }
 
     return (
