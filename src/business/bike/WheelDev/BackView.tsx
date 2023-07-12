@@ -210,13 +210,13 @@ function SpokeView(props: IViewProps) {
     );
 }
 
-export default function BackView(props: IViewProps) {
-    let size = props.size || [100, 300];
+export default function BackView(props?: IViewProps | any) {
+    let size = props?.size || [100, 300];
     if (typeof size === 'number') {
         size = [size / 3, size];
     }
 
-    if (!props.hubProps || !props.rimProps) {
+    if (!props?.hubProps || !props?.rimProps) {
         return (
             <div style={{ width: size[0], height: size[1] }}>
                 <Result

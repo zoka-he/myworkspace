@@ -1,9 +1,7 @@
 import { Result } from "antd";
+import IHubProps from "./IHubProps";
+import IRimProps from "./IRimProps";
 
-interface IRimProps {
-    rimRadius: number,
-    rimHeight: number
-}
 
 function RimView(props: IRimProps) {
 
@@ -51,24 +49,6 @@ function RimView(props: IRimProps) {
             { renderInline() }
         </>
     )
-}
-interface IHubProps {
-    hubLength: number,
-    coreRadius: number,
-    flange1Radius: number,
-    flange1Pos: number,
-    flange1Deg: number,
-    flange2Radius: number,
-    flange2Pos: number,
-    flange2Deg: number,
-    flange3Radius: number,
-    flange3Pos: number,
-    flange3Deg: number,
-    flange4Radius: number,
-    flange4Pos: number,
-    flange4Deg: number,
-    holeRadius: number,
-    holeCount: number,
 }
 
 
@@ -193,13 +173,13 @@ function SpokeView(props: IViewProps) {
     )
 }
 
-export default function RightView(props: IViewProps) {
-    let size = props.size || [300, 300];
+export default function RightView(props?: IViewProps | any) {
+    let size = props?.size || [300, 300];
     if (typeof size === 'number') {
         size = [size, size];
     }
 
-    if (!props.hubProps || !props.rimProps) {
+    if (!props?.hubProps || !props?.rimProps) {
         return (
             <div style={{ width: size[0], height: size[1] }}>
                 <Result

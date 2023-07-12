@@ -9,3 +9,5 @@ interface IBikeInfo {
     name: string,
     type: typeof EBikeInfoType
 }
+
+export default IBikeInfo;

@@ -52,7 +52,7 @@ export default function(props: IEditorProps) {
         }
     }
 
-    let result = calculateSpokeLength(rimProps, hubProps, [-6, 6, 6, -6]);
+    let result = calculateSpokeLength({ ...rimProps, ...hubProps }, [-6, 6, 6, -6]);
 
     if (isReadonly) {
         return (
