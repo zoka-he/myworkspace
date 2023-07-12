@@ -1,0 +1,31 @@
+.m-wheel-dev {
+    .m-wheel-preview-label {
+        height: 32px;
+    }
+
+    .m-wheel-preview {
+        background-color: white;
+        border-top: 1px #eee solid;
+        // border-radius: 4px;
+
+        height: calc(100% - 32px);
+    }
+
+    .ant-tabs-content {
+        background-color: white;
+        height: 100%;
+        margin-top: -16px;
+        box-sizing: border-box;
+        border-top: none;
+        border-left: 1px solid #eee;
+        border-right: 1px solid #eee;
+        border-bottom: 1px solid #eee;
+        border-bottom-left-radius: 8px;
+        border-bottom-right-radius: 8px;
+        padding: 5px 15px;
+    }
+
+    .ant-tabs-tabpane {
+        height: 100%
+    }
+}
