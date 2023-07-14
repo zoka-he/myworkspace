@@ -1,5 +1,5 @@
 import React, { CSSProperties, useState } from "react";
-import { Modal, Input, Button, message, Select, Space, TimePicker } from "antd";
+import { Modal, Input, Button, message, Select, Space, TimePicker, Progress } from "antd";
 import _ from 'lodash';
 import { PlusOutlined } from '@ant-design/icons';
 import NodeEditor from "./nodeEditor";
@@ -10,7 +10,7 @@ import parseDayDetail from "../parseDayDetail";
 import GeoSearch from "./GeoSearch";
 import EditorBmap from "./EditorBmap";
 import EditorAmap from "./EditorAmap";
-
+import { red, green, orange } from '@ant-design/colors';
 
 
 
@@ -691,14 +691,104 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         return <p>当前位置：{this.state.posText}</p>;
     }
 
+    getTotalDist() {
+        let total = 0;
+        if (!this.state.dayPlanDetail?.length) {
+            return total;
+        }
+
+        this.state.dayPlanDetail.forEach(item => {
+            total += item.dist;
+        });
+
+        return total;
+    }
+
+    getTotalTime() {
+        if (!this.state.dayPlanDetail?.length) {
+            return 0;
+        }
+
+        let detail = this.state.dayPlanDetail;
+        let start = detail[0].preferTime[0];
+        let end = detail[detail.length - 1].preferTime[1];
+
+        return end - start;
+    }
+
     renderEditorTitle() {
         let o_roadDb = this.state.roadDb;
         let o_daydb = this.state.dayDb;
+
+        let textTitle = null;
         if (!o_roadDb || !o_daydb) {
-            return '编辑日程';
+            textTitle = <span>编辑日程</span>;
         } else {
-            return `编辑日程：${o_roadDb.name} - 第${o_daydb.day_index + 1}天`;
+            textTitle = <span>编辑日程：{o_roadDb.name} - 第{o_daydb.day_index + 1}天</span>;
         }
+
+        console.debug('title state', this.state);
+
+        let totalDist = this.getTotalDist();
+        let distPercent = totalDist / 1000 / 500 * 100;
+        let distClr: string = green[6];
+        if (distPercent >= 100) {
+            distClr = red[5];
+        } else if (distPercent > 75) {
+            distClr = orange[4];
+        } 
+
+        let distProgress = [
+            <Progress 
+                style={{width: '130px'}} 
+                percent={Math.min(100, distPercent)}
+                strokeColor={distClr}
+                showInfo={false}
+            />,
+            <span style={{color: distClr, marginLeft: '-20px'}}>{(totalDist / 1000).toFixed(1)}km</span>
+        ];
+
+        let totalTime = this.getTotalTime();
+        let timePercent = totalTime / 3600 / 10 * 100;
+        let timeClr: string = green[6];
+        if (timePercent >= 100) {
+            timeClr = red[5];
+        } else if (timePercent > 75) {
+            timeClr = orange[4];
+        } 
+        const getTimeStr = () => {
+            let s_HH = Math.floor(totalTime / 3600);
+            let s_mm = Math.floor((totalTime % 3600) / 60);
+            let s_list = [];
+            if (s_HH) {
+                s_list.push(s_HH + 'h');
+            }
+            if (s_mm) {
+                s_list.push(s_mm + 'm');
+            }
+            return s_list.join('');
+        }
+        let timeProgress = [
+            <Progress 
+                style={{width: '130px'}} 
+                percent={Math.min(100, totalTime / 3600 / 10 * 100)}
+                strokeColor={timeClr}
+                showInfo={false}
+            />,
+            <span style={{color: timeClr, marginLeft: '-20px'}}>{getTimeStr()}</span>
+        ];
+
+        
+        return (
+            // @ts-ignore
+            <div style={{textWrap: 'nowrap'}}>
+                <Space size={20} align="baseline">
+                    {textTitle}
+                    {distProgress}
+                    {timeProgress}
+                </Space>
+            </div>
+        );
     }
 
     /**

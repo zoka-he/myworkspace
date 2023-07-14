@@ -253,7 +253,7 @@ export default function(props: IDayViewerProps) {
                 clr = green[6];
             }
 
-            let distPressure = <Progress steps={10} percent={percent} strokeColor={clr} size={'small'} showInfo={false}/>
+            let distPressure = <Progress style={{ width: '65px', marginBottom: 0 }} size="small" percent={percent} strokeColor={clr} showInfo={false}/>
 
             showSpeed = [distPressure, <span style={{ color: clr }}>{dist2km(totalDist)}</span>];
         }
