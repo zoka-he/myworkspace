@@ -778,7 +778,9 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
             <span style={{color: timeClr, marginLeft: '-20px'}}>{getTimeStr()}</span>
         ];
 
+        
         return (
+            // @ts-ignore
             <div style={{textWrap: 'nowrap'}}>
                 <Space size={20} align="baseline">
                     {textTitle}
