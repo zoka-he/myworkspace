@@ -710,6 +710,10 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         }
 
         let detail = this.state.dayPlanDetail;
+        if (!detail[0].preferTime || !detail[detail.length - 1].preferTime) {
+            return 0;
+        }
+
         let start = detail[0].preferTime[0];
         let end = detail[detail.length - 1].preferTime[1];
 
