@@ -179,7 +179,7 @@ export default class NodeEditor extends React.Component<IDayNodeProps, IDayNodeS
             if (!(typeof this.state.dist === 'number') || !(typeof this.state.dura === 'number')) {
                 return <span>&nbsp;&nbsp;<i className="f-silver">&lt;未规划&gt;</i></span>
             } else {
-                let s_km = (this.state.dist / 1000).toFixed(1);
+                let s_km = (this.state.dist / 1000).toFixed(0);
                 let s_HH = Math.floor(this.state.dura / 3600);
                 let s_mm = Math.floor((this.state.dura % 3600) / 60);
                 return <span>&nbsp;&nbsp;{s_km}km {s_HH}h{s_mm}m</span>

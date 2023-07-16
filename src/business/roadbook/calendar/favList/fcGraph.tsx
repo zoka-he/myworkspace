@@ -235,18 +235,43 @@ export default function(props: IFcGraph) {
         // 曲线起始位置
         let startLeft = left, startTop = top + range - range * (temps[0] - min) / (max - min);
 
+        let getPointSlope = (item: number, index: number, arr: number[]) => {
+            
+
+            let slope = 0;
+            if (index === 0) {
+                let next = arr[index + 1];
+                slope = (next - item) / g_dayWidth;
+            } else if (index >= arr.length - 1) {
+                let prev = arr[index - 1];
+                slope = (item - prev) / g_dayWidth;
+            } else {
+                let next = arr[index + 1], prev = arr[index - 1];
+                slope = (next - prev) / (2 * g_dayWidth);
+            }
+
+            if (Number.isNaN(slope)) {
+                console.debug('getPointSlope', index, '=>', arr[index - 1], item, arr[index + 1], '=>', slope);
+            }
+            
+            return slope;
+        }
+
         // 温度曲线绘图动作
         let actions = temps.map((item: number, index: number, arr: number[]) => {
             if (index === 0) {
                 return `M ${startLeft},${startTop}`;
             } else {
+                let itemSlope = 5.5 * getPointSlope(item, index, arr);
+                let prevSlope = 5.5 * getPointSlope(arr[index - 1], index - 1, arr);
+
                 // let iPrevLeft = left + (index - 1) * 25;
                 let iPrevTop = top + range - range * (arr[index - 1] - min) / (max - min);
 
                 let iLeft = left + index * g_dayWidth;
                 let iTop = top + range - range * (item - min) / (max - min);
 
-                return `C ${iLeft - 16},${iPrevTop} ${iLeft - 9},${iTop} ${iLeft},${iTop}`;
+                return `C ${iLeft - 16},${iPrevTop - prevSlope * 9} ${iLeft - 9},${iTop + itemSlope * 9} ${iLeft},${iTop}`;
             }
         })
 
