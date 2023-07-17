@@ -32,7 +32,9 @@ interface IDayPlanEditorState {
     remark: string,
     title: string,
     roadDb?: any,
-    dayDb?: any
+    dayDb?: any,
+    totalDist?: number,
+    totalTime?: number
 }
 
 class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorState> {
@@ -66,6 +68,8 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
             remark: '',
             roadDb: undefined,
             dayDb: undefined,
+            totalDist: 0,
+            totalTime: 0
         }
 
         this.mNodeComps = [];
@@ -219,7 +223,13 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
             this.getEditorMap().drawPlans(detail.routes);
         }
         
-        this.setState(up_state)
+        this.setState(up_state);
+
+        setTimeout(() => {
+            this.getTotalDist();
+            this.getTotalTime();
+        }, 100)
+
     }
 
     async parseAndFixData(data: any, index: number, prev: any, next: any, ...args: any[]) {
@@ -643,7 +653,10 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
 
         this.setState({
             shouldCalculate: false
-        })
+        });
+
+
+
     }
 
     /**
@@ -672,7 +685,12 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
 
                 comp.acceptDistAndDura(data.distance, data.duration, [ preferT0, preferT1 ]);
             }
-        })
+        });
+
+        setTimeout(() => {
+            this.getTotalDist(routeDatas);
+            this.getTotalTime(routeDatas);
+        }, 100);
     }
 
     /**
@@ -691,29 +709,56 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         return <p>当前位置：{this.state.posText}</p>;
     }
 
-    getTotalDist() {
+    getTotalDist(srcData?: any[]) {
         let total = 0;
-        if (!this.state.dayPlanDetail?.length) {
+
+        if (!srcData?.length) {
+            srcData = this.state.dayPlanDetail;
+        }
+
+        if (!srcData?.length) {
             return total;
         }
 
-        this.state.dayPlanDetail.forEach(item => {
-            total += item.dist;
+        srcData.forEach(item => {
+            // 可能为dist也可能为distance
+            if (typeof item?.dist === 'number' && item.dist > 0) {
+                total += item.dist;
+            } else if (typeof item?.distance === 'number' && item.distance > 0) {
+                total += item.distance;
+            }
         });
 
+
+        this.setState({
+            totalDist: total
+        });
         return total;
     }
 
-    getTotalTime() {
-        if (!this.state.dayPlanDetail?.length) {
+    getTotalTime(srcData?: any[]) {
+        if (!srcData?.length) {
+            srcData = this.state.dayPlanDetail;
+        }
+
+        if (!srcData?.length) {
             return 0;
         }
 
-        let detail = this.state.dayPlanDetail;
+        let detail = srcData;
+        if (!detail[0].preferTime || !detail[detail.length - 1].preferTime) {
+            return 0;
+        }
+
         let start = detail[0].preferTime[0];
         let end = detail[detail.length - 1].preferTime[1];
 
-        return end - start;
+        let dura = end - start;
+        this.setState({
+            totalTime: dura
+        });
+
+        return dura;
     }
 
     renderEditorTitle() {
@@ -729,7 +774,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
 
         console.debug('title state', this.state);
 
-        let totalDist = this.getTotalDist();
+        let totalDist = this.state.totalDist || 0;
         let distPercent = totalDist / 1000 / 500 * 100;
         let distClr: string = green[6];
         if (distPercent >= 100) {
@@ -748,7 +793,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
             <span style={{color: distClr, marginLeft: '-20px'}}>{(totalDist / 1000).toFixed(1)}km</span>
         ];
 
-        let totalTime = this.getTotalTime();
+        let totalTime = this.state.totalTime || 0;
         let timePercent = totalTime / 3600 / 10 * 100;
         let timeClr: string = green[6];
         if (timePercent >= 100) {
