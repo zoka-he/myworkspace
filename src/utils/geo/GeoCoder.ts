@@ -84,8 +84,23 @@ function findCodeOfProvince(name: string) {
     return getCellOfRow(row, 'code');
 }
 
+function getCodes() {
+    let list: any[] = [];
+
+    dataSource.data.forEach(itemData => {
+        let item: any = {};
+        dataSource.columns.forEach((col, index) => {
+            item[col] = itemData[index];
+        });
+        list.push(item);
+    });
+
+    return list;
+}
+
 
 export default {
     findProvinceOfCode,
-    findCodeOfProvince
+    findCodeOfProvince,
+    getCodes
 }

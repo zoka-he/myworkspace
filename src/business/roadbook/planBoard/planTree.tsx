@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Card, Input, Space, Tree } from 'antd';
 import { DataNode } from 'antd/es/tree';
+import GeoCoder from '@/src/utils/geo/GeoCoder';
+
+let provinces = GeoCoder.getCodes();
 
 // TODO 增加计划书分类树
 export default function(props: any) {
@@ -17,6 +20,12 @@ export default function(props: any) {
         data.push({
             title: '省份',
             key: '1',
+            children: provinces.map(item => {
+                return {
+                    title: item.label,
+                    key: item.code
+                }
+            })
         });
 
         return data;
@@ -40,7 +49,7 @@ export default function(props: any) {
             <div style={getSpacerStyle()}>
                 <Input className="f-fit-width"></Input>
             </div>
-            <Card className='f-fit-height'>
+            <Card className='f-fit-height f-overflow-auto'>
                 <Tree treeData={getTreeData()}/>
             </Card>
         </div>

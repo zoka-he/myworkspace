@@ -16,7 +16,7 @@ export default function() {
     let [cards, setCards] = useState([]);
     let [queryName, setQueryName] = useState('');
 
-    let mPlanEditor = useRef<PlanEditor>();
+    let mPlanEditor = PlanEditor.usePlanEditor();
 
     async function onQuery() {
         let params = {
@@ -32,14 +32,14 @@ export default function() {
     }, []);
 
     function onAddPlan() {
-        if (mPlanEditor.current) {
-            mPlanEditor.current.show();
+        if (mPlanEditor) {
+            mPlanEditor.show();
         }
     }
 
     function onEditPlan(row: IRoadPlan) {
-        if (mPlanEditor.current) {
-            mPlanEditor.current.showAndEdit(row);
+        if (mPlanEditor) {
+            mPlanEditor.showAndEdit(row);
         }
     }
 
@@ -126,7 +126,7 @@ export default function() {
                 </div>
 
                 { /* @ts-ignore */ }
-                <PlanEditor ref={mPlanEditor} onFinish={onQuery}/>
+                <PlanEditor helper={mPlanEditor} onFinish={onQuery}/>
             </div>
         </div>
     )
