@@ -26,6 +26,10 @@ export default function() {
             limit: 100
         }
 
+        if (queryName) {
+            params.name = queryName;
+        }
+
         if (queryProvinces.length) {
             // params.provinces = { $json_contains: queryProvinces };
             params.provinces = queryProvinces;
@@ -41,7 +45,7 @@ export default function() {
 
     useEffect(() => {
         onQuery();
-    }, [queryProvinces]);
+    }, [queryProvinces, queryName]);
 
     function onAddPlan() {
         if (mPlanEditor) {
