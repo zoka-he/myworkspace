@@ -1,5 +1,6 @@
 import mysql from './server';
 import {ISqlCondMap, ISqlCondMapParsed} from "@/src/utils/mysql/types";
+import sqlUtils from './utils';
 
 class MysqlService {
 
@@ -83,6 +84,10 @@ class MysqlService {
                     } else if (v?.$btw instanceof Array) {
                         condStrs.push(`${k} between ? and ?`);
                         values.push(...v.$btw);
+                    } else if (v?.$json_contains instanceof Array) {
+                        let [_s, _v] = sqlUtils.convertJson(v.$json_contains);
+                        condStrs.push(`JSON_CONTAINS(${k},${_s})`);
+                        values.push(..._v);
                     }
                     break;
 

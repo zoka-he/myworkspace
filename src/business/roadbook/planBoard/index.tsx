@@ -1,5 +1,5 @@
-import { Card, Input, Space, Button, Modal, message } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { Card, Input, Space, Button, Modal, message, Descriptions, Tag } from 'antd';
+import React, { useEffect, useRef, useState } from 'react';
 import PlanEditor from './planEditor';
 import fetch from '@/src/fetch';
 import { EditOutlined, CarOutlined, CloseOutlined, DeleteOutlined } from '@ant-design/icons';
@@ -8,6 +8,7 @@ import parseDayDetail from '../roadBookEditor/parseDayDetail';
 import PlanTree from './planTree';
  
 import type { IRoadPlan } from '@/src/types/IRoadPlan';
+import GeoCoder from '@/src/utils/geo/GeoCoder';
 
 export default function() {
 
@@ -15,14 +16,21 @@ export default function() {
 
     let [cards, setCards] = useState([]);
     let [queryName, setQueryName] = useState('');
+    let [queryProvinces, setQueryProvinces] = useState<React.Key[]>([]);
 
     let mPlanEditor = PlanEditor.usePlanEditor();
 
     async function onQuery() {
-        let params = {
+        let params: { [key: string]: any } = {
             page: 1,
             limit: 100
         }
+
+        if (queryProvinces.length) {
+            // params.provinces = { $json_contains: queryProvinces };
+            params.provinces = queryProvinces;
+        }
+
         let { data } = await fetch.get('/api/roadPlan/list', { params });
         setCards(data);
     }
@@ -30,6 +38,10 @@ export default function() {
     useEffect(() => {
         onQuery();
     }, []);
+
+    useEffect(() => {
+        onQuery();
+    }, [queryProvinces]);
 
     function onAddPlan() {
         if (mPlanEditor) {
@@ -50,6 +62,10 @@ export default function() {
     async function deletePlan(plan: IRoadPlan) {
         await fetch.delete('/api/roadPlan', { params: { ID: plan.ID } });
         await onQuery();
+    }
+
+    function onProvinceChange(e: React.Key[]) {
+        setQueryProvinces(e);
     }
 
     function renderCards() {
@@ -80,15 +96,22 @@ export default function() {
 
             let personCnt = planDetail.personCnt || 2;
             let totalCost = planDetail.totalCost || 0;
-
+            let provinces = [<Tag>全国</Tag>];
+            if (item.provinces?.length) {
+                provinces = item.provinces.map((item: string, index: number) => {
+                    let color = index % 2 === 0 ? 'blue' : 'green';
+                    return <Tag color={color}>{GeoCoder.findProvinceOfCode(item)}</Tag>
+                })
+            }
 
             return (
                 <Card className='m-road_plan-card' title={item.name} extra={extra}>
                     <p>{item.remark}</p>
-                    <p>
-                        <strong>人均：</strong>
-                        <span>{`${(totalCost / personCnt).toFixed(2)}￥`}</span>
-                    </p>
+                    
+                    <Descriptions size={'small'} column={1}>
+                        <Descriptions.Item label="省份">{provinces}</Descriptions.Item>
+                        <Descriptions.Item label="人均">{`${(totalCost / personCnt).toFixed(2)}￥`}</Descriptions.Item>
+                    </Descriptions>
 
                     <Space>
                         <Button size='small' onClick={() => onEditPlan(item)} icon={<EditOutlined/>}>
@@ -106,7 +129,7 @@ export default function() {
 
     return (
         <div className="f-fit-height f-flex-row">
-            <PlanTree/>
+            <PlanTree onChange={onProvinceChange}/>
             <div className="f-flex-1 f-fit-height f-flex-col">
                 <div className='f-flex-two-side'>
                     <Space>

@@ -1,6 +1,8 @@
 import connPool from './pool';
 import {ISqlCondMap} from "@/src/utils/mysql/types";
 
+
+
 async function insertOne(table: string, obj: ISqlCondMap) {
     let names = [];
     let placeholders = [];
@@ -9,7 +11,16 @@ async function insertOne(table: string, obj: ISqlCondMap) {
     for (let [k, v] of Object.entries(obj)) {
         names.push(k);
         placeholders.push('?');
-        values.push(v);
+
+        if (typeof v === 'object') {
+            // values.push(convertJson(v));
+            values.push(v);
+        } 
+        
+        else {
+            values.push(v);
+        }
+        
     }
 
     if (names.length === 0) {
@@ -39,7 +50,14 @@ async function updateOne(table: string, conditions: ISqlCondMap, obj: any) {
 
     for (let [k, v] of Object.entries(obj)) {
         sets.push(`${k}=?`);
-        values.push(v);
+        if (typeof v === 'object') {
+            // values.push(convertJson(v));
+            values.push(v);
+        } 
+        
+        else {
+            values.push(v);
+        }
     }
 
     let conStr = '';
@@ -90,6 +108,7 @@ async function selectBySql(sql: string, ...options: any[]) {
     conn.release();
     return rows;
 }
+
 
 export default {
     insertOne,

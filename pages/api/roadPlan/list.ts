@@ -26,6 +26,15 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
             case 'name':
                 queryObject.name = { $like: `%${v}%` };
                 break;
+
+            case 'provinces[]':
+                if (v instanceof Array) {
+                    queryObject.provinces = { $json_contains: v };
+                } else if (typeof v === 'string') {
+                    queryObject.provinces = { $json_contains: [v] };
+                }
+                
+                break;
         }
     }
 

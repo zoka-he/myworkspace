@@ -4,8 +4,8 @@ import _ from 'lodash';
 import moment from "moment";
 import fetch from '@/src/fetch';
 import Dayjs from 'dayjs';
-
 import type { IRoadPlan } from "@/src/types/IRoadPlan";
+import GeoCoder from "@/src/utils/geo/GeoCoder";
 
 interface IPlanEditorProp {
     helper?: IPlanEditorHelper
@@ -72,11 +72,23 @@ function PlanEditor(props: IPlanEditorProp) {
         map_type: 'gaode'
     };
 
+    let provinceCodes = GeoCoder.getCodes().map(item => {
+        return {
+            label: item.label,
+            value: item.code
+        }
+    });
+
 
     function parseAndFixData(data: any) {
         // 避开antd识别日期的坑
         data.fuck_date = string2date(data.fuck_date);
         data.deadline_time = string2date(data.deadline_time);
+
+        // 避开select控件遇到null的坑
+        if (!data.provinces) {
+            data.provinces = undefined;
+        }
         mForm?.setFieldsValue(_.clone(data));
     }
 
@@ -143,6 +155,10 @@ function PlanEditor(props: IPlanEditorProp) {
                     </Form.Item>
                     <Form.Item label={'描述'} name={'remark'}>
                         <Input.TextArea/>
+                    </Form.Item>
+
+                    <Form.Item label={'省份'} name={'provinces'}>
+                        <Select mode={'multiple'} allowClear options={provinceCodes} style={{width: '200px'}}></Select>
                     </Form.Item>
 
                     <Form.Item label="地图类型" name="map_type">

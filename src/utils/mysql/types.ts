@@ -5,6 +5,8 @@ interface ISqlCondObj {
     $btw?: [any, any];
     $in?: Array<any>;
     $like?: string;
+    $json_array?: Array<any>
+    $json_contains?: any
 }
 
 interface ISqlCondMap {

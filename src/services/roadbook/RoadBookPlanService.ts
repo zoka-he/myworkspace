@@ -1,4 +1,5 @@
 import service from '@/src/utils/mysql/service';
+import { ISqlCondMap } from '@/src/utils/mysql/types';
 
 class RoadBookPlanService extends service {
 
@@ -11,7 +12,8 @@ class RoadBookPlanService extends service {
             'create_time',
             'update_time',
             'data',
-            'map_type'
+            'map_type',
+            'provinces'
         ]);
     }
 
