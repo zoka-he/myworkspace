@@ -7,13 +7,47 @@ let provinces = GeoCoder.getCodes();
 
 
 interface IPlanTreeProps {
-    onChange?: Function
+    onChange?: Function,
+    taskList?: any[]
 }
 
 // TODO 增加计划书分类树
 export default function(props: IPlanTreeProps) {
 
     let [checkedKeys, setCheckedKeys] = useState<React.Key[]>(['0']);
+
+    function countOptionsRef() {
+        if (!props?.taskList?.length) {
+            return {};
+        }
+
+        let counter: { [key: string]: number } = {};
+        for (let item of props.taskList) {
+            if (!item?.provinces?.length) {
+                continue;
+            }
+
+            for (let province_id of item.provinces) {
+                if (typeof counter[province_id] === 'number') {
+                    counter[province_id] += 1;
+                } else {
+                    counter[province_id] = 1;
+                }
+            }
+        }
+
+        return counter;
+    }
+
+    let optionsCount = countOptionsRef();
+
+    function getOptionCount(province_id: string) {
+        if (typeof optionsCount[province_id] === 'number') {
+            return optionsCount[province_id];
+        } else {
+            return 0;
+        }
+    }
 
     function getTreeData() {
         let data: DataNode[] = [];
@@ -24,16 +58,50 @@ export default function(props: IPlanTreeProps) {
             key: '0',
         });
 
+        let provinceOptions = provinces.map(item => {
+            let title = item.label;
+            let count = getOptionCount(item.code);
+            if (count) {
+                title += '(' + count + ')';
+            }
+
+            let leaf: { [key: string]: any } = {
+                title,
+                key: item.code,
+                _count: count
+            };
+
+            if (props?.taskList?.length > 0 && count === 0) {
+                leaf.disableCheckbox = true;
+            }
+
+            return leaf;
+        });
+
+        provinceOptions.sort((a, b) => {
+            // 先比较 disableCheckbox
+            if (a.disableCheckbox && b.disableCheckbox) {
+                return 0;
+            }
+
+            if (a.disableCheckbox && !b.disableCheckbox) {
+                return 1;
+            }
+
+            if (!a.disableCheckbox && b.disableCheckbox) {
+                return -1;
+            }
+
+            // 然后比较 count
+            return (b._count || 0) - (a._count || 0);
+        })
+
         // 省份
         data.push({
             title: '省份',
             key: '1',
-            children: provinces.map(item => {
-                return {
-                    title: item.label,
-                    key: item.code
-                }
-            })
+            checkable: false,
+            children: provinceOptions
         });
 
         return data;
@@ -76,6 +144,8 @@ export default function(props: IPlanTreeProps) {
 
         props?.onChange && props.onChange(emit);
     }
+
+    
 
     return (
         <div className='f-flex-col' style={getWrapperStyle()}>

@@ -1,0 +1,18 @@
+.m-wishboard {
+    &-roadbookgraph {
+        .ant-space {
+            margin-bottom: 10px;
+        }
+
+        .m-planboard-countgraph {
+            height: calc(100vh - 200px);
+            width: calc(100vw - 200px);
+            overflow: hidden;
+
+            background-color: white;
+            border: #ccc 1px solid;
+            border-radius: 4px;
+            box-shadow: 0 0 2px rgba(0,0,0,.1);
+        }
+    }
+}

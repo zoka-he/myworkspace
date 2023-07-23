@@ -133,7 +133,7 @@ export default function() {
 
     return (
         <div className="f-fit-height f-flex-row">
-            <PlanTree onChange={onProvinceChange}/>
+            <PlanTree onChange={onProvinceChange} taskList={cards}/>
             <div className="f-flex-1 f-fit-height f-flex-col">
                 <div className='f-flex-two-side'>
                     <Space>
