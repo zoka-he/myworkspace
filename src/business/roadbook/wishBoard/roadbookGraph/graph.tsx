@@ -60,7 +60,7 @@ export default function(props: IGraphProps) {
 
         const mapOption = {
             title: {
-                text: '路书关联次数',
+                text: '路书分布',
                 x: 'center'
             },
             visualMap: {
@@ -69,17 +69,17 @@ export default function(props: IGraphProps) {
                 max,
                 inRange: {
                     color: [
-                        // '#313695',
-                        '#4575b4',
-                        '#74add1',
-                        '#abd9e9',
-                        '#e0f3f8',
-                        '#ffffbf',
-                        '#fee090',
-                        '#fdae61',
-                        '#f46d43',
-                        '#d73027',
                         // '#a50026'
+                        // '#d73027',
+                        // '#f46d43',
+                        // '#fdae61',
+                        // '#fee090',
+                        // '#ffffbf',
+                        '#e0f3f8',
+                        '#abd9e9',
+                        '#74add1',
+                        '#4575b4',
+                        '#313695',
                     ]
                 },
                 text: ['High', 'Low'],
@@ -103,7 +103,7 @@ export default function(props: IGraphProps) {
             },
             series: [
                 {
-                    name: '路书关联次数',
+                    name: '路书分布',
                     type: 'map',
                     roam: true,
                     map: 'CHINA',

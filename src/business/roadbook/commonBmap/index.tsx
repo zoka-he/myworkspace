@@ -44,12 +44,25 @@ function CommonBmap(props: ICommonBmap) {
     }
 
     async function onClickMap(e: any) {
-        let pt: any = e.latlng;
-        let addr: any = await getPointAddress(pt);
+        if (getMapType() === 'baidu') {
+            let pt: any = e.latlng;
+            let addr: any = await getPointAddress(pt);
 
-        if (typeof props.onClick === 'function') {
-            props.onClick(pt, addr);
+            if (typeof props.onClick === 'function') {
+                props.onClick(pt, addr);
+            }
+        } else if (getMapType() === 'gaode') {
+            let pt = {
+                lng: e.lnglat.getLng(),
+                lat: e.lnglat.getLat(),
+            }
+            let addr: any = null;
+
+            if (typeof props.onClick === 'function') {
+                props.onClick(pt, addr);
+            }
         }
+        
     }
 
     function getMapType() {
@@ -131,6 +144,10 @@ function CommonBmap(props: ICommonBmap) {
             zoom: 11,  //初始化地图层级
             center
         });
+
+        // 添加点击事件
+        map.on('click', (e: any) => onClickMap(e));
+
         return map;
     }
 

@@ -24,20 +24,50 @@ export default function(props: IMarkerProps) {
         markerContent.style.height = '0';
         markerContent.style.overflow = 'visible';
 
-        function setDefaultIcon() {
+        function setImgIcon(
+            url: string, 
+            width: string = '24px', 
+            height: string = '24px', 
+            left: string = '-12px', 
+            top: string = '-12px'
+        ) {
             let markerImg = document.createElement("img");
-            markerImg.src = "https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-red.png";
-            markerImg.setAttribute('width', '24px');
-            markerImg.setAttribute('height', '34px');
+            markerImg.src = url;
+            markerImg.setAttribute('width', width);
+            markerImg.setAttribute('height', height);
             markerImg.style.position = 'absolute';
-            markerImg.style.left = '-12px';
-            markerImg.style.top = '-34px';
+            markerImg.style.left = left;
+            markerImg.style.top = top;
             markerContent.appendChild(markerImg);
+        }
+
+        function setDefaultIcon() {
+            setImgIcon(
+                "https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-red.png",
+                '24px', 
+                '34px',
+                '-12px',
+                '-34px'
+            );
         }
         
         if (props?.config?.icon) {
             switch(typeof props.config.icon) {
                 case 'string':
+                    let { icon, width, height, left, top } = props.config;
+                    if (
+                        typeof width === 'string' &&
+                        typeof height === 'string' &&
+                        typeof left === 'string' &&
+                        typeof top === 'string'
+                    ) {
+                        setImgIcon(icon, width, height, left, top);
+                    } else {
+                        setImgIcon(icon);
+                    }
+                    
+                    break;
+
                 case 'object':
                     if (props.config.icon instanceof SVGSVGElement) {
                         let img = props.config.icon;

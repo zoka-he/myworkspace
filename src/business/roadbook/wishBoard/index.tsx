@@ -1,5 +1,6 @@
 import { Tabs } from 'antd';
 import RoadbookGraph from './roadbookGraph';
+import FavPosManage from './favPosManage';
 
 export default function WishBoard() {
 
@@ -12,6 +13,7 @@ export default function WishBoard() {
         {
             key: '2',
             label: `收藏地点管理`,
+            children: <FavPosManage/>
         },
     ];
 
