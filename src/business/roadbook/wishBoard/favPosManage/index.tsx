@@ -63,6 +63,12 @@ export default function() {
         });
     }
 
+    function onEditPos(item: any) {
+        posFormHelper.showAndEdit(item);
+        setTargetLnglat(item);
+        setMapCenter(item);
+    }
+
     function renderFavPos(cell: any, row: any) {
         return (
             <div>
@@ -72,7 +78,7 @@ export default function() {
                         <strong>{row.label}</strong>
                     </Space>
                     <Space>
-                        <Button icon={<EditOutlined/>} shape="circle" size="small"></Button>
+                        <Button icon={<EditOutlined/>} shape="circle" size="small" onClick={() => onEditPos(row)}></Button>
                         <Button icon={<DeleteOutlined/>} danger type="text" size="small"></Button>
                     </Space>
                 </div>
@@ -108,10 +114,8 @@ export default function() {
         return markers;
     }
 
-    async function onMapClick(e: any) {
-        console.debug('map click', e);
-
-        if (!e?.lng || !e?.lat) {
+    async function setTargetLnglat(pos: any) {
+        if (!pos?.lng || !pos?.lat) {
             setTargetMk(null);
             return;
         }
@@ -119,8 +123,8 @@ export default function() {
         // alert('显示位置' + JSON.stringify(data));
         const svg_searchAddr = await fetch.get('/mapicons/Target.svg');
         setTargetMk({
-            lng: e.lng,
-            lat: e.lat,
+            lng: pos.lng,
+            lat: pos.lat,
             config: {
                 icon: new BMapGL.SVGSymbol(
                     svg_searchAddr,
@@ -136,11 +140,17 @@ export default function() {
         });
     }
 
+    async function onMapClick(e: any) {
+        setTargetLnglat(e);
+        posFormHelper.setLnglat(e.lng, e.lat);
+    }
+
     function onMarkerClick() {
 
     }
 
     function onAddPos() {
+        setTargetLnglat(null);
         posFormHelper.show();
     }
 
@@ -203,8 +213,8 @@ export default function() {
 
                 <div className="m-map-container">
                     <CommonBmap 
-                        onReady={(bmap: any) => onBmapReady(bmap)} 
-                        onClick={ (e: any) => onMapClick(e) }
+                        onReady={onBmapReady} 
+                        onClick={onMapClick}
                         mapType={queryMapType}
                         viewport={mapViewport}
                         center={mapCenter}
