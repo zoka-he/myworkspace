@@ -1,4 +1,4 @@
-import { Input, Space, Button, message, InputNumber, Modal, Spin, FloatButton, Radio } from 'antd';
+import { Input, Space, Button, message, InputNumber, Modal, Spin, FloatButton, Radio, Switch } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import qs from 'querystring';
@@ -76,6 +76,7 @@ export default function() {
 
     let [mapType, setMapType] = useState<string | null>(null);
     let [o_mapType, setOMapType] = useState<string | null>(null);
+    let [showFav, setShowFav] = useState<boolean>(true);
     
     let [remark, setRemark] = useState('');
     let [carDayCost, setCarDayCost] = useState<number | null>(0);
@@ -88,6 +89,7 @@ export default function() {
     let [addrMk, setAddrMk] = useState<any>(null);
     let [roadPaths, setRoadPaths] = useState<any>(null);
     let [dayMks, setDayMks] = useState<any>(null);
+    let [favMks, setFavMks] = useState<any>(null);
 
     let mDayPlanEditor = useRef();
     let mLeftArea = useRef();
@@ -725,6 +727,35 @@ export default function() {
         }
     }
 
+    async function getFavPos() {
+        let { data } = await fetch.get('/api/roadPlan/favGeoLocation/list');
+
+        if (!data?.length) {
+            setFavMks([]);
+        } else {
+            setFavMks(data);
+        }
+
+        
+    }
+
+    function renderFavPosMks() {
+        if (!favMks?.length || !showFav) {
+            return [];
+        }
+
+        return favMks.map((item: any) => {
+            return (
+                <CommonBmap.Marker 
+                    lng={item.lng} lat={item.lat} 
+                    label={item.label} 
+                    config={{ icon: "/mapicons/star.png" }}
+                    key={uuid()}
+                />
+            );
+        })
+    }
+
     useEffect(() => {
         if (roadPlanID !== null) {
             // if (!bmap) {
@@ -735,7 +766,14 @@ export default function() {
         }
     }, [roadPlanID]);
 
+    /**
+     * 初始化时调用
+     */
     useEffect(() => {
+        // 加载收藏夹
+        getFavPos();
+
+        // 根据url传入的id，自动加载对应的路书；
         let sstr = location.search;
         if (sstr.startsWith('?')) {
             sstr = sstr.substring(1);
@@ -811,10 +849,13 @@ export default function() {
                                     <Radio value={'baidu'}>百度地图</Radio>
                                     <Radio value={'gaode'}>高德地图</Radio>
                                 </Radio.Group>
+                                <label>收藏夹：</label>
+                                <Switch checked={showFav} onChange={setShowFav}></Switch>
                             </Space>
                             <div className="f-flex-1 f-relative m-plan_editor-map">
                                 <CommonBmap center={mapCenter} viewport={mapViewport} mapType={mapType}>
                                     { renderAddrMk() }
+                                    { renderFavPosMks() }
                                     { renderRoadPaths() }
                                     { renderKeyPoints() }
                                 </CommonBmap>

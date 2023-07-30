@@ -396,6 +396,17 @@ function CommonBmap(props: ICommonBmap) {
         }
     }, [amap, bmap]);
 
+    useEffect(() => {
+        // 切换地图时，地图有可能不能计算容器大小，强制触发一下
+        setTimeout(() => {
+            if (props.mapType === 'baidu') {
+
+            } else if (props.mapType === 'gaode') {
+                amap && amap.resize();
+            }
+        })
+    }, [props.mapType]);
+
 
 
     // 控制哪张地图显示在界面上
