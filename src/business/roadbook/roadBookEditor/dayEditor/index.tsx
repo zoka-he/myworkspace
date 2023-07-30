@@ -48,6 +48,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
     private b_willUpdateBmapPoints: boolean;
     private b_willParseAndFixData: boolean;
     private o_openPayload: any[];
+    private o_favPos: any[];
 
     private amapId: string
     
@@ -78,6 +79,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         this.b_willUpdateBmapPoints = false;
         this.b_willParseAndFixData = false;
         this.o_openPayload = [];
+        this.o_favPos = [];
 
         this.amapId = 'gaodeMap-' + uuid();
     }
@@ -232,6 +234,16 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
 
     }
 
+    async loadFavPos() {
+        let { data } = await fetch.get('/api/roadPlan/favGeoLocation/list');
+        if (!data.length) {
+            return;
+        }
+
+        this.o_favPos = data;
+        this.getEditorMap().drawFav(this.o_favPos);
+    }
+
     async parseAndFixData(data: any, index: number, prev: any, next: any, ...args: any[]) {
         if (!this.getEditorMap()) {
             
@@ -271,6 +283,8 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         } else {
             this.loadDbData(o_daydb);
         }
+
+        this.loadFavPos();
     }
 
     showAndEdit(data: any, index: number, prev: any, next: any) {

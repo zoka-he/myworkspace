@@ -13,11 +13,13 @@ export default class EditorAmap {
     private mk_nodePoints: any[];
     private mk_planRoutes: any[];
     private mk_search: any;
+    private mk_fav: any[];
 
     constructor(divOrId: HTMLDivElement | string, handlers?: IHandlers) {
 
         this.mk_nodePoints = [];
         this.mk_planRoutes = [];
+        this.mk_fav = [];
 
         this.initAmap(divOrId);
 
@@ -214,6 +216,70 @@ export default class EditorAmap {
         }
     }
 
+    drawFav(ptList: any[]) {
+        // 先清除掉所有点位
+        this.clearFav();
+
+        ptList.forEach(pInfo => {
+            // 添加标记点
+            let marker = new AMap.Marker({
+                position: [pInfo.lng, pInfo.lat],
+            });
+
+            let markerContent = document.createElement("div");
+            markerContent.style.width = '0';
+            markerContent.style.height = '0';
+            markerContent.style.overflow = 'visible';
+
+            let markerImg = document.createElement("img");
+            markerImg.src = "/mapicons/star.png";
+            markerImg.setAttribute('width', '24px');
+            markerImg.setAttribute('height', '24px');
+            markerImg.style.position = 'absolute';
+            markerImg.style.left = '-12px';
+            markerImg.style.top = '-12px';
+            markerContent.appendChild(markerImg);
+        
+
+            let markLabel = document.createElement("div");
+            markLabel.innerHTML = pInfo.label;
+            markLabel.style.color = 'blue';
+            markLabel.style.backgroundColor = 'white';
+            markLabel.style.borderRadius = '4px';
+            markLabel.style.border = '1px #ccc solid';
+            markLabel.style.padding = '3px 5px';
+            markLabel.style.fontSize = '10px';
+            markLabel.style.height = '20px';
+            markLabel.style.lineHeight = '10px';
+            markLabel.style.fontFamily = '微软雅黑';
+            markLabel.style.whiteSpace = 'nowrap';
+            markLabel.style.position = 'absolute';
+            markLabel.style.top = '-15px';
+            markLabel.style.left = '20px';
+
+            markerContent.appendChild(markLabel);
+
+            marker.setContent(markerContent);
+
+            try {
+                marker.setMap(this.map);
+
+                this.mk_fav.push(marker);
+
+                console.info('!!!!!!!!!!!!!!!!!!!', this.map, { label: markLabel, icon: markerImg });
+            } catch(e) {
+                console.error(e);
+            }
+        });
+    }
+
+    clearFav() {
+        this.mk_fav.forEach(item => {
+            item.setMap(null);
+        });
+        this.mk_fav = [];
+    }
+
     clearPoints() {
         // 首先移除所有的点位
         this.mk_nodePoints.forEach(item => {
@@ -237,6 +303,11 @@ export default class EditorAmap {
             this.mk_search.setMap(null);
             this.mk_search = null;
         }
+
+        this.mk_fav.forEach(item => {
+            item.setMap(null);
+        });
+        this.mk_fav = [];
     }
 
     centerAndZoom(lng: number, lat: number, zoom: number) {

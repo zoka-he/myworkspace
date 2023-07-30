@@ -212,6 +212,10 @@ export default class EditorBmap {
         })
     }
 
+    drawFav(ptList: any[]) {
+
+    }
+
     clearSearch() {
         // 移除旧搜索点
         if (this.mk_search) {
@@ -226,6 +230,10 @@ export default class EditorBmap {
             this.map.removeOverlay(item);
         });
         this.mk_nodePoints = [];
+    }
+
+    clearFav() {
+        
     }
 
     clearMap() {
