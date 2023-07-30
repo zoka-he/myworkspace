@@ -127,8 +127,16 @@ export default function(props: IMarkerProps) {
 
         marker.setContent(markerContent);
 
+        marker.on('click', (e: any) => {
+            if (typeof props.onClick === 'function') {
+                props.onClick(e);
+            }
+        });
+
         try {
             marker.setMap(amap);
+            
+
             overlays.push(marker);
             return overlays;
         } catch(e) {

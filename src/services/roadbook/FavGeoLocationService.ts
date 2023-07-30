@@ -9,6 +9,11 @@ class FavGeoService extends service {
             'label',
             'lng',
             'lat',
+            'map_type',
+            'use_weather',
+            'arrived_date',
+            'province_code',
+            'prefer_month'
         ]);
     }
 

@@ -3,16 +3,19 @@ import { useEffect, useRef, useState } from "react";
 import CommonBmap from "../../commonBmap";
 import fetch from '@/src/fetch';
 import uuid from "@/src/utils/common/uuid";
-import { DeleteOutlined, EditOutlined, AimOutlined, PlusCircleOutlined } from '@ant-design/icons';
-import { blue } from '@ant-design/colors';
+import { PlusCircleOutlined } from '@ant-design/icons';
 import PosForm from "./PosForm";
+import FavPosItem from "./FavPosItem";
+import GeoSearch from "../../roadBookEditor/dayEditor/GeoSearch";
+import { useNavigate } from "react-router-dom";
+
 
 export default function() {
+    let amap = useRef();
     let bmap = useRef();
     let [queryName, setQueryName] = useState('');
     let [queryMapType, setQueryMapType] = useState('gaode');
-    let [queryWeatherDate, setQueryWeatherDate] = useState<number>(0);
-    let [queryPreferMonth, setQueryPreferMonth] = useState<number[] | null>([]);
+    let [queryPreferMonth, setQueryPreferMonth] = useState<null | number>(null);
     let [spinning, setSpinning] = useState(false);
     let [listData, setListData] = useState<any[]>([]);
     let [filteredData, setFilteredData] = useState<any[]>([]);
@@ -21,16 +24,45 @@ export default function() {
     let [targetMk, setTargetMk] = useState<any>(null);
     let [posFormHelper] = PosForm.usePosForm();
 
+    let navigate = useNavigate();
+
     useEffect(() => {
         onQuery();
     }, [])
 
     useEffect(() => {
-        setFilteredData(listData);
-    }, [listData]);
+        let list2 = listData.filter(item => {
+            if (queryName) {
+                if (typeof item.label !== 'string') {
+                    console.debug('label为空', '拦截', item.label)
+                    return false;
+                }
 
-    function onBmapReady(map: any) {
-        bmap.current = map;
+                if (item.label.indexOf(queryName) === -1) {
+                    console.debug('名称筛选', queryName, '拦截', item.label)
+                    return false;
+                }
+            }
+
+            if (queryPreferMonth) {
+                if (item.prefer_month instanceof Array && item.prefer_month.length) {
+                    if (!item.prefer_month.includes(queryPreferMonth)) {
+                        console.debug('适宜季节', queryPreferMonth, '拦截', item.label);
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        })
+        setFilteredData(list2);
+    }, [listData, queryName, queryPreferMonth]);
+
+    function onBmapReady(_bmap: any, _amap: any) {
+        console.debug('onMapReady', _bmap, _amap);
+
+        amap.current = _amap;
+        bmap.current = _bmap;
     }
 
     async function onQuery() {
@@ -66,30 +98,20 @@ export default function() {
     function onEditPos(item: any) {
         posFormHelper.showAndEdit(item);
         setTargetLnglat(item);
-        setMapCenter(item);
+        setMapCenter({
+            lng: item.lng,
+            lat: item.lat,
+        });
     }
 
     function renderFavPos(cell: any, row: any) {
         return (
-            <div>
-                <div className={'f-flex-two-side'}>
-                    <Space>
-                        <Button icon={<AimOutlined/>} shape="circle" size="small" onClick={e => onPosAimClick(row)}></Button>
-                        <strong>{row.label}</strong>
-                    </Space>
-                    <Space>
-                        <Button icon={<EditOutlined/>} shape="circle" size="small" onClick={() => onEditPos(row)}></Button>
-                        <Button icon={<DeleteOutlined/>} danger type="text" size="small"></Button>
-                    </Space>
-                </div>
-                <Descriptions size="small" column={2}>
-                    <Descriptions.Item label="地区"> </Descriptions.Item>
-                    <Descriptions.Item label="天气"> </Descriptions.Item>
-                    <Descriptions.Item label="打卡"> </Descriptions.Item>
-                    <Descriptions.Item label="适宜季节" span={2}> </Descriptions.Item>
-                </Descriptions>
-            </div>
-        );
+            <FavPosItem
+                data={row}
+                onEditPos={onEditPos}
+                onPosAimClick={onPosAimClick}
+            />
+        )
     }
 
     function renderMarkers() {
@@ -100,12 +122,17 @@ export default function() {
         }
         
         listData.forEach(item => {
+            let onItemMarkerClick = () => {
+                onEditPos(item);
+            }
+
             let mk = (
                 <CommonBmap.Marker 
                     lng={item.lng} lat={item.lat} 
                     label={item.label} 
                     key={uuid()}
                     config={{ icon: "/mapicons/star.png" }}
+                    onClick={onItemMarkerClick}
                 />
             );
             markers.push(mk);
@@ -140,13 +167,9 @@ export default function() {
         });
     }
 
-    async function onMapClick(e: any) {
+    function onMapClick(e: any) {
         setTargetLnglat(e);
         posFormHelper.setLnglat(e.lng, e.lat);
-    }
-
-    function onMarkerClick() {
-
     }
 
     function onAddPos() {
@@ -154,32 +177,42 @@ export default function() {
         posFormHelper.show();
     }
 
+    function onGeoSearchAddress(pt: any) {
+        console.debug('onGeoSearchAddress', pt);
+        setMapCenter({
+            lng: pt.lng,
+            lat: pt.lat,
+            zoom: 19
+        });
+    }
+
+    async function updateWeather() {
+
+    }
+
     let listTitle = (
         <div className="f-flex-two-side f-fit-width">
-            <strong>地点</strong>
+            <Space>
+                <strong>收藏夹</strong>
+                <Select size="small" style={{ width: 200 }}></Select>
+            </Space>
             <Button icon={<PlusCircleOutlined/>} size="small" type="link" onClick={onAddPos}>添加</Button>
         </div>
     )
 
-    let tableHeight = posFormHelper.open ? 'calc(100vh - 570px)' : 'calc(100vh - 280px)';
-    let posFormHeight = '290px';
+    let tableHeight = posFormHelper.open ? 'calc(100vh - 645px)' : 'calc(100vh - 280px)';
+    let posFormHeight = '365px';
 
     return (
         <div className="m-wishboard-favposmanage">
             <Space>
                 <label>名称：</label>
-                <Input value={queryName} onInput={(e) => setQueryName}></Input>
-                <label>天气预报：</label>
-                <Select value={queryWeatherDate} onChange={(e) => setQueryWeatherDate(e.target?.value)} style={{ width: 130 }}>
-                    <Select.Option value={0}>实时</Select.Option>
-                    <Select.Option value={1}>明天</Select.Option>
-                    <Select.Option value={2}>后天</Select.Option>
-                    <Select.Option value={3}>T+3</Select.Option>
-                    <Select.Option value={4}>T+4</Select.Option>
-                </Select>
+                <Input value={queryName} allowClear onInput={(e) => setQueryName(e.target?.value)}></Input>
                 <label>适宜季节：</label>
-                <Select mode="multiple" style={{ width: 200 }} allowClear
-                        value={queryPreferMonth} onChange={(e) => setQueryPreferMonth(e.target?.value)}>
+                <Select style={{ width: 100 }} allowClear
+                        value={queryPreferMonth} 
+                        onChange={(e) => setQueryPreferMonth(e)}
+                >
                     <Select.Option value={1}>一月</Select.Option>
                     <Select.Option value={2}>二月</Select.Option>
                     <Select.Option value={3}>三月</Select.Option>
@@ -203,7 +236,9 @@ export default function() {
 
             <div className="f-flex-row">
                 <div className="m-table-container">
-                    <PosForm form={posFormHelper} height={posFormHeight}/>
+                    <PosForm form={posFormHelper} height={posFormHeight} mapType={queryMapType}
+                        onFinish={onQuery}
+                    />
 
                     <Table dataSource={filteredData} size={'small'} scroll={{ y: tableHeight }}>
                         <Table.Column title={listTitle} dataIndex="label" key="label" render={renderFavPos}/>
@@ -221,6 +256,15 @@ export default function() {
                     >
                         {renderMarkers()}
                     </CommonBmap>
+
+                    <div className="m-map-tools">
+                        <GeoSearch 
+                            mapType={queryMapType} 
+                            amap={() => amap?.current}
+                            bmap={() => bmap?.current}
+                            onAddress={(pt: any) => onGeoSearchAddress(pt)}
+                        />
+                    </div>
                 </div>
             </div>
             

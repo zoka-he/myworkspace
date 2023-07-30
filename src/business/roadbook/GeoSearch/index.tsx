@@ -4,6 +4,8 @@ import _ from 'lodash';
 
 interface IGeoSearchProps {
     map?: any
+    bmap?: any
+    amap?: any
     onAddress?: Function
 }
 
@@ -24,12 +26,12 @@ function GeoSearch(props: IGeoSearchProps) {
             return;
         }
 
-        if (!props.map) {
-            console.debug('map is not defined!');
+        if (!props.bmap) {
+            console.debug('baidu map is not defined!');
             return;
         }
 
-        let map = props.map;
+        let map = props.bmap;
         if (typeof map === 'function') {
             map = map();
         }
@@ -70,15 +72,15 @@ function GeoSearch(props: IGeoSearchProps) {
      * @returns 
      */
     function onSelect(val: any) {
-        if (!props.map) {
-            console.debug('map is not defined!');
-            return;
-        }
+        // if (!props.map) {
+        //     console.debug('map is not defined!');
+        //     return;
+        // }
 
-        let map = props.map;
-        if (typeof map === 'function') {
-            map = map();
-        }
+        // let map = props.map;
+        // if (typeof map === 'function') {
+        //     map = map();
+        // }
 
         // console.debug('select poi', val, pois[_.toNumber(val)]);
         let poi: any = pois[_.toNumber(val)];

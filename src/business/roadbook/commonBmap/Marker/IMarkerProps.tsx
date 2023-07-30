@@ -2,7 +2,8 @@ interface IMarkerProps {
     lng: number,
     lat: number,
     label?: string,
-    config?: any
+    config?: any,
+    onClick?: Function
 }
 
 export default IMarkerProps;

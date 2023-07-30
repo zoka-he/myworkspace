@@ -9,13 +9,29 @@ echarts.registerMap('CHINA', chinaJson);
 
 interface IGraphProps {
     range?: number | [number, number],
-    data?: any
+    data?: any,
+    color?: string[],
+    title?: string
 }
 
 export default function(props: IGraphProps) {
 
     let divRef = useRef<HTMLDivElement | null>(null);
     let echartRef = useRef<EChartsType | null>(null);
+
+    let defaultColor = [
+        // '#a50026'
+        // '#d73027',
+        // '#f46d43',
+        // '#fdae61',
+        // '#fee090',
+        // '#ffffbf',
+        '#e0f3f8',
+        // '#abd9e9',
+        // '#74add1',
+        // '#4575b4',
+        '#313695',
+    ]
 
     function convertData(data?: any) {
         if (data === null || data === undefined) {
@@ -57,10 +73,14 @@ export default function(props: IGraphProps) {
         echartRef.current = myChart;
 
         let { min, max, data } = convertData(props.data);
+        let color = defaultColor;
+        if (props.color) {
+            color = props.color;
+        }
 
         const mapOption = {
             title: {
-                text: '路书分布',
+                text: props.title || '',
                 x: 'center'
             },
             visualMap: {
@@ -68,19 +88,7 @@ export default function(props: IGraphProps) {
                 min,
                 max,
                 inRange: {
-                    color: [
-                        // '#a50026'
-                        // '#d73027',
-                        // '#f46d43',
-                        // '#fdae61',
-                        // '#fee090',
-                        // '#ffffbf',
-                        '#e0f3f8',
-                        '#abd9e9',
-                        '#74add1',
-                        '#4575b4',
-                        '#313695',
-                    ]
+                    color
                 },
                 text: ['High', 'Low'],
                 calculable: true
@@ -137,7 +145,10 @@ export default function(props: IGraphProps) {
 
         let { min, max, data } = convertData(props.data);
 
-        const mapOption = {
+        const mapOption: any = {
+            title: {
+                text: props.title || '',
+            },
             visualMap: {
                 min,
                 max,
@@ -148,6 +159,12 @@ export default function(props: IGraphProps) {
                 },
             ]
         }
+
+        let color = defaultColor;
+        if (props.color) {
+            color = props.color;
+        }
+        mapOption.visualMap.inRange = { color };
 
         echartRef.current.setOption(mapOption);
 

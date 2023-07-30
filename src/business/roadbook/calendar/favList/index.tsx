@@ -6,6 +6,7 @@ import fetch from '@/src/fetch';
 import Openweather from "@/src/utils/openweather";
 import FcGraph from "./fcGraph";
 import { InfoCircleFilled } from '@ant-design/icons';
+import { useNavigate } from "react-router-dom";
 
 interface IShowable {
     show: Function
@@ -26,6 +27,8 @@ export default function() {
     let [spinning, setSpinning] = useState(false);
     let [fcLen, setFcLen] = useState(5);
     let [fcDispMode, setFcDispMode] = useState(E_fcDisplayMode.FIGURE);
+
+    let navigate = useNavigate();
     
 
     /**
@@ -99,7 +102,16 @@ export default function() {
         try {
             setSpinning(true);
 
-            let {data} = await fetch.get('/api/roadPlan/favGeoLocation/list', {params: {page: 1, limit: 100}});
+            let {data} = await fetch.get(
+                '/api/roadPlan/favGeoLocation/list', 
+                {
+                    params: {
+                        page: 1, 
+                        limit: 100,
+                        use_weather: '1'
+                    }
+                }
+            );
             setListData(data);
 
             // 获取天气，但是不计算分数，也不变更排序（因为这样可能会导致重复请求）
@@ -400,7 +412,7 @@ export default function() {
                     <Button type="primary" loading={spinning} onClick={ () => onQuery() }>刷新</Button>
                 </Space>
                 <Space>
-                    <Button onClick={ () => showModal(m_addPlaceModal) }>添加地区</Button>
+                    <Button onClick={ () => navigate('/roadBook/wishBoard') }>编辑地区</Button>
                 </Space>
             </div>
             <div className="f-flex-1" style={{ margin: '12px 0' }}>
@@ -409,10 +421,10 @@ export default function() {
                     <Table.Column title="地名" dataIndex="label" key="label" width={'180px'} fixed="left"/>
                     {renderFcColumn()}
                     {/* <Table.Column title='偏好分数' dataIndex="score" key="score" width={100}/> */}
-                    <Table.Column title="操作" render={(cell, row) => renderAction(row)} key="action" width={160} fixed="right"/>
+                    {/* <Table.Column title="操作" render={(cell, row) => renderAction(row)} key="action" width={160} fixed="right"/> */}
                 </Table>
             </div>
-            <AddPlaceModal ref={m_addPlaceModal} onFinish={onQuery}/>
+            {/* <AddPlaceModal ref={m_addPlaceModal} onFinish={onQuery}/> */}
         </div>
     )
 

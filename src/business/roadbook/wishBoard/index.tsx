@@ -7,13 +7,13 @@ export default function WishBoard() {
     let items = [
         {
             key: '1',
-            label: `路书分布`,
-            children: <RoadbookGraph/>
+            label: `收藏地点管理`,
+            children: <FavPosManage/>
         },
         {
             key: '2',
-            label: `收藏地点管理`,
-            children: <FavPosManage/>
+            label: `路书分布`,
+            children: <RoadbookGraph/>
         },
     ];
 

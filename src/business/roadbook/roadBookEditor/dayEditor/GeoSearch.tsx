@@ -28,14 +28,9 @@ export default function GeoSearch(props: IGeoSearchProps) {
             return;
         }
 
-        if (!props.map) {
+        if (!props.bmap) {
             console.debug('map is not defined!');
             return;
-        }
-
-        let map = props.map;
-        if (typeof map === 'function') {
-            map = map();
         }
 
         console.debug('搜索', `[${poiSrc}]`, s);
@@ -65,16 +60,30 @@ export default function GeoSearch(props: IGeoSearchProps) {
                 }
             };
 
-            var local = new BMapGL.LocalSearch(props.bmap.getMap(), sOpts);
+            
+
+            let realMap = props.bmap;
+
+            if (typeof realMap === 'function') {
+                realMap = realMap();
+            }
+
+            if (typeof realMap.getMap === 'function') {
+                realMap = realMap.getMap();
+            }
+
+            console.debug('props.bmap', realMap);
+
+            var local = new BMapGL.LocalSearch(realMap, sOpts);
             local.search(s);
         } else if (poiSrc === 'gaode') {
 
-            if (!props.map) {
+            if (!props.amap) {
                 console.debug('map is not defined!');
                 return;
             }
     
-            let map = props.map;
+            let map = props.amap;
             if (typeof map === 'function') {
                 map = map();
             }

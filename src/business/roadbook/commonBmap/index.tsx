@@ -7,7 +7,7 @@ import uuid from "@/src/utils/common/uuid";
 interface ICommonBmap {
     children?: any,
     initPoint?: { lng: number, lat: number },
-    center?: { lng: number, lat: number }
+    center?: { lng: number, lat: number, zoom?: number }
     viewport?: { lng: number, lat: number }[],
     onReady?: Function
     onClick?: Function
@@ -117,10 +117,12 @@ function CommonBmap(props: ICommonBmap) {
         // 添加点击事件
         map.addEventListener('click', (e: any) => onClickMap(e));
 
-        // 回传map对象
-        if (typeof props.onReady === 'function') {
-            props.onReady(map);
-        }
+        // 设置map对象
+        setBmap(map);
+
+        // if (typeof props.onReady === 'function') {
+        //     props.onReady(map);
+        // }
 
         return map;
     }
@@ -147,6 +149,9 @@ function CommonBmap(props: ICommonBmap) {
 
         // 添加点击事件
         map.on('click', (e: any) => onClickMap(e));
+
+        // 设置map对象
+        setAmap(map);
 
         return map;
     }
@@ -249,8 +254,13 @@ function CommonBmap(props: ICommonBmap) {
             return;
         }
 
+        let zoom = 12;
+        if (typeof props?.center?.zoom === 'number') {
+            zoom = props?.center?.zoom
+        }
+
         let pt = new BMapGL.Point(lng, lat);
-        map.centerAndZoom(pt, 12);
+        map.centerAndZoom(pt, zoom);
     }
 
     /**
@@ -260,6 +270,7 @@ function CommonBmap(props: ICommonBmap) {
      * @param lat 
      */
     function setAmapCenter(map?: any, lng?: number, lat?: number) {
+        
         if (props.center && arguments.length === 0) {
             ({lng, lat} = props.center);
             map = amap;
@@ -269,9 +280,16 @@ function CommonBmap(props: ICommonBmap) {
             return;
         }
 
+        let zoom = 12;
+        if (typeof props?.center?.zoom === 'number') {
+            zoom = props?.center?.zoom
+        }
+
+        console.debug('props', props);
+
         try {
             map.setCenter([lng, lat]);
-            map.setZoom(12);
+            map.setZoom(zoom);
         } catch(e) {
             console.error(e);
         }
@@ -284,7 +302,7 @@ function CommonBmap(props: ICommonBmap) {
             mapType = 'baidu';
         }
 
-        if (mapType === 'baidu') {
+        if (mBmapDiv.current) {
             let div = mBmapDiv.current;
             if (!div) {
                 return;
@@ -304,7 +322,9 @@ function CommonBmap(props: ICommonBmap) {
                 }, 200);
             }
             
-        } else if (mapType === 'gaode') {
+        } 
+        
+        if (mAmapDiv.current) {
             let div = mAmapDiv.current;
             if (!div) {
                 return;
@@ -346,6 +366,8 @@ function CommonBmap(props: ICommonBmap) {
 
     // 如果中心点发生变化，让地图做出同步修改
     useEffect(() => {
+        console.debug('props.center', props.center);
+
         if (getMapType() === 'baidu') {
             setBmapCenter();
         } else if (getMapType() === 'gaode') {
@@ -366,6 +388,13 @@ function CommonBmap(props: ICommonBmap) {
             setAmapViewport();
         }
     }, [props.viewport]);
+
+    useEffect(() => {
+        // 监测地图状态，若初始化发生变化，通知外部
+        if (typeof props.onReady === 'function') {
+            props.onReady(bmap, amap);
+        }
+    }, [amap, bmap]);
 
 
 

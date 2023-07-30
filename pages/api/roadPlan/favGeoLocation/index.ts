@@ -11,6 +11,11 @@ async function createOrUpdateOne(req: NextApiRequest, res: NextApiResponse) {
     const body = req.body;
     console.debug('body', body);
 
+    if (body.hasOwnProperty('prefer_month[]')) {
+        body.prefer_month = body['prefer_month[]'];
+        delete body['prefer_month[]'];
+    }
+
     if (typeof ID === 'undefined') {
         await service.insertOne(body);
         res.status(200).json({ message: 'created' });

@@ -26,6 +26,9 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
             case 'label':
                 queryObject.label = { $like: `%${v}%` };
                 break;
+            case 'use_weather':
+                queryObject.use_weather = v;
+                break;    
         }
     }
 

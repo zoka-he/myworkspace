@@ -497,7 +497,7 @@ export default function() {
 
             const processPathEnd = () => {
                 let config = baseConfig;
-                if (polyData[0].type === 'rail' || polyData[0].type === 'fly') {
+                if (polyData[0] && (polyData[0].type === 'rail' || polyData[0].type === 'fly')) {
                     config = {
                         strokeColor: 'gray',
                         strokeWeight: 2,
