@@ -13,3 +13,5 @@ describe('roadbook spec', () => {
     cy.url().should('include', '/roadBook/planBoard');
   })
 })
+
+export {};

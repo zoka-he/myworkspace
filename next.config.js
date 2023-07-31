@@ -15,6 +15,13 @@ const nextConfig = {
         destination: '/'
       }
     ]
+  },
+
+  webpack: ( config, { buildId, dev, isServer, defaultLoaders, nextRuntime, webpack } ) => {
+    // Important: return the modified config
+    console.debug('config.module', config.module);
+
+    return config;
   }
 }
 

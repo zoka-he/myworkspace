@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start &",
     "lint": "next lint",
-    "docker-run": "docker-compose up -d"
+    "cypress": "cypress open"
   },
   "dependencies": {
     "@next/font": "13.1.6",
