@@ -260,8 +260,12 @@ export default function() {
                     <div className="m-map-tools">
                         <GeoSearch 
                             mapType={queryMapType} 
-                            amap={() => amap?.current}
-                            bmap={() => bmap?.current}
+                            amap={{
+                                getMap: () => amap?.current
+                            }}
+                            bmap={{
+                                getMap: () => bmap?.current
+                            }}
                             onAddress={(pt: any) => onGeoSearchAddress(pt)}
                         />
                     </div>
