@@ -69,7 +69,7 @@ export default function() {
         try {
             setSpinning(true);
 
-            let {data} = await fetch.get('/api/roadPlan/favGeoLocation/list', {params: {page: 1, limit: 100}});
+            let {data} = await fetch.get('/api/roadPlan/favGeoLocation/list');
             setListData(data);
 
 
