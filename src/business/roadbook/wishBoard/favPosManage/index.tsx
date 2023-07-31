@@ -207,7 +207,7 @@ export default function() {
         <div className="m-wishboard-favposmanage">
             <Space>
                 <label>名称：</label>
-                <Input value={queryName} allowClear onInput={(e) => setQueryName(e.target?.value)}></Input>
+                <Input value={queryName} allowClear onInput={(e) => setQueryName((e.target as HTMLInputElement).value)}></Input>
                 <label>适宜季节：</label>
                 <Select style={{ width: 100 }} allowClear
                         value={queryPreferMonth} 

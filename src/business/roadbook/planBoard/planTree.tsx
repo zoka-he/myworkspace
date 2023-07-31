@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Card, Input, Space, Tree } from 'antd';
-import { DataNode } from 'antd/es/tree';
+import type { DataNode, TreeProps } from 'antd/es/tree';
 import GeoCoder from '@/src/utils/geo/GeoCoder';
 
 let provinces = GeoCoder.getCodes();
@@ -65,13 +65,13 @@ export default function(props: IPlanTreeProps) {
                 title += '(' + count + ')';
             }
 
-            let leaf: { [key: string]: any } = {
+            let leaf: DataNode & { _count: number } = {
                 title,
                 key: item.code,
                 _count: count
             };
 
-            if (props?.taskList?.length > 0 && count === 0) {
+            if (!!props?.taskList?.length && count === 0) {
                 leaf.disableCheckbox = true;
             }
 
@@ -120,10 +120,20 @@ export default function(props: IPlanTreeProps) {
         }
     }
 
-    function onCheck(e: React.Key[]) {
-        let e2 = [...e];
+    
+    function onCheck(e: (React.Key[] | {checked: React.Key[], halfChecked: React.Key[]})) {
+        let e1: React.Key[], e2: React.Key[];
+        if (e instanceof Array) {
+            e1 = e;
+            e2 = [...e];
+        } else if (e.checked instanceof Array) {
+            e1 = e.checked;
+            e2 = [...e.checked];
+        } else {
+            return;
+        }
 
-        if (e.includes('0') && !checkedKeys.includes('0')) {
+        if (e1.includes('0') && !checkedKeys.includes('0')) {
             e2 = ['0'];
             
         } else {

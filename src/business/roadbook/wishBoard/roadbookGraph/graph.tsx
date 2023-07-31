@@ -5,6 +5,7 @@ import * as echarts from 'echarts';
 import { EChartsType } from 'echarts';
 import GeoCoder from "@/src/utils/geo/GeoCoder";
 
+// @ts-ignore
 echarts.registerMap('CHINA', chinaJson);
 
 interface IGraphProps {
@@ -33,7 +34,7 @@ export default function(props: IGraphProps) {
         '#313695',
     ]
 
-    function convertData(data?: any) {
+    function convertData(data?: { [key: string]: number }) {
         if (data === null || data === undefined) {
             return {
                 data: [],
