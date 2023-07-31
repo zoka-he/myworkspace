@@ -4,14 +4,17 @@ import WheelDev from './WheelDev';
 import Hubs from './Hubs';
 import Rims from './Rims';
 import Structures from "./Structures";
+import AppendStructureDlg, { useDlg } from "./AppendStructureDlg";
 
 export default function () {
+
+    let dlgCtl = useDlg();
 
     let litems = [
         {
             key: '1',
             label: `组件`,
-            children: <Structures/>,
+            children: <Structures dlgCtl={dlgCtl}/>,
         },
     ]
 
@@ -33,10 +36,13 @@ export default function () {
         },
     ];
 
+    
+
     return (
         <div className="m-wheel-dev f-fit-height f-flex-row">
-            <Tabs style={{ width: '30%' }} defaultActiveKey="1" items={litems} type="card" className="f-fit-height"/>
+            <Tabs style={{ width: '350px' }} defaultActiveKey="1" items={litems} type="card" className="f-fit-height"/>
             <Tabs style={{ flex: '1', marginLeft: '6px' }} defaultActiveKey="1" items={ritems} type="card" className="f-fit-height"/>
+            <AppendStructureDlg dlgCtl={dlgCtl}/>
         </div>
     )
 }
