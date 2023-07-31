@@ -59,6 +59,10 @@ const navObj: INavMenu[] = [
     key: '/roadBook',
     children: [
         {
+            label: '心愿墙',
+            key: '/wishBoard'
+        },
+        {
             label: '计划板',
             key: '/planBoard'
         },
@@ -70,10 +74,6 @@ const navObj: INavMenu[] = [
             label: '天气日历',
             key: '/calendar'
         },
-        {
-            label: '心愿墙',
-            key: '/wishBoard'
-        }
     ]
 },
 

@@ -4,12 +4,14 @@ import DayJS from 'dayjs';
 
 interface IHandlers {
     onClick?: Function
+    onFavClick?: Function
 }
 
 export default class EditorAmap {
 
     private map: any = null;
     private onClickHandler: Function | null = null;
+    private onFavClickHandler: Function | null = null;
     private mk_nodePoints: any[];
     private mk_planRoutes: any[];
     private mk_search: any;
@@ -25,6 +27,10 @@ export default class EditorAmap {
 
         if (handlers?.onClick) {
             this.onClickHandler = handlers.onClick;
+        }
+
+        if (handlers?.onFavClick) {
+            this.onFavClickHandler = handlers.onFavClick;
         }
     }
 
@@ -217,6 +223,8 @@ export default class EditorAmap {
     }
 
     drawFav(ptList: any[]) {
+        let _this = this;
+
         // 先清除掉所有点位
         this.clearFav();
 
@@ -260,6 +268,13 @@ export default class EditorAmap {
             markerContent.appendChild(markLabel);
 
             marker.setContent(markerContent);
+
+            marker.on('click', (e: any) => {
+                if (_this.onFavClickHandler) {
+                    let fn = _this.onFavClickHandler;
+                    fn(pInfo);
+                }
+            });
 
             try {
                 marker.setMap(this.map);

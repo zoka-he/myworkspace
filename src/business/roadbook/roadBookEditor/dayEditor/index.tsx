@@ -84,12 +84,19 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         this.amapId = 'gaodeMap-' + uuid();
     }
 
+    /**
+     * 显示窗体（无论数据是什么）
+     */
     show() {
         this.setState({
             modalOpen: true
         });
     }
 
+    /**
+     * 获取封装过得地图对象
+     * @returns 
+     */
     getEditorMap() {
         if (this.props.mapType === 'gaode') {
             return this.amap;
@@ -100,6 +107,10 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         }
     }
 
+    /**
+     * 计算高德地图样式
+     * @returns 
+     */
     getAmapStyle(): CSSProperties {
         if (this.props.mapType === 'gaode') {
             return { position: 'absolute', top: '0' };
@@ -108,6 +119,10 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         }
     }
 
+    /**
+     * 计算百度样式
+     * @returns 
+     */
     getBmapStyle(): CSSProperties {
         if (this.props.mapType === 'baidu') {
             return { position: 'absolute', top: '0' };
@@ -116,7 +131,10 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         }
     }
     
-
+    /**
+     * 无来自db的数据，按照默认数据新建日程
+     * @param prev 
+     */
     loadDefaultData(prev: any) {
         // 默认每天出发时间为7:30
         // @ts-ignore
@@ -234,6 +252,10 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
 
     }
 
+    /**
+     * 获取收藏夹数据，并填充到窗体
+     * @returns 
+     */
     async loadFavPos() {
         let { data } = await fetch.get('/api/roadPlan/favGeoLocation/list');
         if (!data.length) {
@@ -244,6 +266,15 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         this.getEditorMap().drawFav(this.o_favPos);
     }
 
+    /**
+     * 识别来自db数据，并填充到窗体
+     * @param data 
+     * @param index 
+     * @param prev 
+     * @param next 
+     * @param args 
+     * @returns 
+     */
     async parseAndFixData(data: any, index: number, prev: any, next: any, ...args: any[]) {
         if (!this.getEditorMap()) {
             
@@ -287,6 +318,13 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         this.loadFavPos();
     }
 
+    /**
+     * 显示窗体，并装载日程对象
+     * @param data 
+     * @param index 
+     * @param prev 
+     * @param next 
+     */
     showAndEdit(data: any, index: number, prev: any, next: any) {
         this.setState({
             modalOpen: true,
@@ -298,7 +336,9 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         this.parseAndFixData(data, index, prev, next);
     }
 
-
+    /**
+     * 关闭窗体
+     */
     hide() {
         this.setState({
             modalOpen: false
@@ -539,39 +579,56 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
      * @param e 
      */
     async onClickMap(pt: any) {
-        let addr: any = await this.getEditorMap().getPointAddress(pt.lng, pt.lat);
-
-        // 判断是否工作在节点打标状态，如果是，则点击的时候创建Marker
-        if (this.state.isLocatingNode && this.state.locateNodeIndex !== null) {
-            let nodeComp = this.mNodeComps[this.state.locateNodeIndex];
-            if (!nodeComp) {
-                message.error('找不到对应节点');
-                this.setState({
-                    isLocatingNode: false,
-                    locateNodeIndex: null
-                });
-                return;
-            }
-
-            // 设置节点地址
-            nodeComp.acceptLocation({
-                lat: pt.lat,
-                lng: pt.lng,
-            });
-
-        } else {
-            let msg = [
-                pt.lng, 
-                pt.lat,
-                addr?.longAddr || ''
-            ]
-    
-    
-            this.setState({
-                posText: msg.join('，')
-            });
+        if (!this.state.isLocatingNode || this.state.locateNodeIndex === null) {
+            return;
         }
 
+
+        let nodeComp = this.mNodeComps[this.state.locateNodeIndex];
+        if (!nodeComp) {
+            message.error('找不到对应节点');
+            this.setState({
+                isLocatingNode: false,
+                locateNodeIndex: null
+            });
+            return;
+        }
+
+        // 设置节点地址
+        nodeComp.acceptLocation({
+            lat: pt.lat,
+            lng: pt.lng,
+        });
+
+    }
+
+    /**
+     * 收藏夹点击动作
+     * @param favPos 
+     * @returns 
+     */
+    onClickFav(favPos: any) {
+        if (!this.state.isLocatingNode || this.state.locateNodeIndex === null) {
+            return;
+        }
+
+
+        let nodeComp = this.mNodeComps[this.state.locateNodeIndex];
+        if (!nodeComp) {
+            message.error('找不到对应节点');
+            this.setState({
+                isLocatingNode: false,
+                locateNodeIndex: null
+            });
+            return;
+        }
+
+        // 设置节点地址
+        nodeComp.acceptLocation({
+            lat: favPos.lat,
+            lng: favPos.lng,
+            addr: favPos.label
+        });
     }
 
     /**
@@ -603,7 +660,7 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
     }
 
     /**
-     * 初始化百度地图
+     * 初始化高德地图
      * @param comp div节点
      * @returns 无返回
      */
@@ -619,7 +676,8 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
                 this.amap = new EditorAmap(
                     this.amapId,
                     {
-                        onClick: (e: any) => this.onClickMap(e)
+                        onClick: (e: any) => this.onClickMap(e),
+                        onFavClick: (e: any) => this.onClickFav(e)
                     }
                 );
 
@@ -775,6 +833,10 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         return dura;
     }
 
+    /**
+     * 渲染窗体标头
+     * @returns 
+     */
     renderEditorTitle() {
         let o_roadDb = this.state.roadDb;
         let o_daydb = this.state.dayDb;
@@ -872,6 +934,9 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
 
     }
 
+    /**
+     * 组件销毁
+     */
     componentWillUnmount(): void {
         if (this.bmap) {
             this.bmap.destroy();
@@ -884,6 +949,10 @@ class DayPlanEditor extends React.Component<IDayPlanEditorProps, IDayPlanEditorS
         }
     }
 
+    /**
+     * 保存日程
+     * @returns 
+     */
     async saveDayPlan() {
         let o_daydb = this.state.dayDb;
         if (!o_daydb) {

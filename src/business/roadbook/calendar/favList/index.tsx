@@ -311,7 +311,6 @@ export default function() {
             weather.feels_like = getNumberRange(row.fc.map((item: any) => item.feels_like));
             weather.grnd_level = getNumberRange(row.fc.map((item: any) => item.grnd_level));
 
-            // TODO 尚未实现简单显示模式
             return formatWeather(weather);
         }
     }
@@ -323,7 +322,6 @@ export default function() {
      */
     function renderFigureForecast(d_day: number) {
         return function(cell: any, row: any) {
-            // TODO 尚未实现图表显示模式
             return <FcGraph data={row.fc}/>
         }
     }

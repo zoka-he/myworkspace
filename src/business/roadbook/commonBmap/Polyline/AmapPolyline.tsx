@@ -23,7 +23,6 @@ export default function(props: IPolylineProps) {
                 };
             }
             
-            // TODO 插入曲线并返回
             console.debug('path', path, config);
 
             let apath = path.map(item => [item.lng, item.lat]);
@@ -54,7 +53,6 @@ export default function(props: IPolylineProps) {
         if (!poly || !amap) return;
 
         try {
-            //TODO 删除曲线并返回
             poly.setMap(null);
 
         } catch(e) {

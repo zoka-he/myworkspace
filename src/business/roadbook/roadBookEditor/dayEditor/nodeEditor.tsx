@@ -82,10 +82,14 @@ export default class NodeEditor extends React.Component<IDayNodeProps, IDayNodeS
     }
 
     public acceptLocation(data: IDayNodeStates) {
-        let obj = {
+        let obj: IDayNodeStates = {
             lng: data.lng,
             lat: data.lat,
         };
+
+        if (data.addr) {
+            obj.addr = data.addr
+        }
         
         this.locateChangeFlag = true;
         this.setState(obj);
