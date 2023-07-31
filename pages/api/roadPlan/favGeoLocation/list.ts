@@ -13,7 +13,7 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
     console.debug('req query', req.query);
 
     const page = _.toNumber(req.query.page || 1);
-    const limit = _.toNumber(req.query.limit || 200);
+    const limit = _.toNumber(req.query.limit || 500);
 
     let queryObject: ISqlCondMap = {};
 

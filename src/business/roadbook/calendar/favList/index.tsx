@@ -106,8 +106,6 @@ export default function() {
                 '/api/roadPlan/favGeoLocation/list', 
                 {
                     params: {
-                        page: 1, 
-                        limit: 100,
                         use_weather: '1'
                     }
                 }
