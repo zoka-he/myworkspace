@@ -63,8 +63,8 @@ export default function() {
         });
     }
 
-    async function onMoveUpNode(node: IPermission) {
-        let { ID, PID } = node;
+    function getBrotherNodes(node: IPermission) {
+        let { PID } = node;
         let nodeList;
         if (typeof PID !== 'number' || PID === 0) {
             nodeList = [...tableData];
@@ -80,29 +80,29 @@ export default function() {
             return;
         }
 
+        return nodeList;
+    }
+
+    async function onReorderNode(
+        node: IPermission, 
+        reorderHandler: Function
+    ) {
+        let { ID } = node;
+        let nodeList = getBrotherNodes(node);
+        if (!nodeList?.length) {
+            return;
+        }
+
         let _thisPos = _.findIndex(nodeList, { ID });
         if (_thisPos === -1) {
             message.error('找不到正确的父节点，无法调整顺序(2)');
             return;
         }
 
-        if (_thisPos === 0) {
-            message.warning('到达边界，无法执行命令');
+        let updateData: IPermission[] = reorderHandler(nodeList, _thisPos);
+        if (!updateData?.length) {
             return;
         }
-
-        let updateData: IPermission[] = [];
-
-        nodeList.forEach((item, index) => {
-            if (index === _thisPos) {
-                updateData.push({ ID: item.ID, dispOrder: _thisPos - 1 });
-            } else if (index === _thisPos - 1) {
-                updateData.push({ ID: item.ID, dispOrder: _thisPos });
-            } else if (item.dispOrder !== index) {
-                updateData.push({ ID: item.ID, dispOrder: index });
-            } 
-        });
-
         
         try {
             await Promise.all(updateData.map(item => {
@@ -121,62 +121,46 @@ export default function() {
         }
     }
 
+    function onMoveUpNode(node: IPermission) {
+        onReorderNode(node, (nodeList: IPermission[], _thisPos: number) => {
+            if (_thisPos === 0) {
+                message.warning('到达边界，无法执行命令');
+                return [];
+            }
+
+            let updateData: IPermission[] = [];
+            nodeList.forEach((item, index) => {
+                if (index === _thisPos) {
+                    updateData.push({ ID: item.ID, dispOrder: _thisPos - 1 });
+                } else if (index === _thisPos - 1) {
+                    updateData.push({ ID: item.ID, dispOrder: _thisPos });
+                } else if (item.dispOrder !== index) {
+                    updateData.push({ ID: item.ID, dispOrder: index });
+                } 
+            });
+            return updateData;
+        })
+    }
+
     async function onMoveDownNode(node: IPermission) {
-        let { ID, PID } = node;
-        let nodeList;
-        if (typeof PID !== 'number' || PID === 0) {
-            nodeList = [...tableData];
-        } else if (permissionMap.current) {
-            let children = permissionMap.current.get(PID)?.children;
-            if (!children?.length) {
-                message.error('找不到正确的父节点，无法调整顺序(0)');
-                return;
+        onReorderNode(node, (nodeList: IPermission[], _thisPos: number) => {
+            if (_thisPos === nodeList.length - 1) {
+                message.warning('到达边界，无法执行命令');
+                return [];
             }
-            nodeList = [...children];
-        } else {
-            message.error('找不到正确的父节点，无法调整顺序(1)');
-            return;
-        }
 
-        let _thisPos = _.findIndex(nodeList, { ID });
-        if (_thisPos === -1) {
-            message.error('找不到正确的父节点，无法调整顺序(2)');
-            return;
-        }
-
-        if (_thisPos === nodeList.length - 1) {
-            message.warning('到达边界，无法执行命令');
-            return;
-        }
-
-        let updateData: IPermission[] = [];
-
-        nodeList.forEach((item, index) => {
-            if (index === _thisPos) {
-                updateData.push({ ID: item.ID, dispOrder: _thisPos + 1 });
-            } else if (index === _thisPos + 1) {
-                updateData.push({ ID: item.ID, dispOrder: _thisPos });
-            } else if (item.dispOrder !== index) {
-                updateData.push({ ID: item.ID, dispOrder: index });
-            }
+            let updateData: IPermission[] = [];
+            nodeList.forEach((item, index) => {
+                if (index === _thisPos) {
+                    updateData.push({ ID: item.ID, dispOrder: _thisPos + 1 });
+                } else if (index === _thisPos + 1) {
+                    updateData.push({ ID: item.ID, dispOrder: _thisPos });
+                } else if (item.dispOrder !== index) {
+                    updateData.push({ ID: item.ID, dispOrder: index });
+                }
+            });
+            return updateData;
         });
-
-        
-        try {
-            await Promise.all(updateData.map(item => {
-                return fetch.post(
-                    '/api/user/permission', 
-                    { dispOrder: item.dispOrder }, 
-                    { params: { ID: item.ID } }
-                );
-            }));
-            message.success('执行成功');
-        } catch(e: any) {
-            console.error(e);
-            message.error(e.message);
-        } finally {
-            onQuery();
-        }
     }
 
     function renderAction(cell: any, row: any) {
