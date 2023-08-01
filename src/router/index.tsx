@@ -17,6 +17,7 @@ const AccountManage = lazy(() => import('../business/accountManage'));
 const RoadBookCalendar = lazy(() => import('../business/roadbook/calendar'));
 const WheelDev = lazy(() => import('../business/bike/WheelDev/editor'));
 const BikeManage = lazy(() => import('../business/bike/bikeManage/index'));
+const Permission = lazy(() => import('../business/user/permission/index'));
 
 async function mainFrameLoader() {
   let matches = useMatches();
@@ -46,6 +47,8 @@ export default function() {
 
           <Route path="bike/wheelDev" element={<WheelDev />} />
           <Route path="bike/bikeManage" element={<BikeManage />} />
+
+          <Route path="user/permission" element={<Permission />} />
 
           <Route path="*" element={<div><h1>此页面尚未实现！</h1></div>}/>
         </Route>
