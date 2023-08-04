@@ -66,7 +66,7 @@ export default async function handler(
         },
 
         async redirect({ url, baseUrl }) {
-            console.debug('[[...nextauth].ts] redirect:', arguments);
+            // console.debug('[[...nextauth].ts] redirect:', arguments);
 
             // Allows relative callback URLs
             // if (url.startsWith("/")) {
