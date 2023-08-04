@@ -55,6 +55,7 @@ export const authOptions: AuthOptions = {
         },
 
         async session({ session, token, user }) {
+            // @ts-ignore
             session.user = token.user;
             
             return Promise.resolve(session);

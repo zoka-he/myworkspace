@@ -77,7 +77,7 @@ export default function Login(props: ILoginProps) {
         console.log('Failed:', errorInfo);
     };
 
-    const toMainPage = (e: MouseEvent) => {
+    const toMainPage = (e: any) => {
         e.preventDefault();
         window.location.href = '/';
     }
@@ -101,7 +101,7 @@ export default function Login(props: ILoginProps) {
                 </Descriptions>
 
                 <Space size={20}>
-                    <Button type="primary" style={{ width: 140 }} onClick={toMainPage}>
+                    <Button type="primary" style={{ width: 140 }} onClick={e => toMainPage(e)}>
                         前往主页
                     </Button>
                     <Button type="primary" style={{ width: 140 }} danger onClick={() => signOut()}>
