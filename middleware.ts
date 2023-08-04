@@ -18,10 +18,20 @@ export default withAuth(
     middleware,
     {
         callbacks: {
-            authorized: ({ token }) => {
-                console.debug('[/middleware.ts] token', token);
+            authorized: ({ token, req }) => {
+                console.debug('[middleware.ts] req', req.nextUrl.pathname);
 
-                return true;
+                // 登录相关页面直接放行
+                if (/^(\/api\/auth|\/login)/.test(req.nextUrl.pathname)) {
+                    return true;
+                }
+                
+                if (!!token?.user) {
+                    console.debug('[middleware.ts] token.user', token.user);
+                    return true;
+                }
+
+                return false;
             },
         },
         secret: AUTH_SECRET,
@@ -29,5 +39,5 @@ export default withAuth(
 )
 
 export const config = {
-    matcher: ['/'],
+    matcher: ['/:path*'],
 }

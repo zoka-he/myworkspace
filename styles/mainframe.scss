@@ -1,7 +1,14 @@
 .m-mainframe_context {
 
-    &-breadcomb {
+    &-mainheader {
         padding: 0 24px;
+        height: 46px;
+        margin-bottom: -12px;
+
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
     }
     
 

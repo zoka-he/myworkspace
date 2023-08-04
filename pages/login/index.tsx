@@ -3,7 +3,7 @@ import Head from 'next/head'
 import { Form, Button, Checkbox, Input, Space, Descriptions } from 'antd';
 import { getCsrfToken } from 'next-auth/react';
 import sm2PubKey from '@/src/utils/cipher/sm2/loginPub.json';
-import { useSession, signIn, signOut } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import DayJS from 'dayjs';
 
 const smCrypto = require('sm-crypto');
@@ -104,7 +104,7 @@ export default function Login(props: ILoginProps) {
                     <Button type="primary" style={{ width: 140 }} onClick={toMainPage}>
                         前往主页
                     </Button>
-                    <Button type="primary" style={{ width: 140 }} danger onClick={toMainPage}>
+                    <Button type="primary" style={{ width: 140 }} danger onClick={() => signOut()}>
                         登出
                     </Button>
                 </Space>
