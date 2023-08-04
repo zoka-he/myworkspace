@@ -5,7 +5,6 @@ import store from '../src/store';
 import zhCN from 'antd/locale/zh_CN';
 import { ConfigProvider } from 'antd';
 import dynamic from "next/dynamic";
-
 import Script from 'next/script';
 
 const MyRouter = dynamic(() => import("../src/router"), { ssr: false });
@@ -23,9 +22,9 @@ export default function Home() {
 
         <main className="f-full-screen">
             <Provider store={store}>
-            <ConfigProvider locale={zhCN}>
-                <MyRouter/>
-            </ConfigProvider>
+                <ConfigProvider locale={zhCN}>
+                    <MyRouter/>
+                </ConfigProvider>
             </Provider>
         </main>
 

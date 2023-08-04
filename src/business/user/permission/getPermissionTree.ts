@@ -1,5 +1,6 @@
 import fetch from '@/src/fetch';
 import type { IPermission } from './IPermission';
+import { AxiosRequestConfig } from 'axios';
 
 function orderNodeList(nodes: IPermission[]) {
     nodes.sort((a, b) => {
@@ -11,8 +12,12 @@ function orderNodeList(nodes: IPermission[]) {
     })
 }
 
-export default async function() {
-    let { data } = await fetch.get('/api/user/permission/list');
+async function getPermissionTree(params: any = {}) {
+    let fetchConfig: AxiosRequestConfig = {};
+    if (params) {
+        fetchConfig.params = params;
+    }
+    let { data } = await fetch.get('/api/user/permission/list', fetchConfig);
 
     let map = new Map<number, IPermission>();
     let tree: IPermission[] = [];
@@ -29,15 +34,18 @@ export default async function() {
         }
 
         let parent = map.get(PID);
-        if (!parent) {
+        // if (!parent) {
+        if (PID === 0) {
             tree.push(v);
             return;
         }
 
-        if (!(parent.children instanceof Array)) {
-            parent.children = [];
+        if (parent) {
+            if (!(parent.children instanceof Array)) {
+                parent.children = [];
+            }
+            parent.children.push(v);
         }
-        parent.children.push(v);
     });
 
     map.forEach((v) => {
@@ -54,3 +62,13 @@ export default async function() {
         data
     };
 }
+
+getPermissionTree.getNavMenu = async function() {
+    let ret = await getPermissionTree({ type: 'menu' });
+    for (let item of ret.data) {
+        item.key = item.url; // 覆写key值；
+    }
+    return ret;
+}
+
+export default getPermissionTree;

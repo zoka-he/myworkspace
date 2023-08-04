@@ -1,14 +1,15 @@
 import { Breadcrumb, Layout, Menu, FloatButton } from 'antd';
 import { connect } from 'react-redux';
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import g_config from '../config';
-import { setLv1Key, setLv2Key } from '../store/navigatorSlice';
-import store from '../store';
 import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import _ from 'lodash';
 
 import type { IRootState } from '../store';
 import type { INavMenu } from '../config/navigator';
+import getPermissionTree from '../business/user/permission/getPermissionTree';
+import { IPermission } from '../business/user/permission/IPermission';
+import { ItemType } from 'antd/es/menu/hooks/useItems';
 
 
 const { Sider, Header, Content } = Layout;
@@ -25,37 +26,40 @@ function MainFrame (props: any) {
 
   let location = useLocation();
   let navigate = useNavigate();
+  let [navMenu, setNavMenu] = useState<IPermission[]>([]);
   let [breadcrumbText, setBreadcrumbText] = useState<string[]>(['任务管理', '贴纸板']);
+  let permMap = useRef<Map<number, IPermission>>(new Map());
+  let urlMap = useRef<Map<string, IPermission>>(new Map());
+
+  useEffect(() => {
+    loadNavMenu();
+  }, []);
+
+  async function loadNavMenu() {
+    let { tree, map, data } = await getPermissionTree.getNavMenu();
+
+    if (data instanceof Array) {
+        let map = new Map<string, IPermission>();
+
+        data.forEach(item => {
+            map.set(item.url, item);
+        })
+
+        urlMap.current = map;
+    }
+
+    if (map instanceof Map) {
+        permMap.current = map;
+    }
+
+    setNavMenu(tree || []);
+  }
 
 
   function onMenuClick(e: any) {
-    let keyPath = [...e.keyPath];
-    if (keyPath.length < 2) {
-      return;
-    }
-
-    _.reverse(keyPath);
-    console.debug('onMenuClick', keyPath);
-
-    let url = keyPath.join('');
+    let url = e.keyPath[0];
     navigate(url);
-
-    getBreadCrumbText(keyPath);
   }
-
-  function getMenus() {
-    if (!g_config?.navigator) {
-      return [];
-    }
-
-    return g_config.navigator.map((item: INavMenu, index: number) => {
-      return {
-        key: index,
-        ...item
-      }
-    });
-  }
-
 
   /**
    * 获取面包屑
@@ -102,10 +106,26 @@ function MainFrame (props: any) {
    * @returns 
    */
   function renderBreadcrumb() {
-    let items = breadcrumbText.map((item, index) => {
-      return <Breadcrumb.Item key={index}>{item}</Breadcrumb.Item>
-    });
-    return <Breadcrumb style={{ padding: '12px 0 0' }}>{items}</Breadcrumb>;
+    if (!urlMap.current || !permMap.current) {
+        return null;
+    }
+
+    let pathname = location.pathname;
+    let menuItem = urlMap.current.get(pathname);
+    console.debug('menuItem', menuItem);
+
+    let breadcrumbItems = [];
+    while(menuItem) {
+        breadcrumbItems.unshift(<Breadcrumb.Item key={menuItem.ID}>{menuItem.label}</Breadcrumb.Item>);
+        
+        if (typeof menuItem.PID === 'number') {
+            menuItem = permMap.current.get(menuItem.PID);
+        } else {
+            menuItem = undefined;
+        }
+    }
+
+    return <Breadcrumb style={{ padding: '12px 0 0' }}>{breadcrumbItems}</Breadcrumb>;
   }
 
   // 主页默认
@@ -124,7 +144,7 @@ function MainFrame (props: any) {
           theme="dark"
           mode="inline"
           inlineIndent={16}
-          items={getMenus()} 
+          items={(navMenu as ItemType[])} 
           onClick={e => onMenuClick(e)}
         />
       </Sider>

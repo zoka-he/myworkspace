@@ -164,13 +164,15 @@ export default function() {
     }
 
     function renderAction(cell: any, row: any) {
+        let noDelete = !!row.children;
+
         return (
             <Space>
                 <Button size="small" onClick={() => onAppendNode(row)}>添加</Button>
                 <Button size="small" onClick={() => onEditNode(row)}>编辑</Button>
                 <Button size="small" onClick={() => onMoveUpNode(row)}>上移</Button>
                 <Button size="small" onClick={() => onMoveDownNode(row)}>下移</Button>
-                <Button size="small" danger onClick={() => onDeleteNode(row)}>删除</Button>
+                <Button size="small" danger onClick={() => onDeleteNode(row)} disabled={noDelete}>删除</Button>
             </Space>
         )
     }
