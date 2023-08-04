@@ -7,8 +7,12 @@ import LoginAccountService from '@/src/services/user/loginAccountService';
 import AUTH_SECRET from '@/src/utils/auth/secret.json';
 
 const loginAccountService = new LoginAccountService();
+export default async function handler(
+    req: NextApiRequest,
+    res: NextApiResponse<any>
+) {
 
-export const authOptions: AuthOptions = {
+    let authOptions: AuthOptions = {
     session: {
         strategy: 'jwt'
     },
@@ -62,15 +66,17 @@ export const authOptions: AuthOptions = {
         },
 
         async redirect({ url, baseUrl }) {
+            console.debug('[[...nextauth].ts] redirect:', arguments);
+
             // Allows relative callback URLs
-            if (url.startsWith("/")) {
-                return `${baseUrl}${url}`
-            }
-            // Allows callback URLs on the same origin
-            else if (new URL(url).origin === baseUrl) {
-                return url;
-            }
-            return baseUrl;
+            // if (url.startsWith("/")) {
+            //     return `${url}`
+            // }
+            // // Allows callback URLs on the same origin
+            // else if (new URL(url).origin === baseUrl) {
+            //     return url;
+            // }
+            return Promise.resolve('/');
         }
     },
     events: {},
@@ -78,10 +84,7 @@ export const authOptions: AuthOptions = {
     debug: false,
 }
 
-export default async function handler(
-    req: NextApiRequest,
-    res: NextApiResponse<any>
-) {
+
     return NextAuth(req, res, authOptions);
 }
 
