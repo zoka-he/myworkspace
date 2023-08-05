@@ -13,6 +13,7 @@ export default function() {
     let [tableData, setTableData] = useState<(IPermission & any)[]>([]);
     let permissionMap = useRef<Map<number, IPermission> | null>(null);
     let appendNodeModalHelper = AppendNodeModal.useModalHelper();
+    let [expendKeys, setExpendKeys] = useState<number[]>([]);
 
     useEffect(() => {
         onQuery();
@@ -22,6 +23,14 @@ export default function() {
         let { tree, map } = await getPermissionTree.fromRemote();
         setTableData(tree);
         permissionMap.current = map;
+
+        let expendList: number[] = [];
+        map.forEach((v, k) => {
+            if (v.children?.length) {
+                expendList.push(k);
+            }
+        });
+        setExpendKeys(expendList);
     }
 
     async function onAppendNode(parent?: IPermission) {
@@ -177,6 +186,18 @@ export default function() {
         )
     }
 
+    function onRowExpand(willExpend: boolean, row: IPermission) {
+        if (!row.ID) {
+            return;
+        }
+
+        if (willExpend) {
+            setExpendKeys([row.ID, ...expendKeys]);
+        } else {
+            setExpendKeys(expendKeys.filter(v => v !== row.ID));
+        }
+    }
+
     return (
         <div className="f-fit-content">
             <div className="f-flex-two-side">
@@ -191,7 +212,8 @@ export default function() {
                     <Button onClick={() => onAppendNode()}>新增</Button>
                 </Space>
             </div>
-            <Table dataSource={tableData} size="small" scroll={{y: 'calc(100vh - 215px)'}} rowKey={'ID'}>
+            <Table dataSource={tableData} size="small" scroll={{y: 'calc(100vh - 215px)'}} 
+                    rowKey={'ID'} expandable={{ expandedRowKeys: expendKeys, onExpand: onRowExpand }}>
                 <Table.Column title="名称" dataIndex="label"></Table.Column>
                 <Table.Column title="类型" dataIndex="type"></Table.Column>
                 <Table.Column title="URI" dataIndex="uri"></Table.Column>
