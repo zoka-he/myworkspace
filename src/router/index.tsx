@@ -19,42 +19,44 @@ const WheelDev = lazy(() => import('../business/bike/WheelDev/editor'));
 const BikeManage = lazy(() => import('../business/bike/bikeManage/index'));
 const Permission = lazy(() => import('../business/user/permission/index'));
 const UserAccount = lazy(() => import('../business/user/account'));
+const UserRole = lazy(() => import('../business/user/role'));
 
 async function mainFrameLoader() {
-  let matches = useMatches();
-  console.debug('matches', matches);
+    let matches = useMatches();
+    console.debug('matches', matches);
 }
 
-export default function() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" loader={mainFrameLoader} element={<MainFrame/>}>
-          <Route path="taskManage/dashboard" element={<Dashboard />} />
-          <Route path="taskManage/taskManage" element={<TaskManage />} />
-          
-          <Route path="taskManage/bugTrace" element={<BugTrace />} />
-          <Route path="taskManage/catfightLog" element={<CatfightLog />} />
-          <Route path="taskManage/uplineCheck" element={<UplineCheck />} />
-          <Route path="taskManage/weeklyReport" element={<WeekReport />} />
+export default function () {
+    return (
+        <BrowserRouter>
+            <Routes>
+                <Route path="/" loader={mainFrameLoader} element={<MainFrame />}>
+                    <Route path="taskManage/dashboard" element={<Dashboard />} />
+                    <Route path="taskManage/taskManage" element={<TaskManage />} />
 
-          <Route path="roadBook/planBoard" element={<RoadBookPlanBoard />} />
-          <Route path="roadBook/editor" element={<RoadBookEditor />} />
-          <Route path="roadBook/calendar" element={<RoadBookCalendar />} />
-          <Route path="roadBook/wishboard" element={<WishBoard />} />
+                    <Route path="taskManage/bugTrace" element={<BugTrace />} />
+                    <Route path="taskManage/catfightLog" element={<CatfightLog />} />
+                    <Route path="taskManage/uplineCheck" element={<UplineCheck />} />
+                    <Route path="taskManage/weeklyReport" element={<WeekReport />} />
 
-          <Route path="infos/accounts" element={<AccountManage />} />
-          <Route path="infos/employeeManage" element={<EmployeeManage />} />
+                    <Route path="roadBook/planBoard" element={<RoadBookPlanBoard />} />
+                    <Route path="roadBook/editor" element={<RoadBookEditor />} />
+                    <Route path="roadBook/calendar" element={<RoadBookCalendar />} />
+                    <Route path="roadBook/wishboard" element={<WishBoard />} />
 
-          <Route path="bike/wheelDev" element={<WheelDev />} />
-          <Route path="bike/bikeManage" element={<BikeManage />} />
+                    <Route path="infos/accounts" element={<AccountManage />} />
+                    <Route path="infos/employeeManage" element={<EmployeeManage />} />
 
-          <Route path="user/permission" element={<Permission />} />
-          <Route path="user/account" element={<UserAccount />} />
+                    <Route path="bike/wheelDev" element={<WheelDev />} />
+                    <Route path="bike/bikeManage" element={<BikeManage />} />
 
-          <Route path="*" element={<div><h1>此页面尚未实现！</h1></div>}/>
-        </Route>
-      </Routes>
-    </BrowserRouter>
-  )
+                    <Route path="user/permission" element={<Permission />} />
+                    <Route path="user/account" element={<UserAccount />} />
+                    <Route path="user/role" element={<UserRole />} />
+
+                    <Route path="*" element={<div><h1>此页面尚未实现！</h1></div>} />
+                </Route>
+            </Routes>
+        </BrowserRouter>
+    )
 }

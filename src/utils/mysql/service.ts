@@ -14,6 +14,10 @@ class MysqlService {
         this.validColumns = [];
     }
 
+    getBaseApi() {
+        return mysql;
+    }
+
     setValidColumns(cols: Array<string>) {
         this.validColumns = cols;
     }
