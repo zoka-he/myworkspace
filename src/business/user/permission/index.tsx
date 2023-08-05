@@ -19,7 +19,7 @@ export default function() {
     }, []);
 
     async function onQuery() {
-        let { tree, map } = await getPermissionTree();
+        let { tree, map } = await getPermissionTree.fromRemote();
         setTableData(tree);
         permissionMap.current = map;
     }

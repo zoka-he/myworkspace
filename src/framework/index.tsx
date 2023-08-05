@@ -1,19 +1,15 @@
 import { Breadcrumb, Layout, Menu, FloatButton, Button, Space } from 'antd';
 import { connect } from 'react-redux';
 import React, { useEffect, useRef, useState } from 'react';
-import g_config from '../config';
 import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import _ from 'lodash';
-
 import type { IRootState } from '../store';
-import type { INavMenu } from '../config/navigator';
 import getPermissionTree from '../business/user/permission/getPermissionTree';
 import { IPermission } from '../business/user/permission/IPermission';
 import { ItemType } from 'antd/es/menu/hooks/useItems';
-
 import { useSession, signOut } from 'next-auth/react';
-
 import { LogoutOutlined } from "@ant-design/icons";
+import fetch from '@/src/fetch';
 
 
 const { Sider, Header, Content } = Layout;
@@ -31,23 +27,22 @@ function MainFrame(props: any) {
     let location = useLocation();
     let navigate = useNavigate();
     let [navMenu, setNavMenu] = useState<IPermission[]>([]);
-    let [breadcrumbText, setBreadcrumbText] = useState<string[]>(['任务管理', '贴纸板']);
     let permMap = useRef<Map<number, IPermission>>(new Map());
     let urlMap = useRef<Map<string, IPermission>>(new Map());
     let session = useSession();
 
     useEffect(() => {
-        loadNavMenu();
+        loadInitData();
     }, []);
 
-    async function loadNavMenu() {
-        let { tree, map, data } = await getPermissionTree.getNavMenu();
+    async function loadNavMenu(userPerms: IPermission[]) {
+        let { tree, map, data } = await getPermissionTree.getNavMenu(userPerms);
 
         if (data instanceof Array) {
             let map = new Map<string, IPermission>();
 
             data.forEach(item => {
-                map.set(item.url, item);
+                item.url && map.set(item.url, item);
             })
 
             urlMap.current = map;
@@ -60,50 +55,18 @@ function MainFrame(props: any) {
         setNavMenu(tree || []);
     }
 
+    async function loadInitData() {
+        let initData: any = await fetch.get('/api/my-account/initdata');
+
+        if (initData.userPerms) {
+            loadNavMenu(initData.userPerms);
+        }
+    }
+
 
     function onMenuClick(e: any) {
         let url = e.keyPath[0];
         navigate(url);
-    }
-
-    /**
-     * 获取面包屑
-     * @returns 
-     */
-    function getBreadCrumbText(keyPath: string[]) {
-        if (!g_config?.navigator || !keyPath?.length) {
-            console.debug('no navigator or keypath');
-            return [];
-        }
-
-        let lv1Menu: INavMenu | null = null;
-        let lv2Menu: INavMenu | null = null;
-
-        for (let item of g_config.navigator) {
-            if (item.key === keyPath[0]) {
-                lv1Menu = item;
-                break;
-            }
-        }
-
-        if (!lv1Menu?.children?.length) {
-            console.debug('lv1Menu is invalid', keyPath[0], lv1Menu);
-            return [];
-        }
-
-        for (let item of lv1Menu.children) {
-            if (item.key === keyPath[1]) {
-                lv2Menu = item;
-                break;
-            }
-        }
-
-        if (!lv2Menu) {
-            console.debug('lv2Menu is invalid', keyPath[1], lv2Menu);
-            return [];
-        }
-
-        setBreadcrumbText([lv1Menu.label || '', lv2Menu.label || '']);
     }
 
     /**

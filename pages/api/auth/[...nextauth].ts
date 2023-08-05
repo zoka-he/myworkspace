@@ -6,13 +6,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import LoginAccountService from '@/src/services/user/loginAccountService';
 import AUTH_SECRET from '@/src/utils/auth/secret.json';
 
-const loginAccountService = new LoginAccountService();
-export default async function handler(
-    req: NextApiRequest,
-    res: NextApiResponse<any>
-) {
-
-    let authOptions: AuthOptions = {
+export const authOptions: AuthOptions = {
     session: {
         strategy: 'jwt'
     },
@@ -59,6 +53,11 @@ export default async function handler(
         },
 
         async session({ session, token, user }) {
+            // console.debug('[[...nextauth].ts] session:', arguments);
+
+            // @ts-ignore
+            session.accessToken = token.accessToken
+
             // @ts-ignore
             session.user = token.user;
             
@@ -84,7 +83,11 @@ export default async function handler(
     debug: false,
 }
 
-
+const loginAccountService = new LoginAccountService();
+export default async function handler(
+    req: NextApiRequest,
+    res: NextApiResponse<any>
+) {
     return NextAuth(req, res, authOptions);
 }
 
