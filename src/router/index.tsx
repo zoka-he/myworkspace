@@ -20,6 +20,7 @@ const BikeManage = lazy(() => import('../business/bike/bikeManage/index'));
 const Permission = lazy(() => import('../business/user/permission/index'));
 const UserAccount = lazy(() => import('../business/user/account'));
 const UserRole = lazy(() => import('../business/user/role'));
+const UserProfile = lazy(() => import('../business/user/profile'));
 
 async function mainFrameLoader() {
     let matches = useMatches();
@@ -53,6 +54,7 @@ export default function () {
                     <Route path="user/permission" element={<Permission />} />
                     <Route path="user/account" element={<UserAccount />} />
                     <Route path="user/role" element={<UserRole />} />
+                    <Route path="user/profile" element={<UserProfile />} />
 
                     <Route path="*" element={<div><h1>此页面尚未实现！</h1></div>} />
                 </Route>

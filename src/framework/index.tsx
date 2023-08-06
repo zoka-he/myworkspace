@@ -8,7 +8,7 @@ import getPermissionTree from '../business/user/permission/getPermissionTree';
 import { IPermission } from '../business/user/permission/IPermission';
 import { ItemType } from 'antd/es/menu/hooks/useItems';
 import { useSession, signOut } from 'next-auth/react';
-import { LogoutOutlined } from "@ant-design/icons";
+import { LogoutOutlined, UserOutlined, SettingOutlined, FullscreenOutlined, FullscreenExitOutlined } from "@ant-design/icons";
 import fetch from '@/src/fetch';
 
 
@@ -101,6 +101,13 @@ function MainFrame(props: any) {
         return <Navigate to='/taskManage/dashboard' />;
     }
 
+    let userLabel = null;
+    if (session.data?.user?.name) {
+        const openProfile = () => navigate('/user/profile');
+        userLabel = <Button type="text" icon={<UserOutlined/>} onClick={openProfile}>{session.data.user.name}</Button>
+    }
+
+
     return (
         <Layout className="f-fit-height">
             <Sider width={160}>
@@ -122,7 +129,9 @@ function MainFrame(props: any) {
                         <div className="m-mainframe_context-mainheader">
                             <span>{renderBreadcrumb()}</span>
                             <Space size={16}>
-                                {session.data?.user?.name}
+                                {userLabel}
+                                <Button type="text" icon={<SettingOutlined />}>设置</Button>
+                                {/* <Button type="text" icon={<FullscreenOutlined />}>全屏</Button> */}
                                 <Button danger type="primary" icon={<LogoutOutlined />} style={{ width: 40 }} onClick={() => signOut()}></Button>
                             </Space>
                         </div>

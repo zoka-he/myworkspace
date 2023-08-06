@@ -4,17 +4,16 @@ import MyAccountService from '@/src/services/user/myAccountService';
 import _ from 'lodash';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]';
+import LoginLogService from '@/src/services/user/loginLogService';
 import logger from '@/src/utils/logger';
 
 type Data = Object;
 
 const myAccountService = new MyAccountService();
-
+const loginLogService = new LoginLogService();
 
 async function research(req: NextApiRequest, res: NextApiResponse) {
-    console.debug('req query', req.query);
     let session = await getServerSession(req, res, authOptions);
-    console.debug('[initdata.ts] session', session);
 
     // @ts-ignore
     let userID = session?.user?.id;
@@ -22,7 +21,15 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
         res.status(500).json({ message: 'session data 校验失败, 请重新登录！' });
         return;
     }
+
+    try {
+        // @ts-ignore
+        await loginLogService.addLog(userID, '');
+    } catch(e) {
+        console.error(e);
+    }
     
+    // @ts-ignore
     let ret = await myAccountService.getMainPageInitData(userID);
     res.status(200).json(ret);
 }

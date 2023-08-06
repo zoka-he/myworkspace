@@ -65,16 +65,7 @@ export const authOptions: AuthOptions = {
         },
 
         async redirect({ url, baseUrl }) {
-            // console.debug('[[...nextauth].ts] redirect:', arguments);
-
-            // Allows relative callback URLs
-            // if (url.startsWith("/")) {
-            //     return `${url}`
-            // }
-            // // Allows callback URLs on the same origin
-            // else if (new URL(url).origin === baseUrl) {
-            //     return url;
-            // }
+            // 控制域名，防止csrf攻击，不过自用就不需要了，盯IP就行
             return Promise.resolve('/');
         }
     },

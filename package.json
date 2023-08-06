@@ -39,6 +39,7 @@
     "react-router-dom": "^6.8.1",
     "redux": "^4.2.1",
     "sass": "^1.58.1",
+    "screenfull": "^6.0.2",
     "sm-crypto": "^0.3.12",
     "tls": "^0.0.1",
     "ts-node": "^10.9.1",
