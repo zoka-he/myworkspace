@@ -22,7 +22,7 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
             continue;
         }
 
-        switch(k) {
+        switch (k) {
             case 'username':
                 queryObject.username = { $like: `%${v}%` };
                 break;
@@ -31,7 +31,7 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
                 break;
             case 'type':
                 queryObject.type = v;
-                break;    
+                break;
         }
     }
 
@@ -57,9 +57,9 @@ export default function handler(
     }
 
     try {
-      processerFn(req, res);
-    } catch(e: any) {
-      res.status(500).json({ message: e.message });
-      return;
+        processerFn(req, res);
+    } catch (e: any) {
+        res.status(500).json({ message: e.message });
+        return;
     }
 }

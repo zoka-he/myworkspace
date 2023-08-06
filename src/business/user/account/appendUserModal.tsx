@@ -3,6 +3,13 @@ import { useEffect, useRef, useState } from "react";
 import fetch from '@/src/fetch';
 import useModalHelper, { IModalHelper } from "@/src/utils/common/modalHelper";
 
+function db2form(data: any) {
+    let form = {...data};
+    if (form.roles === null) {
+        form.roles = [];
+    }
+    return form;
+}
 
 interface IAppendUserModalProps {
     helper?: IModalHelper,
@@ -13,17 +20,30 @@ function AppendUserModal(props: IAppendUserModalProps) {
 
     let helper = props.helper || useModalHelper();
     let [formHelper] = Form.useForm();
+    let [roleOptions, setRoleOption] = useState([]);
 
     useEffect(() => {
         if (helper.open) {
             let payload = helper.getPayload();
-            formHelper.setFieldsValue(payload);
+            
+            formHelper.setFieldsValue(db2form(payload));
+            loadRoleOption();
         }
     }, [helper.open]);
 
     function onClose() {
         helper.close();
         formHelper.resetFields();
+    }
+
+    async function loadRoleOption() {
+        let { data } = await fetch.get('/api/user/role/list', { params: { page: 1, limit: 100 } });
+        setRoleOption(data.map((item: any) => {
+            return {
+                value: item.ID,
+                label: item.rolename
+            }
+        }))
     }
 
     async function onFinish(formData: any) {
@@ -60,7 +80,7 @@ function AppendUserModal(props: IAppendUserModalProps) {
     return (
         <Modal title={title} open={helper.open} footer={null} onCancel={onClose}>
             <Form form={formHelper} onFinish={onFinish}>
-                <Form.Item label="姓名" name="username">
+                <Form.Item label="账号" name="username">
                     <Input/>
                 </Form.Item>
                 <Form.Item label="昵称" name="nickname">
@@ -70,7 +90,7 @@ function AppendUserModal(props: IAppendUserModalProps) {
                     <Input/>
                 </Form.Item>
                 <Form.Item label="角色" name="roles">
-                    <Select mode="multiple"></Select>
+                    <Select mode="multiple" options={roleOptions}></Select>
                 </Form.Item>
                 <Form.Item label="主页">
                     <TreeSelect></TreeSelect>

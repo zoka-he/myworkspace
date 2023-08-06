@@ -1,9 +1,10 @@
-import { Button, Input, Space, Table, message, Modal } from "antd";
+import { Button, Input, Space, Table, message, Modal, Tag } from "antd";
 import { useEffect, useRef, useState } from "react";
 import AppendUserModal from "./appendUserModal";
 import fetch from '@/src/fetch';
 import { ExclamationCircleFilled } from '@ant-design/icons';
 import DayJS from 'dayjs';
+import _ from 'lodash';
 
 export default function() {
     let [queryUsername, setQueryUsername] = useState('');
@@ -11,9 +12,11 @@ export default function() {
     let [page, setPage] = useState(1);
     let [limit, setLimit] = useState(20);
     let [listData, setListData] = useState<any[]>([]);
+    let [roleOption, setRoleOption] = useState([]);
     let modalHelper = AppendUserModal.useModalHelper();
 
     useEffect(() => {
+        loadRoleOption();
         onQuery();
     }, []);
 
@@ -24,6 +27,16 @@ export default function() {
         };
         let { data } = await fetch.get('/api/user/account/list', { params });
         setListData(data);
+    }
+
+    async function loadRoleOption() {
+        let { data } = await fetch.get('/api/user/role/list', { params: { page: 1, limit: 100 } });
+        setRoleOption(data.map((item: any) => {
+            return {
+                value: item.ID,
+                label: item.rolename
+            }
+        }))
     }
 
     function onAppendUser() {
@@ -87,6 +100,24 @@ export default function() {
         return DayJS(cell).format('YYYY-MM-DD HH:mm:ss');
     }
 
+    function renderRole(cell?: number[]) {
+        let ret = [];
+        if (cell?.length) {
+            for (let item of cell) {
+                let idx = _.findIndex(roleOption, { value: item });
+                if (idx === -1) {
+                    continue;
+                }
+
+                let label = roleOption[idx].label;
+                ret.push(
+                    <Tag color="blue">{label}</Tag>
+                )
+            }
+        }
+        return ret;
+    }
+
     return (
         <div className="f-fit-content">
             <div className="f-flex-two-side">
@@ -106,7 +137,7 @@ export default function() {
                 <Table.Column title="昵称" dataIndex="nickname"></Table.Column>
                 <Table.Column title="密码" dataIndex="password"></Table.Column>
                 <Table.Column title="主页" dataIndex="main_url"></Table.Column>
-                <Table.Column title="权限" dataIndex="roles"></Table.Column>
+                <Table.Column title="角色" dataIndex="roles" render={renderRole}></Table.Column>
                 <Table.Column title="类型" dataIndex="type"></Table.Column>
                 <Table.Column title="创建日期" dataIndex="create_time" render={renderDatetime}></Table.Column>
                 <Table.Column title="修改日期" dataIndex="update_time" render={renderDatetime}></Table.Column>

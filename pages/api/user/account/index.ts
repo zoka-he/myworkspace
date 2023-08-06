@@ -15,6 +15,9 @@ async function createOrUpdateOne(req: NextApiRequest, res: NextApiResponse) {
         await service.insertOne(body);
         res.status(200).json({ message: 'created' });
     } else {
+        if (body.hasOwnProperty('password')) {
+            delete body.password;
+        }
         await service.updateOne({ ID }, body);
         res.status(200).json({ message: 'updated, ID:' + ID });
     }

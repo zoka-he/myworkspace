@@ -30,4 +30,23 @@ export default class RolePermissionService extends service {
         );
     }
 
+    public async getPermittedPageByRole(roles: number[]) {
+        if (!roles.length) {
+            return [];
+        }
+
+        let sql = `select tr.get, tr.post, tr.del, tp.ID, tp.PID, tp.label, tp.url, tp.type, tp.dispOrder 
+            from (
+                select PID permID, \`get\`, post, del 
+                from t_role_and_permission 
+                WHERE RID in (${Array.from(roles, () => '?').join(',')}) and \`get\`=1
+            ) tr 
+            LEFT JOIN t_permission tp 
+            on tp.ID=tr.permID AND type='menu'`
+
+        let ret = await this.queryBySql(sql, roles);
+
+        return ret;
+    }
+
 }
