@@ -104,11 +104,13 @@ export default function() {
         let ret = [];
         if (cell?.length) {
             for (let item of cell) {
+                // @ts-ignore
                 let idx = _.findIndex(roleOption, { value: item });
                 if (idx === -1) {
                     continue;
                 }
 
+                // @ts-ignore
                 let label = roleOption[idx].label;
                 ret.push(
                     <Tag color="blue">{label}</Tag>

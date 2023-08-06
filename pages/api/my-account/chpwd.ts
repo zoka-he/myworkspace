@@ -48,5 +48,5 @@ export default async function handler(
         console.error(e);
     }
 
-    res.status(500).json({ message: e.message });
+    res.status(500).json({ message: '校验失败，请重新输入！' });
 }
