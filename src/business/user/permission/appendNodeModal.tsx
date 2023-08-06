@@ -24,7 +24,7 @@ function AppendNodeModal(props: IAppendNodeModalProps) {
         if (helper.open) {
             let payload = helper.getPayload();
             formHelper.setFieldsValue(payload);
-            getPermissionTree().then(({ tree, map }) => {
+            getPermissionTree.fromRemote().then(({ tree, map }) => {
                 setPerms(tree)
                 permsMap.current = map;
             });

@@ -8,6 +8,7 @@ import AUTH_SECRET from '@/src/utils/auth/secret.json';
 
 function middleware(request: NextRequest) {
     let { pathname } = request.nextUrl;
+
     console.debug('[/middleware.ts]', pathname);
 
     return NextResponse.next();
@@ -19,7 +20,7 @@ export default withAuth(
     {
         callbacks: {
             authorized: ({ token, req }) => {
-                console.debug('[middleware.ts] req', req.nextUrl.pathname);
+                // console.debug('[middleware.ts] req', req.nextUrl.pathname);
 
                 // 登录相关页面直接放行
                 if (/^(\/api\/auth|\/login)/.test(req.nextUrl.pathname)) {
@@ -27,7 +28,6 @@ export default withAuth(
                 }
                 
                 if (!!token?.user) {
-                    console.debug('[middleware.ts] token.user', token.user);
                     return true;
                 }
 

@@ -4,7 +4,8 @@ interface ILoginUser {
     ID: number
     username: string
     nickname: string
-    perms: IPermission[]
+    type: string
+    roles: number[]
 }
 
 export type {

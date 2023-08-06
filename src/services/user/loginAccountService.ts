@@ -85,4 +85,30 @@ export default class LoginAccountService extends service {
         return null;
     }
 
+    public async chpwd(userID: string, payload: string) {
+        try {
+            let formJson = smCrypto.sm2.doDecrypt(payload, sm2prikey);
+            let formData = JSON.parse(formJson);
+            if (formData.oldPwd && formData.newPwd) {
+                let user: unknown = await this.queryOne({ 
+                    ID: parseInt(userID), 
+                    password: formData.oldPwd 
+                });
+
+                if (user !== null) {
+                    // @ts-ignore
+                    await this.updateOne({ ID: userID }, { password: formData.newPwd });
+                    return true;
+                } else {
+                    console.debug(`用户不存在：${formData.username}`);
+                }
+            }
+        } catch(e: any) {
+            console.error(e);
+            console.debug(`修改密码出错：${e.message}`);
+        }
+
+        return false;
+    }
+
 }

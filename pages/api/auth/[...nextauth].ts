@@ -6,13 +6,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import LoginAccountService from '@/src/services/user/loginAccountService';
 import AUTH_SECRET from '@/src/utils/auth/secret.json';
 
-const loginAccountService = new LoginAccountService();
-export default async function handler(
-    req: NextApiRequest,
-    res: NextApiResponse<any>
-) {
-
-    let authOptions: AuthOptions = {
+export const authOptions: AuthOptions = {
     session: {
         strategy: 'jwt'
     },
@@ -59,6 +53,11 @@ export default async function handler(
         },
 
         async session({ session, token, user }) {
+            // console.debug('[[...nextauth].ts] session:', arguments);
+
+            // @ts-ignore
+            session.accessToken = token.accessToken
+
             // @ts-ignore
             session.user = token.user;
             
@@ -66,16 +65,7 @@ export default async function handler(
         },
 
         async redirect({ url, baseUrl }) {
-            // console.debug('[[...nextauth].ts] redirect:', arguments);
-
-            // Allows relative callback URLs
-            // if (url.startsWith("/")) {
-            //     return `${url}`
-            // }
-            // // Allows callback URLs on the same origin
-            // else if (new URL(url).origin === baseUrl) {
-            //     return url;
-            // }
+            // 控制域名，防止csrf攻击，不过自用就不需要了，盯IP就行
             return Promise.resolve('/');
         }
     },
@@ -84,7 +74,11 @@ export default async function handler(
     debug: false,
 }
 
-
+const loginAccountService = new LoginAccountService();
+export default async function handler(
+    req: NextApiRequest,
+    res: NextApiResponse<any>
+) {
     return NextAuth(req, res, authOptions);
 }
 

@@ -1,10 +1,10 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from 'next'
-import LoginAccountService from "@/src/services/user/loginAccountService";
+import RoleService from "@/src/services/user/roleService";
 
 type Data = Object;
 
-const service = new LoginAccountService();
+const service = new RoleService();
 
 async function createOrUpdateOne(req: NextApiRequest, res: NextApiResponse) {
     const { ID } = req.query;
@@ -15,9 +15,6 @@ async function createOrUpdateOne(req: NextApiRequest, res: NextApiResponse) {
         await service.insertOne(body);
         res.status(200).json({ message: 'created' });
     } else {
-        if (body.hasOwnProperty('password')) {
-            delete body.password;
-        }
         await service.updateOne({ ID }, body);
         res.status(200).json({ message: 'updated, ID:' + ID });
     }

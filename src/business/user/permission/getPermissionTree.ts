@@ -12,18 +12,22 @@ function orderNodeList(nodes: IPermission[]) {
     })
 }
 
-async function getPermissionTree(params: any = {}) {
+async function getRemotePermissionList(params: any = {}) {
     let fetchConfig: AxiosRequestConfig = {};
     if (params) {
         fetchConfig.params = params;
     }
     let { data } = await fetch.get('/api/user/permission/list', fetchConfig);
+    return data;
+}
 
+
+function fromData(data: IPermission[]) {
     let map = new Map<number, IPermission>();
     let tree: IPermission[] = [];
 
     for (let item of data) {
-        map.set(item.ID, item);
+        item.ID && map.set(item.ID, item);
     }
 
     map.forEach((v, k, map) => {
@@ -63,12 +67,28 @@ async function getPermissionTree(params: any = {}) {
     };
 }
 
-getPermissionTree.getNavMenu = async function() {
-    let ret = await getPermissionTree({ type: 'menu' });
+async function fromRemote(params: any = {}) {
+    let data = await getRemotePermissionList(params);
+    return fromData(data);
+}
+
+
+async function getNavMenu(data?: IPermission[]) {
+    let ret;
+
+    if (!data?.length) {
+        ret = await fromRemote({ type: 'menu' });
+    } else {
+        ret = fromData(data);
+    }
+
     for (let item of ret.data) {
+        // @ts-ignore
         item.key = item.url; // 覆写key值；
     }
     return ret;
 }
+
+const getPermissionTree = { fromRemote, fromData, getNavMenu };
 
 export default getPermissionTree;

@@ -1,19 +1,19 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from 'next'
-import LoginAccountService from "@/src/services/user/loginAccountService";
+import RoleService from "@/src/services/user/roleService";
 import _ from 'lodash';
 import { ISqlCondMap } from '@/src/utils/mysql/types';
 
 type Data = Object;
 
-const service = new LoginAccountService();
+const service = new RoleService();
 
 
 async function research(req: NextApiRequest, res: NextApiResponse) {
     console.debug('req query', req.query);
 
     const page = _.toNumber(req.query.page || 1);
-    const limit = _.toNumber(req.query.limit || 500);
+    const limit = _.toNumber(req.query.limit || 100);
 
     let queryObject: ISqlCondMap = {};
 
@@ -23,14 +23,8 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
         }
 
         switch (k) {
-            case 'username':
-                queryObject.username = { $like: `%${v}%` };
-                break;
-            case 'nickname':
-                queryObject.nickname = { $like: `%${v}%` };
-                break;
-            case 'type':
-                queryObject.type = v;
+            case 'name':
+                queryObject.label = { $like: `%${v}%` };
                 break;
         }
     }
@@ -43,7 +37,6 @@ export default function handler(
     req: NextApiRequest,
     res: NextApiResponse<Data>
 ) {
-
     let processerFn: Function | undefined = undefined;
     switch (req.method) {
         case 'GET':
