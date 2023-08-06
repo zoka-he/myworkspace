@@ -1,11 +1,18 @@
 import { Button, Card, Form, Input, Table, message } from "antd";
 import sm2PubKey from '@/src/utils/cipher/sm2/loginPub.json';
 import fetch from '@/src/fetch';
+import { useEffect, useState } from "react";
+import DayJS from 'dayjs';
 
 const smCrypto = require('sm-crypto');
 
 export default function() {
     let [chpwdForm] = Form.useForm();
+    let [ loginLog, setLoginLog ] = useState([]);
+
+    useEffect(() => {
+        loadLoginLog();
+    }, [])
 
     async function onFinish(formdata: any) {
         let { oldPwd, newPwd, newPwd2 } = formdata;
@@ -27,6 +34,16 @@ export default function() {
         } catch(e) {
             message.error('更改密码失败');
         }
+    }
+
+    async function loadLoginLog() {
+        let { data } = await fetch.get('/api/my-account/loginlog');
+        setLoginLog(data);
+    }
+
+    function renderDatetime(cell: string) {
+        // 东8区
+        return DayJS(cell).add(8, 'hour').format('YYYY-MM-DD HH:mm:ss');
     }
 
     return (
@@ -52,12 +69,12 @@ export default function() {
                 </Form>
             </Card>
             <br />
-            <Card title="访问记录" size="small" style={{ width: 550 }}>
-                <Table size="small">
-                    <Table.Column title="账号"></Table.Column>
-                    <Table.Column title="用户名"></Table.Column>
-                    <Table.Column title="日期"></Table.Column>
-                    <Table.Column title="IP地址"></Table.Column>
+            <Card title="访问记录" size="small" style={{ width: 450 }}>
+                <Table size="small" dataSource={loginLog}>
+                    <Table.Column title="账号" dataIndex="username"></Table.Column>
+                    <Table.Column title="用户名" dataIndex="nickname"></Table.Column>
+                    <Table.Column title="日期" dataIndex="login_time" render={renderDatetime}></Table.Column>
+                    {/* <Table.Column title="IP地址"></Table.Column> */}
                 </Table>
             </Card>
         </div>
