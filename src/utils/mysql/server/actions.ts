@@ -109,6 +109,14 @@ async function selectBySql(sql: string, ...options: any[]) {
     return rows;
 }
 
+async function execute(...params: any[]) {
+    let conn = await connPool.getConnection();
+    // @ts-ignore
+    let ret = await conn.execute(...params);
+    conn.release();
+    return ret;
+}
+
 
 export default {
     insertOne,
@@ -116,5 +124,6 @@ export default {
     updateOne,
     updateMany,
     deleteFrom,
-    selectBySql
+    selectBySql,
+    execute
 }

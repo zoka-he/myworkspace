@@ -8,7 +8,11 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: '/api'
+        destination: '/api/:path*',
+      },
+      {
+        source: '/login/:path*',
+        destination: '/login/:path*'
       },
       {
         source: '/:path*',
