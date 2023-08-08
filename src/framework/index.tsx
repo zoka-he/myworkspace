@@ -103,9 +103,13 @@ function MainFrame(props: any) {
 
     let userLabel = null;
     if (session.data?.user?.name) {
-        const openProfile = () => navigate('/user/profile');
+        const openProfile = () => navigate('/user/profile?tabKey=1');
         userLabel = <Button type="text" icon={<UserOutlined/>} onClick={openProfile}>{session.data.user.name}</Button>
     }
+
+    let settingLabel = (
+        <Button type="text" icon={<SettingOutlined />} onClick={() => navigate('/user/profile?tabKey=2')}>设置</Button>
+    )
 
 
     return (
@@ -130,7 +134,7 @@ function MainFrame(props: any) {
                             <span>{renderBreadcrumb()}</span>
                             <Space size={16}>
                                 {userLabel}
-                                <Button type="text" icon={<SettingOutlined />}>设置</Button>
+                                {settingLabel}
                                 {/* <Button type="text" icon={<FullscreenOutlined />}>全屏</Button> */}
                                 <Button danger type="primary" icon={<LogoutOutlined />} style={{ width: 40 }} onClick={() => signOut()}></Button>
                             </Space>
