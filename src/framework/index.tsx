@@ -115,9 +115,9 @@ function MainFrame(props: IMainFrameProps) {
     }
 
     let userLabel = null;
-    if (props?.loginUser?.nickname || session.data?.user?.name) {
+    if (props?.loginUser?.nickname || session?.data?.user?.name) {
         const openProfile = () => navigate('/user/profile?tabKey=1');
-        userLabel = <Button type="text" icon={<UserOutlined/>} onClick={openProfile}>{props?.loginUser?.nickname || session.data.user.name}</Button>
+        userLabel = <Button type="text" icon={<UserOutlined/>} onClick={openProfile}>{props?.loginUser?.nickname || session?.data?.user?.name}</Button>
     }
 
     let settingLabel = (
