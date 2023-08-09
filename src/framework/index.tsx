@@ -12,6 +12,7 @@ import { ItemType } from 'antd/es/menu/hooks/useItems';
 import { useSession, signOut } from 'next-auth/react';
 import { LogoutOutlined, UserOutlined, SettingOutlined, FullscreenOutlined, FullscreenExitOutlined } from "@ant-design/icons";
 import fetch from '@/src/fetch';
+import { setLoginUser } from '../store/loginSlice';
 
 
 const { Sider, Header, Content } = Layout;
@@ -19,11 +20,13 @@ const { Sider, Header, Content } = Layout;
 const mapStateToProps = (state: IRootState) => {
     return {
         navMenu: state.navigatorSlice.navMenu,
+        loginUser: state.loginSlice.user
     }
 }
 
 interface IMainFrameProps {
-    navMenu: any[]
+    navMenu: any[],
+    loginUser: any
 }
 
 function MainFrame(props: IMainFrameProps) {
@@ -62,6 +65,10 @@ function MainFrame(props: IMainFrameProps) {
 
     async function loadInitData() {
         let initData: any = await fetch.get('/api/my-account/initdata');
+
+        if (initData.loginUser) {
+            store.dispatch(setLoginUser(initData.loginUser));
+        }
 
         if (initData.userPerms) {
             loadNavMenu(initData.userPerms);
@@ -109,7 +116,7 @@ function MainFrame(props: IMainFrameProps) {
     let userLabel = null;
     if (session.data?.user?.name) {
         const openProfile = () => navigate('/user/profile?tabKey=1');
-        userLabel = <Button type="text" icon={<UserOutlined/>} onClick={openProfile}>{session.data.user.name}</Button>
+        userLabel = <Button type="text" icon={<UserOutlined/>} onClick={openProfile}>{props?.loginUser?.nickname || session.data.user.name}</Button>
     }
 
     let settingLabel = (
