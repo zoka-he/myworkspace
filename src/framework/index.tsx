@@ -109,12 +109,13 @@ function MainFrame(props: IMainFrameProps) {
     }
 
     // 主页默认
-    if (location.pathname === '/') {
-        return <Navigate to='/taskManage/dashboard' />;
+    if (props?.loginUser && location.pathname === '/') {
+        let to = props.loginUser.main_url || '/taskManage/dashboard';
+        return <Navigate to={to} />;
     }
 
     let userLabel = null;
-    if (session.data?.user?.name) {
+    if (props?.loginUser?.nickname || session.data?.user?.name) {
         const openProfile = () => navigate('/user/profile?tabKey=1');
         userLabel = <Button type="text" icon={<UserOutlined/>} onClick={openProfile}>{props?.loginUser?.nickname || session.data.user.name}</Button>
     }
