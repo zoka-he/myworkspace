@@ -10,6 +10,7 @@ export default function() {
     let [chpwdForm] = Form.useForm();
     let [ loginLog, setLoginLog ] = useState([]);
 
+
     useEffect(() => {
         loadLoginLog();
     }, [])
@@ -43,7 +44,7 @@ export default function() {
 
     function renderDatetime(cell: string) {
         // 东8区
-        return DayJS(cell).add(8, 'hour').format('YYYY-MM-DD HH:mm:ss');
+        return DayJS(cell).add(0, 'hour').format('YYYY-MM-DD HH:mm:ss');
     }
 
     return (

@@ -1,38 +1,32 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 interface ILoginState {
-  user: Object | null,
-  isLogin: boolean
+    user: Object | null,
+    isLogin: boolean
 }
 
 const loginSlice = createSlice({
-  name: 'login',
-  initialState: {
-    user: null,
-    isLogin: true,
-  },
-  reducers: {
-
-    setLoginUser: () => {
-
+    name: 'login',
+    initialState: {
+        user: null,
+        isLogin: true,
     },
+    reducers: {
 
-    clearLoginUser: () => {
-
+        setLoginUser: (state, { payload }) => {
+            state.user = payload;
+        },
     }
-  }
 });
 
-const { 
-  setLoginUser,
-  clearLoginUser
+const {
+    setLoginUser,
 } = loginSlice.actions;
 
 export default loginSlice;
 export {
-  setLoginUser,
-  clearLoginUser
+    setLoginUser,
 };
 export type {
-  ILoginState
+    ILoginState
 }
