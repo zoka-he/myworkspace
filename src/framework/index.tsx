@@ -4,6 +4,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import _ from 'lodash';
 import type { IRootState } from '../store';
+import store from '../store';
+import { setNavMenu as setStoreNavMenu } from '../store/navigatorSlice';
 import getPermissionTree from '../business/user/permission/getPermissionTree';
 import { IPermission } from '../business/user/permission/IPermission';
 import { ItemType } from 'antd/es/menu/hooks/useItems';
@@ -16,17 +18,19 @@ const { Sider, Header, Content } = Layout;
 
 const mapStateToProps = (state: IRootState) => {
     return {
-        lv1Key: state.navigatorSlice.lv1Key,
-        lv2Key: state.navigatorSlice.lv2Key,
+        navMenu: state.navigatorSlice.navMenu,
     }
 }
 
+interface IMainFrameProps {
+    navMenu: any[]
+}
 
-function MainFrame(props: any) {
+function MainFrame(props: IMainFrameProps) {
 
     let location = useLocation();
     let navigate = useNavigate();
-    let [navMenu, setNavMenu] = useState<IPermission[]>([]);
+    // let [navMenu, setNavMenu] = useState<IPermission[]>([]);
     let permMap = useRef<Map<number, IPermission>>(new Map());
     let urlMap = useRef<Map<string, IPermission>>(new Map());
     let session = useSession();
@@ -52,7 +56,8 @@ function MainFrame(props: any) {
             permMap.current = map;
         }
 
-        setNavMenu(tree || []);
+        // setNavMenu(tree || []);
+        store.dispatch(setStoreNavMenu(tree || []));
     }
 
     async function loadInitData() {
@@ -123,7 +128,7 @@ function MainFrame(props: any) {
                     theme="dark"
                     mode="inline"
                     inlineIndent={16}
-                    items={(navMenu as ItemType[])}
+                    items={(props.navMenu as ItemType[])}
                     onClick={e => onMenuClick(e)}
                 />
             </Sider>

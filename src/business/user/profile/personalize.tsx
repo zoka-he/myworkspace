@@ -1,6 +1,18 @@
+import { IRootState } from "@/src/store";
 import { Button, Card, Form, TreeSelect } from "antd";
+import { connect } from 'react-redux';
 
-export default function() {
+const mapStateToProps = (state: IRootState) => {
+    return {
+        navMenu: state.navigatorSlice.navMenu,
+    }
+}
+
+interface IPersonalizeProps {
+    navMenu: any[]
+}
+
+function Personalize(props: IPersonalizeProps) {
     let [ chHomeForm ] = Form.useForm();
 
     function onFinish(formData: any) {
@@ -16,7 +28,10 @@ export default function() {
                     onFinish={onFinish}
                 >
                     <Form.Item label="主页" name="oldPwd">
-                        <TreeSelect/>
+                        <TreeSelect
+                            treeData={props.navMenu}
+                            fieldNames={{ label: 'label', value: 'ID', children: 'children' }}
+                        />
                     </Form.Item>
                     <Form.Item wrapperCol={{ offset: 5 }}>
                         <Button type="primary" htmlType="submit" style={{ width: 160 }}>提交</Button>
@@ -26,3 +41,5 @@ export default function() {
         </div>
     )
 }
+
+export default connect(mapStateToProps)(Personalize);
