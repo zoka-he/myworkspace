@@ -97,6 +97,7 @@ export default function() {
 
     let [showWeathers, setShowWeathers] = useState(true);
     let [personCnt, setPersonCnt] = useState<number | null>(2);
+    let capturer = CommonBmap.Capturer.useTrigger();
 
 
     async function onRoadPlanChange(ID: any) {
@@ -841,6 +842,7 @@ export default function() {
                     </div>
 
                     {/* 右侧区域 */}
+                    {/* TODO 需要截屏功能 */}
                     <div className="f-flex-1" style={{margin: '0 0 10px 10px'}}>
                         <div className='f-flex-col f-fit-height'>
                             <Space style={{ marginBottom: 10 }}>
@@ -851,6 +853,7 @@ export default function() {
                                 </Radio.Group>
                                 <label>收藏夹：</label>
                                 <Switch checked={showFav} onChange={setShowFav}></Switch>
+                                <Button size="small" onClick={capturer.doCapture}>截图</Button>
                             </Space>
                             <div className="f-flex-1 f-relative m-plan_editor-map">
                                 <CommonBmap center={mapCenter} viewport={mapViewport} mapType={mapType}>
@@ -858,6 +861,7 @@ export default function() {
                                     { renderFavPosMks() }
                                     { renderRoadPaths() }
                                     { renderKeyPoints() }
+                                    <CommonBmap.Capturer trigger={capturer}/>
                                 </CommonBmap>
                             </div>
                         </div>

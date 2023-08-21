@@ -3,6 +3,7 @@ import BmapContext from "./BmapContext";
 import Marker from "./Marker";
 import Polyline from "./Polyline";
 import uuid from "@/src/utils/common/uuid";
+import Capturer from "./Capturer";
 
 interface ICommonBmap {
     children?: any,
@@ -144,11 +145,29 @@ function CommonBmap(props: ICommonBmap) {
         let map = new AMap.Map(div.id, {
             viewMode: '2D',  // 默认使用 2D 模式
             zoom: 11,  //初始化地图层级
-            center
+            center,
+            WebGLParams: {
+                preserveDrawingBuffer:true
+            }
         });
 
         // 添加点击事件
         map.on('click', (e: any) => onClickMap(e));
+
+
+        // 添加缩放控件
+        map.plugin(
+            ["AMap.Scale", 'AMap.ToolBar'], 
+            function(){
+                let scale = new AMap.Scale();
+                map.addControl(scale);
+
+                map.addControl(new AMap.ToolBar({
+                    // 简易缩放模式，默认为 false
+                    liteStyle: true
+                }));
+            }
+        );
 
         // 设置map对象
         setAmap(map);
@@ -295,6 +314,8 @@ function CommonBmap(props: ICommonBmap) {
         }
     }
 
+
+
     // 当地图类型、容器发生变更时，触发此事件
     useEffect(() => {
         let mapType = props.mapType;
@@ -426,7 +447,7 @@ function CommonBmap(props: ICommonBmap) {
             { /* @ts-ignore */ }
             <div ref={mAmapDiv} className="f-fit-content m-common-amap-container" style={amapStyle} data-containerid={containerId}></div>
             <div ref={mBmapDiv} className="f-fit-content m-common-bmap-container" style={bmapStyle} data-containerid={containerId}></div>
-            <BmapContext.Provider value={{ mapType: getMapType(), bmap, amap}}>
+            <BmapContext.Provider value={{ mapType: getMapType(), bmap, amap, mAmapDiv, mBmapDiv}}>
                 { props.children }
             </BmapContext.Provider>
         </>
@@ -435,5 +456,6 @@ function CommonBmap(props: ICommonBmap) {
 
 CommonBmap.Marker = Marker;
 CommonBmap.Polyline = Polyline;
+CommonBmap.Capturer = Capturer;
 
 export default CommonBmap;
