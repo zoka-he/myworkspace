@@ -1,7 +1,8 @@
 import { MutableRefObject, useContext, useEffect, useState } from "react";
 import BmapContext from "../BmapContext";
 import html2canvas from 'html2canvas';
-import { Modal, message } from "antd";
+import { Button, Modal, message } from "antd";
+import copyToClip from "@/src/utils/common/copy";
 
 interface ICapturer {
     trigger: ITrigger,
@@ -60,13 +61,13 @@ export default function Capturer(props: ICapturer) {
 
             let canvas = await html2canvas(dom, {
                 useCORS: true, // 【重要】开启跨域配置
-                scale: 1,
+                scale: 0.6,
                 allowTaint: true, // 允许跨域图片
                 // foreignObjectRendering: true,
                 backgroundColor: null,
             })
             let dataUrl = canvas.toDataURL('image/jpeg', 1.0);
-            setModalWidth(dom.offsetWidth + 48);
+            setModalWidth(Math.ceil(dom.offsetWidth * 0.6 + 48));
             setDataUrl(dataUrl);
         } catch(e) {
             message.error('截屏失败！');
@@ -78,8 +79,24 @@ export default function Capturer(props: ICapturer) {
         setDataUrl(null);
     }
 
+    function copyUrl() {
+        dataUrl && copyToClip(`#### 路线图\r\n\r\n![mapData路线图][mapData]\r\n\r\n[mapData]:${dataUrl}`);
+        message.success('已复制')
+    }
+
+    let modalTitle = <span>
+        <strong>地图快照</strong>
+        <Button type="link" onClick={copyUrl}>复制为MD格式</Button>
+    </span>
+
     return <>
-        <Modal open={dataUrl !== null} title="地图快照" footer={null} onCancel={closeModal} width={modalWidth}>
+        <Modal 
+            open={dataUrl !== null} 
+            title={modalTitle} 
+            footer={null} 
+            onCancel={closeModal} 
+            width={modalWidth}
+        >
             <img src={dataUrl || ''} alt="mapshot.png"/>
         </Modal>
     </>;
