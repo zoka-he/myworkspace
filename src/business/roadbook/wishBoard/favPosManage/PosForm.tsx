@@ -1,4 +1,4 @@
-import { Button, Card, Checkbox, Col, Form, Input, Row, Space, Switch, Tag, DatePicker, message, Dropdown, MenuProps } from "antd";
+import { Button, Card, Checkbox, Col, Form, Input, Row, Space, Switch, Tag, DatePicker, message, Dropdown, MenuProps, Select } from "antd";
 import { CloseOutlined, EnvironmentOutlined, SyncOutlined, DownOutlined, DeleteOutlined } from '@ant-design/icons';
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import GaodeSearch from '../../GeoSearch/gaodeSearch';
@@ -104,6 +104,7 @@ function PosForm(props: IPosFormProps) {
 
     let helper = props.form;
     let [form] = Form.useForm();
+    let [provinceOptions, setProvinceOptions] = useState<any[]>([]);
     let [provinceCode, setProvicneCode] = useState<string | null>(null);
     let [mapAddr, setMapAddr] = useState('');
     let [alertChange, setAlertChange] = useState(false);
@@ -118,6 +119,16 @@ function PosForm(props: IPosFormProps) {
     }
 
     useEffect(() => {
+        // 加载选项数据
+        let pOpts = GeoCoder.getCodes();
+        setProvinceOptions(pOpts.map(item => {
+            return {
+                label: item.label,
+                value: item.code
+            }
+        }));
+
+        // 加载地址数据
         if (helper?.open && helper?.payload) {
             let formdata = db2form(helper?.payload);
             form.setFieldsValue(formdata);
@@ -255,10 +266,20 @@ function PosForm(props: IPosFormProps) {
         <Button type="text" icon={<CloseOutlined/>} danger onClick={onClose}/>
     );
 
-    let provinceTags = <Tag>全国</Tag>;
-    if (provinceCode) {
-        provinceTags = <Tag color={blue[6]}>{GeoCoder.findProvinceOfCode(provinceCode)}</Tag>
-    }
+    // 根据省份ID显示省份
+    // let provinceTags = <Tag>全国</Tag>;
+    // if (provinceCode) {
+    //     provinceTags = <Tag color={blue[6]}>{GeoCoder.findProvinceOfCode(provinceCode)}</Tag>
+    // }
+    let provinceSelect = <Select 
+        value={provinceCode} 
+        onChange={setProvicneCode} 
+        size="small"
+        style={{ width: '11em' }}
+        allowClear 
+        placeholder={'全国'}
+        options={provinceOptions}
+    ></Select>
 
     let buttonExtra: MenuProps = {
         items: [
@@ -311,7 +332,7 @@ function PosForm(props: IPosFormProps) {
                     </Form.Item>
                     
                     <Form.Item label="地区">
-                        {provinceTags}
+                        {provinceSelect}
                         <Button icon={<SyncOutlined/>} disabled={!hasLnglat} onClick={() => updateAddr(true)}></Button>
                     </Form.Item>
 
