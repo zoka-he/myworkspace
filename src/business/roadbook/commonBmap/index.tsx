@@ -31,16 +31,25 @@ function CommonBmap(props: ICommonBmap) {
      */
     function getPointAddress(point: any) {
         return new Promise(cb => {
-            let myGeo = new BMapGL.Geocoder();     
+            if (getMapType() === 'baidu') {
 
-            // 根据坐标得到地址描述    
-            myGeo.getLocation(point, function(rs: any) {      
-                let addComp = rs.addressComponents;    
-                cb({
-                    longAddr: [ addComp.city, addComp.district, addComp.street, addComp.streetNumber ].join(''),
-                    shortAddr: [ addComp.city, addComp.district ].join('')
-                });      
-            });
+                let myGeo = new BMapGL.Geocoder();     
+
+                // 根据坐标得到地址描述    
+                myGeo.getLocation(point, function(rs: any) {     
+                    if (!rs) {
+                        return null;
+                    }
+                    
+                    let addComp = rs.addressComponents;    
+                    cb({
+                        longAddr: [ addComp.city, addComp.district, addComp.street, addComp.streetNumber ].join(''),
+                        shortAddr: [ addComp.city, addComp.district ].join('')
+                    });      
+                });
+            } else {
+                cb(null)
+            }
         });
     }
 

@@ -842,7 +842,6 @@ export default function() {
                     </div>
 
                     {/* 右侧区域 */}
-                    {/* TODO 需要截屏功能 */}
                     <div className="f-flex-1" style={{margin: '0 0 10px 10px'}}>
                         <div className='f-flex-col f-fit-height'>
                             <Space style={{ marginBottom: 10 }}>
