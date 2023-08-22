@@ -293,7 +293,9 @@ export default class NodeEditor extends React.Component<IDayNodeProps, IDayNodeS
                         {this.renderDistAndDura()}
                     </div>
                     <TimePicker style={{ width: '100px' }}
-                                placeholder="停留" value={this.state.stayTime} 
+                                placeholder="停留" value={this.state.stayTime}
+                                secondStep={60}
+                                minuteStep={10}
                                 onChange={e => this.setState({ stayTime: e })}/>
 
                     <div style={{ width: '190px', display: 'inline-block', textAlign: 'right' }}>参考时间：{ this.renderPreferTime() }</div>
