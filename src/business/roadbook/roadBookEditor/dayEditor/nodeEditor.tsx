@@ -1,7 +1,8 @@
-import { Button, Input, Select, TimePicker } from "antd";
-import { ArrowUpOutlined, ArrowDownOutlined, DeleteOutlined, EnvironmentOutlined, ExclamationCircleFilled } from '@ant-design/icons';
+import { Button, Divider, Input, Popover, Select, Space, TimePicker } from "antd";
+import { ArrowUpOutlined, ArrowDownOutlined, DeleteOutlined, EnvironmentOutlined, CopyOutlined, CopyFilled, CloseOutlined } from '@ant-design/icons';
 import React from "react";
 import * as Dayjs from 'dayjs';
+import CopyList from "./copyList";
 
 interface IDayNodeProps {
     index: number,
@@ -32,6 +33,8 @@ interface IDayNodeStates {
     // @ts-ignore
     travelTime?: Dayjs,
 }
+
+const g_copyStack = [];
 
 export default class NodeEditor extends React.Component<IDayNodeProps, IDayNodeStates> {
 
@@ -205,6 +208,28 @@ export default class NodeEditor extends React.Component<IDayNodeProps, IDayNodeS
             return this.state.preferTime[0].format('HH:mm') + ' - ' + this.state.preferTime[1].format('HH:mm');
         }
     }
+
+    onPaste(data: any) {
+        console.debug('paste', data);
+
+        this.locateChangeFlag = true;
+
+        this.setState(data);
+    }
+
+    renderCopyAction(isMeLocating: boolean, isMeLocateSet: boolean) {
+
+        let { type, addr, stayTime, lng, lat, drivingType } = this.state;
+        let refData: any = { type, addr, stayTime, lng, lat, drivingType };
+
+        let content = <CopyList refData={refData} isMeLocateSet={isMeLocateSet} onPaste={(data) => this.onPaste(data)}/>;
+
+        return (
+            <Popover content={content} trigger="click" placement="right">        
+                <Button icon={<CopyOutlined/>} type="link" disabled={isMeLocating}/>
+            </Popover>
+        )
+    }
     
     render() {
         let { index, totalCount, deleteNode, moveUpNode, moveDownNode, isLocating, locatingIndex, requestLocate } = this.props;
@@ -241,15 +266,18 @@ export default class NodeEditor extends React.Component<IDayNodeProps, IDayNodeS
                             <Select.Option value="hotel">住宿</Select.Option>
                             <Select.Option value="sights">景点</Select.Option>
                         </Select>
-                        <Input style={{ width: '300px' }} placeholder={addrPlaceholder}  
+                        
+                        <Input style={{ width: '290px' }} placeholder={addrPlaceholder}  
                                 value={this.state.addr} allowClear
                                 onInput={e => this.setAddrText(e.currentTarget.value )}/>
+                            
                         <Button icon={<EnvironmentOutlined />} 
                                 type={ isMeLocating ? "primary" : "default" }
                                 danger={!isMeLocateSet} 
                                 disabled={!locateEnable}
                                 onClick={() => requestLocate()}/>
                     </Input.Group>
+                    {this.renderCopyAction(isMeLocating, isMeLocateSet)}
                     <Button type="link" icon={<ArrowUpOutlined/>} disabled={isFirst} onClick={() => moveUpNode(index)}/>
                     <Button type="link" icon={<ArrowDownOutlined/>} disabled={isLast} onClick={() => moveDownNode(index)}/>
                     <Button type="link" icon={<DeleteOutlined/>} danger onClick={() => deleteNode(index)}/>
@@ -265,7 +293,9 @@ export default class NodeEditor extends React.Component<IDayNodeProps, IDayNodeS
                         {this.renderDistAndDura()}
                     </div>
                     <TimePicker style={{ width: '100px' }}
-                                placeholder="停留" value={this.state.stayTime} 
+                                placeholder="停留" value={this.state.stayTime}
+                                secondStep={60}
+                                minuteStep={10}
                                 onChange={e => this.setState({ stayTime: e })}/>
 
                     <div style={{ width: '190px', display: 'inline-block', textAlign: 'right' }}>参考时间：{ this.renderPreferTime() }</div>

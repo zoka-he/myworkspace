@@ -65,7 +65,7 @@ export default function() {
         bmap.current = _bmap;
     }
 
-    async function onQuery() {
+    async function onQuery(changeViewport: boolean = true) {
         try {
             setSpinning(true);
 
@@ -73,11 +73,13 @@ export default function() {
             setListData(data);
 
 
-            if (data instanceof Array) {
-                let viewportPoints = data.map(item => {
-                    return {lng: item.lng, lat: item.lat};
-                });
-                setMapViewport(viewportPoints);
+            if (changeViewport) {
+                if (data instanceof Array) {
+                    let viewportPoints = data.map(item => {
+                        return {lng: item.lng, lat: item.lat};
+                    });
+                    setMapViewport(viewportPoints);
+                }
             }
 
         } catch (e: any) {
@@ -231,13 +233,13 @@ export default function() {
                     <Radio value="gaode">高德</Radio>
                     <Radio value="baidu">百度</Radio>
                 </Radio.Group>
-                <Button onClick={onQuery}>刷新</Button>
+                <Button onClick={() => onQuery()}>刷新</Button>
             </Space>
 
             <div className="f-flex-row">
                 <div className="m-table-container">
                     <PosForm form={posFormHelper} height={posFormHeight} mapType={queryMapType}
-                        onFinish={onQuery}
+                        onFinish={() => onQuery(false)}
                     />
 
                     <Table dataSource={filteredData} size={'small'} scroll={{ y: tableHeight }}>

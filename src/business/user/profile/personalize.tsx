@@ -2,19 +2,33 @@ import { IRootState } from "@/src/store";
 import { Button, Card, Form, TreeSelect, message } from "antd";
 import { connect } from 'react-redux';
 import fetch from '@/src/fetch';
+import { useEffect } from "react";
 
 const mapStateToProps = (state: IRootState) => {
     return {
         navMenu: state.navigatorSlice.navMenu,
+        loginUser: state.loginSlice.user
     }
 }
 
 interface IPersonalizeProps {
-    navMenu: any[]
+    navMenu: any[],
+    loginUser: any
 }
 
 function Personalize(props: IPersonalizeProps) {
     let [ chHomeForm ] = Form.useForm();
+
+    /**
+     * 初始化
+     */
+    useEffect(() => {
+        onLoad();
+    }, []);
+
+    function onLoad() {
+        chHomeForm.setFieldValue('main_url', props.loginUser.main_url);
+    }
 
     async function onFinish(formData: any) {
         console.debug(formData);
