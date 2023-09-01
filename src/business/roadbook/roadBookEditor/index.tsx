@@ -481,7 +481,8 @@ export default function() {
             return {
                 lng: pt.lng,
                 lat: pt.lat,
-                label: `D${index+1} ${roadBookUtils.preferTime2Str(pt.preferTime)}`
+                label: `D${index+1} ${roadBookUtils.preferTime2Str(pt.preferTime)}`,
+                uuid: uuid()
             } 
         }));
 
@@ -507,7 +508,7 @@ export default function() {
                         strokeOpacity: 0.3
                     }
                 }
-                polylines.push({ pts: polyData, config });
+                polylines.push({ pts: polyData, config, uuid: uuid() });
                 polyData = [];
             }
 
@@ -555,7 +556,7 @@ export default function() {
                 return null;
             }
 
-            return <CommonBmap.Polyline path={polyData.pts} config={polyData.config} key={uuid()}/>
+            return <CommonBmap.Polyline path={polyData.pts} config={polyData.config} key={polyData.uuid}/>
         });
     }
 
@@ -565,7 +566,7 @@ export default function() {
         }
 
         return dayMks.map((item: any) => {
-            return <CommonBmap.Marker lng={item.lng} lat={item.lat} label={item.label} key={uuid()}/>
+            return <CommonBmap.Marker lng={item.lng} lat={item.lat} label={item.label} key={item.uuid}/>
         })
     }
 

@@ -1,6 +1,7 @@
 import { Tabs } from "antd";
 import DayView from './dayView';
 import FavList from './favList';
+import LuggageChecklist from "./luggage";
 
 export default function() {
     let items = [
@@ -11,8 +12,8 @@ export default function() {
         },
         {
             key: '2',
-            label: `日历视图`,
-            children: <DayView/>,
+            label: `物品单`,
+            children: <LuggageChecklist/>,
         },
     ];
 

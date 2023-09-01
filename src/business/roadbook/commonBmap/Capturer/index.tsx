@@ -6,6 +6,7 @@ import copyToClip from "@/src/utils/common/copy";
 
 interface ICapturer {
     trigger: ITrigger,
+    timeout?: number,
     onCapture?: (result: any) => void
 }
 
@@ -41,9 +42,13 @@ export default function Capturer(props: ICapturer) {
                 break;
         }
 
+        let timeoutMs = 200;
+        if (typeof props.timeout === 'number') {
+            timeoutMs = props.timeout;
+        }
         setTimeout(() => {
             divId && captureInModal(divId);
-        }, 500)
+        }, timeoutMs);
         
         
     }, [props.trigger.trigger]);
