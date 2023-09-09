@@ -48,8 +48,6 @@ class Dashboard extends React.Component<{}, IDashboardState & IDashboardLists & 
             queryEmployee: '',
             dispDir: 'col',
         }
-
-
     }
 
     /**

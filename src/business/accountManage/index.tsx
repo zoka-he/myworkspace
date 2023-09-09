@@ -1,23 +1,23 @@
 import { useState, useRef, useEffect } from 'react';
 import fetch from '@/src/fetch';
 import { Button, Input, Space, Table, message } from 'antd';
-import { SearchOutlined, ExclamationCircleFilled } from '@ant-design/icons';
+import { ExclamationCircleFilled } from '@ant-design/icons';
 import confirm from "antd/es/modal/confirm";
-import _ from 'lodash';
 import AccountEditor from './accountEditor';
 import HistroyViewer from './historyViewer';
 import { IAccount } from '@/src/types/IAccount';
+import QueryBar from '@/src/components/queryBar';
+import usePagination from '@/src/utils/hooks/usePagination';
 
 const { Column } = Table;
 
 export default function AccountManage() {
-    let [querySysName, updateQuerySysName] = useState('');
-    let [queryUsername, updateQueryUsername] = useState('');
+    let [userParams, setUserParams] = useState({});
+
     let [listData, updateListData] = useState<[]>([]);
     let [spinning, updateSpinning] = useState(false);
-    let [pageNum, updatePageNum] = useState(1);
-    let [pageSize, updatePageSize] = useState(20);
-    let [total, updateTotal] = useState(0);
+
+    let pagination = usePagination();
 
     let mEditor = useRef<AccountEditor>();
     let mHistViewer = useRef<HistroyViewer>();
@@ -27,31 +27,24 @@ export default function AccountManage() {
     }, []);
 
     useEffect(() => {
-        _.debounce(onQuery, 300)();
-    }, [querySysName, pageNum, pageSize]);
+        onQuery();
+    }, [userParams, pagination.page, pagination.pageSize]);
 
     async function onQuery() {
         try {
             updateSpinning(true);
 
             let params: any = {
-                page: pageNum,
-                limit: pageSize
-            };
-
-            if (querySysName) {
-                params.sys_name = querySysName;
-            }
-
-            if (queryUsername) {
-                params.username = queryUsername;
+                ...userParams,
+                page: pagination.page,
+                limit: pagination.pageSize
             }
 
             // @ts-ignore
             let {data, count} = await fetch.get('/api/infos/account/list', { params })
 
             updateListData(data);
-            updateTotal(count);
+            pagination.setTotal(count);
         } catch (e:any) {
             console.error(e);
             message.error(e.message);
@@ -62,11 +55,6 @@ export default function AccountManage() {
 
     function onCreateAccount() {
         mEditor.current?.show();
-    }
-
-    function onPageChange({ page, pageSize }: { page: number, pageSize: number }) {
-        updatePageNum(page);
-        updatePageSize(pageSize);
     }
 
     function renderAction(cell: any, row: IAccount) {
@@ -129,22 +117,18 @@ export default function AccountManage() {
         return <pre className="f-no-margin">{cell}</pre>
     }
 
-    useEffect(() => {
-        onQuery();
-    }, [querySysName, queryUsername]);
-
     return (
         <div className="f-fit-height f-flex-col">
             <div className="f-flex-two-side">
-                <Space>
-                    <label>平台：</label>
-                    <Input value={querySysName} onInput={e => updateQuerySysName(e.currentTarget.value)}/>
+                <QueryBar onChange={setUserParams} spinning={spinning}>
+                    <QueryBar.QueryItem name="sys_name" label="平台">
+                        <Input allowClear/>
+                    </QueryBar.QueryItem>
 
-                    <label>账户：</label>
-                    <Input value={queryUsername} onInput={e => updateQueryUsername(e.currentTarget.value)}/>
-
-                    <Button icon={<SearchOutlined/>} type="primary" onClick={onQuery} loading={spinning}>查询</Button>
-                </Space>
+                    <QueryBar.QueryItem name="username" label="账户">
+                        <Input allowClear/>
+                    </QueryBar.QueryItem>
+                </QueryBar>
 
                 <Space>
                     <Button type={'primary'} onClick={onCreateAccount}>新增</Button>
@@ -154,7 +138,7 @@ export default function AccountManage() {
 
             <div className="f-flex-1" style={{ margin: '12px 0' }}>
                 { /** @ts-ignore */ }
-                <Table dataSource={listData} size={'small'} pagination={{ pageSize, total, onChange: onPageChange, showTotal: renderTotal }}>
+                <Table dataSource={listData} size={'small'} pagination={pagination}>
                     <Column title="平台" dataIndex="sys_name" key="task_name"/>
                     <Column title="账户" dataIndex="username" key="employee"/>
                     <Column title="密码" dataIndex="passwd" key="message"/>
