@@ -1,12 +1,14 @@
 import React, {useEffect, useRef, useState} from "react";
 import {Button, Input, Space, Spin, Table} from "antd";
-import {SearchOutlined, ExclamationCircleFilled} from "@ant-design/icons";
+import {ExclamationCircleFilled} from "@ant-design/icons";
 import moment from "moment";
 import EmployeeEditor from "./employeeEditor";
 import {message} from "antd";
 import _ from 'lodash';
 import confirm from "antd/es/modal/confirm";
 import fetch from '@/src/fetch';
+import QueryBar from "@/src/components/queryBar";
+import usePagination from "@/src/utils/hooks/usePagination";
 
 const { Column } = Table;
 
@@ -14,11 +16,9 @@ export default function () {
 
     let [listData, updateListData] = useState([]);
     let [spinning, updateSpinning] = useState(false);
-    let [pageSize, updatePageSize] = useState(10);
-    let [pageNum, updatePageNum] = useState(1);
-    let [dataCount, updateDataCount] = useState(0);
 
-    let [queryEmployee, updateQueryEmployee] = useState('');
+    let [queryParams, setQueryParams] = useState({});
+    let pagination = usePagination();
 
     let mEditor = useRef();
 
@@ -27,18 +27,15 @@ export default function () {
             updateSpinning(true);
 
             let options = {
-                page: pageNum,
-                limit: pageSize
+                ...queryParams,
+                page: pagination.page,
+                limit: pagination.pageSize
             };
-
-            if (queryEmployee) {
-                options.name = queryEmployee;
-            }
 
             let { data, count } = await fetch.get('/api/employee/list', { params: options });
 
             updateListData(data);
-            updateDataCount(count);
+            pagination.setTotal(count);
         } catch (e) {
             console.error(e);
         } finally {
@@ -50,13 +47,12 @@ export default function () {
 
 
     useEffect(() => {
-        console.debug('useEffect');
         onQuery();
     }, []);
 
     useEffect(() => {
-        _.debounce(onQuery, 300)();
-    }, [queryEmployee, pageSize, pageNum]);
+        onQuery();
+    }, [queryParams, pagination.pageSize, pagination.page]);
 
 
     function onCreateTask() {
@@ -114,24 +110,14 @@ export default function () {
         )
     }
 
-    function onPageChange({ page, pageSize }) {
-        updatePageNum(page);
-        updatePageSize(pageSize);
-    }
-
-    function renderTotal(total) {
-        return `共 ${total} 个记录`;
-    }
-
     return (
         <div className="f-fit-height f-flex-col">
             <div className="f-flex-two-side">
-                <Space>
-                    <label>姓名：</label>
-                    <Input value={queryEmployee} onInput={e => updateQueryEmployee(e.currentTarget.value)}/>
-
-                    <Button icon={<SearchOutlined/>} type="primary" onClick={onQuery} loading={spinning}>查询</Button>
-                </Space>
+                <QueryBar onChange={setQueryParams} spinning={spinning}>
+                    <QueryBar.QueryItem label="姓名" name="name">
+                        <Input allowClear/>
+                    </QueryBar.QueryItem>
+                </QueryBar>
 
                 <Spin spinning={spinning}>
                     <Space>
@@ -142,8 +128,7 @@ export default function () {
 
 
             <div className="f-flex-1" style={{ margin: '12px 0' }}>
-                <Table dataSource={listData} size={'small'}
-                       pagination={{ pageSize, total: dataCount, onChange: onPageChange, showTotal: renderTotal }}>
+                <Table dataSource={listData} size={'small'} pagination={pagination}>
                     <Column title="姓名" dataIndex="name" key="name"/>
                     <Column title="手机" dataIndex="phone" key="phone"/>
                     <Column title="邮箱" dataIndex="email" key="email"/>

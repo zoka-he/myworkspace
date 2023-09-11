@@ -2,7 +2,6 @@ import { Breadcrumb, Layout, Menu, FloatButton, Button, Space } from 'antd';
 import { connect } from 'react-redux';
 import React, { useEffect, useRef, useState } from 'react';
 import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import _ from 'lodash';
 import type { IRootState } from '../store';
 import store from '../store';
 import { setNavMenu as setStoreNavMenu } from '../store/navigatorSlice';
