@@ -16,8 +16,8 @@ mysql_config_prod = {
     'MYSQL_PASSWORD': 'nsds123456'
 }
 
-env_name = os.getenv('env')
 mysql_config = mysql_config_dev
 
+env_name = os.getenv('PY_ENV')
 if (env_name == 'prod' or env_name == 'production'):
     mysql_config = mysql_config_prod
