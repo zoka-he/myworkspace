@@ -30,6 +30,10 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# 拷贝python脚本
+COPY --from=builder /app/pyscript ./pyscript
+COPY --from=builder /app/cron /etc/cron.d
+
 USER nextjs
 
 EXPOSE 3000
