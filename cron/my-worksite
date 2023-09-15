@@ -1,1 +1,1 @@
-*/1 * * * * cd /app/pyscript && python3 ./hourly.py
+0 * * * * cd /app/pyscript && python3 ./hourly.py
