@@ -7,8 +7,9 @@ RUN cat /etc/apt/sources.list
 RUN apt-get clean
 RUN apt-get -y update
   
-# 安装node18、python3.9及相关依赖  
+# 安装node18、python3.9、cron及相关依赖  
 RUN apt-get install -y python3.9 python3-pip nodejs npm 
+RUN apt-get install cron
 RUN apt-get install -y curl wget
 RUN npm install -g n 
 RUN n stable
