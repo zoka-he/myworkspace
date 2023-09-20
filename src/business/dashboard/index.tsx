@@ -402,11 +402,11 @@ class Dashboard extends React.Component<{}, IDashboardState & IDashboardLists & 
                                 {this.renderTaskList('notStarted')}
                             </div>
                             <div className={listClassName}>
-                                <h3 className="f-inline-block f-fit-width f-bg-yellow18 f-align-center">开发中</h3>
+                                <h3 className="f-inline-block f-fit-width f-bg-yellow18 f-align-center">执行中</h3>
                                 {this.renderTaskList('developing')}
                             </div>
                             <div className={listClassName}>
-                                <h3 className="f-inline-block f-fit-width f-bg-blue18 f-align-center">测试中</h3>
+                                <h3 className="f-inline-block f-fit-width f-bg-blue18 f-align-center">验证中</h3>
                                 {this.renderTaskList('testing')}
                             </div>
                             <div className={listClassName}>

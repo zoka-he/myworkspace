@@ -186,7 +186,7 @@ export default function () {
         }
 
         function processStatus(task) {
-            return ['未开始', '进行中', '测试中', '待上线', '已完成'][task.status];
+            return ['未开始', '进行中', '验证中', '待上线', '已完成'][task.status];
         }
 
         let tdata = [];

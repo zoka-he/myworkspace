@@ -3,7 +3,7 @@ import { Select } from 'antd';
 
 export default function(props) {
 
-  const statusNames = ['未开始', '开发中', '测试中', '待上线', '已完成', '已关闭'];
+  const statusNames = ['未开始', '执行中', '验证中', '待上线', '已完成', '已关闭'];
 
   function renderStatusOptions() {
     return statusNames.map((item, index) => {

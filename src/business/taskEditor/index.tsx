@@ -170,8 +170,8 @@ class TaskEditor extends React.Component<ITaskEditorProp, ITaskEditorState & {}>
                         <Form.Item label={'任务进度'} name={'status'}>
                             <Select>
                                 <Select.Option value={0}>未开始</Select.Option>
-                                <Select.Option value={1}>开发中</Select.Option>
-                                <Select.Option value={2}>测试中</Select.Option>
+                                <Select.Option value={1}>执行中</Select.Option>
+                                <Select.Option value={2}>验证中</Select.Option>
                                 <Select.Option value={3}>待上线</Select.Option>
                                 <Select.Option value={4}>已完成</Select.Option>
                                 <Select.Option value={5}>已关闭</Select.Option>

@@ -102,8 +102,8 @@ export default function () {
                     <Column title="承接人" dataIndex="employee" key="employee"/>
                     <Column title="进行中合计" dataIndex="unfinished" key="unfinished" render={renderCount}/>
                     <Column title="未开始" dataIndex="not_started" key="not_started" render={renderCount}/>
-                    <Column title="开发中" dataIndex="developing" key="developing" render={renderCount}/>
-                    <Column title="测试中" dataIndex="testing" key="testing" render={renderCount}/>
+                    <Column title="执行中" dataIndex="developing" key="developing" render={renderCount}/>
+                    <Column title="验证中" dataIndex="testing" key="testing" render={renderCount}/>
                     <Column title="待上线" dataIndex="fuckable" key="fuckable" render={renderCount}/>
                     <Column title="已完成" dataIndex="finished" key="finished" render={renderCount}/>
                     <Column title="已关闭" dataIndex="closed" key="closed" render={renderCount}/>
