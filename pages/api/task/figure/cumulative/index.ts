@@ -13,7 +13,7 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
     console.debug('req query', req.query);
 
     const page = _.toNumber(req.query.page || 1);
-    const limit = _.toNumber(req.query.limit || 20);
+    const limit = _.toNumber(req.query.limit || 30);
 
     let queryObject: ISqlCondMap = {};
 
@@ -23,24 +23,11 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
         }
 
         switch (k) {
-            case 'task_name':
-                queryObject.task_name = { $like: `%${v}%` };
-                break;
-            case 'employee':
-                queryObject.employee = { $like: `%${v}%` };
-                break;
-            case 'status':
-            case 'status[]':
-                if (v instanceof Array) {
-                    queryObject.status = { $in: Array.from(v, item => _.toNumber(item)) };
-                } else {
-                    queryObject.status = v;
-                }
-                break;
+            
         }
     }
 
-    let ret = await service.query(queryObject, [], ['priority desc', 'create_time asc'], page, limit);
+    let ret = await service.getCumulativeData(limit);
     res.status(200).json(ret);
 }
 

@@ -67,6 +67,33 @@ class TaskService extends MysqlService {
         return data;
     }
 
+    async getCumulativeData(limit: number, params: ISqlCondMap = {}) {
+
+        let parseResult = this.parseConditionObject(params);
+
+        let conditionsSql = '';
+        let conditionValues = [];
+        if (parseResult) {
+            conditionsSql = ' WHERE ' + parseResult.sql;
+            conditionValues = parseResult.values;
+        }
+
+        let sql = `SELECT 
+            datestr, 
+            SUM(not_started) not_started, 
+            SUM(developing) developing, 
+            SUM(testing) testing, 
+            SUM(fuckable) fuckable, 
+            SUM(finished) finished 
+            from t_task_state_count ttsc 
+            ${conditionsSql} 
+            group by datestr LIMIT ?`;
+
+        let data = await this.queryBySql(sql, [...conditionValues, limit]);
+        console.debug('CumulativeData', data);
+        return data;
+    }
+
 }
 
 export default TaskService;

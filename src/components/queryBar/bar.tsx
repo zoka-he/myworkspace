@@ -9,11 +9,12 @@ interface IQueryBarProps {
     refreshBtn?: boolean
     children?: ReactNode | ReactNode[]
     onChange?: Function
-    spinning?: boolean
+    spinning?: boolean,
+    initValue?: any
 }
 
 export default function(props: IQueryBarProps) {
-    let [params, setParams] = useState<any>({});
+    let [params, setParams] = useState<any>(props?.initValue || {});
 
     let debounceQuery = useDebounce(proxyOnChange, 300);
     useEffect(() => debounceQuery(), [params]);

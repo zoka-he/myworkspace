@@ -24,8 +24,6 @@ export default function(props: IQueryItemProps) {
 
     function renderUserComp(contextValue: any) {
         if (userComp) {
-            console.debug('userComp', userComp);
-
             const proxyInputAction = function(value: any) {
                 contextValue.setParams({
                     ...contextValue.params,
@@ -35,7 +33,12 @@ export default function(props: IQueryItemProps) {
 
             let inputMethod = 'onChange';
             let inputHandler = (e: InputEvent) => {
-                proxyInputAction((e.target as HTMLInputElement).value);
+                if (e?.target instanceof HTMLInputElement) {
+                    proxyInputAction((e.target as HTMLInputElement).value);
+                    return;
+                }
+
+                proxyInputAction(e);
             }
 
             userComp = React.cloneElement(

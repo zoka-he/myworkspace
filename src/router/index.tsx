@@ -21,6 +21,7 @@ const Permission = lazy(() => import('../business/user/permission/index'));
 const UserAccount = lazy(() => import('../business/user/account'));
 const UserRole = lazy(() => import('../business/user/role'));
 const UserProfile = lazy(() => import('../business/user/profile'));
+const TaskFigure = lazy(() => import('../business/taskManage/taskFigures'));
 
 async function mainFrameLoader() {
     let matches = useMatches();
@@ -34,6 +35,7 @@ export default function () {
                 <Route path="/" loader={mainFrameLoader} element={<MainFrame />}>
                     <Route path="taskManage/dashboard" element={<Dashboard />} />
                     <Route path="taskManage/taskManage" element={<TaskManage />} />
+                    <Route path="taskManage/figure" element={<TaskFigure />} />
 
                     <Route path="taskManage/bugTrace" element={<BugTrace />} />
                     <Route path="taskManage/catfightLog" element={<CatfightLog />} />

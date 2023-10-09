@@ -1,0 +1,25 @@
+.l-with-tabs-on-top {
+    height: 100%;
+
+    > .ant-tabs {
+        height: 100%;
+
+        > .ant-tabs-content-holder > .ant-tabs-content {
+            height: 100%;
+            
+            > .ant-tabs-tabpane {
+                height: 100%;
+            }
+        }
+    }
+
+}
+
+.l-with-querybar {
+    display: flex;
+    flex-direction: column;
+
+    .l-content {
+        flex: 1;
+    }
+}
