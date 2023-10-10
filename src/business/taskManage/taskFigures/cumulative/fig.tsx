@@ -154,9 +154,10 @@ class FigureInstance {
      * 绘制折线图
      */
     private drawLines() {
-        const line = d3.line<Array<Date | number>>()
+        const line = d3.area<Array<Date | number>>()
             .x(d => this.x(d[0]))
-            .y(d => this.y(d[1]))
+            .y0(d => this.y(d[1]))
+            .y1(d => this.height - this.marginBottom)
             .curve(d3.curveBumpX);
 
         [
@@ -194,9 +195,7 @@ class FigureInstance {
                 this.paths[index].attr("d", line(data));
             } else {
                 this.paths[index] = this.svg.append("path")
-                    .attr("fill", "none")
-                    .attr("stroke", config.color)
-                    .attr("stroke-width", 1.5)
+                    .attr("fill", config.color)
                     .attr("d", line(data));
             }
         })
