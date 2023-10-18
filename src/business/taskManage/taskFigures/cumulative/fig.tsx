@@ -44,18 +44,21 @@ class FigureInstance {
 
     constructor(context: HTMLDivElement, initData: ICumulativeData[]) {
 
+        // 计算图表区域
         this.width = context.clientWidth - this.marginLeft - this.marginRight;
         this.height = context.clientHeight - this.marginTop - this.marginBottom;
 
         console.debug(context.clientWidth, this.width);
         console.debug(context.offsetWidth, this.width);
 
+        // 创建svg画布
         this.svg = d3.select(context).append('svg')
             .attr('width', this.width)
             .attr('height', this.height)
             .attr('viewbox', `0 0 ${this.width} ${this.height}`)
             .style('margin', `10px ${this.marginRight}px ${this.marginBottom}px 10px `);
 
+        // 创建title
         this.title = this.svg.append('text')
             .attr('x', this.width / 2)          // 设定标题的位置  
             .attr('y', this.titleMarginTop) // 设定标题的位置  
@@ -64,22 +67,22 @@ class FigureInstance {
             .style('fill', 'black')        // 设定标题的颜色  
             .text('任务累积流图');          // 设定标题的文字
 
-        // Declare the x (horizontal position) scale.
+        // 定义x坐标系
         this.x = d3.scaleUtc()
             .domain(this.getXRange())
             .range([this.marginLeft, this.width - this.marginRight]);
 
-        // Declare the y (vertical position) scale.
+        // 定义y坐标系
         this.y = d3.scaleLinear()
             .domain(this.getYRange())
             .range([this.height - this.marginBottom, this.marginTop]);
 
-        // Add the x-axis.
+        // 添加x轴控件
         this.xaxis = this.svg.append("g")
             .attr("transform", `translate(0,${this.height - this.marginBottom})`)
             .call(d3.axisBottom(this.x));
 
-        // Add the y-axis.
+        // 添加y轴控件
         this.yaxis = this.svg.append("g")
             .attr("transform", `translate(${this.marginLeft},0)`)
             .call(d3.axisLeft(this.y).tickSize(1));
@@ -92,6 +95,36 @@ class FigureInstance {
         this.setData(initData);
     }
 
+    /**
+     * 获得每个序列的数值
+     * @param dataItem 
+     * @param seriesName 
+     * @returns 
+     */
+    private getSeriesValue(dataItem: ICumulativeData, seriesName: string) {
+        let sum = 0;
+
+        // 不break，且写死prop，让每个选项滚动累积，达到累积流图的效果
+        switch(seriesName) {
+            case 'not_started':
+                sum += _.parseInt(dataItem.not_started);
+            case 'developing':
+                sum += _.parseInt(dataItem.developing);
+            case 'testing':
+                sum += _.parseInt(dataItem.testing);
+            case 'fuckable':
+                sum += _.parseInt(dataItem.fuckable);
+            case 'finished':
+                sum += _.parseInt(dataItem.finished);
+        }
+
+        return sum;
+    }
+
+    /**
+     * 获得x轴数值范围
+     * @returns 
+     */
     private getXRange() {
         let range;
 
@@ -111,6 +144,10 @@ class FigureInstance {
         return range;
     }
 
+    /**
+     * 获得y轴数值范围
+     * @returns 
+     */
     private getYRange() {
         let min = 0, max = 0;
         let range;
@@ -122,25 +159,8 @@ class FigureInstance {
             let numList: number[] = [];
 
             this.data.forEach(item => {
-                for (let k of Object.keys(item)) {
-                    let sum = 0;
-
-                    // 不break，且写死prop，让每个选项滚动累积，达到累积流图的效果
-                    switch(k) {
-                        case 'not_started':
-                            sum += _.parseInt(item.not_started);
-                        case 'developing':
-                            sum += _.parseInt(item.developing);
-                        case 'testing':
-                            sum += _.parseInt(item.testing);
-                        case 'fuckable':
-                            sum += _.parseInt(item.fuckable);
-                        case 'finished':
-                            sum += _.parseInt(item.finished);
-                    }
-
-                    numList.push(sum);
-                }
+                let sum = this.getSeriesValue(item, 'not_started');
+                numList.push(sum);
             })
 
             range = [Math.min(min, ...numList), Math.round(1.2 * Math.max(max, ...numList))]
@@ -169,25 +189,10 @@ class FigureInstance {
         ].forEach((config, index) => {
 
             let data = this.data.map(item => {
-                let sum = 0;
-
-                // 不break，且写死prop，让每个选项滚动累积，达到累积流图的效果
-                switch(config.prop) {
-                    case 'not_started':
-                        sum += _.parseInt(item.not_started);
-                    case 'developing':
-                        sum += _.parseInt(item.developing);
-                    case 'testing':
-                        sum += _.parseInt(item.testing);
-                    case 'fuckable':
-                        sum += _.parseInt(item.fuckable);
-                    case 'finished':
-                        sum += _.parseInt(item.finished);
-                }
-
+                let val = this.getSeriesValue(item, config.prop);
                 return [
                     DayJS(item.datestr, 'YYYYMMDD').toDate(),
-                    sum
+                    val
                 ]
             })
 
@@ -208,12 +213,15 @@ class FigureInstance {
     public setData(data: ICumulativeData[]) {
         this.data = data;
 
+        // 调整xy坐标系
         this.x.domain(this.getXRange());
         this.y.domain(this.getYRange());
 
+        // 调整x轴y轴组件
         this.xaxis.call(d3.axisBottom(this.x));
         this.yaxis.call(d3.axisLeft(this.y).tickSize(1));
 
+        // 显示数据
         this.drawLines();
     }
 
@@ -229,6 +237,11 @@ interface ICumulativeFigureProps {
     data: any[]
 }
 
+/**
+ * 累积流图控件
+ * @param props 
+ * @returns 
+ */
 function CumulativeFigure(props: ICumulativeFigureProps) {
 
     let context = useRef<null | HTMLDivElement>(null);
