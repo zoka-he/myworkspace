@@ -40,7 +40,7 @@ class FigureInstance {
     private y;
     private yaxis;
 
-    private paths: d3.Selection<SVGPathElement, unknown, null, any>[] = [];
+    private paths: String & d3.Selection<SVGPathElement | null, d3.Series<{ [key: string]: number; }, string>, SVGGElement, unknown> = [];
 
     constructor(context: HTMLDivElement, initData: ICumulativeData[]) {
 
@@ -174,36 +174,37 @@ class FigureInstance {
      * 绘制折线图
      */
     private drawLines() {
-        const line = d3.area<Array<Date | number>>()
-            .x(d => this.x(d[0]))
-            .y0(d => this.y(d[1]))
-            .y1(d => this.height - this.marginBottom)
+        console.log('d3.index', d3.index(this.data, d => d.datestr));
+
+        // 累积运算，越靠后的项，位置越高
+        const series = d3.stack()
+            .keys(['finished', 'fuckable', 'testing', 'developing', 'not_started'])
+            .value(([, D], key) => _.parseInt(D[key]))
+            (
+                // 按照date排序
+                d3.index(this.data, d => DayJS(d.datestr).toDate())
+            );
+
+        // 颜色分配
+        const color = d3.scaleOrdinal().domain(series.map(item => item.key)).range(d3.schemeTableau10);
+
+        // 面积图计算
+        const area = d3.area<Array<Date | number>>()
+            .x(d => this.x(d.data[0]))
+            .y0(d => this.y(d[0]))
+            .y1(d => this.y(d[1]))
             .curve(d3.curveBumpX);
 
-        [
-            { prop: 'not_started', color: 'steelblue' },
-            { prop: 'developing', color: '#D46B06' },
-            { prop: 'testing', color: '#FFCA21' },
-            { prop: 'fuckable', color: '#FF6363' },
-            { prop: 'finished', color: 'darkgreen' },
-        ].forEach((config, index) => {
+        // 渲染面积图
+        this.paths = this.svg
+            .append("g")
+            .selectAll()
+            .data(series)
+                .join("path")
+                .attr("fill", d => color(d.key))
+                .attr("d", area);
 
-            let data = this.data.map(item => {
-                let val = this.getSeriesValue(item, config.prop);
-                return [
-                    DayJS(item.datestr, 'YYYYMMDD').toDate(),
-                    val
-                ]
-            })
-
-            if (this.paths[index]) {
-                this.paths[index].attr("d", line(data));
-            } else {
-                this.paths[index] = this.svg.append("path")
-                    .attr("fill", config.color)
-                    .attr("d", line(data));
-            }
-        })
+        console.debug(this.paths);
     }
 
     /**
