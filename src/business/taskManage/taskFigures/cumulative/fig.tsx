@@ -1,24 +1,32 @@
 import { memo, useEffect, useRef } from "react";
 import * as d3 from 'd3';
 import { ICumulativeData } from "./ICumulativeData";
-import _ from 'lodash';
+import _, { divide } from 'lodash';
 import DayJS from 'dayjs';
 
-class Legend {
-    private keys: string[]
+interface ILegendProps {
+    color: Function
+    items: { [key: string]: string }
+}
 
-    constructor(keys: string[]) {
-        this.keys = keys;
-    }
+function Legend(props: ILegendProps) {
+    let lis = Object.entries(props.items).map(([k, v]) => {
+        return (
+            <li className="m-legend">
+                <div className="m-legend-marker" style={{ backgroundColor: props.color(k) }}>&nbsp;</div>
+                <span style={{ color: '#555' }}>{v}</span>
+            </li>
+        )
+    });
 
-    attach(context: d3.Selection<SVGSVGElement, unknown, null, any>) {
-
-    }
+    return (
+        <ul className="m-legend-grp">{lis}</ul>
+    )
 }
 
 /**
  * 初始化D3对象
- * @param context 
+ * @param context  
  */
 class FigureInstance {
 
@@ -26,27 +34,29 @@ class FigureInstance {
     public height = 400;
 
     public titleMarginTop = 20;
-    public marginTop = 60;
-    public marginRight = 60;
-    public marginBottom = 60;
+    public marginTop = 20;
+    public marginRight = 40;
+    public marginBottom = 30;
     public marginLeft = 40;
 
-    private data: ICumulativeData[] = [];
-    private svg: d3.Selection<SVGSVGElement, unknown, null, any>;
+    public data: ICumulativeData[] = [];
+    private seriesKey: string[] = ['finished', 'fuckable', 'testing', 'developing', 'not_started'];
+    private series?: d3.Series<{ [key: string]: number; }, string>[];
+    public colorScale: d3.ScaleOrdinal<string, unknown, never>;
 
-    private title;
+    private svg: d3.Selection<SVGSVGElement, unknown, null, any>;
     private x;
     private xaxis;
     private y;
     private yaxis;
 
-    private paths: String & d3.Selection<SVGPathElement | null, d3.Series<{ [key: string]: number; }, string>, SVGGElement, unknown> = [];
+    private paths?: string & d3.Selection<SVGPathElement | null, d3.Series<{ [key: string]: number; }, string>, SVGGElement, unknown>;
 
     constructor(context: HTMLDivElement, initData: ICumulativeData[]) {
 
         // 计算图表区域
         this.width = context.clientWidth - this.marginLeft - this.marginRight;
-        this.height = context.clientHeight - this.marginTop - this.marginBottom;
+        this.height = Math.max(500, context.clientHeight - this.marginTop - this.marginBottom);
 
         console.debug(context.clientWidth, this.width);
         console.debug(context.offsetWidth, this.width);
@@ -56,16 +66,8 @@ class FigureInstance {
             .attr('width', this.width)
             .attr('height', this.height)
             .attr('viewbox', `0 0 ${this.width} ${this.height}`)
-            .style('margin', `10px ${this.marginRight}px ${this.marginBottom}px 10px `);
+            .style('margin', `${this.marginTop}px ${this.marginRight}px ${this.marginBottom}px ${this.marginLeft}px `);
 
-        // 创建title
-        this.title = this.svg.append('text')
-            .attr('x', this.width / 2)          // 设定标题的位置  
-            .attr('y', this.titleMarginTop) // 设定标题的位置  
-            .attr('text-anchor', 'middle') // 设定标题的对齐方式  
-            .style('font-size', '20px')    // 设定标题的字体大小  
-            .style('fill', 'black')        // 设定标题的颜色  
-            .text('任务累积流图');          // 设定标题的文字
 
         // 定义x坐标系
         this.x = d3.scaleUtc()
@@ -87,38 +89,15 @@ class FigureInstance {
             .attr("transform", `translate(${this.marginLeft},0)`)
             .call(d3.axisLeft(this.y).tickSize(1));
 
+        // 颜色主题
+        this.colorScale = d3.scaleOrdinal().domain(this.seriesKey).range(d3.schemeTableau10);    
+
         // 绘制折线图  
         if (!(initData instanceof Array)) {
             initData = [];
         }
 
         this.setData(initData);
-    }
-
-    /**
-     * 获得每个序列的数值
-     * @param dataItem 
-     * @param seriesName 
-     * @returns 
-     */
-    private getSeriesValue(dataItem: ICumulativeData, seriesName: string) {
-        let sum = 0;
-
-        // 不break，且写死prop，让每个选项滚动累积，达到累积流图的效果
-        switch(seriesName) {
-            case 'not_started':
-                sum += _.parseInt(dataItem.not_started);
-            case 'developing':
-                sum += _.parseInt(dataItem.developing);
-            case 'testing':
-                sum += _.parseInt(dataItem.testing);
-            case 'fuckable':
-                sum += _.parseInt(dataItem.fuckable);
-            case 'finished':
-                sum += _.parseInt(dataItem.finished);
-        }
-
-        return sum;
     }
 
     /**
@@ -149,44 +128,17 @@ class FigureInstance {
      * @returns 
      */
     private getYRange() {
-        let min = 0, max = 0;
-        let range;
-
-        if (!this.data.length) {
-            range = [min, max];
-        } else {
-
-            let numList: number[] = [];
-
-            this.data.forEach(item => {
-                let sum = this.getSeriesValue(item, 'not_started');
-                numList.push(sum);
-            })
-
-            range = [Math.min(min, ...numList), Math.round(1.2 * Math.max(max, ...numList))]
+        if (!this.series) {
+            return [0, 0];
         }
 
-        console.debug('getYRange', range);
-        return range;
+        return [0, d3.max(this.series, d => d3.max(d, d => d[1])) || 0];
     }
 
     /**
-     * 绘制折线图
+     * 绘制累积流图
      */
-    private drawLines() {
-        console.log('d3.index', d3.index(this.data, d => d.datestr));
-
-        // 累积运算，越靠后的项，位置越高
-        const series = d3.stack()
-            .keys(['finished', 'fuckable', 'testing', 'developing', 'not_started'])
-            .value(([, D], key) => _.parseInt(D[key]))
-            (
-                // 按照date排序
-                d3.index(this.data, d => DayJS(d.datestr).toDate())
-            );
-
-        // 颜色分配
-        const color = d3.scaleOrdinal().domain(series.map(item => item.key)).range(d3.schemeTableau10);
+    private drawAreas() {
 
         // 面积图计算
         const area = d3.area<Array<Date | number>>()
@@ -196,15 +148,20 @@ class FigureInstance {
             .curve(d3.curveBumpX);
 
         // 渲染面积图
-        this.paths = this.svg
-            .append("g")
-            .selectAll()
-            .data(series)
-                .join("path")
-                .attr("fill", d => color(d.key))
-                .attr("d", area);
+        if (this.series) {
+            if (!this.paths) {
+                this.paths = this.svg.append("g")
+                    .selectAll('path')
+                    .data(this.series)
+                    .join("path")
+                    .attr("fill", d => this.colorScale(d.key))
+                    .attr("d", area);
+            } else {
+                this.paths.data(this.series).attr("d", area);
+            }
 
-        console.debug(this.paths);
+            
+        }
     }
 
     /**
@@ -214,6 +171,19 @@ class FigureInstance {
     public setData(data: ICumulativeData[]) {
         this.data = data;
 
+        // 累积运算，越靠后的项，位置越高
+        this.series = d3.stack()
+            .keys(this.seriesKey)
+            .value(([, D], key) => _.parseInt(D[key]))
+            (
+                // 按照date排序
+                d3.index(this.data, d => DayJS(d.datestr).toDate())
+            );
+
+        
+
+        // ------------------------- 显示数据 ------------------------- 
+        
         // 调整xy坐标系
         this.x.domain(this.getXRange());
         this.y.domain(this.getYRange());
@@ -221,9 +191,8 @@ class FigureInstance {
         // 调整x轴y轴组件
         this.xaxis.call(d3.axisBottom(this.x));
         this.yaxis.call(d3.axisLeft(this.y).tickSize(1));
-
-        // 显示数据
-        this.drawLines();
+        
+        this.drawAreas();
     }
 
     
@@ -247,6 +216,14 @@ function CumulativeFigure(props: ICumulativeFigureProps) {
 
     let context = useRef<null | HTMLDivElement>(null);
     let d3Instance = useRef<null | FigureInstance>(null);
+
+    let seriesDef = {
+        'not_started': '未开始',
+        'developing': '执行中',
+        'testing': '验证中',
+        'fuckable': '待上线',
+        'finished': '已完成',
+    }
 
     useEffect(() => {
         if (!context.current) {
@@ -277,8 +254,20 @@ function CumulativeFigure(props: ICumulativeFigureProps) {
 
     }, props.data);
 
+    function proxyColorScale(key: string) {
+        if (!d3Instance.current) {
+            return '#555';
+        }
+
+        return d3Instance.current.colorScale(key); 
+    }
+
     return (
-        <div className="f-fit-content" ref={context}>&nbsp;</div>
+        <div className="f-fit-content">
+            <h2 className="f-align-center">任务累积流图</h2>
+            <Legend color={proxyColorScale} items={seriesDef}></Legend>
+            <div className="f-fit-width" ref={context}>&nbsp;</div>
+        </div>
     );
 }
 
