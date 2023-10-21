@@ -4,6 +4,15 @@ import { ICumulativeData } from "./ICumulativeData";
 import _, { divide } from 'lodash';
 import DayJS from 'dayjs';
 
+const seriesDef = {
+    'datestr': '日期',
+    'not_started': '未开始',
+    'developing': '执行中',
+    'testing': '验证中',
+    'fuckable': '待上线',
+    'finished': '已完成',
+}
+
 interface ILegendProps {
     color: Function
     items: { [key: string]: string }
@@ -33,7 +42,6 @@ class FigureInstance {
     public width = 640;
     public height = 400;
 
-    public titleMarginTop = 20;
     public marginTop = 20;
     public marginRight = 40;
     public marginBottom = 30;
@@ -51,6 +59,11 @@ class FigureInstance {
     private yaxis;
 
     private paths?: string & d3.Selection<SVGPathElement | null, d3.Series<{ [key: string]: number; }, string>, SVGGElement, unknown>;
+    private points;
+
+    private tooltipPos: number = -1;
+    private tooltip;
+
 
     constructor(context: HTMLDivElement, initData: ICumulativeData[]) {
 
@@ -98,6 +111,12 @@ class FigureInstance {
         }
 
         this.setData(initData);
+
+        // 定义游标
+        // this.tooltip = this.createTooltip();
+
+        // 初始化事件
+        this.initEvents();
     }
 
     /**
@@ -180,22 +199,172 @@ class FigureInstance {
                 d3.index(this.data, d => DayJS(d.datestr).toDate())
             );
 
-        
+        const getStackValue = (key: string, index: number, defaultValue: number = 0) => {
+            try {
+                let keyId = this.seriesKey.indexOf(key);
+                return this.series[keyId][index][1];
+            } catch(e) {
+                console.error(e);
+                return defaultValue;
+            }
+        }    
 
-        // ------------------------- 显示数据 ------------------------- 
-        
         // 调整xy坐标系
         this.x.domain(this.getXRange());
         this.y.domain(this.getYRange());
 
+
+        // ------------------------- 显示数据 ------------------------- 
+        
+        
         // 调整x轴y轴组件
         this.xaxis.call(d3.axisBottom(this.x));
         this.yaxis.call(d3.axisLeft(this.y).tickSize(1));
         
         this.drawAreas();
+
+        // ---------------------- 准备tooltip数据 ------------------------------
+
+        this.points = data.map((item, index) => {
+            return {
+                x_date: this.x(DayJS(item.datestr).toDate()),
+                y_not_started: this.y(getStackValue('not_started', index)),
+                y_developing: this.y(getStackValue('developing', index)),
+                y_testing: this.y(getStackValue('testing', index)),
+                y_fuckable: this.y(getStackValue('fuckable', index)),
+                y_finished: this.y(getStackValue('finished', index)),
+            }
+        });
+
+        console.debug('this.points', this.points);
+
+        this.updateTooltip(0);
     }
 
-    
+
+    private updateTooltipSize(
+        text: d3.Selection<SVGTextElement, unknown, null, any>, 
+        path: d3.Selection<d3.BaseType | SVGPathElement, undefined, SVGGElement, unknown>
+    ) {
+        const paddingTop = 5, paddingRight = 10,  paddingBottom = 5, paddingLeft = 10;
+        const arrowSize = 5;
+        const marginLeft = 5;
+
+        const {x, y, width: w, height: h} = text.node().getBBox();
+        text.attr("transform", `translate(${marginLeft + arrowSize + paddingLeft}, ${paddingTop - y})`);
+
+        let pathcmd = [
+            `M${marginLeft + arrowSize} 0 `,
+            `H${marginLeft + arrowSize + paddingLeft + w + paddingRight}`,
+            `V${paddingTop + h + paddingBottom}`,
+            `H${marginLeft + arrowSize}`,
+            `V${paddingTop + h/2 + arrowSize}`,
+            `L${marginLeft} ${paddingTop + h/2}`,
+            `L${marginLeft + arrowSize} ${paddingTop + h/2 - arrowSize}`,
+            `V0`,
+            `z`
+        ].join(' ');
+        path.attr("d", pathcmd);
+    }
+
+    private createTooltip() {
+        let container = this.svg.append('g');
+        container.attr('display', 'none');
+
+        const line = container.append('line')
+            .attr('x1', 0)
+            .attr('y1', this.marginTop)
+            .attr('x2', 0)
+            .attr('y2', this.height - this.marginBottom)
+            .attr("stroke-width", 4)
+            .attr("stroke", this.colorScale('datestr'));
+
+         
+
+        const path = container.selectAll("path")
+            .data([,])
+            .join("path")
+                .attr("fill", "white")
+                .attr("stroke", "black");
+
+        const text = container.append('text');
+
+        this.updateTooltipSize(text, path);
+
+        return {container, path, text};
+    }
+
+    private updateTooltip(pos: number) {
+        console.debug('updateTooltip', pos);
+
+        // 节流
+        if (pos === this.tooltipPos) {
+            return;
+        }
+
+        this.tooltipPos = pos;
+
+        if (!this.tooltip) {
+            this.tooltip = this.createTooltip();
+        }
+
+        if (this.tooltipPos === -1) {
+            // 更新显示状态
+            this.tooltip.container.attr('display', 'none');
+
+        } else {
+            let tooltipData = this.data[this.tooltipPos];
+
+            // 更新显示状态
+            this.tooltip.container
+                .attr('display', 'inherit')
+                .transition()
+                .ease(d3.easeSinInOut)
+                .duration(60)
+                .attr(
+                    'transform', 
+                    `translate(${this.x(DayJS(tooltipData.datestr, 'YYYYMMDD').toDate())}, 0)`
+                );
+
+            // 更新tooltip文字内容
+            this.tooltip.text.selectAll('tspan').remove();
+            this.tooltip.text.selectAll("text")
+                .data(Object.entries(tooltipData || []))
+                .join("tspan")
+                    .attr("x", 0)
+                    .attr("y", (_, i) => `${i * 1.1}em`)
+                    .attr("font-weight", (_, i) => i ? null : "bold")
+                    .text(d => `${seriesDef[d[0]]}：${d[1]}`)
+            this.updateTooltipSize(this.tooltip.text, this.tooltip.path);
+        }
+    }
+
+    private onPointerMove(event: any) {
+        if (!this.points?.length) {
+            return;
+        }
+
+        const [xm, ym] = d3.pointer(event);
+        const i = d3.leastIndex(this.points, (item) => Math.hypot(item.x_date - xm));
+        this.updateTooltip(i);
+    }
+
+    private onPointerEnter(event: any) {
+
+    }
+
+    private onPointerLeave(event: any) {
+        this.updateTooltip(-1);
+    }
+
+
+
+    private initEvents() {
+        this.svg
+            .on("pointerenter", e => this.onPointerEnter(e))
+            .on("pointermove", e => this.onPointerMove(e))
+            .on("pointerleave", e => this.onPointerLeave(e))
+    }
 
     public destroy() {
         this.svg.remove();
@@ -217,13 +386,7 @@ function CumulativeFigure(props: ICumulativeFigureProps) {
     let context = useRef<null | HTMLDivElement>(null);
     let d3Instance = useRef<null | FigureInstance>(null);
 
-    let seriesDef = {
-        'not_started': '未开始',
-        'developing': '执行中',
-        'testing': '验证中',
-        'fuckable': '待上线',
-        'finished': '已完成',
-    }
+    
 
     useEffect(() => {
         if (!context.current) {
