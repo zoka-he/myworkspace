@@ -133,7 +133,7 @@ export default function() {
                     lng={item.lng} lat={item.lat} 
                     label={item.label} 
                     key={uuid()}
-                    config={{ icon: "/mapicons/star.png" }}
+                    config={{ icon: "/mapicons/default.png" }}
                     onClick={onItemMarkerClick}
                 />
             );

@@ -240,7 +240,7 @@ export default class EditorAmap {
             markerContent.style.overflow = 'visible';
 
             let markerImg = document.createElement("img");
-            markerImg.src = "/mapicons/star.png";
+            markerImg.src = "/mapicons/default.png";
             markerImg.setAttribute('width', '24px');
             markerImg.setAttribute('height', '24px');
             markerImg.style.position = 'absolute';

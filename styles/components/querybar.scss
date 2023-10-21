@@ -1,0 +1,14 @@
+.comp-query-bar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    label {
+        white-space: nowrap;
+    }
+
+
+    > * + label, > * + button {
+        margin-left: 1em
+    }
+}

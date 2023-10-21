@@ -134,8 +134,8 @@ export default function () {
     function renderState(cell, row) {
         return [
             <span>未开始</span>,
-            <span>开发中</span>,
-            <span>测试中</span>,
+            <span>执行中</span>,
+            <span>验证中</span>,
             <span>待上线</span>,
             <span>已完成</span>,
             <span>已关闭</span>,

@@ -22,7 +22,7 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
             continue;
         }
 
-        switch(k) {
+        switch (k) {
             case 'task_name':
                 queryObject.task_name = { $like: `%${v}%` };
                 break;
@@ -61,9 +61,9 @@ export default function handler(
     }
 
     try {
-      processerFn(req, res);
-    } catch(e: any) {
-      res.status(500).json({ message: e.message });
-      return;
+        processerFn(req, res);
+    } catch (e: any) {
+        res.status(500).json({ message: e.message });
+        return;
     }
 }
