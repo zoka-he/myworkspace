@@ -58,11 +58,11 @@ class FigureInstance {
     private y;
     private yaxis;
 
-    private paths?: string & d3.Selection<SVGPathElement | null, d3.Series<{ [key: string]: number; }, string>, SVGGElement, unknown>;
-    private points;
+    private paths?: string & d3.Selection<SVGPathElement | d3.BaseType, d3.Series<{ [key: string]: number; }, string>, SVGGElement, unknown>;
+    private points: any;
 
     private tooltipPos: number = -1;
-    private tooltip;
+    private tooltip: any;
 
 
     constructor(context: HTMLDivElement, initData: ICumulativeData[]) {
@@ -161,6 +161,7 @@ class FigureInstance {
 
         // 面积图计算
         const area = d3.area<Array<Date | number>>()
+            // @ts-ignore
             .x(d => this.x(d.data[0]))
             .y0(d => this.y(d[0]))
             .y1(d => this.y(d[1]))
@@ -173,6 +174,7 @@ class FigureInstance {
                     .selectAll('path')
                     .data(this.series)
                     .join("path")
+                    // @ts-ignore
                     .attr("fill", d => this.colorScale(d.key))
                     .attr("d", area);
             } else {
@@ -193,15 +195,18 @@ class FigureInstance {
         // 累积运算，越靠后的项，位置越高
         this.series = d3.stack()
             .keys(this.seriesKey)
+            // @ts-ignore
             .value(([, D], key) => _.parseInt(D[key]))
             (
                 // 按照date排序
+                // @ts-ignore
                 d3.index(this.data, d => DayJS(d.datestr).toDate())
             );
 
         const getStackValue = (key: string, index: number, defaultValue: number = 0) => {
             try {
                 let keyId = this.seriesKey.indexOf(key);
+                // @ts-ignore
                 return this.series[keyId][index][1];
             } catch(e) {
                 console.error(e);
@@ -250,6 +255,7 @@ class FigureInstance {
         const arrowSize = 5;
         const marginLeft = 5;
 
+        // @ts-ignore
         const {x, y, width: w, height: h} = text.node().getBBox();
         text.attr("transform", `translate(${marginLeft + arrowSize + paddingLeft}, ${paddingTop - y})`);
 
@@ -277,6 +283,7 @@ class FigureInstance {
             .attr('x2', 0)
             .attr('y2', this.height - this.marginBottom)
             .attr("stroke-width", 4)
+            // @ts-ignore
             .attr("stroke", this.colorScale('datestr'));
 
          
@@ -331,9 +338,10 @@ class FigureInstance {
                 .data(Object.entries(tooltipData || []))
                 .join("tspan")
                     .attr("x", 0)
-                    .attr("y", (_, i) => `${i * 1.1}em`)
-                    .attr("font-weight", (_, i) => i ? null : "bold")
-                    .text(d => `${seriesDef[d[0]]}：${d[1]}`)
+                    .attr("y", (_: any, i: number) => `${i * 1.1}em`)
+                    .attr("font-weight", (_: any, i: any) => i ? null : "bold")
+                    // @ts-ignore
+                    .text((d: [string, any]) => `${seriesDef[d[0]]}：${d[1]}`)
             this.updateTooltipSize(this.tooltip.text, this.tooltip.path);
         }
     }
@@ -344,7 +352,9 @@ class FigureInstance {
         }
 
         const [xm, ym] = d3.pointer(event);
+        // @ts-ignore
         const i = d3.leastIndex(this.points, (item) => Math.hypot(item.x_date - xm));
+        // @ts-ignore
         this.updateTooltip(i);
     }
 
@@ -388,12 +398,10 @@ function CumulativeFigure(props: ICumulativeFigureProps) {
     
 
     useEffect(() => {
-        if (!context.current) {
-            return;
-        }
-
         setTimeout(() => {
-            d3Instance.current = new FigureInstance(context.current, props.data);
+            if (context.current) {
+                d3Instance.current = new FigureInstance(context.current, props.data);
+            }
         }, 0)
 
         return () => {
