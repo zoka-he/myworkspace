@@ -20,6 +20,31 @@
     }
 }
 
+.m-app-header {
+    height: 46px;
+    overflow: hidden;
+
+    background-color: rgb(40 83 155);
+
+    &_logo {
+        color: white;
+        line-height: 46px;
+        margin: 0;
+    }
+
+    &_research {
+        height: 46px;
+        padding: 7px 5px 0;
+    }
+
+    &_shifter {
+        transition: all .2s;
+        &.active, &:hover {
+            transform: translateY(-46px);
+        }
+    }
+}
+
 .ant-layout .ant-layout-sider .ant-layout-sider-children {
     overflow-y: auto;
 }
