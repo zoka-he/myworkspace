@@ -308,13 +308,12 @@ class FigureInstance {
             this.tooltip = this.createTooltip();
         }
 
-        if (this.tooltipPos === -1) {
+        let tooltipData = this.data[this.tooltipPos];
+
+        if (!tooltipData) {
             // 更新显示状态
             this.tooltip.container.attr('display', 'none');
-
         } else {
-            let tooltipData = this.data[this.tooltipPos];
-
             // 更新显示状态
             this.tooltip.container
                 .attr('display', 'inherit')
