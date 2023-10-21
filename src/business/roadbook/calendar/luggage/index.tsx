@@ -119,7 +119,7 @@ function LuggageChecklist(props: AddLuggageModalProps) {
                 [
                     renderCheckers('晾衣绳'),
                     renderCheckers('长尾夹'),
-                    renderCheckers('折叠衣'),
+                    renderCheckers('折叠衣架'),
                     renderCheckers('晾衣固定架'),
                     renderCheckers('烘干衣机'),
                 ],

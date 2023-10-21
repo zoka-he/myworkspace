@@ -1,0 +1,28 @@
+.m-legend {
+    > * {
+        vertical-align: middle;
+    }
+
+    span {
+        display: inline-block;
+    }
+
+    &-grp {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        list-style: none;
+    }
+
+    & + & {
+        margin-left: 18px;
+    }
+
+    &-marker {
+        display: inline-block;
+        width: 1em;
+        height: 1em;
+        margin: 0 .5em 0 0;
+        border-radius: 100%;
+    }
+}

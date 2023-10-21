@@ -751,7 +751,7 @@ export default function() {
                 <CommonBmap.Marker 
                     lng={item.lng} lat={item.lat} 
                     label={item.label} 
-                    config={{ icon: "/mapicons/star.png" }}
+                    config={{ icon: "/mapicons/default.png" }}
                     key={uuid()}
                 />
             );
