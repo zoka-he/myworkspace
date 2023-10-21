@@ -78,16 +78,19 @@ class TaskService extends MysqlService {
             conditionValues = parseResult.values;
         }
 
-        let sql = `SELECT 
-            datestr, 
-            SUM(not_started) not_started, 
-            SUM(developing) developing, 
-            SUM(testing) testing, 
-            SUM(fuckable) fuckable, 
-            SUM(finished) finished 
-            from t_task_state_count ttsc 
-            ${conditionsSql} 
-            group by datestr LIMIT ?`;
+        let sql = `SELECT * FROM (
+                SELECT 
+                    datestr, 
+                    SUM(not_started) not_started, 
+                    SUM(developing) developing, 
+                    SUM(testing) testing, 
+                    SUM(fuckable) fuckable, 
+                    SUM(finished) finished 
+                    from t_task_state_count ttsc 
+                    ${conditionsSql} 
+                group by datestr 
+                order by datestr desc LIMIT ?
+            ) total order by datestr asc`;
 
         let data = await this.queryBySql(sql, [...conditionValues, limit]);
         console.debug('CumulativeData', data);
