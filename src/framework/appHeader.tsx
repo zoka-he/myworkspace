@@ -3,7 +3,6 @@ import { IRootState } from "../store"
 import { Input } from "antd"
 import { SearchOutlined } from '@ant-design/icons';
 import store from '@/src/store';
-import useDebounce from "../utils/hooks/useDebounce";
 import { setMenuSearchKey } from "@/src/store/navigatorSlice";
 
 const mapStateToProps = (state: IRootState) => {

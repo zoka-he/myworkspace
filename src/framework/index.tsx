@@ -21,13 +21,15 @@ const { Sider, Header, Content } = Layout;
 const mapStateToProps = (state: IRootState) => {
     return {
         navMenu: state.navigatorSlice.navMenu,
-        loginUser: state.loginSlice.user
+        loginUser: state.loginSlice.user,
+        menuSearchKey: state.navigatorSlice.menuSearchKey,
     }
 }
 
 interface IMainFrameProps {
     navMenu: any[],
-    loginUser: any
+    loginUser: any,
+    menuSearchKey: string
 }
 
 function MainFrame(props: IMainFrameProps) {
@@ -36,11 +38,59 @@ function MainFrame(props: IMainFrameProps) {
     let navigate = useNavigate();
     let permMap = useRef<Map<number, IPermission>>(new Map());
     let urlMap = useRef<Map<string, IPermission>>(new Map());
-    let session = useSession();
+
+    let [normalOpenKeys, setNormalOpenKeys] = useState<React.Key[]>([]);
+    let [openKeys, setOpenKeys] = useState<React.Key[]>([]);
+    let [menu, setMenu] = useState<any[]>([]);
 
     useEffect(() => {
         loadInitData();
     }, []);
+
+    useEffect(() => {
+        if (!props.menuSearchKey) {
+            setOpenKeys(normalOpenKeys);
+        } else {
+            let iter = permMap.current.values();
+            let keys: React.Key[] = [];
+            let rs = iter.next();
+            while(!rs.done) {
+                let item = rs.value;
+                if (item.PID !== -1 && item?.uri) {
+                    keys.push(item?.uri);
+                }
+                rs = iter.next();
+            }
+            setOpenKeys(keys);
+        }
+    }, [normalOpenKeys, props.menuSearchKey]);
+
+    useEffect(() => {
+        function filterMenu(menu: any[], key: string): any[] {
+            let menu2:any[] = [];
+
+            menu.forEach(item => {
+                if (item.children instanceof Array) {
+                    let children2 = filterMenu(item.children, key);
+                    if (children2.length) {
+                        menu2.push({ ...item, children: children2 });
+                    }
+                } else if (typeof item.label === 'string') {
+                    if (item.label.indexOf(key) > -1) {
+                        menu2.push({ ...item });
+                    }
+                }
+            });
+
+            return menu2;
+        }
+
+        if (!props.menuSearchKey) {
+            setMenu(props.navMenu);
+        } else {
+            setMenu(filterMenu(props.navMenu, props.menuSearchKey));
+        }
+    }, [props.menuSearchKey]);
 
     async function loadNavMenu(userPerms: IPermission[]) {
         let { tree, map, data } = await getPermissionTree.getNavMenu(userPerms);
@@ -81,6 +131,16 @@ function MainFrame(props: IMainFrameProps) {
         navigate(url);
     }
 
+    function onOpenChange(keys: React.Key[]) {
+        const latestOpenKey = keys.find(key => (normalOpenKeys || []).indexOf(key) === -1);
+        if (latestOpenKey) {
+            setNormalOpenKeys([latestOpenKey]);
+        } else {
+            setNormalOpenKeys([]);
+        }
+    };
+
+
     // 主页默认
     if (props?.loginUser && location.pathname === '/') {
         let to = props.loginUser.main_url || '/taskManage/dashboard';
@@ -96,8 +156,10 @@ function MainFrame(props: IMainFrameProps) {
                     theme="dark"
                     mode="inline"
                     inlineIndent={16}
-                    items={(props.navMenu as ItemType[])}
+                    items={(menu as ItemType[])}
                     onClick={e => onMenuClick(e)}
+                    openKeys={openKeys}
+                    onOpenChange={onOpenChange}
                 />
             </Sider>
             <Layout>
