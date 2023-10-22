@@ -39,8 +39,8 @@ function MainFrame(props: IMainFrameProps) {
     let permMap = useRef<Map<number, IPermission>>(new Map());
     let urlMap = useRef<Map<string, IPermission>>(new Map());
 
-    let [normalOpenKeys, setNormalOpenKeys] = useState<React.Key[]>([]);
-    let [openKeys, setOpenKeys] = useState<React.Key[]>([]);
+    let [normalOpenKeys, setNormalOpenKeys] = useState<string[]>([]);
+    let [openKeys, setOpenKeys] = useState<string[]>([]);
     let [menu, setMenu] = useState<any[]>([]);
 
     useEffect(() => {
@@ -52,7 +52,7 @@ function MainFrame(props: IMainFrameProps) {
             setOpenKeys(normalOpenKeys);
         } else {
             let iter = permMap.current.values();
-            let keys: React.Key[] = [];
+            let keys: string[] = [];
             let rs = iter.next();
             while(!rs.done) {
                 let item = rs.value;
@@ -131,7 +131,7 @@ function MainFrame(props: IMainFrameProps) {
         navigate(url);
     }
 
-    function onOpenChange(keys: React.Key[]) {
+    function onOpenChange(keys: string[]) {
         const latestOpenKey = keys.find(key => (normalOpenKeys || []).indexOf(key) === -1);
         if (latestOpenKey) {
             setNormalOpenKeys([latestOpenKey]);
