@@ -41,7 +41,7 @@ function MainFrame(props: IMainFrameProps) {
 
     let [normalOpenKeys, setNormalOpenKeys] = useState<string[]>([]);
     let [openKeys, setOpenKeys] = useState<string[]>([]);
-    let [menu, setMenu] = useState<any[]>([]);
+    let [menu, setMenu] = useState<any[]>(props.navMenu);
 
     useEffect(() => {
         loadInitData();
@@ -90,7 +90,7 @@ function MainFrame(props: IMainFrameProps) {
         } else {
             setMenu(filterMenu(props.navMenu, props.menuSearchKey));
         }
-    }, [props.menuSearchKey]);
+    }, [props.navMenu, props.menuSearchKey]);
 
     async function loadNavMenu(userPerms: IPermission[]) {
         let { tree, map, data } = await getPermissionTree.getNavMenu(userPerms);
