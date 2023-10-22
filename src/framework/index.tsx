@@ -12,6 +12,8 @@ import { useSession, signOut } from 'next-auth/react';
 import { LogoutOutlined, UserOutlined, SettingOutlined, FullscreenOutlined, FullscreenExitOutlined } from "@ant-design/icons";
 import fetch from '@/src/fetch';
 import { setLoginUser } from '../store/loginSlice';
+import AppHeader from './appHeader';
+import WorkspaceHeader from './workspaceHeader';
 
 
 const { Sider, Header, Content } = Layout;
@@ -19,27 +21,76 @@ const { Sider, Header, Content } = Layout;
 const mapStateToProps = (state: IRootState) => {
     return {
         navMenu: state.navigatorSlice.navMenu,
-        loginUser: state.loginSlice.user
+        loginUser: state.loginSlice.user,
+        menuSearchKey: state.navigatorSlice.menuSearchKey,
     }
 }
 
 interface IMainFrameProps {
     navMenu: any[],
-    loginUser: any
+    loginUser: any,
+    menuSearchKey: string
 }
 
 function MainFrame(props: IMainFrameProps) {
 
     let location = useLocation();
     let navigate = useNavigate();
-    // let [navMenu, setNavMenu] = useState<IPermission[]>([]);
     let permMap = useRef<Map<number, IPermission>>(new Map());
     let urlMap = useRef<Map<string, IPermission>>(new Map());
-    let session = useSession();
+
+    let [normalOpenKeys, setNormalOpenKeys] = useState<React.Key[]>([]);
+    let [openKeys, setOpenKeys] = useState<React.Key[]>([]);
+    let [menu, setMenu] = useState<any[]>([]);
 
     useEffect(() => {
         loadInitData();
     }, []);
+
+    useEffect(() => {
+        if (!props.menuSearchKey) {
+            setOpenKeys(normalOpenKeys);
+        } else {
+            let iter = permMap.current.values();
+            let keys: React.Key[] = [];
+            let rs = iter.next();
+            while(!rs.done) {
+                let item = rs.value;
+                if (item.PID !== -1 && item?.uri) {
+                    keys.push(item?.uri);
+                }
+                rs = iter.next();
+            }
+            setOpenKeys(keys);
+        }
+    }, [normalOpenKeys, props.menuSearchKey]);
+
+    useEffect(() => {
+        function filterMenu(menu: any[], key: string): any[] {
+            let menu2:any[] = [];
+
+            menu.forEach(item => {
+                if (item.children instanceof Array) {
+                    let children2 = filterMenu(item.children, key);
+                    if (children2.length) {
+                        menu2.push({ ...item, children: children2 });
+                    }
+                } else if (typeof item.label === 'string') {
+                    if (item.label.indexOf(key) > -1) {
+                        menu2.push({ ...item });
+                    }
+                }
+            });
+
+            return menu2;
+        }
+
+        if (!props.menuSearchKey) {
+            setMenu(props.navMenu);
+        } else {
+            setMenu(filterMenu(props.navMenu, props.menuSearchKey));
+        }
+    }, [props.menuSearchKey]);
 
     async function loadNavMenu(userPerms: IPermission[]) {
         let { tree, map, data } = await getPermissionTree.getNavMenu(userPerms);
@@ -80,32 +131,15 @@ function MainFrame(props: IMainFrameProps) {
         navigate(url);
     }
 
-    /**
-     * 渲染面包屑
-     * @returns 
-     */
-    function renderBreadcrumb() {
-        if (!urlMap.current || !permMap.current) {
-            return null;
+    function onOpenChange(keys: React.Key[]) {
+        const latestOpenKey = keys.find(key => (normalOpenKeys || []).indexOf(key) === -1);
+        if (latestOpenKey) {
+            setNormalOpenKeys([latestOpenKey]);
+        } else {
+            setNormalOpenKeys([]);
         }
+    };
 
-        let pathname = location.pathname;
-        let menuItem = urlMap.current.get(pathname);
-        console.debug('menuItem', menuItem);
-
-        let breadcrumbItems = [];
-        while (menuItem) {
-            breadcrumbItems.unshift(<Breadcrumb.Item key={menuItem.ID}>{menuItem.label}</Breadcrumb.Item>);
-
-            if (typeof menuItem.PID === 'number') {
-                menuItem = permMap.current.get(menuItem.PID);
-            } else {
-                menuItem = undefined;
-            }
-        }
-
-        return <Breadcrumb>{breadcrumbItems}</Breadcrumb>;
-    }
 
     // 主页默认
     if (props?.loginUser && location.pathname === '/') {
@@ -113,44 +147,25 @@ function MainFrame(props: IMainFrameProps) {
         return <Navigate to={to} />;
     }
 
-    let userLabel = null;
-    if (props?.loginUser?.nickname || session?.data?.user?.name) {
-        const openProfile = () => navigate('/user/profile?tabKey=1');
-        userLabel = <Button type="text" icon={<UserOutlined/>} onClick={openProfile}>{props?.loginUser?.nickname || session?.data?.user?.name}</Button>
-    }
-
-    let settingLabel = (
-        <Button type="text" icon={<SettingOutlined />} onClick={() => navigate('/user/profile?tabKey=2')}>设置</Button>
-    )
-
-
     return (
         <Layout className="f-fit-height">
             <Sider width={160}>
-                <div className='f-fit-width f-align-center' style={{ backgroundColor: 'rgb(40 83 155)' }}>
-                    <h2 style={{ color: 'white', lineHeight: '46px' }}>工作台</h2>
-                </div>
+                <AppHeader/>
                 <Menu
                     className="f-flex-1"
                     theme="dark"
                     mode="inline"
                     inlineIndent={16}
-                    items={(props.navMenu as ItemType[])}
+                    items={(menu as ItemType[])}
                     onClick={e => onMenuClick(e)}
+                    openKeys={openKeys}
+                    onOpenChange={onOpenChange}
                 />
             </Sider>
             <Layout>
                 <Content style={{ backgroundColor: 'white' }}>
                     <div className="m-mainframe_context f-fit-height f-flex-col f-bg-white f-vertical-scroll">
-                        <div className="m-mainframe_context-mainheader">
-                            <span>{renderBreadcrumb()}</span>
-                            <Space size={16}>
-                                {userLabel}
-                                {settingLabel}
-                                {/* <Button type="text" icon={<FullscreenOutlined />}>全屏</Button> */}
-                                <Button danger type="primary" icon={<LogoutOutlined />} style={{ width: 40 }} onClick={() => signOut()}></Button>
-                            </Space>
-                        </div>
+                        <WorkspaceHeader urlMap={urlMap.current} permMap={permMap.current}/>
                         <div className="m-mainframe_context-outlet f-flex-1" style={{ margin: '12px 0 0' }}>
                             {/* 主界面 */}
                             <Outlet />

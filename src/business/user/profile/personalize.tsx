@@ -26,8 +26,12 @@ function Personalize(props: IPersonalizeProps) {
         onLoad();
     }, []);
 
+    useEffect(() => {
+        onLoad();
+    }, [props.loginUser]);
+
     function onLoad() {
-        chHomeForm.setFieldValue('main_url', props.loginUser.main_url);
+        chHomeForm.setFieldValue('main_url', props.loginUser?.main_url || null);
     }
 
     async function onFinish(formData: any) {
