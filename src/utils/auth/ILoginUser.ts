@@ -1,4 +1,4 @@
-import { IPermission } from "@/pages/api/user/permission/type"
+import { IPermission } from "@/pages/api/web/user/permission/type"
 
 interface ILoginUser {
     ID: number

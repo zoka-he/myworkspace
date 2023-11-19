@@ -24,20 +24,28 @@ const pcInterceptor = withAuth(
 
 export default function middleware(request: NextRequestWithAuth, event: NextFetchEvent) {
 
+    let pathname = request.nextUrl.pathname;
+
     // 静态资源放行
-    if (/^(\/mapicons|\/scripts|\/_next)/.test(request.nextUrl.pathname)) {
+    if (/^(\/mapicons|\/scripts|\/_next)/.test(pathname)) {
         return NextResponse.next();
     }
 
     // pc登录相关页面直接放行
-    if (/^(\/api\/auth|\/login)/.test(request.nextUrl.pathname)) {
+    if (/^(\/api\/auth|\/login)/.test(pathname)) {
         return NextResponse.next();
     }
 
-    console.debug('access -->>', request.nextUrl.pathname);
+    // app登录相关页面直接放行
+    if (/^(\/app\/login)/.test(pathname)) {
+        console.debug('origin req ------->>>>>', request);
+        return NextResponse.next();
+    }
+
+    console.debug('access -->>', pathname);
 
     // app相关页面，使用app拦截器
-    if (/^(\/app)/.test(request.nextUrl.pathname)) {
+    if (/^(\/app)/.test(pathname)) {
         return appInterceptor(request);
     }
     

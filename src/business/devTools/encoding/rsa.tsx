@@ -32,17 +32,33 @@ export default function() {
     }
 
     function doEncrypt() {
-        let cipher = new NodeRSA();
-        cipher.importKey(pubKey, 'pkcs1-public-pem');
-
-        setSecret(cipher.encrypt(srcText, 'base64'));
+        try {
+            let cipher = new NodeRSA(
+                pubKey, 
+                'pkcs1-public-pem', 
+                {
+                    encryptionScheme: 'pkcs1'
+                }
+            );
+            setSecret(cipher.encrypt(srcText, 'base64'));
+        } catch(e: any) {
+            message.error(e.message);
+        }
     }
 
     function doDecrypt() {
-        let cipher = new NodeRSA();
-        cipher.importKey(priKey, 'pkcs1-private-pem');
-
-        setSrcText(cipher.decrypt(secret, 'utf8'));
+        try {
+            let cipher = new NodeRSA(
+                priKey, 
+                'pkcs1-private-pem',
+                {
+                    encryptionScheme: 'pkcs1'
+                }
+            );
+            setSrcText(cipher.decrypt(secret, 'utf8'));
+        } catch(e: any) {
+            message.error(e.message);
+        }
     }
 
     function doCopy(payload: string, hint: string) {
@@ -66,11 +82,12 @@ export default function() {
                     <td>
                         <Input.TextArea 
                             rows={7}
-                            disabled={pending || !pubKey}
+                            disabled={pending}
                             value={pubKey} 
                             onInput={e => setPubKey((e.target as HTMLInputElement).value)}
                         ></Input.TextArea>
                         <Button type="link"
+                            disabled={!pubKey}
                             onClick={() => doCopy(pubKey, '已复制公钥')}
                         >&gt;&gt;&nbsp;复制</Button>
                     </td>
@@ -78,11 +95,12 @@ export default function() {
                     <td>
                         <Input.TextArea 
                             rows={7}
-                            disabled={pending || !priKey}
+                            disabled={pending}
                             value={priKey}
                             onInput={e => setPriKey((e.target as HTMLInputElement).value)}
                         ></Input.TextArea>
                         <Button type="link"
+                            disabled={!priKey}
                             onClick={() => doCopy(priKey, '已复制私钥')}
                         >&gt;&gt;&nbsp;复制</Button>
                     </td>
@@ -109,11 +127,11 @@ export default function() {
                             <Button
                                 disabled={pending || !pubKey}
                                 onClick={doEncrypt}
-                            >⬆️加密⬆️</Button>
+                            >⬇️加密⬇️</Button>
                             <Button
                                 disabled={pending || !priKey}
                                 onClick={doDecrypt}
-                            >⬇️解密⬇️</Button>
+                            >⬆️解密⬆️</Button>
                         </Space>
                     </td>
                 </tr>
