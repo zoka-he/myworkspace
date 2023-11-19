@@ -23,6 +23,8 @@ const UserRole = lazy(() => import('../business/user/role'));
 const UserProfile = lazy(() => import('../business/user/profile'));
 const TaskFigure = lazy(() => import('../business/taskManage/taskFigures'));
 
+const DevEncoding = lazy(() => import('../business/devTools/encoding'));
+
 async function mainFrameLoader() {
     let matches = useMatches();
     console.debug('matches', matches);
@@ -57,6 +59,8 @@ export default function () {
                     <Route path="user/account" element={<UserAccount />} />
                     <Route path="user/role" element={<UserRole />} />
                     <Route path="user/profile" element={<UserProfile />} />
+
+                    <Route path="devTools/encoding" element={<DevEncoding />} />
 
                     <Route path="*" element={<div><h1>此页面尚未实现！</h1></div>} />
                 </Route>
