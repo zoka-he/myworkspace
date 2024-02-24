@@ -284,7 +284,7 @@ export default function(props: IDayViewerProps) {
             <Button type="link" icon={<EditOutlined/>} size="small"
                 onClick={() => callHook(EDayViewerHookNames.onEdit)}
             >修改</Button>
-            <Button type="link" icon={<CloseOutlined/>} size="small" danger disabled={!!props.next}
+            <Button type="link" icon={<CloseOutlined/>} size="small" danger
                 onClick={() => callHook(EDayViewerHookNames.onDelete)}/>
         </Space>
     }

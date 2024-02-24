@@ -1,44 +1,26 @@
-import LoginAccountService from "@/src/services/user/loginAccountService";
+import jwtSecretKey from '@/src/utils/appAuth/jwt.pem';
+import { jwtVerify, type JWTPayload } from 'jose';
 
 interface IVerifyResult {
     success: boolean
     message: string
-}
-
-function isValidJwt(jwt: string) {
-    return false;
-}
-
-function getJwtPayload(jwt: string) {
-    return {
-        username: '',
-        UID: -1
-    };
-}
-
-function isValidLoginAccount(jwtPayload: any) {
-    return false;
+    username?: string
+    id?: string
 }
 
 export default async function verifyJwt(jwt: string): Promise<IVerifyResult> {
-    if (!isValidJwt(jwt)) {
-        return {
-            success: false,
-            message: 'invalid token(1)'
-        };
-    }
-
-    let payload = getJwtPayload(jwt);
-
-    if (!isValidLoginAccount(payload)) {
+    let { payload } = await jwtVerify(jwt, new TextEncoder().encode(jwtSecretKey));
+    if (!payload) {
         return {
             success: false,
             message: 'invalid token(2)'
         }
     } else {
+        console.debug(`---->> user ${payload} access from app`);
         return {
             success: true,
-            message: 'ok'
+            message: 'ok',
+            ...payload
         }
     }
 }

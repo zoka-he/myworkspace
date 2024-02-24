@@ -7,7 +7,8 @@ const connPool = mysql.createPool({
     port: config.MYSQL_PORT,
     user: config.MYSQL_USER,
     password: config.MYSQL_PASSWORD
-})
+});
+
 
 process.on('exit', async (code) => {
     try {

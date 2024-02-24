@@ -2,6 +2,7 @@ import { ILoginUser } from "@/src/utils/auth/ILoginUser";
 import service from "@/src/utils/mysql/service";
 import { ISqlCondMap } from "@/src/utils/mysql/types";
 import sm2prikey from '@/src/utils/cipher/sm2/loginPri.json';
+import decodeLoginInfo from "@/src/utils/appAuth/decodeLoginInfo";
 
 const smCrypto = require('sm-crypto');
 
@@ -52,13 +53,21 @@ export default class LoginAccountService extends service {
         return result;
     }
 
-    async verifyUser(payload?: string): Promise<ILoginUser | null> {
+    async verifyUser(
+        payload?: string, 
+        algorithm: 'sm2' | 'rsa' = 'sm2'
+    ): Promise<ILoginUser | null> {
         if (!payload) {
             return null;
         }
 
         try {
-            let formJson = smCrypto.sm2.doDecrypt(payload, sm2prikey);
+            let formJson = ''; 
+            if (algorithm === 'sm2') {
+                formJson = smCrypto.sm2.doDecrypt(payload, sm2prikey);
+            } else if (algorithm === 'rsa') {
+                formJson = decodeLoginInfo(payload);
+            }
             let formData = JSON.parse(formJson);
             if (formData.username && formData.password) {
                 let user: unknown = await this.queryOne({ 
