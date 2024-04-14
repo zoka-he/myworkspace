@@ -1,29 +1,30 @@
 import React from "react";
-import {Form, Modal, Input, Button, message, Radio, FormInstance} from "antd";
-import _, { update } from 'lodash';
-// import InteractService from "./interactService";
+import {Form, Modal, Input, Select, Button, message, DatePicker, Radio} from "antd";
+import _ from 'lodash';
+// import BugService from "./bugService";
 import moment from "moment";
-import EmployeeInput from '../commonComponent/employeeInput';
-import TaskSelect from '../commonComponent/taskSelect';
-import {ITaskData} from "@/src/types/ITaskData";
+import EmployeeInput from '../../commonComponent/employeeInput';
+import TaskSelect from '../../commonComponent/taskSelect';
 import fetch from '@/src/fetch';
 
-interface IInteractEditorProps {
-    onFinish: Function
+function date2string(date, format) {
+    if (date) {
+        return moment(date).format(format);
+    } else {
+        return null;
+    }
 }
 
-interface IInteractEditorState {
-    modalOpen: boolean,
-    loading: boolean
+function string2date(s) {
+    if (s) {
+        return moment(s);
+    } else {
+        return null;
+    }
 }
 
-class InteractEditor extends React.Component<IInteractEditorProps, IInteractEditorState> {
-
-    private mForm: FormInstance | null;
-    private oldData: any;
-    private formDefault: ITaskData;
-
-    constructor(props: any) {
+class BugEditor extends React.Component {
+    constructor(props) {
         super(props);
 
         this.state = {
@@ -48,17 +49,17 @@ class InteractEditor extends React.Component<IInteractEditorProps, IInteractEdit
         this.oldData = null;
     }
 
-    parseAndFixData(data: any) {
+    parseAndFixData(data) {
         // 避开antd识别日期的坑
         this.mForm?.setFieldsValue(_.clone(data));
     }
 
-    showAndEdit(task: any) {
+    showAndEdit(data) {
         this.setState({
             modalOpen: true
         });
 
-        this.oldData = _.clone(task);
+        this.oldData = _.clone(data);
         this.parseAndFixData(this.oldData);
     }
 
@@ -66,7 +67,7 @@ class InteractEditor extends React.Component<IInteractEditorProps, IInteractEdit
      * 打开，并自动附带上任务ID
      * @param task
      */
-    showWithTask(task: any) {
+    showWithTask(task) {
         let { ID } = task;
         this.setState({
             modalOpen: true
@@ -76,9 +77,9 @@ class InteractEditor extends React.Component<IInteractEditorProps, IInteractEdit
         this.mForm?.setFieldsValue(this.oldData);
     }
 
-    onFormRef(comp: FormInstance<any> | null) {
+    onFormRef(comp) {
         this.mForm = comp;
-        if (comp && this.oldData) {
+        if (this.oldData) {
             this.parseAndFixData(this.oldData);
         }
     }
@@ -90,7 +91,7 @@ class InteractEditor extends React.Component<IInteractEditorProps, IInteractEdit
         this.mForm?.resetFields();
     }
 
-    async onFinish(values: any) {
+    async onFinish(values) {
         this.hide();
 
         if (this.oldData?.ID) {
@@ -99,14 +100,14 @@ class InteractEditor extends React.Component<IInteractEditorProps, IInteractEdit
             delete updateObj['create_time'];
             updateObj.update_time = moment().format('YYYY-MM-DD HH:mm:ss');
 
-            // await new InteractService().updateOne(this.oldData, updateObj);
-            await fetch.post('/api/interact', updateObj, { params: { ID: this.oldData.ID } });
+            // await new BugService().updateOne(this.oldData, updateObj);
+            await fetch.post('/api/bug', updateObj, { params: { ID: this.oldData.ID } });
         } else {
             let createObj = _.clone(values);
             createObj.create_time = moment().format('YYYY-MM-DD HH:mm:ss');
 
-            // await new InteractService().insertOne(createObj);
-            await fetch.post('/api/interact', createObj);
+            // await new BugService().insertOne(createObj);
+            await fetch.post('/api/bug', createObj);
         }
 
         if (this.props.onFinish) {
@@ -126,29 +127,37 @@ class InteractEditor extends React.Component<IInteractEditorProps, IInteractEdit
     render() {
         return (
             <>
-                <Modal title={'编辑沟通日志'} open={this.state.modalOpen} onCancel={e => this.onCancel()} footer={null}>
+                <Modal title={'编辑BUG'} open={this.state.modalOpen} onOk={e => this.onOk(e)} onCancel={e => this.onCancel(e)} footer={null}>
                     <Form ref={comp => this.onFormRef(comp)} labelCol={{ span: 6 }} wrapperCol={{ span: 16 }} initialValues={this.formDefault}
                           onFinish={e => this.onFinish(e)}
-                          onFinishFailed={e => this.onFinishedFailed()}
+                          onFinishFailed={e => this.onFinishedFailed(e)}
                     >
                         <Form.Item label={'关联任务'} name={'task_id'} rules={[{ required: true, message: '任务名为必填！' }]}>
                             <TaskSelect/>
                         </Form.Item>
-                        <Form.Item label={'提议人'} name={'employee'}>
+                        <Form.Item label={'上报渠道'} name={'source'}>
+                            <Input/>
+                        </Form.Item>
+                        <Form.Item label={'责任人'} name={'employee'}>
                             <EmployeeInput/>
                         </Form.Item>
-                        <Form.Item label={'提议内容'} name={'message'}>
+                        <Form.Item label={'BUG描述'} name={'detail'}>
                             <Input.TextArea/>
                         </Form.Item>
-                        <Form.Item label={'来源'} name={'source'}>
-                            <Radio.Group name="source" defaultValue={'email'}>
-                                <Radio value={'email'}>邮件</Radio>
-                                <Radio value={'oa'}>OA</Radio>
-                                <Radio value={'bb'}>口头</Radio>
+                        <Form.Item label={'解决状态'} name={'status'}>
+                            <Radio.Group name="resolve_status" defaultValue={0}>
+                                <Radio value={0}>未复现</Radio>
+                                <Radio value={1}>已复现</Radio>
+                                <Radio value={2}>修复中</Radio>
+                                <Radio value={3}>待复验</Radio>
+                                <Radio value={4}>已关闭</Radio>
                             </Radio.Group>
                         </Form.Item>
-                        <Form.Item label={'答复内容'} name={'re_message'}>
+                        <Form.Item label={'解决方案'} name={'solution'}>
                             <Input.TextArea/>
+                        </Form.Item>
+                        <Form.Item label={'复核人'} name={'tester'}>
+                            <EmployeeInput/>
                         </Form.Item>
                         <div className={'f-align-center'}>
                             <Button style={{ width: '200px' }} type="primary" htmlType="submit">
@@ -162,4 +171,4 @@ class InteractEditor extends React.Component<IInteractEditorProps, IInteractEdit
     }
 }
 
-export default InteractEditor;
+export default BugEditor;

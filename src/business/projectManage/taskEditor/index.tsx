@@ -3,7 +3,7 @@ import {Form, Modal, Input, Select, Button, message, DatePicker, FormInstance} f
 import _ from 'lodash';
 // import TaskService from "../taskManage/taskService";
 import moment from "moment";
-import EmployeeInput from '../commonComponent/employeeInput';
+import EmployeeInput from '../../commonComponent/employeeInput';
 import {ITaskData} from "@/src/types/ITaskData";
 import fetch from '@/src/fetch';
 import Dayjs from 'dayjs';

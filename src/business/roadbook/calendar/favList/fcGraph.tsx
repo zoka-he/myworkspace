@@ -140,27 +140,32 @@ export default function(props: IFcGraph) {
 
     function renderIcons(data: any[], left: number, top: number, width: number, height: number) {
 
+        let prevIcon = data[0].icon;
         let prevDesc = data[0].desc;
-        let sameCnt = 0;
-        let sameStart = 0;
+
+        let sameIconCnt = 0;
+        let sameIconStart = 0;
+
+        let sameDescCnt = 0;
+        let sameDescStart = 0;
 
         let icons: any[] = [];
         let rects: any[] = [];
 
         function pushAnIcon() {
             let size = 24;
-            let iTop = top + 70, iLeft = g_dayWidth * sameStart + g_dayWidth * sameCnt / 2 + 0.5;
-            let href = Openweather.getIconUrl(data[sameStart].icon);
+            let iTop = top + 70, iLeft = g_dayWidth * sameIconStart + g_dayWidth * sameIconCnt / 2 + 0.5;
+            let href = Openweather.getIconUrl(data[sameIconStart].icon);
 
             icons.push(<image className="icon" href={href} x={iLeft} y={iTop} height={size} width={size}></image>);
         }
 
         function pushARect() {
-            let iLeft = left + g_dayWidth * (sameStart - 0.5), iTop = top, iWidth = g_dayWidth * (sameCnt + 1), iHeight = height;
+            let iLeft = left + g_dayWidth * (sameDescStart - 0.5), iTop = top, iWidth = g_dayWidth * (sameDescCnt + 1), iHeight = height;
             let rectid = rects.length;
             let isHover = rectid == activeRect;
-            let isGoodWeather = /^(晴|少云|多云)/.test(data[sameStart].desc);
-            let isBadWeather = /^(中雨|大雨|暴雨)/.test(data[sameStart].desc);
+            let isGoodWeather = /^(晴|少云|多云)/.test(data[sameDescStart].desc);
+            let isBadWeather = /^(中雨|大雨|暴雨)/.test(data[sameDescStart].desc);
 
             let filltype = 'none';
             if (isHover) {
@@ -194,19 +199,40 @@ export default function(props: IFcGraph) {
             );
         }
 
+        // 合并同类 icon
         for (let i = 1; i < data.length; i++) {
+            let icon = data[i].icon;
             let desc = data[i].desc;
 
-            if (desc === prevDesc) {
-                sameCnt += 1;
+            if (icon === prevIcon) {
+                sameIconCnt += 1;
+                sameDescCnt += 1;
             } else {
                 pushAnIcon();
+                sameIconCnt = 0;
+                sameIconStart = i;
+                prevIcon = icon;
+                
                 pushARect();
-                sameCnt = 0;
-                sameStart = i;
+                sameDescCnt = 0;
+                sameDescStart = i;
                 prevDesc = desc;
             }
         }
+
+        // 合并同类 desc
+        // for (let i = 1; i < data.length; i++) {
+        //     let desc = data[i].desc;
+
+        //     if (desc === prevDesc) {
+        //         sameDescCnt += 1;
+        //     } else {
+        //         pushARect();
+        //         sameDescCnt = 0;
+        //         sameDescStart = i;
+        //         prevDesc = prevDesc;
+        //     }
+        // }
 
         pushAnIcon();
         pushARect();
