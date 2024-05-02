@@ -46,6 +46,10 @@ class TaskService extends MysqlService {
                 SELECT task_id bug_tid, count(*) bug_cnt FROM t_bugs where status < 4 group by bug_tid
             ) tb
             on tt.ID=tb.bug_tid
+            left join (
+                SELECT task_id bug_tid, GROUP_CONCAT(detail ORDER BY create_time desc SEPARATOR '|||') AS bug_titles FROM t_bugs where status < 4 group by bug_tid
+            ) tb_titles
+            on tt.ID=tb_titles.bug_tid
             order by priority desc, disp_order asc`;
         return await this.queryBySql(sql, values);
     }

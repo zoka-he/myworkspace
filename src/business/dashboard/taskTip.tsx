@@ -21,10 +21,12 @@ class TaskTip extends Component<ITaskTipProps>{
         emitter(task)
     }
 
+
+
     render() {
         let taskData = this.props.taskData;
         // @ts-ignore
-        let { ID, task_name, employee, problems, detail, priority, fuck_date, deadline_time, msg_cnt, bug_cnt, sys_name } = taskData;
+        let { ID, task_name, employee, bug_titles, detail, priority, fuck_date, deadline_time, msg_cnt, bug_cnt, sys_name } = taskData;
         if (!msg_cnt) msg_cnt = 0;
         if (!bug_cnt) bug_cnt = 0;
 
@@ -52,7 +54,7 @@ class TaskTip extends Component<ITaskTipProps>{
             </div>;
         }
 
-        // 显示bug
+        // 显示bug按钮
         let renderBug = null;
         // if (bug_cnt) {
             const emitBugViewer = () => {
@@ -64,7 +66,7 @@ class TaskTip extends Component<ITaskTipProps>{
             if (bug_cnt) {
                 bugClassName.push('f-red');
             }
-            renderBug = <Button className={bugClassName.join(' ')} type={"text"} size={"small"} onClick={emitBugViewer}>问题({bug_cnt})</Button>
+            renderBug = <Button className={bugClassName.join(' ')} type={"text"} size={"small"}>问题({bug_cnt})</Button>
         // }
 
         // 显示沟通记录
@@ -79,15 +81,16 @@ class TaskTip extends Component<ITaskTipProps>{
             if (msg_cnt) {
                 msgClassName.push('f-orange');
             }
-            renderCatflight = <Button className={msgClassName.join(' ')} type={"text"} onClick={emitMsgViewer}>沟通记录({msg_cnt})</Button>
+            renderCatflight = <Button className={msgClassName.join(' ')} type={"text"}>沟通记录({msg_cnt})</Button>
         // }
 
         // 显示问题简要描述
         let renderProblems = null;
-        if (problems) {
+        if (typeof bug_titles === 'string') {
+            let problems = bug_titles.split('|||').map(item => <li style={{ padding: '0', margin: '0', fontSize: '10px' }}>{item}</li>);
+
             renderProblems = <div className="m_tasktip-problems">
-                <h5 style={{color: 'darkred'}}>主要问题：</h5>
-                <pre>{problems}</pre>
+                <ul style={{ listStyle: 'decimal', paddingInlineStart: '15px', margin: '2px 0' }}>{problems}</ul>
             </div>
         }
 
@@ -100,6 +103,14 @@ class TaskTip extends Component<ITaskTipProps>{
         }
         renderExtraBtns = <div className={extraClassName.join(' ')}>{extraBtns}</div>;
 
+
+        let renderEmployee = null;
+        if (employee) {
+            renderEmployee = <dl>
+                <dt>负责人：</dt>
+                <dd>{employee}</dd>
+            </dl>;
+        }
 
         // 显示上线时间
         let renderFuckDate = null;
@@ -122,19 +133,16 @@ class TaskTip extends Component<ITaskTipProps>{
         let title = [sys_name, task_name].filter(s => s).join('：')
 
         return (
-            <div className={`m_tasktip f-inline-block ${tipStyle}`}>
+            <div className={`m_tasktip f-inline-block ${tipStyle}`} onClick={() => this.emitToEditor(taskData)}>
                 <div className="m_tasktip-title">
                     <h4>
                         <span className={taskNameStyle}>{title}</span>
-                        <Button size={'small'} type={'link'} icon={<EditOutlined />} onClick={() => this.emitToEditor(taskData)}/>
+                        {/* <Button size={'small'} type={'link'} icon={<EditOutlined />} onClick={() => this.emitToEditor(taskData)}/> */}
                     </h4>
                 </div>
                 <div className="m_tasktip-context">
                     <div className="m_tasktip-props">
-                        <dl>
-                            <dt>负责人：</dt>
-                            <dd>{employee || '<无>'}</dd>
-                        </dl>
+                        {renderEmployee}
                         {renderFuckDate}
                         {renderDeadlineTime}
                     </div>
