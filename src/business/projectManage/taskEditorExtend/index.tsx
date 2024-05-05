@@ -148,23 +148,40 @@ class TaskEditor extends React.Component<ITaskEditorProp, ITaskEditorState & {}>
 
     onCancel() {
         this.hide();
+        if (!!this.oldTask && this.props.onFinish) {
+            this.props.onFinish();
+        }
     }
 
     render() {
         console.debug(this.oldTask);
 
+        let leftPanel = null;
+        let leftPanelSize = 0;
+        let rightPanelSize = 24;
+        let modelWidth = '650px';
+
+        if (!!this.oldTask) {
+            leftPanelSize = 16;
+            rightPanelSize = 8;
+            modelWidth = '80vw';
+
+            leftPanel = <Col className="f-fit-height" span={leftPanelSize}>
+                <div className="f-fit-height" style={{ borderRight: '1px #eee solid' }}>
+                    <FormTabs taskId={this.state.taskId}></FormTabs>
+                </div>
+                <p>&nbsp;</p>
+            </Col>
+        }
+
         return (
             <>
-                <Modal title={'任务信息'} open={this.state.modalOpen} onCancel={e => this.onCancel()} footer={null} width={'80vw'}>
+                <Modal title={'任务信息'} open={this.state.modalOpen} onCancel={e => this.onCancel()} footer={null} width={modelWidth}>
                     <div style={{ height: '600px' }}>
                         <Row className="f-fit-height">
-                            <Col className="f-fit-height" span={16}>
-                                <div className="f-fit-height" style={{ borderRight: '1px #eee solid' }}>
-                                    <FormTabs taskId={this.state.taskId}></FormTabs>
-                                </div>
-                                <p>&nbsp;</p>
-                            </Col>
-                            <Col span={8}>
+                            {leftPanel}
+
+                            <Col span={rightPanelSize}>
                                 <Form ref={comp => this.onFormRef(comp)} labelCol={{ span: 6 }} wrapperCol={{ span: 16 }} initialValues={this.formDefault}
                                     onFinish={e => this.onFinish(e)}
                                     onFinishFailed={e => this.onFinishedFailed(e)}

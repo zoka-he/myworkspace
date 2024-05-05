@@ -39,7 +39,7 @@ function ProblemItem(props: IProblemItemProps) {
     }
 
     return (
-        <div>
+        <div style={{ margin: '10px 0' }}>
             <div className="f-two-side">
                 <div className="f-vertical-middle">
                     <strong>{qTitle}</strong>
@@ -47,7 +47,7 @@ function ProblemItem(props: IProblemItemProps) {
                     <Tag>{tagText}</Tag>
                 </div>
                 <Space>
-                    <span>创建日期：{DayJS(create_time).format('YYYY-MM-DD HH:mm:ss')}</span>
+                    <span>创建于：{DayJS(create_time).format('YYYY-MM-DD')}</span>
                     <Button type="link" size="small" onClick={() => onEditButtonClick()}>编辑</Button>
                     <Button type="link" size="small" danger onClick={() => onDeleteButtonClick()}>关闭</Button>
                 </Space>
@@ -147,11 +147,11 @@ export default function(props: IProblemListProps) {
 
     return (
         <div>
-            {items}
             <Space align="center" className="f-fit-width">
                 <Button icon={<PlusOutlined/>} type="dashed" style={{ width: '20em' }} onClick={() => onCreateProblem()}>添加问题</Button>
                 <Button onClick={() => onQueryList()}>刷新</Button>
             </Space>
+            {items}
             <BugEditor ref={mEditor} onFinish={() => onQueryList()}/>
         </div>
     )    
