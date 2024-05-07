@@ -177,7 +177,7 @@ class TaskEditor extends React.Component<ITaskEditorProp, ITaskEditorState & {}>
         return (
             <>
                 <Modal title={'任务信息'} open={this.state.modalOpen} onCancel={e => this.onCancel()} footer={null} width={modelWidth}>
-                    <div style={{ height: '600px' }}>
+                    <div style={{ height: '520px' }}>
                         <Row className="f-fit-height">
                             {leftPanel}
 
