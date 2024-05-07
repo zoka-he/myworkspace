@@ -16,6 +16,7 @@ export default function() {
     let [queryName, setQueryName] = useState('');
     let [queryMapType, setQueryMapType] = useState('gaode');
     let [queryPreferMonth, setQueryPreferMonth] = useState<null | number>(null);
+    let [queryUseWeather, setQueryUseWeather] = useState<null | string>(null);
     let [spinning, setSpinning] = useState(false);
     let [listData, setListData] = useState<any[]>([]);
     let [filteredData, setFilteredData] = useState<any[]>([]);
@@ -53,10 +54,18 @@ export default function() {
                 }
             }
 
+            if (typeof queryUseWeather === 'string') {
+                if (queryUseWeather === '1' && !item.use_weather) {
+                    return false;
+                } else if (queryUseWeather === '0' && item.use_weather) {
+                    return false;
+                }
+            }
+
             return true;
         })
         setFilteredData(list2);
-    }, [listData, queryName, queryPreferMonth]);
+    }, [listData, queryName, queryPreferMonth, queryUseWeather]);
 
     function onBmapReady(_bmap: any, _amap: any) {
         console.debug('onMapReady', _bmap, _amap);
@@ -227,6 +236,16 @@ export default function() {
                     <Select.Option value={10}>十月</Select.Option>
                     <Select.Option value={11}>十一月</Select.Option>
                     <Select.Option value={12}>十二月</Select.Option>
+                </Select>
+                <label>天气预报：</label>
+                <Select 
+                    value={queryUseWeather} 
+                    onChange={e => setQueryUseWeather(e)}
+                    placeholder="全部"
+                    allowClear
+                >
+                    <Select.Option value={'1'}>开启</Select.Option>
+                    <Select.Option value={'0'}>关闭</Select.Option>
                 </Select>
                 <label>地图类型：</label>
                 <Radio.Group value={queryMapType} onChange={e => setQueryMapType(e.target.value)}>

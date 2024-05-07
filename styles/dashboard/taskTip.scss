@@ -10,26 +10,15 @@
       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     }
 
-    &.emerg {
-      border: 1px #fdd solid;
-    }
-
-    &.pause {
-      border: 1px #eee solid;
-    }
+    
 
     &-title {
       background-color: #cee;
-      padding: 2px 6px 0px;
-    }
+      padding: 2px 6px 3px;
 
-    &.emerg &-title {
-      background-color: #fee;
-    }
-
-    &.pause &-title {
-      background-color: #e7e7e7;
-      color: gray;
+      h4 {
+        margin: 0;
+      }
     }
 
     &-context {
@@ -59,11 +48,13 @@
       text-overflow: ellipsis;
       line-height: 1.2;
       font-size: 10px;
-      color: gray;
+      color: rgb(64, 64, 64);
       padding-top: 5px;
     }
 
     &-problems {
+      margin-top: -5px;
+
       pre, h5 {
         font-size: 10px;
         padding: 0;
@@ -100,5 +91,22 @@
     margin-right: 10px;
     margin-bottom: 10px;
     min-width: 200px;
+  }
+}
+
+.m_tasktip.pause {
+  border: 1px #eee solid;
+
+  .m_tasktip-title {
+    background-color: #e7e7e7;
+    color: gray;
+  }
+}
+
+.m_tasktip.emerg {
+  border: 1px #fdd solid;
+
+  .m_tasktip-title {
+    background-color: #fee;
   }
 }

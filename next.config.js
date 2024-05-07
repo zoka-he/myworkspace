@@ -7,8 +7,20 @@ const nextConfig = {
     console.debug('=============== >> rewrite called');
     return [
       {
+        source: '/api/app/:path*',
+        destination: '/api/app/:path*'
+      },
+      {
+        source: '/app/:path*',
+        destination: '/api/app/:path*'
+      },
+      {
+        source: '/api/web/:path*',
+        destination: '/api/web/:path*',
+      },
+      {
         source: '/api/:path*',
-        destination: '/api/:path*',
+        destination: '/api/web/:path*',
       },
       {
         source: '/login/:path*',

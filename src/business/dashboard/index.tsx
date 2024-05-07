@@ -6,9 +6,9 @@ import TaskTip from "./taskTip";
 import {Button, Input, message, Space, Switch, Select} from "antd";
 
 // import TaskService from "../taskManage/taskService";
-import TaskEditor from "../taskEditor";
-import InteractViewer from '../catfightLog/interactViewer';
-import BugViewer from '../bugTrace/bugViewer';
+import TaskEditor from "../projectManage/taskEditorExtend";
+import InteractViewer from '../projectManage/catfightLog/interactViewer';
+import BugViewer from '../projectManage/bugTrace/bugViewer';
 
 import _ from 'lodash';
 

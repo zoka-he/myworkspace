@@ -5,12 +5,12 @@ import { BrowserRouter, Routes, Route, Navigate, useMatches } from 'react-router
 import MainFrame from '../framework';
 import WishBoard from "../business/roadbook/wishBoard";
 const Dashboard = lazy(() => import("../business/dashboard"));
-const TaskManage = lazy(() => import('../business/taskManage'));
-const EmployeeManage = lazy(() => import('../business/employeeManage'));
-const BugTrace = lazy(() => import('../business/bugTrace'));
-const CatfightLog = lazy(() => import('../business/catfightLog'));
-const UplineCheck = lazy(() => import('../business/fuckCheck'));
-const WeekReport = lazy(() => import('../business/weeklyReport'));
+const TaskManage = lazy(() => import('../business/projectManage/taskManage'));
+const EmployeeManage = lazy(() => import('../business/projectManage/employeeManage'));
+const BugTrace = lazy(() => import('../business/projectManage/bugTrace'));
+const CatfightLog = lazy(() => import('../business/projectManage/catfightLog'));
+const UplineCheck = lazy(() => import('../business/projectManage/fuckCheck'));
+const WeekReport = lazy(() => import('../business/projectManage/weeklyReport'));
 const RoadBookPlanBoard = lazy(() => import('../business/roadbook/planBoard'));
 const RoadBookEditor = lazy(() => import('../business/roadbook/roadBookEditor'));
 const AccountManage = lazy(() => import('../business/accountManage'));
@@ -21,7 +21,9 @@ const Permission = lazy(() => import('../business/user/permission/index'));
 const UserAccount = lazy(() => import('../business/user/account'));
 const UserRole = lazy(() => import('../business/user/role'));
 const UserProfile = lazy(() => import('../business/user/profile'));
-const TaskFigure = lazy(() => import('../business/taskManage/taskFigures'));
+const TaskFigure = lazy(() => import('../business/projectManage/taskManage/taskFigures'));
+
+const DevEncoding = lazy(() => import('../business/devTools/encoding'));
 
 async function mainFrameLoader() {
     let matches = useMatches();
@@ -57,6 +59,8 @@ export default function () {
                     <Route path="user/account" element={<UserAccount />} />
                     <Route path="user/role" element={<UserRole />} />
                     <Route path="user/profile" element={<UserProfile />} />
+
+                    <Route path="devTools/encoding" element={<DevEncoding />} />
 
                     <Route path="*" element={<div><h1>此页面尚未实现！</h1></div>} />
                 </Route>

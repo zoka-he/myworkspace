@@ -442,14 +442,15 @@ export default class EditorAmap {
                 return Promise.resolve(null);
             } else {
                 return new Promise((cb) => {
-                    let driving = new AMap.Driving({
-                        policy: AMap.DrivingPolicy.LEAST_TIME
-                    }); 
+                    
                     // 根据起终点经纬度规划驾车导航路线
-
                     let [prev, next, config] = item;
 
                     if (config?.drivingType === 'car') {
+                        let driving = new AMap.Driving({
+                            policy: AMap.DrivingPolicy.LEAST_TIME
+                        }); 
+
                         driving.search(
                             new AMap.LngLat(...prev), 
                             new AMap.LngLat(...next), 

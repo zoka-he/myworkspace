@@ -5,7 +5,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { useNavigate } from "react-router-dom";
 import { UserOutlined, SettingOutlined, LogoutOutlined } from '@ant-design/icons';
 import { useRef, useState } from "react";
-import { IPermission } from "@/pages/api/user/permission/type";
+import { IPermission } from "@/pages/api/web/user/permission/type";
 import { setLastPathname, setHistoryTags } from "@/src/store/navigatorSlice";
 import _ from 'lodash';
 

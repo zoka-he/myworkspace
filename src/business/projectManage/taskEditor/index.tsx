@@ -3,7 +3,7 @@ import {Form, Modal, Input, Select, Button, message, DatePicker, FormInstance} f
 import _ from 'lodash';
 // import TaskService from "../taskManage/taskService";
 import moment from "moment";
-import EmployeeInput from '../commonComponent/employeeInput';
+import EmployeeInput from '../../commonComponent/employeeInput';
 import {ITaskData} from "@/src/types/ITaskData";
 import fetch from '@/src/fetch';
 import Dayjs from 'dayjs';
@@ -183,9 +183,9 @@ class TaskEditor extends React.Component<ITaskEditorProp, ITaskEditorState & {}>
                         <Form.Item label={'截止日期'} name={'deadline_time'}>
                             <DatePicker/>
                         </Form.Item>
-                        <Form.Item label={'主要问题'} name={'problems'}>
+                        {/* <Form.Item label={'主要问题'} name={'problems'}>
                             <Input.TextArea/>
-                        </Form.Item>
+                        </Form.Item> */}
                         <div className={'f-align-center'}>
                             <Button style={{ width: '200px' }} type="primary" htmlType="submit">
                                 提交

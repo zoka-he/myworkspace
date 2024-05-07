@@ -4,7 +4,7 @@ import RolePermissionService from "./rolePermissionService";
 
 import cached from "@/src/utils/cache";
 import { ILoginUser } from "@/src/utils/auth/ILoginUser";
-import { IPermission } from "@/pages/api/user/permission/type";
+import { IPermission } from "@/pages/api/web/user/permission/type";
 import Log4js from "log4js";
 
 class MyAccountService {
