@@ -78,9 +78,9 @@ export default function BugTrace() {
 
     function renderStatus(cell) {
         return [
-            '未复现',
+            '未处理',
             '已复现',
-            '修复中',
+            '处理中',
             '待复验',
             '已关闭',
         ][cell];
