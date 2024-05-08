@@ -104,7 +104,7 @@ export default function BugTrace() {
             confirm({
                 title: '删除确认',
                 icon: <ExclamationCircleFilled />,
-                content: '警告！将删除BUG信息，请二次确认！',
+                content: '警告！将删除问题信息，请二次确认！',
                 okText: '删除',
                 okType: 'danger',
                 cancelText: '取消',
@@ -152,7 +152,7 @@ export default function BugTrace() {
                     <Column title="关联任务" dataIndex="task_name" key="task_name"/>
                     <Column title="上报渠道" dataIndex="source" key="source"/>
                     <Column title="责任人" dataIndex="employee" key="employee"/>
-                    <Column title="BUG描述" dataIndex="detail" key="detail"/>
+                    <Column title="问题描述" dataIndex="detail" key="detail"/>
                     <Column title="解决状态" dataIndex="status" key="status" render={renderStatus}/>
                     <Column title="解决方案" dataIndex="solution" key="solution"/>
                     <Column title="复核人" dataIndex="tester" key="tester"/>
