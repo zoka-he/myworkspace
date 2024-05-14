@@ -39,7 +39,7 @@ function ProblemItem(props: IProblemItemProps) {
     }
 
     return (
-        <div style={{ margin: '10px 0' }}>
+        <div style={{ margin: '10px 0' }} className="f-fit-height f-flex-col">
             <div className="f-two-side">
                 <div className="f-vertical-middle">
                     <strong>{qTitle}</strong>
@@ -52,7 +52,7 @@ function ProblemItem(props: IProblemItemProps) {
                     <Button type="link" size="small" danger onClick={() => onDeleteButtonClick()}>关闭</Button>
                 </Space>
             </div>
-            <div>
+            <div className="f-flex-1">
                 <span>{qAnswer}</span>
             </div>
         </div>
