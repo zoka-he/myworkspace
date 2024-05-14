@@ -77,6 +77,18 @@ class ProjectValueMapper {
         [ 3, '待复验'],
         [ 4, '已关闭'],
     ])
+
+    public static contactSrcMapper = new ProjectValueMapper([
+        [ 'email', '邮件' ],
+        [ 'oa', 'OA' ],
+        [ 'bb', '口头' ],
+        [ 'wx', '微信' ]
+    ])
+
+    public static contactDirMapper = new ProjectValueMapper([
+        [ 0, '对方' ],
+        [ 1, '我方' ],
+    ])
     
 }
 
