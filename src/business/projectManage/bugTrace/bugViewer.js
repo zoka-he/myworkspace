@@ -49,7 +49,7 @@ class TaskEditor extends React.Component {
 
     renderTitle() {
         let task_name = this.refTask?.task_name;
-        let title = [task_name, 'BUG记录'].filter(s => s).join(' - ');
+        let title = [task_name, '问题记录'].filter(s => s).join(' - ');
         return <h3>{title}<Button type={'link'} onClick={() => this.onAppendBug()}>添加</Button></h3>
     }
 
@@ -83,7 +83,7 @@ class TaskEditor extends React.Component {
                         <Table dataSource={this.state.listData} size={'small'}>
                             <Column title="上报渠道" dataIndex="source" key="source"/>
                             <Column title="责任人" dataIndex="employee" key="employee"/>
-                            <Column title="BUG描述" dataIndex="detail" key="detail"/>
+                            <Column title="问题描述" dataIndex="detail" key="detail"/>
                             <Column title="解决状态" dataIndex="status" key="status" render={this.renderStatus}/>
                             <Column title="解决方案" dataIndex="solution" key="solution"/>
                             <Column title="复核人" dataIndex="tester" key="tester"/>

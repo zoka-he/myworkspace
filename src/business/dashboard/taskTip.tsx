@@ -50,7 +50,7 @@ class TaskTip extends Component<ITaskTipProps>{
         let renderDetail = null;
         if (detail) {
             renderDetail = <div className="m_tasktip-detail">
-                <pre>{detail}</pre>
+                <pre style={{ wordWrap: 'break-word', whiteSpace: 'pre-line' }}>{detail}</pre>
             </div>;
         }
 

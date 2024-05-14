@@ -7,6 +7,7 @@ import EmployeeInput from '../../commonComponent/employeeInput';
 import TaskSelect from '../../commonComponent/taskSelect';
 import {ITaskData} from "@/src/types/ITaskData";
 import fetch from '@/src/fetch';
+import ProjectValueMapper from "../projectCommon/projectValueMapper";
 
 interface IInteractEditorProps {
     onFinish: Function
@@ -124,6 +125,14 @@ class InteractEditor extends React.Component<IInteractEditorProps, IInteractEdit
     }
 
     render() {
+        const srcOptions = ProjectValueMapper.contactSrcMapper.getInitList().map(item => {
+            return <Radio value={item[0]}>{item[1]}</Radio>
+        });
+
+        const dirOptions = ProjectValueMapper.contactDirMapper.getInitList().map(item => {
+            return <Radio value={item[0]}>{item[1]}</Radio>
+        })
+
         return (
             <>
                 <Modal title={'编辑沟通日志'} open={this.state.modalOpen} onCancel={e => this.onCancel()} footer={null}>
@@ -134,20 +143,28 @@ class InteractEditor extends React.Component<IInteractEditorProps, IInteractEdit
                         <Form.Item label={'关联任务'} name={'task_id'} rules={[{ required: true, message: '任务名为必填！' }]}>
                             <TaskSelect/>
                         </Form.Item>
-                        <Form.Item label={'提议人'} name={'employee'}>
-                            <EmployeeInput/>
-                        </Form.Item>
-                        <Form.Item label={'提议内容'} name={'message'}>
-                            <Input.TextArea/>
-                        </Form.Item>
-                        <Form.Item label={'来源'} name={'source'}>
+
+                        <Form.Item label={'沟通方式'} name={'source'}>
                             <Radio.Group name="source" defaultValue={'email'}>
-                                <Radio value={'email'}>邮件</Radio>
-                                <Radio value={'oa'}>OA</Radio>
-                                <Radio value={'bb'}>口头</Radio>
+                                {srcOptions}
                             </Radio.Group>
                         </Form.Item>
-                        <Form.Item label={'答复内容'} name={'re_message'}>
+
+                        <Form.Item label={'发起方'} name={'dir'}>
+                            <Radio.Group name="source" defaultValue={0}>
+                                {dirOptions}
+                            </Radio.Group>
+                        </Form.Item>
+
+                        <Form.Item label={'对方'} name={'employee'}>
+                            <EmployeeInput/>
+                        </Form.Item>
+                        <Form.Item label={'对方意见'} name={'message'}>
+                            <Input.TextArea/>
+                        </Form.Item>
+                        
+
+                        <Form.Item label={'我方意见'} name={'re_message'}>
                             <Input.TextArea/>
                         </Form.Item>
                         <div className={'f-align-center'}>

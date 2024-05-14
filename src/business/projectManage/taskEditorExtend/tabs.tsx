@@ -18,8 +18,10 @@ export default function ModalTabs(props: any = {}) {
     ];
 
     return (
-        <Tabs items={tabs} defaultActiveKey="1">
-            
-        </Tabs>
+        <div className="l-with-tabs-on-top">
+            <Tabs items={tabs} defaultActiveKey="1">
+                
+            </Tabs>
+        </div>
     )
 }

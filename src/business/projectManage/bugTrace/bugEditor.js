@@ -127,7 +127,7 @@ class BugEditor extends React.Component {
     render() {
         return (
             <>
-                <Modal title={'编辑BUG'} open={this.state.modalOpen} onOk={e => this.onOk(e)} onCancel={e => this.onCancel(e)} footer={null}>
+                <Modal title={'编辑问题'} open={this.state.modalOpen} onOk={e => this.onOk(e)} onCancel={e => this.onCancel(e)} footer={null}>
                     <Form ref={comp => this.onFormRef(comp)} labelCol={{ span: 6 }} wrapperCol={{ span: 16 }} initialValues={this.formDefault}
                           onFinish={e => this.onFinish(e)}
                           onFinishFailed={e => this.onFinishedFailed(e)}
@@ -141,7 +141,7 @@ class BugEditor extends React.Component {
                         <Form.Item label={'责任人'} name={'employee'}>
                             <EmployeeInput/>
                         </Form.Item>
-                        <Form.Item label={'BUG描述'} name={'detail'}>
+                        <Form.Item label={'问题描述'} name={'detail'}>
                             <Input.TextArea/>
                         </Form.Item>
                         <Form.Item label={'解决状态'} name={'status'}>
