@@ -131,7 +131,6 @@ export default function(props: IBibiListProps) {
     let [listData, updateListData] = useState<any[]>([]);
     let [pageNum, updatePageNum] = useState(1);
     let [pageSize, updatePageSize] = useState(20);
-    let [total, updateTotal] = useState(0);
     let mEditor = useRef<null | InteractEditor>(null);
 
     async function onQueryList() {
@@ -146,10 +145,9 @@ export default function(props: IBibiListProps) {
                 task_id: props.taskId
             };
 
-            let {data, count} = await fetch.get('/api/interact/list', { params })
+            let {data} = await fetch.get('/api/interact/list', { params })
 
             updateListData(data);
-            updateTotal(count);
         } catch (e: any) {
             console.error(e);
             message.error(e.message);
