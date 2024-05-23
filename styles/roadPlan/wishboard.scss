@@ -5,7 +5,7 @@
         }
 
         .m-planboard-countgraph {
-            height: calc(100vh - 200px);
+            height: calc(100vh - 120px);
             width: calc(100vw - 200px);
             overflow: hidden;
 
@@ -22,13 +22,13 @@
         }
 
         .m-table-container {
-            height: calc(100vh - 200px);
+            height: calc(100vh - 120px);
             width: 360px;
             margin-right: 10px;
         }
 
         .m-map-container {
-            height: calc(100vh - 200px);
+            height: calc(100vh - 120px);
             width: calc(100vw - 600px);
 
             background-color: white;

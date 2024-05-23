@@ -3,7 +3,11 @@ import { lazy } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useMatches } from 'react-router-dom';
 
 import MainFrame from '../framework';
-import WishBoard from "../business/roadbook/wishBoard";
+
+const WishBoard = lazy(() => import("../business/roadbook/wishBoard/favPosManage"));
+const CountBoard = lazy(() => import("../business/roadbook/wishBoard/roadbookGraph"));
+
+
 const Dashboard = lazy(() => import("../business/dashboard"));
 const TaskManage = lazy(() => import('../business/projectManage/taskManage'));
 const EmployeeManage = lazy(() => import('../business/projectManage/employeeManage'));
@@ -48,6 +52,7 @@ export default function () {
                     <Route path="roadBook/editor" element={<RoadBookEditor />} />
                     <Route path="roadBook/calendar" element={<RoadBookCalendar />} />
                     <Route path="roadBook/wishboard" element={<WishBoard />} />
+                    <Route path="roadBook/countBoard" element={<CountBoard />} />
 
                     <Route path="infos/accounts" element={<AccountManage />} />
                     <Route path="infos/employeeManage" element={<EmployeeManage />} />

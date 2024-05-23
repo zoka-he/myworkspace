@@ -92,6 +92,10 @@ const navObj: INavMenu[] = [
                 label: '天气日历',
                 key: '/calendar'
             },
+            {
+                label: '统计图',
+                key: '/countBoard'
+            },
         ]
     },
 

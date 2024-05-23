@@ -211,7 +211,7 @@ export default function() {
         </div>
     )
 
-    let tableHeight = posFormHelper.open ? 'calc(100vh - 645px)' : 'calc(100vh - 280px)';
+    let tableHeight = posFormHelper.open ? 'calc(100vh - 565px)' : 'calc(100vh - 200px)';
     let posFormHeight = '365px';
 
     return (
