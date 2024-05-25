@@ -137,12 +137,20 @@ export default function() {
                 onEditPos(item);
             }
 
+            let markerConfig = {
+                icon: '/mapicons/default.png'
+            };
+
+            if (!!item.arrived_date) {
+                markerConfig.icon = '/mapicons/star-check.png';
+            }
+
             let mk = (
                 <CommonBmap.Marker 
                     lng={item.lng} lat={item.lat} 
                     label={item.label} 
                     key={uuid()}
-                    config={{ icon: "/mapicons/default.png" }}
+                    config={markerConfig}
                     onClick={onItemMarkerClick}
                 />
             );
