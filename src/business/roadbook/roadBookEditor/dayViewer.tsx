@@ -4,7 +4,7 @@ import {
     CloseOutlined,
     AimOutlined
 } from '@ant-design/icons';
-import * as Dayjs from 'dayjs';
+import Dayjs from 'dayjs';
 import Openweather from '@/src/utils/openweather';
 import { useEffect, useState } from "react";
 import { red, green, orange } from '@ant-design/colors';
@@ -194,6 +194,7 @@ interface IDayViewerProps {
     next: any,
     prev: any,
     onLocateAddr?: Function
+    startDate ?: Dayjs.Dayjs | string | Date | null
 }
 
 enum EDayViewerHookNames {
@@ -229,7 +230,8 @@ export default function(props: IDayViewerProps) {
      * @returns 
      */
     function renderTitle(detail: any) {
-        let s_title = `D${props.day}`
+        let s_title = props.startDate ? Dayjs(props.startDate).add(props.day - 1, 'day').format('YYYY-MM-DD') : `D${props.day}`;
+
         if (props.data?.name) {
             s_title += '：' + props.data.name;
         }

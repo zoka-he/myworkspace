@@ -1,4 +1,4 @@
-import { Input, Space, Button, message, InputNumber, Modal, Spin, FloatButton, Radio, Switch } from 'antd';
+import { Input, Space, Button, message, InputNumber, Modal, Spin, FloatButton, Radio, Switch, DatePicker } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import qs from 'querystring';
@@ -7,7 +7,7 @@ import DayViewer from './dayViewer';
 import fetch from '@/src/fetch';
 import DayPlanEditor from './dayEditor';
 import _ from 'lodash';
-import * as Dayjs from 'dayjs';
+import Dayjs from 'dayjs';
 import copyToClip from '@/src/utils/common/copy';
 import CommonBmap from '../commonBmap';
 import uuid from '@/src/utils/common/uuid';
@@ -85,6 +85,8 @@ export default function() {
     let [mealDayCost, setMealDayCost] = useState<number | null>(0);
     let [hotelDayCost, setHotelDayCost] = useState<number | null>(0);
 
+    let [startDate, setStartDate] = useState<Dayjs.Dayjs | null>(null);
+
     let [planData, setPlanData] = useState([]);
     let [addrMk, setAddrMk] = useState<any>(null);
     let [roadPaths, setRoadPaths] = useState<any>(null);
@@ -126,7 +128,8 @@ export default function() {
                     mealDayCost,
                     hotelDayCost,
                     totalCost,
-                    personCnt
+                    personCnt,
+                    startDate: startDate ? startDate.format('YYYY-MM-DD') : null
                 })
             };
 
@@ -168,11 +171,12 @@ export default function() {
             setMealDayCost(roadData.mealDayCost || 0);
             setHotelDayCost(roadData.hotelDayCost || 0);
             setPersonCnt(roadData.personCnt || 2);
+            setStartDate(typeof roadData.startDate === 'string' ? Dayjs(roadData.startDate) : null);
 
             // 加载日程信息
             let daysResp = await fetch.get('/api/roadPlan/day/list', { params: { road_id: planId } });
             setPlanData(daysResp.data);
-            drawPlanRoute(daysResp.data);
+            drawPlanRoute(daysResp.data, roadData);
         } finally {
             setSpinning(false);
         }
@@ -300,6 +304,7 @@ export default function() {
                         data={item}
                         isEdit={editState}
                         showWeather={showWeathers}
+                        startDate={startDate}
                         onEdit={() => editDay(item, index, prev, next)}
                         onDelete={() => deleteDay(index)}
                         next={next} prev={prev}
@@ -312,7 +317,10 @@ export default function() {
     }
 
     
-
+    /**
+     * 渲染计划表单
+     * @returns 
+     */
     function renderCostFrom() {
         if (editState) {
             return [
@@ -348,8 +356,11 @@ export default function() {
                         <InputNumber addonAfter="￥/天" value={hotelDayCost} onChange={e => setHotelDayCost(e)}/>
                     </Space>
                 </p>,
+                
             ];
         } else {
+            
+
             return [
                 <p className='m-plan_editor-more_info'>租车费用：{carDayCost}￥/天</p>,
                 <p className='m-plan_editor-more_info'>燃油费用：{fuelLCost}￥/L</p>,
@@ -445,7 +456,28 @@ export default function() {
         ]
     }
 
-    function drawPlanRoute(planData: any) {
+    /**
+     * 渲染时间信息
+     */
+    function renderTimeInfo() {
+        if (editState) {
+            return [
+                <p className='m-plan_editor-more_info is_edit'>
+                    <Space>
+                        <span>实际开始时间：</span>
+                        <DatePicker value={startDate} onChange={(e) => setStartDate(e)}></DatePicker>
+                    </Space>
+                </p>
+            ]
+        } else {
+            let startDateStr = startDate ? Dayjs(startDate).format('YYYY-MM-DD') : '未指定';
+            return [
+                <p className='m-plan_editor-more_info'>实际开始时间：{startDateStr}</p>
+            ]
+        }
+    }
+
+    function drawPlanRoute(planData: any, roadData: any) {
 
 
         let viewportPoints: any[] = [];
@@ -478,10 +510,13 @@ export default function() {
         setMapViewport(viewportPoints);
 
         setDayMks(keyPoints.map((pt, index) => {
+            let startDateStr = roadData.startDate ? Dayjs(roadData.startDate).add(index, 'day').format('YYYY-MM-DD') : `D${index+1}`;
+            console.debug('setDayMks, startDate=', roadData.startDate);
+
             return {
                 lng: pt.lng,
                 lat: pt.lat,
-                label: `D${index+1} ${roadBookUtils.preferTime2Str(pt.preferTime)}`,
+                label: `${startDateStr} ${roadBookUtils.preferTime2Str(pt.preferTime)}`,
                 uuid: uuid()
             } 
         }));
@@ -570,6 +605,10 @@ export default function() {
         })
     }
 
+    /**
+     * 导出到md文件
+     * @returns 
+     */
     async function exportPlanAsMd() {
 
         let label = '';
@@ -629,6 +668,8 @@ export default function() {
             '',
             `分摊人数：${personCnt}`,
             `人均费用：${personCost.toFixed(2)}￥`,
+            // '',
+            // `实际开始时间：`,
             '',
             '## 日程',
             '',
@@ -825,6 +866,11 @@ export default function() {
                                 <section>
                                     {/* 费用明细： */}
                                     { renderPlanMoreInfo() }
+                                </section>
+
+                                <section>
+                                    <h5>时间信息：</h5>
+                                    { renderTimeInfo() }
                                 </section>
                                 
                                 <section>
