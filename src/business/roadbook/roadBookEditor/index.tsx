@@ -86,6 +86,7 @@ export default function() {
     let [hotelDayCost, setHotelDayCost] = useState<number | null>(0);
 
     let [startDate, setStartDate] = useState<Dayjs.Dayjs | null>(null);
+    let [delayDay, setDelayDay] = useState<number>(0);
 
     let [planData, setPlanData] = useState([]);
     let [addrMk, setAddrMk] = useState<any>(null);
@@ -129,7 +130,8 @@ export default function() {
                     hotelDayCost,
                     totalCost,
                     personCnt,
-                    startDate: startDate ? startDate.format('YYYY-MM-DD') : null
+                    startDate: startDate ? startDate.format('YYYY-MM-DD') : null,
+                    delayDay: delayDay || 0
                 })
             };
 
@@ -172,6 +174,7 @@ export default function() {
             setHotelDayCost(roadData.hotelDayCost || 0);
             setPersonCnt(roadData.personCnt || 2);
             setStartDate(typeof roadData.startDate === 'string' ? Dayjs(roadData.startDate) : null);
+            setDelayDay(typeof roadData.delayDay === 'number' ? roadData.delayDay : 0);
 
             // 加载日程信息
             let daysResp = await fetch.get('/api/roadPlan/day/list', { params: { road_id: planId } });
@@ -305,6 +308,7 @@ export default function() {
                         isEdit={editState}
                         showWeather={showWeathers}
                         startDate={startDate}
+                        delayDay={delayDay}
                         onEdit={() => editDay(item, index, prev, next)}
                         onDelete={() => deleteDay(index)}
                         next={next} prev={prev}
@@ -467,12 +471,19 @@ export default function() {
                         <span>实际开始时间：</span>
                         <DatePicker value={startDate} onChange={(e) => setStartDate(e)}></DatePicker>
                     </Space>
+                </p>,
+                <p className='m-plan_editor-more_info is_edit'>
+                    <Space>
+                        <span>累计延误天数：</span>
+                        <InputNumber value={delayDay} onChange={(e: number | null) => setDelayDay(e || 0)}></InputNumber>
+                    </Space>
                 </p>
             ]
         } else {
             let startDateStr = startDate ? Dayjs(startDate).format('YYYY-MM-DD') : '未指定';
             return [
-                <p className='m-plan_editor-more_info'>实际开始时间：{startDateStr}</p>
+                <p className='m-plan_editor-more_info'>实际开始时间：{startDateStr}</p>,
+                <p className='m-plan_editor-more_info'>累计延误天数：{delayDay}</p>,
             ]
         }
     }
@@ -510,7 +521,7 @@ export default function() {
         setMapViewport(viewportPoints);
 
         setDayMks(keyPoints.map((pt, index) => {
-            let startDateStr = roadData.startDate ? Dayjs(roadData.startDate).add(index, 'day').format('YYYY-MM-DD') : `D${index+1}`;
+            let startDateStr = roadData.startDate ? Dayjs(roadData.startDate).add(index + roadData.delayDay, 'day').format('YYYY-MM-DD') : `D${index+1}`;
             console.debug('setDayMks, startDate=', roadData.startDate);
 
             return {

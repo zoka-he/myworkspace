@@ -195,6 +195,7 @@ interface IDayViewerProps {
     prev: any,
     onLocateAddr?: Function
     startDate ?: Dayjs.Dayjs | string | Date | null
+    delayDay ?: number
 }
 
 enum EDayViewerHookNames {
@@ -230,7 +231,7 @@ export default function(props: IDayViewerProps) {
      * @returns 
      */
     function renderTitle(detail: any) {
-        let s_title = props.startDate ? Dayjs(props.startDate).add(props.day - 1, 'day').format('YYYY-MM-DD') : `D${props.day}`;
+        let s_title = props.startDate ? Dayjs(props.startDate).add(props.day - 1 + (props.delayDay || 0), 'day').format('YYYY-MM-DD') : `D${props.day}`;
 
         if (props.data?.name) {
             s_title += '：' + props.data.name;
