@@ -41,3 +41,6 @@ next-env.d.ts
 # py
 **/__pycache__
 
+# installer
+installer/tmpfolder
+

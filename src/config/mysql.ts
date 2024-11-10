@@ -1,8 +1,8 @@
 const cfg = {
-    MYSQL_HOST: 'mysql',
+    MYSQL_HOST: 'localhost',
     MYSQL_DATABASE: 'task_manage',
     MYSQL_PORT: 3306,
-    MYSQL_USER: 'root',
+    MYSQL_USER: 'myworksite',
     MYSQL_PASSWORD: 'nsds123456'
 }
 
