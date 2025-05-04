@@ -31,6 +31,7 @@ const DevEncoding = lazy(() => import('../business/devTools/encoding'));
 
 // ai小说
 const AiNovalManager = lazy(() => import('../business/aiNoval/novalManage'));
+const AiWorldViewManager = lazy(() => import('../business/aiNoval/worldViewManage'));
 
 async function mainFrameLoader() {
     let matches = useMatches();
@@ -71,6 +72,7 @@ export default function () {
                     <Route path="devTools/encoding" element={<DevEncoding />} />
 
                     <Route path="noval/NovalManage" element={<AiNovalManager/>}/>
+                    <Route path="noval/worldViewManage" element={<AiWorldViewManager/>}/>
 
                     <Route path="*" element={<div><h1>此页面尚未实现！</h1></div>} />
                 </Route>

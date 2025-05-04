@@ -1,12 +1,12 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from 'next'
-import NovalManage from '@/src/services/aiNoval/novalManageService';
+import WorldViewManage from '@/src/services/aiNoval/worldViewManageService';
 import _ from 'lodash';
 import { ISqlCondMap } from '@/src/utils/mysql/types';
 
 type Data = Object;
 
-const service = new NovalManage();
+const service = new WorldViewManage();
 
 
 async function research(req: NextApiRequest, res: NextApiResponse) {
@@ -29,7 +29,7 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
         }
     }
 
-    let ret = await service.query(queryObject, [], ['created_at asc'], page, limit);
+    let ret = await service.query(queryObject, [], ['id asc'], page, limit);
     res.status(200).json(ret);
 }
 
