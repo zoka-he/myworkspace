@@ -18,12 +18,26 @@ const novelPool = mysql.createPool({
 });
 
 
-process.on('exit', async (code) => {
-    try {
-        await novelPool.end();
-        await connPool.end();
-    } catch (error) {}
-});
+// 防止重复注册退出事件
+let registeredExitHandler = false;
 
+function registerExitHandler() {
+    if (registeredExitHandler) return;
+    registeredExitHandler = true;
+
+    process.on('exit', async () => {
+        try {
+            await novelPool.end();
+            await connPool.end();
+        } catch (error) {
+            console.error('Error closing pools on exit:', error);
+        }
+    });
+
+    process.on('SIGINT', () => process.exit());
+    process.on('SIGTERM', () => process.exit());
+}
+
+registerExitHandler();
 
 export { connPool, novelPool };
