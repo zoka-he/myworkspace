@@ -112,6 +112,61 @@ const navObj: INavMenu[] = [
                 key: '/bikeManage'
             }
         ]
+    },
+
+    {
+        label: 'AI小说',
+        key: '/aiNovel',
+        children: [
+            {
+                label: '工具配置',
+                key: '/toolConfig'
+            },
+            {
+                label: '小说管理',
+                key: '/novelManage'
+            },
+            {
+                label: '世界观设计',
+                key: '/worldViewManage'
+            },
+            {
+                label: '地理设计',
+                key: '/geographyManage'
+            },
+            {
+                label: '种族设计',
+                key: '/raceManage'
+            },
+            {
+                label: '角色设计',
+                key: '/roleManage'
+            },
+            {
+                label: '物品设计',
+                key: '/itemManage'
+            },
+            {
+                label: '魔法设计',
+                key: '/magicManage'
+            },
+            {
+                label: '技能设计',
+                key: '/skillManage'
+            },
+            {
+                label: '阵营设计',
+                key: '/factionManage'
+            },
+            {
+                label: '事件管理',
+                key: '/eventManage'
+            },
+            {
+                label: '章节管理',
+                key: '/chapterManage'
+            }
+        ]
     }
 
 ];

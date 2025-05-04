@@ -20,8 +20,8 @@ ENV PY_ENV production
 # RUN adduser --system --uid 1001 nextjs
 
 # 安装python依赖库 
-COPY ./docker/my-worksite/requirements.txt . 
-RUN pip3 install -r requirements.txt 
+# COPY ./docker/my-worksite/requirements.txt . 
+# RUN pip install -r requirements.txt 
 
 # 拷贝构建输出
 COPY --from=builder /app/public ./public
@@ -41,4 +41,4 @@ COPY ./launch.sh /app
 
 EXPOSE 3000
 ENV PORT 3000
-CMD ["sh", "./launch.sh"]
+CMD cd /app && node server.js
