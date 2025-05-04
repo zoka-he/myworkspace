@@ -1,12 +1,14 @@
 import mysql from './server';
 import {ISqlCondMap, ISqlCondMapParsed} from "@/src/utils/mysql/types";
 import sqlUtils from './utils';
+import { IMysqlActions } from './types/actions';
 
 class MysqlService {
 
     private readonly tableName: string;
     private readonly priKey: string | string[];
     private validColumns: Array<string>;
+    protected mysqlApi: IMysqlActions = mysql;
 
     constructor(tableName: string, priKey: string | string[] = 'ID') {
         this.tableName = tableName;
@@ -15,7 +17,11 @@ class MysqlService {
     }
 
     getBaseApi() {
-        return mysql;
+        return this.mysqlApi;
+    }
+
+    setBaseApi(apiDef: IMysqlActions) {
+        this.mysqlApi = apiDef;
     }
 
     setValidColumns(cols: Array<string>) {
@@ -162,7 +168,7 @@ class MysqlService {
         }
 
         console.debug('query page -> ', pageSql, values);
-        let pageData = await mysql.selectBySql(pageSql, values);
+        let pageData = await this.mysqlApi.selectBySql(pageSql, values);
 
         let count = 0;
         if (noCount) {
@@ -171,7 +177,7 @@ class MysqlService {
         } else {
             let countSql = `select count(0) as count from (${baseSql}) t`;
             console.debug('query count -> ', countSql, values);
-            let countRs = await mysql.selectBySql(countSql, values);
+            let countRs = await this.mysqlApi.selectBySql(countSql, values);
             // @ts-ignore
             count = countRs[0]?.count || 0;
         }
@@ -187,7 +193,7 @@ class MysqlService {
 
         console.debug('insert', this.tableName, obj2);
         // @ts-ignore
-        return await mysql.insertOne(this.tableName, obj2, ...args);
+        return await this.mysqlApi.insertOne(this.tableName, obj2, ...args);
     }
 
     async updateOne(oldObj: ISqlCondMap, obj: ISqlCondMap, ...args: any[]) {
@@ -223,7 +229,7 @@ class MysqlService {
 
         let obj3 = this.verifyInsertOrUpdate(updateObj);
         // @ts-ignore
-        return await mysql.updateOne(this.tableName, queryObj, obj3, ...args);
+        return await this.mysqlApi.updateOne(this.tableName, queryObj, obj3, ...args);
     }
 
     async deleteOne(obj: ISqlCondMap) {
@@ -247,18 +253,18 @@ class MysqlService {
         };
 
         // let prikeyValue = obj[this.priKey];
-        return await mysql.deleteFrom(this.tableName, queryObj);
+        return await this.mysqlApi.deleteFrom(this.tableName, queryObj);
     }
 
     async deleteMany(obj: ISqlCondMap) {
         if (Object.keys(obj).length === 0) {
             throw new Error('deleteMany必须包含条件！');
         };
-        return await mysql.deleteFrom(this.tableName, obj);
+        return await this.mysqlApi.deleteFrom(this.tableName, obj);
     }
 
     queryBySql(sql: string, values: any[]) {
-        return mysql.selectBySql(sql, values);
+        return this.mysqlApi.selectBySql(sql, values);
     }
 
     async queryOne(conditionOrSql: string | ISqlCondMap = '', values = [], order = [`${this.priKey} asc`]) {
@@ -273,4 +279,13 @@ class MysqlService {
     }
 }
 
+class MysqlNovalService extends MysqlService {
+    constructor(tableName: string, priKey: string | string[] = 'ID') {
+        super(tableName, priKey);
+        this.mysqlApi = mysql.noval;
+    }
+}
+
 export default MysqlService;
+
+export { MysqlNovalService };

@@ -1,4 +1,4 @@
 import actions from './actions';
-import novel from './actions_novel';
+import noval from './actions_noval';
 
-export default { ...actions, novel };
+export default { ...actions, noval };

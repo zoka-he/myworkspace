@@ -9,7 +9,7 @@ const connPool = mysql.createPool({
     password: config.MYSQL_PASSWORD
 });
 
-const novelPool = mysql.createPool({
+const novalPool = mysql.createPool({
     host: config.MYSQL_HOST,
     database: config.MYSQL_DATABASE_NOVEL,
     port: config.MYSQL_PORT,
@@ -27,7 +27,7 @@ function registerExitHandler() {
 
     process.on('exit', async () => {
         try {
-            await novelPool.end();
+            await novalPool.end();
             await connPool.end();
         } catch (error) {
             console.error('Error closing pools on exit:', error);
@@ -40,4 +40,4 @@ function registerExitHandler() {
 
 registerExitHandler();
 
-export { connPool, novelPool };
+export { connPool, novalPool };

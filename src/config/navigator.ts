@@ -116,7 +116,7 @@ const navObj: INavMenu[] = [
 
     {
         label: 'AI小说',
-        key: '/aiNovel',
+        key: '/aiNoval',
         children: [
             {
                 label: '工具配置',
@@ -124,7 +124,7 @@ const navObj: INavMenu[] = [
             },
             {
                 label: '小说管理',
-                key: '/novelManage'
+                key: '/novalManage'
             },
             {
                 label: '世界观设计',

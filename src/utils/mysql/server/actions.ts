@@ -1,3 +1,4 @@
+import { IMysqlActions } from '@/src/types/IMysqlActions';
 import { connPool } from './pool';
 import {ISqlCondMap} from "@/src/utils/mysql/types";
 
@@ -118,7 +119,7 @@ async function execute(...params: any[]) {
 }
 
 
-export default {
+const actions: IMysqlActions = {
     insertOne,
     insertMany,
     updateOne,
@@ -127,3 +128,6 @@ export default {
     selectBySql,
     execute
 }
+
+
+export default actions;

@@ -29,6 +29,9 @@ const TaskFigure = lazy(() => import('../business/projectManage/taskManage/taskF
 
 const DevEncoding = lazy(() => import('../business/devTools/encoding'));
 
+// ai小说
+const AiNovalManager = lazy(() => import('../business/aiNoval/novalManage'));
+
 async function mainFrameLoader() {
     let matches = useMatches();
     console.debug('matches', matches);
@@ -66,6 +69,8 @@ export default function () {
                     <Route path="user/profile" element={<UserProfile />} />
 
                     <Route path="devTools/encoding" element={<DevEncoding />} />
+
+                    <Route path="noval/NovalManage" element={<AiNovalManager/>}/>
 
                     <Route path="*" element={<div><h1>此页面尚未实现！</h1></div>} />
                 </Route>
