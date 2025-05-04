@@ -9,12 +9,21 @@ const connPool = mysql.createPool({
     password: config.MYSQL_PASSWORD
 });
 
+const novelPool = mysql.createPool({
+    host: config.MYSQL_HOST,
+    database: config.MYSQL_DATABASE_NOVEL,
+    port: config.MYSQL_PORT,
+    user: config.MYSQL_USER,
+    password: config.MYSQL_PASSWORD
+});
+
 
 process.on('exit', async (code) => {
     try {
-        await connPool.end()
+        await novelPool.end();
+        await connPool.end();
     } catch (error) {}
 });
 
 
-export default connPool;
+export { connPool, novelPool };

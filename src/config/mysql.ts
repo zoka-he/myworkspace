@@ -3,7 +3,8 @@ const cfg = {
     MYSQL_DATABASE: 'task_manage',
     MYSQL_PORT: 3306,
     MYSQL_USER: 'myworksite',
-    MYSQL_PASSWORD: 'nsds123456'
+    MYSQL_PASSWORD: 'nsds123456',
+    MYSQL_DATABASE_NOVEL: 'dify-novel'
 }
 
 console.info('node env: ', process.env.NODE_ENV);
