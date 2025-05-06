@@ -1,0 +1,20 @@
+import { MysqlNovalService } from "@/src/utils/mysql/service";
+
+export default class GeoSalliteService extends MysqlNovalService {
+
+    constructor() {
+        super('geo_satellite', ['id']);
+
+        this.setValidColumns([
+            'id',
+            'worldview_id',
+            'star_system_id',
+            'planet_id',
+            'name',
+            'code',
+            'description',
+            'described_in_llm'
+        ]);
+    }
+
+}

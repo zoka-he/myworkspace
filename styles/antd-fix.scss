@@ -10,3 +10,17 @@
     flex: 1
   }
 }
+
+.ant-card.f-fit-height {
+  display: flex;
+  flex-direction: column;
+
+  .ant-card-head {
+
+  }
+
+  .ant-card-body {
+    flex: 1;
+    overflow: auto;
+  }
+}

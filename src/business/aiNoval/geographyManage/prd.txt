@@ -1,0 +1,183 @@
+已调整地理模块需求，已知需求如下：
+1.最大分块为世界观，其次是星系、星球、卫星、大陆和海洋、地名；
+2.卫星也有大陆和海洋、地名；
+4.需要明确卫星的主行星，行星环绕的恒星；
+5.需支持多恒星+多行星映射；
+6.需解决地点对行星、卫星的映射，设置唯一上级，上级类型，并冗余行星id、卫星id；
+7.独立设置恒星-行星关系表，恒星、行星上级均为星系；增加字段标记llm知识库中是否描述了恒星-行星详细关系；
+8.进行地名编码，以支持更多辅助表；以英语作为编码语言；
+9.增加气候摘要，四季光照、气温和降水字段；增加字段标记llm知识库中是否描述了地理位置详细气候；
+10.恒星-行星关系：同星系约束；多对多，光源形态、光源影响程度、引力摄动形态、引力摄动程度、互相距离等；
+
+请检查潜在的逻辑漏洞。
+
+请补充：标准编码格式；
+
+段位	含义	示例
+WV	世界观代码（缩写或编号）	Eden
+SY	星系代码	Alpha1
+PL	行星代码	Terra3
+SA	卫星代码（如无则填 SA-000）	Luna1
+GU	地理单元代码	NorthSea
+
+# 生成地理模块数据表的三范式建模，包括：
+# - 世界观、星系、恒星、行星、卫星、大陆/海洋、地点（地名）
+# - 恒星-行星多对多关系表
+# - 地点所属阵营（多对一）
+# - 地理位置气候描述表
+# - 英文编码支持
+
+-- 星系
+CREATE TABLE geo_star_system (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    worldview_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(50) UNIQUE NOT NULL,
+    described_in_llm BOOLEAN DEFAULT FALSE
+);
+
+-- 恒星
+CREATE TABLE geo_star (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    worldview_id INT NOT NULL,
+    star_system_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(50) UNIQUE NOT NULL,
+    type VARCHAR(50), -- 红矮星、黄矮星等
+    description TEXT,
+    described_in_llm BOOLEAN DEFAULT FALSE
+);
+
+-- 行星
+CREATE TABLE geo_planet (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    worldview_id INT NOT NULL,
+    star_system_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(50) UNIQUE NOT NULL,
+    description TEXT,
+    described_in_llm BOOLEAN DEFAULT FALSE
+);
+
+-- 恒星-行星多对多关系
+CREATE TABLE geo_star_planet_relation (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    worldview_id INT NOT NULL,
+    star_system_id INT NOT NULL,
+    star_id INT NOT NULL,
+    planet_id INT NOT NULL,
+    is_primary BOOLEAN DEFAULT FALSE,
+    light_type VARCHAR(100),
+    light_intensity DECIMAL(5,2),
+    gravity_type VARCHAR(100),
+    gravity_strength DECIMAL(5,2),
+    distance_au DECIMAL(10,2),
+    described_in_llm BOOLEAN DEFAULT FALSE
+);
+
+-- 卫星
+CREATE TABLE geo_satellite (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    worldview_id INT NOT NULL,
+    star_system_id INT NOT NULL,
+    planet_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(50) UNIQUE NOT NULL,
+    description TEXT,
+    described_in_llm BOOLEAN DEFAULT FALSE
+);
+
+-- 地理单元（大陆、海洋）
+CREATE TABLE geo_geography_unit (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    worldview_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(50) UNIQUE NOT NULL,
+    type ENUM('continent', 'ocean') NOT NULL,
+    parent_type ENUM('planet', 'satellite') NOT NULL,
+    parent_id INT NOT NULL,
+    planet_id INT, -- 冗余字段
+    satellite_id INT, -- 冗余字段
+    described_in_llm BOOLEAN DEFAULT FALSE
+);
+
+-- 地点（地名）
+CREATE TABLE geo_location (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    worldview_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(50) UNIQUE NOT NULL,
+    geography_unit_id INT NOT NULL,
+    parent_type ENUM('continent', 'ocean') NOT NULL,
+    parent_id INT NOT NULL,
+    planet_id INT,
+    satellite_id INT,
+    main_faction_id INT,
+    status ENUM('peace', 'war', 'disputed') DEFAULT 'peace',
+    described_in_llm BOOLEAN DEFAULT FALSE,
+);
+
+-- 地点气候表
+CREATE TABLE geo_location_climate (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    worldview_id INT NOT NULL,
+    location_id INT NOT NULL,
+    climate_summary TEXT,
+    spring_temp_min DECIMAL(5,2),
+    spring_temp_max DECIMAL(5,2),
+    spring_rainfall_mm DECIMAL(6,2),
+    spring_daylight_hours DECIMAL(5,2),
+    summer_temp_min DECIMAL(5,2),
+    summer_temp_max DECIMAL(5,2),
+    summer_rainfall_mm DECIMAL(6,2),
+    summer_daylight_hours DECIMAL(5,2),
+    autumn_temp_min DECIMAL(5,2),
+    autumn_temp_max DECIMAL(5,2),
+    autumn_rainfall_mm DECIMAL(6,2),
+    autumn_daylight_hours DECIMAL(5,2),
+    winter_temp_min DECIMAL(5,2),
+    winter_temp_max DECIMAL(5,2),
+    winter_rainfall_mm DECIMAL(6,2),
+    winter_daylight_hours DECIMAL(5,2),
+    described_in_llm BOOLEAN DEFAULT FALSE,
+);
+
+
+┌─────────────────────────────────────────────┐
+│ 顶部导航栏（Logo、当前世界观选择器、搜索、用户菜单） │
+└─────────────────────────────────────────────┘
+┌────────────┬───────────────────────────────┐
+│ 侧边栏菜单 │          主工作区（多标签页）          │
+│（树状结构）│ ┌───────────────────────────┐ │
+│           │ │ 地理结构导航 + 基本信息面板   │ │
+│           │ ├───────────────────────────┤ │
+│           │ │ 右侧详细信息编辑卡片/面板    │ │
+│           │ └───────────────────────────┘ │
+└────────────┴───────────────────────────────┘
+
+世界观
+  └─ 星系
+      ├─ 恒星
+      └─ 行星
+            └─ 卫星
+                  └─ 大陆/海洋
+                        └─ 地名（Location）
+
+ 左侧区域：结构与基本属性
+卡片/折叠面板展示：
+当前实体基本信息（名称、英文编码、描述）
+所属上级（唯一上级类型 + ID，可跳转）
+冗余的 planet_id / satellite_id
+状态标记（气候是否已描述、是否在 LLM 中有对应内容）
+下方标签页：
+子结构管理（例如某大陆的所有地点）
+关系编辑（如设置主导阵营，编辑状态：战争/和平）
+
+
+展示并编辑当前节点详细信息：
+地点类型：地名、气候摘要、四季温度/降水/光照
+对应阵营设置（使用 Dropdown + Radio 枚举状态）
+快速跳转上下层（主行星 / 所属大陆 / 卫星）
+标记字段辅助展示（是否存在于 LLM 知识库）
+✅ 图标展示 + Tooltip
+💡 提示建议或标注“未生成提示词”
