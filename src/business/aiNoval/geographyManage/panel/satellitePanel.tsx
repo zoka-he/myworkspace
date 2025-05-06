@@ -1,6 +1,7 @@
 import { IGeoSatelliteData } from "@/src/types/IAiNoval";
-import { Col, Row, Button, Space, Divider } from "antd";
+import { Col, Row, Button, Space, Divider, Tabs } from "antd";
 import { type IGeoTreeItem } from "../geoTree";
+import GeoRecallTest from "@/src/business/aiNoval/geographyManage/subPanel/geoRecallTest";
 
 interface IStarEditProps {
     worldViewId: number | null,
@@ -35,6 +36,14 @@ export default function(props: IStarEditProps) {
         }
     }
 
+    let tabItems = [
+        {
+            label: `LLM召回测试`,
+            key: '1',
+            children: <GeoRecallTest recommandQuery={`卫星 ${data?.name}`} />,
+        }
+    ];
+
     return (
         <div style={{ height: '100%' }}>
             <Row>
@@ -63,6 +72,14 @@ export default function(props: IStarEditProps) {
                     </dl>
                 </Col>
             </Row>
+
+            <Tabs
+                defaultActiveKey="1"
+                type="card"
+                size="small"
+                style={{ marginBottom: 32 }}
+                items={tabItems}
+            />
         </div>
     )
 }

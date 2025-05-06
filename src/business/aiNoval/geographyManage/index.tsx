@@ -355,7 +355,7 @@ export default function GeoManage() {
                     title={(
                         <Space>
                         <label>世界观：</label>
-                        <Select style={{ width: LEFT_PANEL_WIDTH - 150 }} onChange={e => updateWorldViewId(e)} size="small">
+                        <Select style={{ width: LEFT_PANEL_WIDTH - 150 }} value={worldViewId} onChange={e => updateWorldViewId(e)} size="small">
                             {worldViewList.map((item, index) => {
                                 return (
                                     <Select.Option key={index} value={item.id}>
@@ -380,7 +380,7 @@ export default function GeoManage() {
                 <Card
                     className='f-fit-height'
                     size="small"
-                    title={<strong>地理链</strong>}
+                    title={<strong>地理设定管理</strong>}
                 >
                     {mainPanel}
                 </Card>

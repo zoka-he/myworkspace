@@ -1,0 +1,131 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+- You can @ files here
+- You can use markdown but dont have to
+
+You are an expert in Solidity, TypeScript, Node.js, Next.js 14 App Router, React, Vite, Viem v2, Wagmi v2, Shadcn UI, Radix UI, and Tailwind Aria.  
+
+Key Principles
+
+- Write concise, technical responses with accurate TypeScript examples.
+- Use functional, declarative programming. Avoid classes.
+- Prefer iteration and modularization over duplication.
+- Use descriptive variable names with auxiliary verbs (e.g., isLoading).
+- Use lowercase with dashes for directories (e.g., components/auth-wizard).
+- Favor named exports for components.
+- Use the Receive an Object, Return an Object (RORO) pattern.  
+
+JavaScript/TypeScript
+
+- Use "function" keyword for pure functions. Omit semicolons.
+- Use TypeScript for all code. Prefer interfaces over types. Avoid enums, use maps.
+- File structure: Exported component, subcomponents, helpers, static content, types.
+- Avoid unnecessary curly braces in conditional statements.
+- For single-line statements in conditionals, omit curly braces.
+- Use concise, one-line syntax for simple conditional statements (e.g., if (condition) doSomething()).  
+
+Error Handling and Validation
+
+- Prioritize error handling and edge cases:
+  - Handle errors and edge cases at the beginning of functions.
+  - Use early returns for error conditions to avoid deeply nested if statements.
+  - Place the happy path last in the function for improved readability.
+  - Avoid unnecessary else statements; use if-return pattern instead.
+  - Use guard clauses to handle preconditions and invalid states early.
+  - Implement proper error logging and user-friendly error messages.
+  - Consider using custom error types or error factories for consistent error handling.  
+
+React/Next.js
+
+- Use functional components and TypeScript interfaces.
+- Use declarative JSX.
+- Use function, not const, for components.
+- Use Shadcn UI, Radix, and Tailwind Aria for components and styling.
+- Implement responsive design with Tailwind CSS.
+- Use mobile-first approach for responsive design.
+- Place static content and interfaces at file end.
+- Use content variables for static content outside render functions.
+- Minimize 'use client', 'useEffect', and 'setState'. Favor RSC.
+- Use Zod for form validation.
+- Wrap client components in Suspense with fallback.
+- Use dynamic loading for non-critical components.
+- Optimize images: WebP format, size data, lazy loading.
+- Model expected errors as return values: Avoid using try/catch for expected errors in Server Actions. Use useActionState to manage these errors and return them to the client.
+- Use error boundaries for unexpected errors: Implement error boundaries using error.tsx and global-error.tsx files to handle unexpected errors and provide a fallback UI.
+- Use useActionState with react-hook-form for form validation.
+- Code in services/ dir always throw user-friendly errors that tanStackQuery can catch and show to the user.
+- Use next-safe-action for all server actions:
+  - Implement type-safe server actions with proper validation.
+  - Utilize the action function from next-safe-action for creating actions.
+  - Define input schemas using Zod for robust type checking and validation.
+  - Handle errors gracefully and return appropriate responses.
+  - Use import type { ActionResponse } from '@/types/actions'
+  - Ensure all server actions return the ActionResponse type
+  - Implement consistent error handling and success responses using ActionResponse  
+
+Key Conventions
+
+1. Rely on Next.js App Router for state changes.
+2. Prioritize Web Vitals (LCP, CLS, FID).
+3. Minimize 'use client' usage:
+  - Prefer server components and Next.js SSR features.
+  - Use 'use client' only for Web API access in small components.
+  - Avoid using 'use client' for data fetching or state management.
+  Refer to Next.js documentation for Data Fetching, Rendering, and Routing best practices.
+  - https://nextjs.org/docs
+
+
+antdesign
+- 在render函数中，优先使用antd组件库
+- antd版本为5.2.1
+
+项目目录：
+  ├── cypress                 # 基于cypress的e2e测试
+  │   ├── e2e                 # 测试用例
+  │   ├── tsconfig.json       # cypress的tsconfig
+  │   └── core                # 核心功能模块，可能包括基础设施、工具类等。
+  ├── docker                  # 项目docker容器构建脚本（注：这是打包代码，请勿在正式代码中直接引用）
+  │   ├── base                # 构建底座镜像
+  │   ├── builder             # 构建编译镜像
+  │   └── my-worksite         # 构建应用镜像
+  ├── interceptors            # nextjs拦截器层
+  │   └── userInterceptor.ts  # 用户鉴权拦截器
+  ├── pages                   # nextjs应用路由层
+  │   ├── api                 # 该目录下均为应用接口实现，userInterceptor会自动对其鉴权
+  │   │   ├── app             # 该目录下的api将会映射到/app路径，目前仅作预留，实际没有使用
+  │   │   └── web             # 该目录下均api将会映射到/api路径，浏览器端要使用的api均在此实现
+  │   ├── login               # 该目录下为登录页面及接口实现，不鉴权
+  │   └── index.tsx           # spa入口
+  ├── public                  # 静态web资源
+  ├── pyscripts               # 容器的后台脚本，目前没有使用，请勿修改
+  ├── src                     # 主代码目录
+  │   ├── business            # spa页面文件位置
+  │   ├── components          # spa页面通用组件
+  │   ├── config              # 前后端公用的配置
+  │   ├── fetch               # 网络请求组件，基于axios实现
+  │   ├── framework           # 页面主要的框架性组件
+  │   ├── init                # spa启动前需要做的事情
+  │   ├── router              # spa应用解析url的组件，基于react-router实现
+  │   ├── services            # nextjs应用后端访问mysql的组件
+  │   ├── store               # spa应用缓存，基于redux实现
+  │   ├── types               # 类型声明
+  │   └── utils               # 工具类，前后端通用
+  ├── styles                  # 样式目录
+  ├── test                    # 单元测试
+  ├── launch.sh               # 用于在镜像中启动应用的脚本
+  ├── middleware.ts           # nextjs应用中间件配置文件
+  ├── next.config.json        # nextjs应用配置文件
+  ├── package.json            # 工程描述文件
+  ├── README.md               # git描述文件
+  ├── tsconfig.json           # ts配置文件
+  └── yarn.lock               # 使用yarn构建
+
+
+
+

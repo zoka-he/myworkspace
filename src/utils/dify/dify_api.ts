@@ -33,7 +33,12 @@ export default class DifyApi {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            return response.data;
+            const datasetInfo = response.data.data;
+
+            if (!datasetInfo || !Array.isArray(datasetInfo)) {
+                throw new Error('Invalid response format');
+            }
+            return datasetInfo;
         } catch (error) {
             console.error('Error fetching datasets:', error);
             throw error;
