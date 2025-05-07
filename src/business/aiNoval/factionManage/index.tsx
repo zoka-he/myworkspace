@@ -1,9 +1,10 @@
-import { Button, Card, Col, message, Row, Select, Space } from "antd";
+import { Button, Card, Col, message, Row, Select, Space, Modal, Radio } from "antd";
 import { useEffect, useState, useRef } from "react";
 import { getWorldViews } from "../common/worldViewUtil";
 import { IWorldViewData, IFactionDefData } from "@/src/types/IAiNoval";
 import FactionEdit, { FactionEditRef } from "./edit/factionEdit";
 import FactionTree from "./factionTree";
+import FactionInfoPanel from "./panels/factionInfoPanel";
 import apiCalls from "./apiCalls";
 
 export default function FactionManage() {
@@ -11,7 +12,10 @@ export default function FactionManage() {
     const [worldViewData, setWorldViewData] = useState<IWorldViewData[]>([]);
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [treeTimestamp, setTreeTimestamp] = useState<number>(Date.now());
+    const [selectedFaction, setSelectedFaction] = useState<IFactionDefData | null>(null);
     const factionEditRef = useRef<FactionEditRef>(null);
+
+    const [factionInfoPanelId, setFactionInfoPanelId] = useState<string>('factionInfo');
 
     async function initWorldViewData() {
         let { data, count } = await getWorldViews();
@@ -47,7 +51,7 @@ export default function FactionManage() {
         } as IFactionDefData);
     };
 
-    const handleEditOk = async (values: IFactionDefData) => {
+    const handleFactionDefUpdate = async (values: IFactionDefData) => {
         try {
             if (values.id) {
                 // Update existing faction
@@ -59,6 +63,7 @@ export default function FactionManage() {
                 message.success('阵营创建成功');
             }
             setEditModalVisible(false);
+            setSelectedFaction(null);
             setTreeTimestamp(Date.now()); // Refresh the tree after successful operation
         } catch (error) {
             console.error('Operation failed:', error);
@@ -70,7 +75,7 @@ export default function FactionManage() {
         setEditModalVisible(false);
     };
 
-    const handleAddChild = (faction: IFactionDefData) => {
+    const handleAddChildFactionDef = (faction: IFactionDefData) => {
         setEditModalVisible(true);
         factionEditRef.current?.setFormValues({
             worldview_id: worldViewId,
@@ -78,19 +83,57 @@ export default function FactionManage() {
         } as IFactionDefData);
     };
 
-    const handleDelete = async (faction: IFactionDefData) => {
+    const handleEditFactionDef = (faction: IFactionDefData) => {
+        setEditModalVisible(true);
+        factionEditRef.current?.setFormValues(faction);
+    }
+
+    const handleDeleteFactionDef = async (faction: IFactionDefData) => {
         if (!faction.id) {
             message.error('无效的阵营ID');
             return;
         }
-        try {
-            await apiCalls.deleteFaction(faction.id);
-            message.success('阵营删除成功');
-            setTreeTimestamp(Date.now());
-        } catch (error) {
-            console.error('Delete failed:', error);
-            message.error('阵营删除失败');
+
+        const factionId = faction.id; // Store the ID in a variable to satisfy TypeScript
+        Modal.confirm({
+            title: '确认删除',
+            content: `确定要删除阵营"${faction.name}"吗？`,
+            okText: '确认',
+            cancelText: '取消',
+            onOk: async () => {
+                try {
+                    await apiCalls.deleteFaction(factionId);
+                    message.success('阵营删除成功');
+                    setSelectedFaction(null);
+                    setTreeTimestamp(Date.now());
+                } catch (error) {
+                    console.error('Delete failed:', error);
+                    message.error('阵营删除失败');
+                }
+            }
+        });
+    };
+
+    const handleFactionSelect = (faction: IFactionDefData) => {
+        setSelectedFaction(faction);
+    };
+
+    const renderFactionInfoPanel = () => {
+        if (!selectedFaction) {
+            return <div>请选择一个阵营</div>;
         }
+
+        if (factionInfoPanelId === 'factionInfo') {
+            return (
+                <div>
+                    <h3>{selectedFaction.name}</h3>
+                    <p>ID: {selectedFaction.id}</p>
+                    <p>描述: {selectedFaction.description || '暂无描述'}</p>
+                    {/* Add more faction details as needed */}
+                </div>
+            );
+        }
+        return null;
     };
 
     const facionTreeTitle = (
@@ -105,24 +148,38 @@ export default function FactionManage() {
         </Space>
     )
 
+    const factionInfoTitle = (
+        <Radio.Group
+            value={factionInfoPanelId}
+            optionType="button"
+            buttonStyle="solid"
+            onChange={(e) => setFactionInfoPanelId(e.target.value)}
+        >
+            <Radio.Button value="factionInfo">阵营属性</Radio.Button>
+            <Radio.Button value="factionRelation">阵营关系</Radio.Button>
+            <Radio.Button value="factionStatus">阵营状态</Radio.Button>
+        </Radio.Group>
+    )
+
     return (
         <div className="f-fit-height" style={{ padding: '0 0 10px 0' }}>
             <Row className="f-fit-height" gutter={10}>
                 <Col className="f-fit-height" span={6}>
                     <Card className="f-fit-height" title={facionTreeTitle}>
-                        <div>
+                        <div className="f-fit-height f-flex-col">
                             <Button 
-                                style={{ width: '100%' }} 
+                                style={{ width: '100%', marginBottom: '10px' }} 
                                 onClick={handleAddRootFaction}
                                 disabled={!worldViewId}
                             >
                                 添加根阵营
                             </Button>
-                            <div style={{ marginTop: '10px' }}>
+                            <div style={{ flex: 1, overflow: 'auto' }}>
                                 <FactionTree
                                     worldViewId={worldViewId}
-                                    onAddChild={handleAddChild}
-                                    onDelete={handleDelete}
+                                    onAddChild={handleAddChildFactionDef}
+                                    onDelete={handleDeleteFactionDef}
+                                    onSelect={handleFactionSelect}
                                     timestamp={treeTimestamp}
                                 />
                             </div>
@@ -133,14 +190,18 @@ export default function FactionManage() {
                     <Card className="f-fit-height" title="阵营关系图"></Card>
                 </Col>
                 <Col className="f-fit-height" span={6}>
-                    <Card className="f-fit-height" title="阵营属性"></Card>
+                    <Card className="f-fit-height" title={factionInfoTitle}>
+                        {factionInfoPanelId === 'factionInfo' && (
+                            <FactionInfoPanel faction={selectedFaction || undefined} onEdit={faction => handleEditFactionDef(faction)} />
+                        )}
+                    </Card>
                 </Col>
             </Row>
 
             <FactionEdit
                 ref={factionEditRef}
                 visible={editModalVisible}
-                onOk={handleEditOk}
+                onOk={handleFactionDefUpdate}
                 onCancel={handleEditCancel}
             />
         </div>

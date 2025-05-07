@@ -39,7 +39,7 @@ export default {
         const response = await fetch.get(
             '/api/aiNoval/faction/list', 
             {
-                params: { worldViewId }
+                params: { worldViewId, limit: 200 }
             }
         );
         return response;

@@ -8,6 +8,7 @@ interface IFactionTreeProps {
     worldViewId: number | null;
     onAddChild: (faction: IFactionDefData) => void;
     onDelete: (faction: IFactionDefData) => void;
+    onSelect: (faction: IFactionDefData) => void;
     timestamp?: number;
 }
 
@@ -22,16 +23,24 @@ const FactionTree: React.FC<IFactionTreeProps> = ({
     worldViewId,
     onAddChild,
     onDelete,
+    onSelect,
     timestamp
 }) => {
     const [treeData, setTreeData] = useState<TreeNodeData[]>([]);
+    const [factions, setFactions] = useState<IFactionDefData[]>([]);
 
     const fetchFactionTree = async () => {
         if (!worldViewId) return;
         
         try {
             const response = await apiCalls.getFactionList(worldViewId);
-            const transformedData = transformFactionData(response.data);
+            const data = response.data as IFactionDefData[];
+            if (data.length > 200) {
+                message.warning('阵营数量超过请求数量，请检查程序！');
+            }
+
+            setFactions(data);
+            const transformedData = transformFactionData(data);
             setTreeData(transformedData);
         } catch (error) {
             message.error('获取阵营树失败');
@@ -48,11 +57,11 @@ const FactionTree: React.FC<IFactionTreeProps> = ({
             return factions
                 .filter(f => f.parent_id === parentId)
                 .map(faction => {
-                    const children = buildTree(faction.id);
+                    const children = buildTree(faction.id || 0);
                     const isLeaf = children.length === 0;
 
                     return {
-                        key: faction.id,
+                        key: faction.id || 0,
                         title: (
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <span>{faction.name}</span>
@@ -89,11 +98,20 @@ const FactionTree: React.FC<IFactionTreeProps> = ({
     };
 
     return (
-        <div style={{ height: '100%', overflowY: 'auto' }}>
+        <div style={{ height: '100%', overflow: 'auto' }}>
             <Tree
                 treeData={treeData}
                 showLine
                 showIcon={false}
+                blockNode
+                onSelect={(selectedKeys, info) => {
+                    if (selectedKeys.length > 0) {
+                        const faction = factions.find(f => f.id === selectedKeys[0]);
+                        if (faction) {
+                            onSelect(faction);
+                        }
+                    }
+                }}
             />
         </div>
     );
