@@ -1,6 +1,7 @@
 import { IGeoStarSystemData } from "@/src/types/IAiNoval";
-import { Col, Row, Button, Space, Divider } from "antd";
+import { Col, Row, Button, Space, Divider, Tabs } from "antd";
 import { type IGeoTreeItem } from "../geoTree";
+import GeoRecallTest from "../subPanel/geoRecallTest";
 
 interface IStarSystemEditProps {
     worldViewId: number | null,
@@ -42,6 +43,14 @@ export default function(props: IStarSystemEditProps) {
         }
     }
 
+    let tabItems = [
+        {
+            label: `LLM召回测试`,
+            key: '1',
+            children: <GeoRecallTest recommandQuery={`太阳系 ${data?.name} 设定`} />,
+        }
+    ];
+
     return (
         <div style={{ height: '100%' }}>
             <Row>
@@ -70,6 +79,14 @@ export default function(props: IStarSystemEditProps) {
                     <dt>是否在知识库中：</dt><dd>{ described_in_llm ? '是' : '否' }</dd>
                 </dl>
             </Row>
+
+            <Tabs
+                defaultActiveKey="1"
+                type="card"
+                size="small"
+                style={{ marginBottom: 32 }}
+                items={tabItems}
+            />
         </div>
     )
 }

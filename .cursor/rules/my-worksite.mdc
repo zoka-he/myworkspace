@@ -108,7 +108,7 @@ antdesign
   │   ├── business            # spa页面文件位置
   │   ├── components          # spa页面通用组件
   │   ├── config              # 前后端公用的配置
-  │   ├── fetch               # 网络请求组件，基于axios实现
+  │   ├── fetch               # 网络请求组件，基于axios实现，前后端都要使用该组件
   │   ├── framework           # 页面主要的框架性组件
   │   ├── init                # spa启动前需要做的事情
   │   ├── router              # spa应用解析url的组件，基于react-router实现

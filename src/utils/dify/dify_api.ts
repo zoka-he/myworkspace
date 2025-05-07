@@ -44,4 +44,23 @@ export default class DifyApi {
             throw error;
         }
     }
+
+    async queryDataset(datasetId: string, query: string) {
+        try {
+            const response = await fetch.post(
+                `${this.serverUrl}/datasets/${datasetId}/retrieve`, 
+                { query },
+                { headers: { 'Authorization': `Bearer ${this.apiKey}` } }
+            );
+
+            if (response.status >= 400) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return response.data;
+        } catch (error) {
+            console.error('Error querying dataset:', error);
+            throw error;
+        }
+    }
 }

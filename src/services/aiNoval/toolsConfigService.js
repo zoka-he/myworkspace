@@ -12,6 +12,18 @@ export default class NovalManageService extends MysqlNovalService {
         ]);
     }
 
+    async getConfig(cfgName) {
+        let result = await this.query({ cfg_name: cfgName }, [], ['cfg_name asc'], 1, 1);
+        console.debug('result', result);
+        return result.data[0].cfg_value_string;
+    }
+
+    async getConfigs(cfgNames) {
+        let result = await this.query({ cfg_name: { $in: cfgNames } }, [], ['cfg_name asc'], 1, 1);
+        console.debug('result', result);
+        return result;
+    }
+
     async saveConfig(cfgName, cfgValue) {
         const sql = `
             INSERT INTO dify_tools_config (cfg_name, cfg_value_string)
@@ -21,7 +33,7 @@ export default class NovalManageService extends MysqlNovalService {
         const values = [cfgName, cfgValue];
 
         try {
-            const result = await this.execute(sql, values);
+            const result = await this.getBaseApi().execute(sql, values);
             return result[0].affectedRows > 0;
         } catch (error) {
             console.error('Failed to save tool config:', error);
