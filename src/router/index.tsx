@@ -34,6 +34,8 @@ const AiNovalManager = lazy(() => import('../business/aiNoval/novalManage'));
 const AiWorldViewManager = lazy(() => import('../business/aiNoval/worldViewManage'));
 const AiWorldGeoManager = lazy(() => import('../business/aiNoval/geographyManage'));
 const AiNovalToolsConfig = lazy(() => import('../business/aiNoval/toolsConfig'));
+const AiNovalRoleManage = lazy(() => import('../business/aiNoval/roleManage'));
+const AiNovalFactionManage = lazy(() => import('../business/aiNoval/factionManage'));
 
 async function mainFrameLoader() {
     let matches = useMatches();
@@ -77,6 +79,9 @@ export default function () {
                     <Route path="novel/worldViewManage" element={<AiWorldViewManager/>}/>
                     <Route path="novel/geographyManage" element={<AiWorldGeoManager/>}/>
                     <Route path="novel/toolConfig" element={<AiNovalToolsConfig/>}/>
+                    <Route path="novel/roleManage" element={<AiNovalRoleManage/>}/>
+                    <Route path="novel/factionManage" element={<AiNovalFactionManage/>}/>
+
 
                     <Route path="*" element={<div><h1>此页面尚未实现！</h1></div>} />
                 </Route>

@@ -67,3 +67,11 @@ export interface IGeoGeographyUnitData {
     description?: string | null,
     described_in_llm?: number | null,
 }
+
+export interface IFactionDefData {
+    id?: number | null,
+    worldview_id?: number | null,
+    name?: string | null,
+    description?: string | null,
+    parent_id?: number | null,
+}
