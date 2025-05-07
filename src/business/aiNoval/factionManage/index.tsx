@@ -5,6 +5,7 @@ import { IWorldViewData, IFactionDefData } from "@/src/types/IAiNoval";
 import FactionEdit, { FactionEditRef } from "./edit/factionEdit";
 import FactionTree from "./factionTree";
 import FactionInfoPanel from "./panels/factionInfoPanel";
+import { D3FactionView } from "./panels/factionRelationMap";
 import apiCalls from "./apiCalls";
 
 export default function FactionManage() {
@@ -118,24 +119,6 @@ export default function FactionManage() {
         setSelectedFaction(faction);
     };
 
-    const renderFactionInfoPanel = () => {
-        if (!selectedFaction) {
-            return <div>请选择一个阵营</div>;
-        }
-
-        if (factionInfoPanelId === 'factionInfo') {
-            return (
-                <div>
-                    <h3>{selectedFaction.name}</h3>
-                    <p>ID: {selectedFaction.id}</p>
-                    <p>描述: {selectedFaction.description || '暂无描述'}</p>
-                    {/* Add more faction details as needed */}
-                </div>
-            );
-        }
-        return null;
-    };
-
     const facionTreeTitle = (
         <Space>
             <label>阵营树</label>
@@ -187,7 +170,14 @@ export default function FactionManage() {
                     </Card>
                 </Col>
                 <Col className="f-fit-height" span={12}>
-                    <Card className="f-fit-height" title="阵营关系图"></Card>
+                    <Card className="f-fit-height" title="阵营关系图">
+                        {worldViewId && (
+                            <D3FactionView 
+                                worldViewId={worldViewId.toString()} 
+                                updateTimestamp={treeTimestamp} 
+                            />
+                        )}
+                    </Card>
                 </Col>
                 <Col className="f-fit-height" span={6}>
                     <Card className="f-fit-height" title={factionInfoTitle}>
