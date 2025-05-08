@@ -226,7 +226,7 @@ export function D3FactionView({ worldViewId, updateTimestamp }: D3FactionViewPro
         if (hue !== undefined && maxDepth !== undefined) {
           // 使用HSL颜色空间，根据相对深度调整亮度
           const depth = d.data.depth || 0
-          const lightness = 0.5 + 0.5 * (1 - depth / maxDepth )
+          const lightness = 0.5 + 0.5 * (1 - (depth - 0.5) / maxDepth )
           return d3.hsl(hue, 0.7, lightness).toString()
         }
         

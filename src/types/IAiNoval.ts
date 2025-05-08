@@ -75,3 +75,26 @@ export interface IFactionDefData {
     description?: string | null,
     parent_id?: number | null,
 }
+
+export interface IRoleData {
+    version_count?: number
+    id?: number | null,
+    name?: string | null,
+    version?: number | null,
+    created_at?: Date | null,
+}
+
+export interface IRoleInfo {
+    id?: number | null,
+    role_id?: number | null,
+    version_name?: string | null,
+    worldview_id?: number | null,
+    name_in_worldview?: string | null,
+    gender_in_worldview?: string | null,
+    age_in_worldview?: string | null,
+    race_id?: number | null,
+    faction_id?: number | null,
+    background?: string | null,
+    personality?: string | null,
+    created_at?: Date | null,
+}

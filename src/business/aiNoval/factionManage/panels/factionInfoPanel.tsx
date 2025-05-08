@@ -1,6 +1,7 @@
 import { Button, Card, Descriptions, Typography } from 'antd';
 import { IFactionDefData } from '@/src/types/IAiNoval';
 import { EditOutlined } from '@ant-design/icons';
+import FactionRecallTest from './factionRecallTest';
 
 interface FactionInfoPanelProps {
     faction?: IFactionDefData;
@@ -11,6 +12,8 @@ export default function FactionInfoPanel({ faction, onEdit }: FactionInfoPanelPr
     if (!faction) {
         return <div>请选择阵营</div>;
     }
+
+    let recommandQuery = [faction.name || '', '设定'].join(' ');
 
     return (
         <div className="f-fit-height" style={{ overflow: 'auto' }}>
@@ -26,6 +29,10 @@ export default function FactionInfoPanel({ faction, onEdit }: FactionInfoPanelPr
             <Typography.Paragraph style={{ fontSize: '12px' }}>
                 <pre>{faction.description || '-'}</pre>
             </Typography.Paragraph>
+
+            <Typography.Title level={4}>知识库召回测试</Typography.Title>
+                
+            <FactionRecallTest recommandQuery={recommandQuery} />
         </div>
     );
 }
