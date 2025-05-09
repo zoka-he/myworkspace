@@ -1,7 +1,7 @@
 import { Card, Select, Button, Space, Typography, Descriptions, Dropdown, Alert, MenuProps, Modal } from 'antd'
 import { PlusOutlined, DownOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useState, useEffect } from 'react'
-import { IRoleData, IRoleInfo } from '@/src/types/IAiNoval'
+import { IRoleData, IRoleInfo, IWorldViewData } from '@/src/types/IAiNoval'
 import apiCalls from '../apiCalls'
 
 const { Title, Text } = Typography
@@ -12,6 +12,7 @@ interface RoleInfoPanelProps {
   onVersionChange: (version: IRoleData) => void | Promise<void>
   onOpenRoleInfoEditModal: (roleDef: IRoleData, data?: IRoleInfo) => void | Promise<void>
   onDeleteRoleInfo: (roleDef: IRoleData, data: IRoleInfo) => void | Promise<void>
+  worldviewMap: Map<number, IWorldViewData>
 }
 
 const labelStyle = {
@@ -26,7 +27,8 @@ export function RoleInfoPanel({
   updateTimestamp,
   onVersionChange,
   onOpenRoleInfoEditModal,
-  onDeleteRoleInfo
+  onDeleteRoleInfo,
+  worldviewMap
 }: RoleInfoPanelProps) {
 
   const [role, setRole] = useState<IRoleInfo | null>(null)
@@ -53,7 +55,6 @@ export function RoleInfoPanel({
       } else {
         setRole(null)
       }
-
 
     } catch (error) {
       console.error('Failed to load role versions:', error)
@@ -211,7 +212,7 @@ export function RoleInfoPanel({
                 {role.version_name}
               </Descriptions.Item>
               <Descriptions.Item label="世界观">
-                {role.worldview_id}
+                {role.worldview_id ? worldviewMap.get(role.worldview_id)?.title : '未设置世界观'}
               </Descriptions.Item>
               <Descriptions.Item label="角色名称">
                 {role.name_in_worldview}

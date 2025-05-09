@@ -1,5 +1,5 @@
 import { Row, Col, Card, Space, Button, Select, List, Modal, message, Alert, Table, Typography } from "antd";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { getWorldViews } from "../common/worldViewUtil";
 import { IRoleData, IWorldViewData, IRoleInfo } from "@/src/types/IAiNoval";
 import apiCalls from "./apiCalls";
@@ -20,6 +20,11 @@ export default function RoleManage() {
     const roleInfoEditModalRef = useRef<RoleInfoEditModalRef>(null);
 
     const { isOpen, presetValues, openModal, closeModal } = useRoleDefModal();
+
+    // 创建世界观映射表
+    const worldviewMap = useMemo(() => {
+        return new Map(worldViewList.map(w => [w.id!, w]));
+    }, [worldViewList]);
 
     async function loadRoleDefList() {
         let selectedRoleId = selectedRole?.id;
@@ -247,6 +252,7 @@ export default function RoleManage() {
                                 onVersionChange={handleVersionChange}
                                 onOpenRoleInfoEditModal={handleOpenRoleInfoEditModal}
                                 onDeleteRoleInfo={handleDeleteRoleInfo}
+                                worldviewMap={worldviewMap}
                             />
                         ) : (
                             <div style={{ textAlign: 'center', padding: '20px' }}>
