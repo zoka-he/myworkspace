@@ -15,7 +15,7 @@ const apiCalls = {
         return fetch.delete(`/api/aiNoval/role`, { params: { id: roleId } });
     },
     getRoleInfoList: (roleId: number, limit: number = 20) => {
-        return fetch.get(`/api/aiNoval/role/info/list`, { params: { id: roleId, page: 1, limit } });
+        return fetch.get(`/api/aiNoval/role/info/list`, { params: { role_id: roleId, page: 1, limit } });
     },
     createRoleInfo: (data: IRoleInfo) => {
         return fetch.post(`/api/aiNoval/role/info`, data );
