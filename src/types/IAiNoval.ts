@@ -77,6 +77,7 @@ export interface IFactionDefData {
 }
 
 export interface IRoleData {
+    version_name?: any
     version_count?: number
     id?: number | null,
     name?: string | null,

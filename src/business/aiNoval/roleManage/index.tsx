@@ -8,61 +8,48 @@ import { DeleteOutlined, ExclamationCircleOutlined, PlusOutlined } from "@ant-de
 import { RoleInfoPanel } from "./panel/roleInfoPanel";
 import { RoleInfoEditModal, RoleInfoEditModalRef } from './edit/roleInfoEditModal';
 
-const { Title } = Typography;
-
-interface RoleVersion {
-    id: string;
-    version: string;
-}
-
 export default function RoleManage() {
     const [worldViewList, setWorldViewList] = useState<IWorldViewData[]>([]);
     const [worldViewId, setWorldViewId] = useState<number | null>(null);
 
     const [roleList, setRoleList] = useState<IRoleData[]>([]);
     const [selectedRole, setSelectedRole] = useState<IRoleData | undefined>(undefined);
-    const [selectedVersion, setSelectedVersion] = useState<string | undefined>();
-    const [roleVersions, setRoleVersions] = useState<{ label: string; value: string }[]>([]);
-    const [loading, setLoading] = useState(true);
     const [editModalVisible, setEditModalVisible] = useState(false);
+    const [updateTimestamp, setUpdateTimestamp] = useState(0);
+
     const roleInfoEditModalRef = useRef<RoleInfoEditModalRef>(null);
 
     const { isOpen, presetValues, openModal, closeModal } = useRoleDefModal();
 
+    async function loadRoleDefList() {
+        let selectedRoleId = selectedRole?.id;
+
+        let res = await apiCalls.getRoleList(worldViewId)
+        setRoleList(res.data);
+
+        if (selectedRoleId) {
+            setSelectedRole(res.data.find((role: IRoleData) => role.id === selectedRoleId));
+        }
+
+        return res.data;
+    }
+
     async function reloadAll() {
         let res = await getWorldViews()
         setWorldViewList(res.data);
+
+        loadRoleDefList();
     }
 
     useEffect(() => {
-        apiCalls.getRoleList(worldViewId).then((res) => {
-            setRoleList(res.data);
-            setSelectedRole(undefined);
-        });
+        loadRoleDefList();
     }, [worldViewId]);
 
     useEffect(() => {
         reloadAll();
     }, []);
 
-    // 当选中角色变化时，加载该角色的版本列表
-    useEffect(() => {
-        if (selectedRole?.id) {
-            // TODO: 替换为实际的API调用
-            // 临时使用模拟数据
-            const mockVersions: RoleVersion[] = [
-                { id: '1', version: '1.0' },
-                { id: '2', version: '2.0' }
-            ];
-            setRoleVersions(mockVersions.map(version => ({
-                label: `v${version.version}`,
-                value: version.id
-            })));
-        } else {
-            setRoleVersions([]);
-        }
-    }, [selectedRole]);
-
+    // 创建角色
     const handleCreateRole = async (values: { name?: string }) => {
         console.debug('createRole', values);
 
@@ -74,6 +61,7 @@ export default function RoleManage() {
         setRoleList(res.data);
     };
 
+    // 删除角色
     const handleDeleteRole = async (role: IRoleData) => {
         if (!role.id) {
             message.error('缺少role_id，请检查数据');
@@ -104,6 +92,10 @@ export default function RoleManage() {
         });
     };
 
+    /**
+     * 渲染角色列表标题
+     * @returns 
+     */
     const roleListTitle = (
         <Space>
             <label>世界观：</label>
@@ -121,67 +113,103 @@ export default function RoleManage() {
         </Space>
     );
 
+    /**
+     * 渲染角色列表
+     * @param item 
+     * @returns 
+     */
     function renderRoleItem(item: IRoleData) {
-        if (item.version) {
-            return (
-                <List.Item.Meta title={`${item.name} (v${item.version})`}/>
-            )
+        let itemText = null;
+
+        if (item.version_name) {
+            itemText = <List.Item.Meta title={`${item.name} (${item.version_name})`}/>;
         } else {
-            return (
-                <List.Item.Meta title={<Space><ExclamationCircleOutlined style={{ color: '#ff4d4f' }} /><span>{item.name}</span><span style={{ fontSize: 12, color: '#999' }}>未创建属性版本</span></Space>}/>
-            )
+            itemText = <List.Item.Meta title={<Space><ExclamationCircleOutlined style={{ color: '#ff4d4f' }} /><span>{item.name}</span><span style={{ fontSize: 12, color: '#999' }}>未关联属性版本</span></Space>}/>;
         }
+
+        return (
+            <List.Item 
+                key={item.id} 
+                style={{ cursor: 'pointer' }}
+                onClick={() => setSelectedRole(item)}
+                actions={[
+                    <Button
+                        type="text"
+                        danger
+                        disabled={!!item.version_count && item.version_count > 0}
+                        icon={<DeleteOutlined />}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            showDeleteConfirm(item);
+                        }}
+                    />
+                ]}
+            >
+                {itemText}
+            </List.Item>
+        );
     }
 
-    const handleVersionChange = async (versionId: string) => {
-        setSelectedVersion(versionId);
-    };
+    // 更改角色属性的版本
+    const handleVersionChange = async (roleDef: IRoleData) => {
+        try {
+            await apiCalls.updateRole(roleDef);
+            message.success('更新角色版本成功');
 
-    const handleVersionManage = () => {
-        if (selectedRole) {
-            roleInfoEditModalRef.current?.openAndEdit({
-                version_name: "新版本",
-                worldview_id: worldViewId || 0,
-                name_in_worldview: selectedRole.name,
-                role_id: selectedRole.id
-            });
-            setEditModalVisible(true);
+
+            // 刷新角色列表
+            await loadRoleDefList() as IRoleData[];
+            setUpdateTimestamp(Date.now());
+        } catch (error) {
+            console.error('Failed to update role:', error);
+            message.error('更新角色版本失败');
         }
     };
 
-    const handleCreateRoleInfo = async (data: IRoleInfo) => {
+    // 创建或更新角色属性
+    const handleCreateOrUpdateRoleInfo = async (roleDef: IRoleData, data: IRoleInfo) => {
         try {
-            const response = await apiCalls.createRoleInfo(data);
+            let response = null;
 
-            if (!response.ok) {
-                throw new Error('Failed to create role info');
+            delete data.created_at;
+            
+            if (data.id) {
+                response = await apiCalls.updateRoleInfo(data);
+            } else {
+                response = await apiCalls.createRoleInfo(data);
             }
 
-            message.success('创建角色版本成功');
+            message.success(data.id ? '更新角色版本成功' : '创建角色版本成功');
             setEditModalVisible(false);
-            // 刷新版本列表
-            if (selectedRole?.id) {
-                const versionsResponse = await fetch(`/api/roles/${selectedRole.id}/versions`);
-                const versionsData = await versionsResponse.json();
-                setRoleVersions(versionsData.map((version: any) => ({
-                    label: version.version_name,
-                    value: version.id
-                })));
-            }
+
+            // 刷新角色列表
+            await loadRoleDefList() as IRoleData[];
+            setUpdateTimestamp(Date.now());
+
         } catch (error) {
             console.error('Failed to create role info:', error);
             message.error('创建角色版本失败');
         }
     };
 
-    const handleOpenRoleInfoEditModal = (roleDef: IRoleData) => {
+    const handleDeleteRoleInfo = async (roleDef: IRoleData, data: IRoleInfo) => {
+        try {
+            await apiCalls.deleteRoleInfo(data);
+            await apiCalls.updateRole({ id: roleDef.id, version: null });
+            message.success('删除成功');
+
+            // 刷新角色列表
+            await loadRoleDefList() as IRoleData[];
+            setUpdateTimestamp(Date.now());
+        } catch (error) {
+            message.error('删除失败');
+        }
+    }
+
+    // 打开角色属性编辑模态框
+    const handleOpenRoleInfoEditModal = (roleDef: IRoleData, data?: IRoleInfo) => {
         if (roleDef) {
-            roleInfoEditModalRef.current?.openAndEdit({
-                version_name: "新版本",
-                worldview_id: worldViewId || 0,
-                name_in_worldview: roleDef.name,
-                role_id: roleDef.id
-            });
+            roleInfoEditModalRef.current?.openAndEdit(roleDef, data);
             setEditModalVisible(true);
         }
     };
@@ -200,27 +228,7 @@ export default function RoleManage() {
                                 添加角色
                             </Button>
                             <List className="f-flex-1" size="small">
-                                {roleList.map((item) => (
-                                    <List.Item 
-                                        key={item.id} 
-                                        style={{ cursor: 'pointer' }}
-                                        onClick={() => setSelectedRole(item)}
-                                        actions={[
-                                            <Button
-                                                type="text"
-                                                danger
-                                                disabled={!!item.version_count && item.version_count > 0}
-                                                icon={<DeleteOutlined />}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    showDeleteConfirm(item);
-                                                }}
-                                            />
-                                        ]}
-                                    >
-                                        {renderRoleItem(item)}
-                                    </List.Item>
-                                ))}
+                                {roleList.map(renderRoleItem)}
                             </List>
                         </div>
                     </Card>
@@ -235,11 +243,10 @@ export default function RoleManage() {
                         {selectedRole ? (
                             <RoleInfoPanel
                                 roleDef={selectedRole}
-                                active_version_id={selectedVersion}
-                                versions={roleVersions}
+                                updateTimestamp={updateTimestamp}
                                 onVersionChange={handleVersionChange}
-                                onVersionManage={handleVersionManage}
                                 onOpenRoleInfoEditModal={handleOpenRoleInfoEditModal}
+                                onDeleteRoleInfo={handleDeleteRoleInfo}
                             />
                         ) : (
                             <div style={{ textAlign: 'center', padding: '20px' }}>
@@ -262,7 +269,7 @@ export default function RoleManage() {
                 ref={roleInfoEditModalRef}
                 open={editModalVisible}
                 onCancel={() => setEditModalVisible(false)}
-                onSubmit={handleCreateRoleInfo}
+                onSubmit={handleCreateOrUpdateRoleInfo}
                 worldViewList={worldViewList}
                 roleData={selectedRole}
             />

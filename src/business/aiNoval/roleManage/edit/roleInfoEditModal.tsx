@@ -1,60 +1,58 @@
-import { Modal, Form, Input, InputNumber, Select, Button, Row, Col } from 'antd'
+import { Modal, Form, Input, InputNumber, Select, Button, Row, Col, Divider } from 'antd'
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
 import { IRoleInfo, IRoleData, IWorldViewData } from '@/src/types/IAiNoval'
 
 interface RoleInfoEditModalProps {
   open: boolean
   onCancel: () => void
-  onSubmit: (data: IRoleInfo) => void | Promise<void>
-  initialData?: IRoleInfo
+  onSubmit: (roleDef: IRoleData, data: IRoleInfo) => void | Promise<void>
   roleData?: IRoleData
   worldViewList: IWorldViewData[]
 }
 
 export interface RoleInfoEditModalRef {
-  openAndEdit: (presetData: IRoleInfo) => void
+  openAndEdit: (roleDef: IRoleData, presetData?: IRoleInfo) => void
 }
 
 export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditModalProps>(({
   open,
   onCancel,
   onSubmit,
-  initialData,
   roleData,
   worldViewList
 }, ref) => {
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
+  const [roleDef, setRoleDef] = useState<IRoleData | undefined>()
   const [presetValues, setPresetValues] = useState<IRoleInfo | undefined>()
 
   useImperativeHandle(ref, () => ({
-    openAndEdit: (presetData: IRoleInfo) => {
+    openAndEdit: (roleDef: IRoleData, presetData?: IRoleInfo) => {
+      setRoleDef(roleDef)
       setPresetValues(presetData)
       form.setFieldsValue(presetData)
     }
   }))
 
   useEffect(() => {
-    if (open && initialData) {
-      form.setFieldsValue(initialData)
-      setPresetValues(initialData)
-    } else {
+    if (!open) {
       form.resetFields()
       setPresetValues(undefined)
     }
-  }, [open, initialData, form])
+  }, [open, form])
 
   const handleSubmit = async () => {
     try {
       setLoading(true)
       const values = await form.validateFields()
-      await onSubmit({
-        ...presetValues,
-        ...values,
-        role_id: roleData?.id
-      })
-      form.resetFields()
-      setPresetValues(undefined)
+      await onSubmit(
+        roleDef || {}, 
+        {
+          ...presetValues,
+          ...values,
+          role_id: roleData?.id
+        }
+      )
     } catch (error) {
       console.error('Form validation failed:', error)
     } finally {
@@ -62,8 +60,8 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
     }
   }
 
-  const modalTitle = roleData?.name 
-    ? `编辑角色属性 - ${roleData.name}`
+  const modalTitle = roleDef?.name 
+    ? `编辑角色属性 - ${roleDef.name}`
     : '编辑角色属性'
 
   return (
@@ -84,20 +82,29 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
       <Form
         form={form}
         layout="horizontal"
-        initialValues={initialData}
+        initialValues={{}}
         labelCol={{ span: 6 }}
         wrapperCol={{ span: 18 }}
       >
+        <Divider orientation="left">设定版本</Divider>
+
         <Row gutter={16}>
-          <Col span={12}>
+          <Col span={24}>
             <Form.Item
               name="version_name"
-              label="版本名"
-              rules={[{ required: true, message: '请输入版本名' }]}
+              label="版本"
+              labelCol={{ span: 3 }}
+              wrapperCol={{ span: 21 }}
+              rules={[{ required: true, message: '请输入版本' }]}
             >
-              <Input placeholder="请输入版本名" />
+              <Input placeholder="请输入版本" />
             </Form.Item>
           </Col>
+        </Row>
+
+        <Divider orientation="left">角色属性</Divider>
+
+        <Row gutter={16}>
           <Col span={12}>
             <Form.Item
               name="worldview_id"
@@ -113,9 +120,6 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
               </Select>
             </Form.Item>
           </Col>
-        </Row>
-
-        <Row gutter={16}>
           <Col span={12}>
             <Form.Item
               name="name_in_worldview"
@@ -125,6 +129,9 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
               <Input placeholder="请输入角色名称" />
             </Form.Item>
           </Col>
+        </Row>
+
+        <Row gutter={16}>
           <Col span={12}>
             <Form.Item
               name="gender_in_worldview"
@@ -137,9 +144,6 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
               </Select>
             </Form.Item>
           </Col>
-        </Row>
-
-        <Row gutter={16}>
           <Col span={12}>
             <Form.Item
               name="age_in_worldview"
@@ -148,6 +152,9 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
               <InputNumber min={0} max={1000} style={{ width: '100%' }} />
             </Form.Item>
           </Col>
+        </Row>
+
+        <Row gutter={16}>
           <Col span={12}>
             <Form.Item
               name="race_id"
@@ -158,9 +165,6 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
               </Select>
             </Form.Item>
           </Col>
-        </Row>
-
-        <Row gutter={16}>
           <Col span={12}>
             <Form.Item
               name="faction_id"

@@ -42,12 +42,6 @@ export default class RoleDefService extends MysqlNovalService {
             roleCondVals.push(0);
         }
 
-        console.debug('params --> ', params);
-        console.debug('roleConds --> ', roleConds);
-        console.debug('roleCondVals --> ', roleCondVals);    
-        console.debug('roleInfoConds --> ', roleInfoConds);
-        console.debug('roleInfoCondVals --> ', roleInfoCondVals);
-
         let sqlRoleCond = '';
         if (roleConds.length > 0) {
             sqlRoleCond = `where ${roleConds.join(' and ')}`;
@@ -59,15 +53,18 @@ export default class RoleDefService extends MysqlNovalService {
         }
 
         let sql = `
-            select r.id, r.name, r.version, COALESCE(ri.version_count, 0) version_count
+            select r.id, r.name, r.version, COALESCE(ri_1.version_count, 0) version_count, ri_2.version_name
             from Role r
             left join (
                 select role_id, count(0) version_count from role_info ${sqlRoleInfoCond} group by role_id
-            ) ri on ri.role_id = r.id
+            ) ri_1 on ri_1.role_id = r.id
+            left join (
+                select role_id, id version_id, version_name from role_info ${sqlRoleInfoCond} 
+            ) ri_2 on ri_2.role_id = r.id and ri_2.version_id = r.version
             ${sqlRoleCond}
         `;
 
-        return this.query(sql, roleInfoCondVals.concat(roleCondVals), ['id asc'], params.page || 1, params.limit || 100);
+        return this.query(sql, roleInfoCondVals.concat(roleInfoCondVals).concat(roleCondVals), ['id asc'], params.page || 1, params.limit || 100);
     }
 
 }
