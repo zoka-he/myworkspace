@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Card, List, Button, message, Space, Modal, Form, Input, Select, Slider, DatePicker, Tag, Typography, Radio } from 'antd'
 import { PlusOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
-import { IRoleData, IWorldViewData, IRoleRelation } from '@/src/types/IAiNoval'
+import { IRoleData, IWorldViewData, IRoleRelation, RELATION_TYPES } from '@/src/types/IAiNoval'
 import apiCalls from '../apiCalls'
 
 interface RoleRelationPanelProps {
@@ -11,42 +11,8 @@ interface RoleRelationPanelProps {
   worldViews?: IWorldViewData[] | null
   worldViewId?: number | null
   candidateRoles?: IRoleData[] | null
+  onUpdate?: () => void
 }
-
-const RELATION_TYPES = [
-  { value: 'friend', label: '朋友', color: 'blue', presetStrength: 80 },
-  { value: 'enemy', label: '敌人', color: 'red', presetStrength: 20 },
-  { value: 'family', label: '家人', color: 'green', presetStrength: 90 },
-  { value: 'lover', label: '恋人', color: 'pink', presetStrength: 95 },
-  { value: 'master', label: '师徒', color: 'purple', presetStrength: 85 },
-  { value: 'rival', label: '对手', color: 'orange', presetStrength: 40 },
-  { value: 'mentor', label: '导师', color: 'cyan', presetStrength: 75 },
-  { value: 'leader', label: '领导', color: 'cyan', presetStrength: 75 },
-  { value: 'subordinate', label: '下属', color: 'geekblue', presetStrength: 60 },
-  { value: 'ally', label: '盟友', color: 'lime', presetStrength: 70 },
-  { value: 'betrayer', label: '背叛者', color: 'volcano', presetStrength: 10 },
-  { value: 'sibling', label: '兄弟姐妹', color: 'green', presetStrength: 85 },
-  { value: 'parent', label: '父母', color: 'green', presetStrength: 90 },
-  { value: 'child', label: '子女', color: 'green', presetStrength: 90 },
-  { value: 'cousin', label: '表亲', color: 'green', presetStrength: 75 },
-  { value: 'guardian', label: '监护人', color: 'purple', presetStrength: 80 },
-  { value: 'protector', label: '保护者', color: 'blue', presetStrength: 85 },
-  { value: 'benefactor', label: '恩人', color: 'cyan', presetStrength: 80 },
-  { value: 'debtor', label: '欠债人', color: 'orange', presetStrength: 30 },
-  { value: 'creditor', label: '债主', color: 'orange', presetStrength: 30 },
-  { value: 'business_partner', label: '商业伙伴', color: 'geekblue', presetStrength: 65 },
-  { value: 'competitor', label: '竞争者', color: 'orange', presetStrength: 35 },
-  { value: 'nemesis', label: '宿敌', color: 'red', presetStrength: 15 },
-  { value: 'frenemy', label: '亦敌亦友', color: 'orange', presetStrength: 45 },
-  { value: 'confidant', label: '知己', color: 'blue', presetStrength: 85 },
-  { value: 'mentee', label: '学生', color: 'purple', presetStrength: 70 },
-  { value: 'apprentice', label: '学徒', color: 'purple', presetStrength: 70 },
-  { value: 'colleague', label: '同事', color: 'geekblue', presetStrength: 60 },
-  { value: 'neighbor', label: '邻居', color: 'blue', presetStrength: 55 },
-  { value: 'acquaintance', label: '熟人', color: 'blue', presetStrength: 50 },
-  { value: 'stranger', label: '陌生人', color: 'default', presetStrength: 30 },
-  { value: 'other', label: '其他', color: 'default', presetStrength: 50 },
-]
 
 
 export function RoleRelationPanel({ 
@@ -54,7 +20,8 @@ export function RoleRelationPanel({
   roleName, 
   worldViews, 
   worldViewId,
-  candidateRoles 
+  candidateRoles,
+  onUpdate
 }: RoleRelationPanelProps) {
   const [relations, setRelations] = useState<IRoleRelation[]>([])
   const [loading, setLoading] = useState(false)
@@ -75,7 +42,7 @@ export function RoleRelationPanel({
     
     try {
       setLoading(true)
-      const response = await apiCalls.getRoleRelationList(roleId)
+      const response = await apiCalls.getRoleRelationList(worldViewId, roleId)
       setRelations(response.data)
     } catch (error) {
       message.error('获取角色关系失败')
@@ -93,6 +60,7 @@ export function RoleRelationPanel({
           await apiCalls.deleteRoleRelation(record)
           message.success('删除成功')
           fetchIRoleRelations()
+          onUpdate?.()
         } catch (error) {
           message.error('删除失败')
         }
@@ -157,6 +125,7 @@ export function RoleRelationPanel({
       form.resetFields()
       setRelationStrength(50)
       fetchIRoleRelations()
+      onUpdate?.()
     } catch (error) {
       message.error(editingRelation ? '更新失败' : '添加失败')
     }

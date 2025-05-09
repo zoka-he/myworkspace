@@ -8,6 +8,7 @@ import { DeleteOutlined, ExclamationCircleOutlined, PlusOutlined } from "@ant-de
 import { RoleInfoPanel } from "./panel/roleInfoPanel";
 import { RoleInfoEditModal, RoleInfoEditModalRef } from './edit/roleInfoEditModal';
 import { RoleRelationPanel } from "./panel/roleRelationPanel";
+import { D3RoleRelationGraph } from "./panel/d3RoleRelationGraph";
 
 export default function RoleManage() {
     const [worldViewList, setWorldViewList] = useState<IWorldViewData[]>([]);
@@ -242,8 +243,11 @@ export default function RoleManage() {
                     </Card>
                 </Col>
                 <Col className="f-fit-height" span={11}>
-                    <Card className="f-fit-height" title="角色关系">
-                        
+                    <Card className="f-fit-height" title="角色关系图">
+                        <D3RoleRelationGraph 
+                            worldview_id={worldViewId?.toString() || ''} 
+                            updateTimestamp={updateTimestamp}
+                        />
                     </Card>
                 </Col>
                 <Col className="f-fit-height" span={7}>
@@ -284,6 +288,7 @@ export default function RoleManage() {
                             candidateRoles={roleList}
                             worldViews={worldViewList}
                             worldViewId={worldViewId}
+                            onUpdate={() => setUpdateTimestamp(Date.now())}
                           />
                         ) : (
                           <div className="f-center">

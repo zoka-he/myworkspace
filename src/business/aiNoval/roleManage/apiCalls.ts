@@ -26,8 +26,11 @@ const apiCalls = {
     deleteRoleInfo: (data: IRoleData) => {
         return fetch.delete(`/api/aiNoval/role/info`, { params: { id: data.id } });
     },
-    getRoleRelationList: (roleId: number, page: number = 1, limit: number = 100) => {
-        return fetch.get(`/api/aiNoval/role/relation/list`, { params: { role_id: roleId, page, limit } });
+    getRoleRelationList: (worldViewId: number, roleId: number, page: number = 1, limit: number = 100) => {
+        return fetch.get(`/api/aiNoval/role/relation/list`, { params: { worldview_id: worldViewId, role_id: roleId, page, limit } });
+    },
+    getWorldViewRoleRelationList: (worldViewId: number, page: number = 1, limit: number = 100) => {
+        return fetch.get(`/api/aiNoval/role/relation/list`, { params: { worldview_id: worldViewId, page, limit } });
     },
     createRoleRelation: (data: IRoleRelation) => {
         return fetch.post(`/api/aiNoval/role/relation`, data);
