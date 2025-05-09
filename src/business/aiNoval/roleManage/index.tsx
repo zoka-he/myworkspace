@@ -1,4 +1,4 @@
-import { Row, Col, Card, Space, Button, Select, List, Modal, message, Alert, Table, Typography } from "antd";
+import { Row, Col, Card, Space, Button, Select, List, Modal, message, Alert, Table, Typography, Radio } from "antd";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { getWorldViews } from "../common/worldViewUtil";
 import { IRoleData, IWorldViewData, IRoleInfo } from "@/src/types/IAiNoval";
@@ -7,6 +7,7 @@ import { RoleDefModal, useRoleDefModal } from "./edit/roleDefModal";
 import { DeleteOutlined, ExclamationCircleOutlined, PlusOutlined } from "@ant-design/icons";
 import { RoleInfoPanel } from "./panel/roleInfoPanel";
 import { RoleInfoEditModal, RoleInfoEditModalRef } from './edit/roleInfoEditModal';
+import { RoleRelationPanel } from "./panel/roleRelationPanel";
 
 export default function RoleManage() {
     const [worldViewList, setWorldViewList] = useState<IWorldViewData[]>([]);
@@ -20,6 +21,8 @@ export default function RoleManage() {
     const roleInfoEditModalRef = useRef<RoleInfoEditModalRef>(null);
 
     const { isOpen, presetValues, openModal, closeModal } = useRoleDefModal();
+
+    const [activePanel, setActivePanel] = useState('attributes');
 
     // 创建世界观映射表
     const worldviewMap = useMemo(() => {
@@ -244,8 +247,22 @@ export default function RoleManage() {
                     </Card>
                 </Col>
                 <Col className="f-fit-height" span={7}>
-                    <Card className="f-fit-height" title="角色属性及版本">
-                        {selectedRole ? (
+                    <Card 
+                      className="f-fit-height" 
+                      title={
+                        <Radio.Group 
+                          value={activePanel} 
+                          onChange={e => setActivePanel(e.target.value)}
+                          buttonStyle="solid"
+                          optionType="button"
+                        >
+                          <Radio.Button value="attributes">角色属性及版本</Radio.Button>
+                          <Radio.Button value="relations">角色关系</Radio.Button>
+                        </Radio.Group>
+                      }
+                    >
+                      {activePanel === 'attributes' ? (
+                        selectedRole ? (
                             <RoleInfoPanel
                                 roleDef={selectedRole}
                                 updateTimestamp={updateTimestamp}
@@ -258,7 +275,22 @@ export default function RoleManage() {
                             <div style={{ textAlign: 'center', padding: '20px' }}>
                                 请选择一个角色查看详情
                             </div>
-                        )}
+                        )
+                      ) : (
+                        selectedRole ? (
+                          <RoleRelationPanel 
+                            roleId={selectedRole.id} 
+                            roleName={selectedRole.name!}
+                            candidateRoles={roleList}
+                            worldViews={worldViewList}
+                            worldViewId={worldViewId}
+                          />
+                        ) : (
+                          <div className="f-center">
+                            请选择一个角色查看关系
+                          </div>
+                        )
+                      )}
                     </Card>
                 </Col>
             </Row>

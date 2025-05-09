@@ -99,3 +99,17 @@ export interface IRoleInfo {
     personality?: string | null,
     created_at?: Date | null,
 }
+
+
+export interface IRoleRelation {
+    id?: number
+    role_id?: number
+    related_role_id?: number
+    relation_type?: string
+    relation_strength?: number
+    description?: string
+    start_time?: string
+    end_time?: string
+    is_active?: number
+    worldview_id?: number
+  }

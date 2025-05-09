@@ -1,5 +1,5 @@
 import fetch from "@/src/fetch";
-import { IRoleData, IRoleInfo } from "@/src/types/IAiNoval";
+import { IRoleData, IRoleInfo, IRoleRelation } from "@/src/types/IAiNoval";
 
 const apiCalls = {
     getRoleList: (worldViewId?: number | null, page: number = 1, limit: number = 100) => {
@@ -25,6 +25,18 @@ const apiCalls = {
     },
     deleteRoleInfo: (data: IRoleData) => {
         return fetch.delete(`/api/aiNoval/role/info`, { params: { id: data.id } });
+    },
+    getRoleRelationList: (roleId: number, page: number = 1, limit: number = 100) => {
+        return fetch.get(`/api/aiNoval/role/relation/list`, { params: { role_id: roleId, page, limit } });
+    },
+    createRoleRelation: (data: IRoleRelation) => {
+        return fetch.post(`/api/aiNoval/role/relation`, data);
+    },
+    updateRoleRelation: (data: IRoleRelation) => {
+        return fetch.post(`/api/aiNoval/role/relation`, data, { params: { id: data.id } });
+    },
+    deleteRoleRelation: (data: IRoleRelation) => {
+        return fetch.delete(`/api/aiNoval/role/relation`, { params: { id: data.id } });
     }
 }
 
