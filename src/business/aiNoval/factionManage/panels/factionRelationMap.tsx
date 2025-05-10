@@ -12,6 +12,16 @@ interface Faction {
   parentId: string | null  // 父阵营ID，null表示根阵营
 }
 
+// 阵营关系数据结构
+interface FactionRelation {
+  id: number
+  source_faction_id: number
+  target_faction_id: number
+  relation_type: 'ally' | 'enemy' | 'neutral' | 'vassal' | 'overlord' | 'rival' | 'protector' | 'dependent' | 'war'
+  relation_strength: number
+  description: string
+}
+
 // 阵营层级数据结构，用于构建树形结构
 interface HierarchyFaction extends Faction {
   children?: HierarchyFaction[]  // 子阵营数组
@@ -30,30 +40,36 @@ export function D3FactionView({ worldViewId, updateTimestamp }: D3FactionViewPro
   const svgRef = useRef<SVGSVGElement>(null)
   // 阵营数据状态
   const [factions, setFactions] = useState<Faction[]>([])
+  // 阵营关系数据状态
+  const [relations, setRelations] = useState<FactionRelation[]>([])
 
-  // 获取阵营数据
+  // 获取阵营数据和关系数据
   useEffect(() => {
-    const fetchFactions = async () => {
+    const fetchData = async () => {
       try {
-        const response = await apiCalls.getFactionList(Number(worldViewId));
-        if (response?.data) {
-          // 确保数据格式正确
-          const factionData = response.data.map((faction: any) => ({
+        // 获取阵营列表
+        const factionResponse = await apiCalls.getFactionList(Number(worldViewId));
+        if (factionResponse?.data) {
+          const factionData = factionResponse.data.map((faction: any) => ({
             id: faction.id.toString(),
             name: faction.name,
             parentId: faction.parent_id ? faction.parent_id.toString() : null,
           }));
           setFactions(factionData);
-        } else {
-          message.error('获取阵营数据失败：数据格式错误');
+        }
+
+        // 获取阵营关系列表
+        const relationResponse = await apiCalls.getFactionRelationList(Number(worldViewId));
+        if (relationResponse?.data) {
+          setRelations(relationResponse.data);
         }
       } catch (error) {
-        message.error('获取阵营数据失败');
-        console.error('Error fetching factions:', error)
+        message.error('获取数据失败');
+        console.error('Error fetching data:', error)
       }
     }
 
-    fetchFactions()
+    fetchData()
   }, [worldViewId, updateTimestamp])
 
   // 渲染阵营关系图
@@ -163,6 +179,12 @@ export function D3FactionView({ worldViewId, updateTimestamp }: D3FactionViewPro
     const rootHues = new Map<string, number>()
     const rootMaxDepths = new Map<string, number>()
     
+    // 递归获取所有子节点
+    function getAllChildNodes(node: d3.HierarchyNode<HierarchyFaction>): d3.HierarchyNode<HierarchyFaction>[] {
+      const children = sortedNodes.filter(n => n.data.parentId === node.data.id)
+      return [node, ...children.flatMap(getAllChildNodes)]
+    }
+    
     rootFaction.children?.forEach(rootChild => {
       rootHues.set(rootChild.id, Math.random() * 360)
       
@@ -170,7 +192,7 @@ export function D3FactionView({ worldViewId, updateTimestamp }: D3FactionViewPro
       const rootNode = sortedNodes.find(n => n.data.id === rootChild.id)
       if (rootNode) {
         const rootNodes = getAllChildNodes(rootNode)
-        const maxDepth = d3.max(rootNodes, d => d.data.depth) || 0
+        const maxDepth = d3.max(rootNodes, d => d.data.depth || 0) || 0
         rootMaxDepths.set(rootChild.id, maxDepth)
       }
     })
@@ -192,7 +214,7 @@ export function D3FactionView({ worldViewId, updateTimestamp }: D3FactionViewPro
       .attr('transform', d => {
         // 添加随机偏移
         const randomAngle = Math.random() * Math.PI * 2
-        const randomDistance = Math.random() * 10 // 最大偏移12像素
+        const randomDistance = Math.random() * 6 // 最大偏移6像素
         const offsetX = Math.cos(randomAngle) * randomDistance
         const offsetY = Math.sin(randomAngle) * randomDistance
         // 存储偏移量
@@ -226,7 +248,7 @@ export function D3FactionView({ worldViewId, updateTimestamp }: D3FactionViewPro
         if (hue !== undefined && maxDepth !== undefined) {
           // 使用HSL颜色空间，根据相对深度调整亮度
           const depth = d.data.depth || 0
-          const lightness = 0.5 + 0.5 * (1 - (depth - 0.5) / maxDepth )
+          const lightness = 0.5 + 0.5 * (1 - (depth - 0.5) / maxDepth)
           return d3.hsl(hue, 0.7, lightness).toString()
         }
         
@@ -243,12 +265,6 @@ export function D3FactionView({ worldViewId, updateTimestamp }: D3FactionViewPro
     ).filter(Boolean) || []
     
     const avgRootX = rootNodes.reduce((sum, node) => sum + node!.x, 0) / rootNodes.length
-    
-    // 递归获取所有子节点
-    function getAllChildNodes(node: any): any[] {
-      const children = sortedNodes.filter(n => n.data.parentId === node.data.id)
-      return [node, ...children.flatMap(getAllChildNodes)]
-    }
     
     // 收集左右两侧的根节点
     const leftRoots: { node: any; y: number; size: number }[] = []
@@ -378,7 +394,156 @@ export function D3FactionView({ worldViewId, updateTimestamp }: D3FactionViewPro
       })
     })
 
-  }, [factions])
+    // 第五步：绘制阵营关系
+    // 添加箭头标记定义
+    svg.append('defs').append('marker')
+      .attr('id', 'arrowhead')
+      .attr('viewBox', '0 -5 10 10')
+      .attr('refX', 8)
+      .attr('refY', 0)
+      .attr('markerWidth', 4)  // 减小箭头宽度
+      .attr('markerHeight', 4) // 减小箭头高度
+      .attr('orient', 'auto')
+      .append('path')
+      .attr('d', 'M0,-5L10,0L0,5')
+      .attr('fill', '#999')
+
+    // 设置关系线的颜色
+    const relationColors: Record<FactionRelation['relation_type'], string> = {
+      ally: '#52c41a',      // 绿色
+      enemy: '#f5222d',     // 红色
+      neutral: '#d9d9d9',   // 灰色
+      vassal: '#faad14',    // 黄色
+      overlord: '#1890ff',  // 蓝色
+      rival: '#fa8c16',     // 橙色
+      protector: '#722ed1', // 紫色
+      dependent: '#13c2c2', // 青色
+      war: '#cf1322'        // 深红色
+    }
+
+    // 获取关系类型的中文文本
+    const getRelationTypeText = (type: FactionRelation['relation_type']): string => {
+      const typeMap: Record<FactionRelation['relation_type'], string> = {
+        ally: '盟友',
+        enemy: '敌对',
+        neutral: '中立',
+        vassal: '附庸',
+        overlord: '宗主',
+        rival: '竞争对手',
+        protector: '保护者',
+        dependent: '依附者',
+        war: '宣战'
+      }
+      return typeMap[type]
+    }
+
+    // 绘制关系线
+    // 计算根阵营的平均中心位置
+    const avgCenterX = rootNodes.reduce((sum, node) => sum + node!.x, 0) / rootNodes.length
+    const avgCenterY = rootNodes.reduce((sum, node) => sum + node!.y, 0) / rootNodes.length
+
+    relations.forEach(relation => {
+      const sourceNode = sortedNodes.find(n => n.data.id === relation.source_faction_id.toString())
+      const targetNode = sortedNodes.find(n => n.data.id === relation.target_faction_id.toString())
+      
+      if (sourceNode && targetNode) {
+        // 检查是否存在双边关系
+        const reverseRelation = relations.find(r => 
+          r.source_faction_id === relation.target_faction_id && 
+          r.target_faction_id === relation.source_faction_id
+        )
+        
+        const sourceOffset = nodeOffsets.get(sourceNode.data.id) || { x: 0, y: 0 }
+        const targetOffset = nodeOffsets.get(targetNode.data.id) || { x: 0, y: 0 }
+        
+        const sourceX = sourceNode.x + sourceOffset.x
+        const sourceY = sourceNode.y + sourceOffset.y
+        const targetX = targetNode.x + targetOffset.x
+        const targetY = targetNode.y + targetOffset.y
+        
+        // 计算连线的起点和终点（在圆形的边缘）
+        const dx = sourceX - targetX
+        const dy = sourceY - targetY
+        const angle = Math.atan2(dy, dx)
+        
+        const sourceRadius = nodeRadius[sortedNodes.indexOf(sourceNode)]
+        const targetRadius = nodeRadius[sortedNodes.indexOf(targetNode)]
+        
+        // 计算连线的跨度
+        const spanX = targetX - sourceX
+        const spanY = targetY - sourceY
+        const spanLength = Math.sqrt(spanX * spanX + spanY * spanY)
+
+        // 计算端点位置（不偏移）
+        const startX = targetX + Math.cos(angle) * targetRadius
+        const startY = targetY + Math.sin(angle) * targetRadius
+        const endX = sourceX + Math.cos(angle + Math.PI) * sourceRadius
+        const endY = sourceY + Math.sin(angle + Math.PI) * sourceRadius
+
+        // 计算控制点位置（直线不需要控制点，但为了代码一致性保留）
+        const controlX = (startX + endX) / 2
+        const controlY = (startY + endY) / 2
+        const pathCommand = 'L' // 始终使用直线
+
+        // 计算线条偏移量（用于双线）
+        const lineOffset = 2
+        const offsetX = Math.cos(angle + Math.PI/2) * lineOffset
+        const offsetY = Math.sin(angle + Math.PI/2) * lineOffset
+
+        const lineWidth = 0.5
+
+        // 绘制关系线
+        if (reverseRelation) {
+          // 双边关系：绘制双线
+          const line1 = svg.append('path')
+            .attr('d', `M${startX + offsetX},${startY + offsetY} ${pathCommand}${endX + offsetX},${endY + offsetY}`)
+            .attr('stroke', relationColors[relation.relation_type])
+            .attr('stroke-width', lineWidth)
+            .attr('fill', 'none')
+            
+          const line2 = svg.append('path')
+            .attr('d', `M${startX - offsetX},${startY - offsetY} ${pathCommand}${endX - offsetX},${endY - offsetY}`)
+            .attr('stroke', relationColors[relation.relation_type])
+              .attr('stroke-width', lineWidth)
+            .attr('fill', 'none')
+        } else {
+          // 单边关系：绘制单线
+          const line = svg.append('path')
+            .attr('d', `M${startX},${startY} ${pathCommand}${endX},${endY}`)
+            .attr('stroke', relationColors[relation.relation_type])
+            .attr('stroke-width', lineWidth)
+            .attr('fill', 'none')
+            .attr('marker-end', 'url(#arrowhead)')
+        }
+        
+        // 计算标签位置
+        const labelOffset = reverseRelation ? 1 : 1 // 减小标签偏移量：双边关系3px，单边关系1px
+        const labelX = controlX + Math.cos(angle + Math.PI/2) * labelOffset
+        const labelY = controlY + Math.sin(angle + Math.PI/2) * labelOffset
+        
+        // 只在以下情况显示标签：
+        // 1. 单边关系
+        // 2. 双边关系且关系类型相同，且是正向关系（避免重复显示）
+        const shouldShowLabel = !reverseRelation || 
+          (reverseRelation && 
+           getRelationTypeText(relation.relation_type) === getRelationTypeText(reverseRelation.relation_type) && 
+           relation.source_faction_id < reverseRelation.source_faction_id)
+        
+        if (shouldShowLabel) {
+          // 添加关系类型文本
+          svg.append('text')
+            .attr('x', labelX)
+            .attr('y', labelY)
+            .attr('dy', '-0.5em')
+            .style('text-anchor', 'middle')
+            .style('font-size', '10px')
+            .style('fill', relationColors[relation.relation_type])
+            .text(getRelationTypeText(relation.relation_type))
+        }
+      }
+    })
+
+  }, [factions, relations])
 
   return (
     <div className="w-full h-full">
