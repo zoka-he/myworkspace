@@ -1,8 +1,9 @@
 import { Card, Select, Button, Space, Typography, Descriptions, Dropdown, Alert, MenuProps, Modal } from 'antd'
 import { PlusOutlined, DownOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useState, useEffect } from 'react'
-import { IRoleData, IRoleInfo, IWorldViewData } from '@/src/types/IAiNoval'
+import { IRoleData, IRoleInfo, IWorldViewData, IFactionDefData } from '@/src/types/IAiNoval'
 import apiCalls from '../apiCalls'
+import factionApiCalls from '@/src/business/aiNoval/factionManage/apiCalls'
 
 const { Title, Text } = Typography
 
@@ -24,7 +25,6 @@ const labelStyle = {
 
 export function RoleInfoPanel({
   roleDef,
-  updateTimestamp,
   onVersionChange,
   onOpenRoleInfoEditModal,
   onDeleteRoleInfo,
@@ -34,6 +34,7 @@ export function RoleInfoPanel({
   const [role, setRole] = useState<IRoleInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [roleVersions, setRoleVersions] = useState<IRoleInfo[]>([])
+  const [factionMap, setFactionMap] = useState<Map<number, IFactionDefData>>(new Map())
   
   async function loadRoleVersions() {
     if (!roleDef?.id) {
@@ -51,6 +52,10 @@ export function RoleInfoPanel({
         const selectedVersion = res.data.find((v: IRoleInfo) => v.id === roleDef.version)
         if (selectedVersion) {
           setRole(selectedVersion)
+          // 如果有世界观ID，加载阵营数据
+          if (selectedVersion.worldview_id) {
+            loadFactionData(selectedVersion.worldview_id)
+          }
         }
       } else {
         setRole(null)
@@ -60,6 +65,22 @@ export function RoleInfoPanel({
       console.error('Failed to load role versions:', error)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  async function loadFactionData(worldviewId: number) {
+    try {
+      const res = await factionApiCalls.getFactionList(worldviewId)
+      const factions = res.data as IFactionDefData[]
+      const newFactionMap = new Map<number, IFactionDefData>()
+      factions.forEach(faction => {
+        if (faction.id) {
+          newFactionMap.set(faction.id, faction)
+        }
+      })
+      setFactionMap(newFactionMap)
+    } catch (error) {
+      console.error('Failed to load faction data:', error)
     }
   }
 
@@ -75,6 +96,10 @@ export function RoleInfoPanel({
       id: roleDef.id,
       version: version.id
     })
+    // 如果有世界观ID，加载阵营数据
+    if (version.worldview_id) {
+      loadFactionData(version.worldview_id)
+    }
   }
 
   // 处理创建新版本
@@ -227,7 +252,7 @@ export function RoleInfoPanel({
                 {role.race_id}
               </Descriptions.Item>
               <Descriptions.Item label="角色阵营">
-                {role.faction_id}
+                {role.faction_id ? factionMap.get(role.faction_id)?.name || '未知阵营' : '未设置阵营'}
               </Descriptions.Item>
               <Descriptions.Item label="角色背景">
                 {role.background}

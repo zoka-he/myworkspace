@@ -95,6 +95,7 @@ export interface IRoleInfo {
     age_in_worldview?: string | null,
     race_id?: number | null,
     faction_id?: number | null,
+    root_faction_id?: number | null,
     background?: string | null,
     personality?: string | null,
     created_at?: Date | null,

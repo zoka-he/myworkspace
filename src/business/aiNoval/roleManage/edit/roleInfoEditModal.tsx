@@ -1,6 +1,7 @@
-import { Modal, Form, Input, InputNumber, Select, Button, Row, Col, Divider } from 'antd'
-import { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
-import { IRoleInfo, IRoleData, IWorldViewData } from '@/src/types/IAiNoval'
+import { Modal, Form, Input, InputNumber, Select, Button, Row, Col, Divider, TreeSelect } from 'antd'
+import { useState, useEffect, forwardRef, useImperativeHandle, useMemo } from 'react'
+import { IRoleInfo, IRoleData, IWorldViewData, IFactionDefData } from '@/src/types/IAiNoval'
+import factionApiCalls from '@/src/business/aiNoval/factionManage/apiCalls'
 
 interface RoleInfoEditModalProps {
   open: boolean
@@ -25,6 +26,34 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
   const [loading, setLoading] = useState(false)
   const [roleDef, setRoleDef] = useState<IRoleData | undefined>()
   const [presetValues, setPresetValues] = useState<IRoleInfo | undefined>()
+  const [factionList, setFactionList] = useState<IFactionDefData[]>([])
+
+  // Transform faction data into tree structure using useMemo
+  const factionTreeData = useMemo(() => {
+    const buildTree = (parentId: number | null = null): any[] => {
+      return factionList
+        .filter(faction => faction.parent_id === parentId)
+        .map(faction => ({
+          title: faction.name,
+          value: faction.id,
+          children: buildTree(faction.id)
+        }))
+    }
+    return buildTree()
+  }, [factionList])
+
+  // Find root faction ID for a given faction ID
+  const findRootFactionId = (factionId: number | null): number | null => {
+    if (!factionId) return null
+
+    const findParent = (id: number): number => {
+      const faction = factionList.find(f => f.id === id)
+      if (!faction || !faction.parent_id) return id
+      return findParent(faction.parent_id)
+    }
+
+    return findParent(factionId)
+  }
 
   useImperativeHandle(ref, () => ({
     openAndEdit: (roleDef: IRoleData, presetData?: IRoleInfo) => {
@@ -41,16 +70,37 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
     }
   }, [open, form])
 
+  // Fetch faction data when worldview changes
+  useEffect(() => {
+    const fetchFactionData = async () => {
+      const worldviewId = form.getFieldValue('worldview_id')
+      if (worldviewId) {
+        try {
+          const response = await factionApiCalls.getFactionList(worldviewId)
+          setFactionList(response.data || [])
+        } catch (error) {
+          console.error('Failed to fetch faction data:', error)
+        }
+      }
+    }
+
+    fetchFactionData()
+  }, [form.getFieldValue('worldview_id')])
+
   const handleSubmit = async () => {
     try {
       setLoading(true)
       const values = await form.validateFields()
+      const factionId = values.faction_id
+      const rootFactionId = findRootFactionId(factionId)
+
       await onSubmit(
         roleDef || {}, 
         {
           ...presetValues,
           ...values,
-          role_id: roleData?.id
+          role_id: roleData?.id,
+          root_faction_id: rootFactionId
         }
       )
     } catch (error) {
@@ -170,9 +220,14 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
               name="faction_id"
               label="角色阵营"
             >
-              <Select placeholder="请选择角色阵营">
-                {/* TODO: 添加阵营选项 */}
-              </Select>
+              <TreeSelect
+                placeholder="请选择角色阵营"
+                treeData={factionTreeData}
+                allowClear
+                treeDefaultExpandAll
+                showSearch
+                treeNodeFilterProp="title"
+              />
             </Form.Item>
           </Col>
         </Row>

@@ -15,6 +15,7 @@ export default class RoleDefService extends MysqlNovalService {
             'age_in_worldview',
             'race_id',
             'faction_id',
+            'root_faction_id',
             'background',
             'personality',
             'created_at',
