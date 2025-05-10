@@ -159,3 +159,13 @@ export interface IRoleRelation {
     { value: 'apostle', label: '使徒', color: 'gold', presetStrength: 85 },
     { value: 'other', label: '其他', color: 'default', presetStrength: 50 },
   ]
+
+  export interface IFactionRelation {
+    id?: number
+    worldview_id: number
+    source_faction_id: number
+    target_faction_id: number
+    relation_type: 'ally' | 'enemy' | 'neutral' | 'vassal' | 'overlord' | 'rival' | 'protector' | 'dependent' | 'war'
+    relation_strength: number
+    description: string
+  }

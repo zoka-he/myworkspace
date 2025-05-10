@@ -5,18 +5,33 @@ import { IWorldViewData, IFactionDefData } from "@/src/types/IAiNoval";
 import FactionEdit, { FactionEditRef } from "./edit/factionEdit";
 import FactionTree from "./factionTree";
 import FactionInfoPanel from "./panels/factionInfoPanel";
+import { FactionRelationPanel } from "./panels/factionRelationPanel";
 import { D3FactionView } from "./panels/factionRelationMap";
 import apiCalls from "./apiCalls";
 
 export default function FactionManage() {
     const [worldViewId, setWorldViewId] = useState<number | null>(null);
     const [worldViewData, setWorldViewData] = useState<IWorldViewData[]>([]);
+    const [factionList, setFactionList] = useState<IFactionDefData[]>([]);
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [treeTimestamp, setTreeTimestamp] = useState<number>(Date.now());
     const [selectedFaction, setSelectedFaction] = useState<IFactionDefData | null>(null);
     const factionEditRef = useRef<FactionEditRef>(null);
 
     const [factionInfoPanelId, setFactionInfoPanelId] = useState<string>('factionInfo');
+
+    const fetchFactionTree = async () => {
+        if (!worldViewId) return;
+        
+        try {
+            const response = await apiCalls.getFactionList(worldViewId);
+            const data = response.data as IFactionDefData[];
+            setFactionList(data);
+        } catch (error) {
+            message.error('获取阵营树失败');
+            console.error(error);
+        }
+    };
 
     async function initWorldViewData() {
         let { data, count } = await getWorldViews();
@@ -38,6 +53,10 @@ export default function FactionManage() {
     useEffect(() => {
         initWorldViewData();
     }, []);
+
+    useEffect(() => {
+        fetchFactionTree();
+    }, [worldViewId, treeTimestamp]);
 
     const handleAddRootFaction = () => {
         if (!worldViewId) {
@@ -160,10 +179,10 @@ export default function FactionManage() {
                             <div style={{ flex: 1, overflow: 'auto' }}>
                                 <FactionTree
                                     worldViewId={worldViewId}
+                                    factions={factionList}
                                     onAddChild={handleAddChildFactionDef}
                                     onDelete={handleDeleteFactionDef}
                                     onSelect={handleFactionSelect}
-                                    timestamp={treeTimestamp}
                                 />
                             </div>
                         </div>
@@ -183,6 +202,16 @@ export default function FactionManage() {
                     <Card className="f-fit-height" title={factionInfoTitle}>
                         {factionInfoPanelId === 'factionInfo' && (
                             <FactionInfoPanel faction={selectedFaction || undefined} onEdit={faction => handleEditFactionDef(faction)} />
+                        )}
+                        {factionInfoPanelId === 'factionRelation' && (
+                            <FactionRelationPanel 
+                                worldviewData={worldViewData}
+                                currentFaction={selectedFaction || undefined}
+                                factions={factionList}
+                                onRelationChange={() => {
+                                    setTreeTimestamp(Date.now());
+                                }}
+                            />
                         )}
                     </Card>
                 </Col>

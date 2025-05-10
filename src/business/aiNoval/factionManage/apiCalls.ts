@@ -1,4 +1,4 @@
-import { IFactionDefData } from "@/src/types/IAiNoval";
+import { IFactionDefData, IFactionRelation } from "@/src/types/IAiNoval";
 import fetch from "@/src/fetch";
 
 export default {
@@ -67,6 +67,42 @@ export default {
 
         response.data = buildTree(data);
 
+        return response;
+    },
+    addFactionRelation: async (relation: IFactionRelation) => {
+        const response = await fetch.post(
+            '/api/aiNoval/faction/relation', 
+            relation
+        );
+        return response;
+    },
+    updateFactionRelation: async (relation: IFactionRelation) => {
+        const response = await fetch.post(
+            '/api/aiNoval/faction/relation', 
+            relation,
+            {
+                params: { id: relation.id }
+            }
+        );
+        return response;
+    },
+    deleteFactionRelation: async (id: number) => {
+        const response = await fetch.delete(
+            '/api/aiNoval/faction/relation', 
+            {
+                params: { id }
+            }
+        );
+        return response;
+    },
+
+    getFactionRelationList: async (worldViewId: number, factionId: number | null = null) => {
+        const response = await fetch.get(
+            '/api/aiNoval/faction/relation/list', 
+            {
+                params: { worldview_id: worldViewId, source_faction_id: factionId }
+            }
+        );
         return response;
     }
 }

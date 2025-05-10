@@ -1,0 +1,60 @@
+.faction-relation-container {
+  padding: 8px;
+}
+
+.faction-relation-header {
+  margin-bottom: 8px;
+}
+
+.faction-relation-list {
+  width: 100%;
+}
+
+.faction-relation-list-item {
+  width: 100%;
+  padding: 8px 0;
+  margin-bottom: 4px;
+}
+
+.faction-relation-content {
+  width: 100%;
+}
+
+.faction-relation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+  width: 100%;
+  font-size: 14px;
+}
+
+.faction-relation-header-row {
+  grid-column: span 2;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+  width: 100%;
+}
+
+.faction-relation-title {
+  font-weight: 500;
+}
+
+.faction-relation-arrow {
+  margin: 0 4px;
+}
+
+.faction-relation-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.faction-relation-label {
+  color: #666;
+}
+
+.faction-relation-pagination {
+  margin-top: 8px;
+} 

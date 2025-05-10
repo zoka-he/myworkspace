@@ -2,14 +2,13 @@ import { Tree, Button, message } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { Key, useEffect, useState } from 'react';
 import { IFactionDefData } from '@/src/types/IAiNoval';
-import apiCalls from './apiCalls';
 
 interface IFactionTreeProps {
     worldViewId: number | null;
+    factions: IFactionDefData[];
     onAddChild: (faction: IFactionDefData) => void;
     onDelete: (faction: IFactionDefData) => void;
     onSelect: (faction: IFactionDefData) => void;
-    timestamp?: number;
 }
 
 interface TreeNodeData {
@@ -21,36 +20,20 @@ interface TreeNodeData {
 
 const FactionTree: React.FC<IFactionTreeProps> = ({
     worldViewId,
+    factions,
     onAddChild,
     onDelete,
     onSelect,
-    timestamp
 }) => {
     const [treeData, setTreeData] = useState<TreeNodeData[]>([]);
-    const [factions, setFactions] = useState<IFactionDefData[]>([]);
-
-    const fetchFactionTree = async () => {
-        if (!worldViewId) return;
-        
-        try {
-            const response = await apiCalls.getFactionList(worldViewId);
-            const data = response.data as IFactionDefData[];
-            if (data.length > 200) {
-                message.warning('阵营数量超过请求数量，请检查程序！');
-            }
-
-            setFactions(data);
-            const transformedData = transformFactionData(data);
-            setTreeData(transformedData);
-        } catch (error) {
-            message.error('获取阵营树失败');
-            console.error(error);
-        }
-    };
 
     useEffect(() => {
-        fetchFactionTree();
-    }, [worldViewId, timestamp]);
+        if (factions.length > 200) {
+            message.warning('阵营数量超过请求数量，请检查程序！');
+        }
+        const transformedData = transformFactionData(factions);
+        setTreeData(transformedData);
+    }, [factions]);
 
     const transformFactionData = (factions: IFactionDefData[]): TreeNodeData[] => {
         const buildTree = (parentId: number | null): TreeNodeData[] => {
