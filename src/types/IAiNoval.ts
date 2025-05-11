@@ -10,7 +10,7 @@ export interface IWorldViewData {
     id?: number | null,
     title?: string | null,
     content?: string | null,
-    is_dify_knowledge_base?: number | null
+    is_dify_knowledge_base?: number | null,
 }
 
 export interface IGeoStarSystemData {
@@ -169,3 +169,50 @@ export interface IRoleRelation {
     relation_strength: number
     description: string
   }
+
+  export interface ITimelineDef {
+    id: number                      // 时间线定义ID
+    worldview_id: number           // 世界观ID
+    epoch: string                  // 时间线公元点名称
+    start_seconds: number          // 起始时间（秒），负值表示公元前
+    hour_length_in_seconds: number // 标准时长度（秒）
+    day_length_in_hours: number    // 标准日长度（时）
+    month_length_in_days: number   // 标准月长度（天）
+    year_length_in_months: number  // 标准年长度（月）
+  }
+
+  export interface IWorldViewDataWithExtra {
+    id?: number | null,
+    title?: string | null,
+    content?: string | null,
+    is_dify_knowledge_base?: number | null,
+    tl_id?: number | null,
+    tl_worldview_id?: number | null,
+    tl_epoch?: string | null,
+    tl_start_seconds?: number | null,
+    tl_hour_length_in_seconds?: number | null,
+    tl_day_length_in_hours?: number | null,
+    tl_month_length_in_days?: number | null,
+    tl_year_length_in_months?: number | null,
+}
+
+export interface IStoryLine {
+    id: number
+    worldview_id: number
+    name: string
+    type: string
+    description: string
+  }
+
+
+export interface ITimelineEvent {
+    id: number
+    title: string
+    description: string
+    date: number // seconds
+    location: string
+    faction_ids: number[]
+    role_ids: number[]
+    story_line_id: number
+    worldview_id: number
+}

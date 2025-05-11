@@ -1,12 +1,12 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from 'next'
-import WorldViewManage from '@/src/services/aiNoval/worldViewManageService';
+import StoryLineService from '@/src/services/aiNoval/storyLineService';
 import _ from 'lodash';
 import { ISqlCondMap } from '@/src/utils/mysql/types';
 
 type Data = Object;
 
-const service = new WorldViewManage();
+const service = new StoryLineService();
 
 
 async function research(req: NextApiRequest, res: NextApiResponse) {
@@ -15,7 +15,24 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
     const page = _.toNumber(req.query.page || 1);
     const limit = _.toNumber(req.query.limit || 20);
 
-    let ret = await service.getWorldViewListWithExtraDatas(req.query.title as string | undefined, page, limit);
+    let queryObject: ISqlCondMap = {};
+
+    for (let [k, v] of Object.entries(req.query)) {
+        if (v === undefined) {
+            continue;
+        }
+
+        switch(k) {
+            case 'name':
+                queryObject.name = { $like: `%${v}%` };
+                break;
+            case 'worldview_id':
+                queryObject.worldview_id = v;
+                break;
+        }
+    }
+
+    let ret = await service.query(queryObject, [], ['id asc'], page, limit);
     res.status(200).json(ret);
 }
 
