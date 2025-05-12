@@ -4,6 +4,8 @@ import { Card, Slider, Space } from 'antd'
 import { IStoryLine, IWorldViewData } from '@/src/types/IAiNoval'
 import { CharacterView } from './CharacterView'
 import { TIMELINE_CONFIG } from './config'
+import { loadGeoTree, IGeoTreeItem } from '@/src/business/aiNoval/common/geoDataUtil'
+import fetch from '@/src/fetch'
 
 export type ViewType = 'location' | 'faction' | 'character'
 
@@ -33,6 +35,7 @@ interface UnifiedEventViewProps {
   viewType: ViewType
   worldViews: IWorldViewData[]
   secondsPerPixel: number
+  worldview_id: number
 }
 
 // Generate evenly distributed colors for storylines
@@ -55,8 +58,58 @@ function formatTimestamp(timestamp: number): string {
   return `时间点 ${timestamp}`
 }
 
-function getGroups(events: ProcessedEvent[], viewType: ViewType): string[] {
-  console.log('Getting groups for events:', events, 'viewType:', viewType)
+// Add function to find geo item by code
+function findGeoItemByCode(geoTree: IGeoTreeItem<any>[], code: string): IGeoTreeItem<any> | undefined {
+  const findInTree = (items: IGeoTreeItem<any>[]): IGeoTreeItem<any> | undefined => {
+    for (const item of items) {
+      if (item.key === code) {
+        return item
+      }
+      if (item.children) {
+        const found = findInTree(item.children)
+        if (found) return found
+      }
+    }
+    return undefined
+  }
+  return findInTree(geoTree)
+}
+
+// Add function to get all unique geo codes from events
+function getUniqueGeoCodes(events: TimelineEvent[]): string[] {
+  const codes = new Set<string>()
+  events.forEach(event => {
+    if (event.location) codes.add(event.location)
+  })
+  return Array.from(codes).sort()
+}
+
+// Add function to process events with geo codes
+function processEventsWithGeo(events: TimelineEvent[], geoTree?: IGeoTreeItem<any>[]): ProcessedEvent[] {
+  console.log('Processing events with geo tree:', events)
+  console.log('Geo tree available:', !!geoTree)
+  
+  const processed = events.map(event => {
+    console.log('Processing event:', event)
+    // 保持原始的 location code
+    const result = {
+      ...event,
+      location: event.location,
+      date: event.date
+    }
+    console.log('Processed event result:', result)
+    return result
+  }).sort((a, b) => a.date - b.date)
+  
+  console.log('Final processed events:', processed)
+  return processed
+}
+
+function getGroups(events: ProcessedEvent[], viewType: ViewType, geoTree?: IGeoTreeItem<any>[]): string[] {
+  console.log('Getting groups for events:', events)
+  console.log('View type:', viewType)
+  console.log('Geo tree available:', !!geoTree)
+  
   let groups: string[] = []
   
   if (viewType === 'character') {
@@ -69,6 +122,10 @@ function getGroups(events: ProcessedEvent[], viewType: ViewType): string[] {
       new Set(events.flatMap(event => event.faction))
     ).filter(Boolean).sort()
     console.log('Faction groups:', groups)
+  } else if (viewType === 'location' && geoTree) {
+    // Use geo codes for location view
+    groups = getUniqueGeoCodes(events)
+    console.log('Location groups (geo codes):', groups)
   } else {
     groups = Array.from(
       new Set(events.map(event => event[viewType]))
@@ -88,6 +145,7 @@ function getGroups(events: ProcessedEvent[], viewType: ViewType): string[] {
     }
   }
 
+  console.log('Final groups:', groups)
   return groups
 }
 
@@ -100,6 +158,7 @@ function createVisualization(
     onEventSelect: (event: TimelineEvent) => void
     viewType: ViewType
     secondsPerPixel: number
+    geoTree?: IGeoTreeItem<any>[]
   }
 ) {
   console.log('Creating visualization with props:', props)
@@ -138,17 +197,11 @@ function createVisualization(
   const g = svg.append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`)
 
-  // Process data
-  const processedEvents: ProcessedEvent[] = props.events.map(event => {
-    console.log('Processing event:', event)
-    return {
-      ...event,
-      date: event.date // 保持原始时间戳
-    }
-  }).sort((a, b) => a.date - b.date) // 按时间顺序排序
+  // Process data with geo codes if needed
+  const processedEvents = processEventsWithGeo(props.events, props.viewType === 'location' ? props.geoTree : undefined)
   console.log('Processed events:', processedEvents)
 
-  const groups = getGroups(processedEvents, props.viewType)
+  const groups = getGroups(processedEvents, props.viewType, props.geoTree)
   console.log('Groups for view type', props.viewType, ':', groups)
 
   // Create scales
@@ -171,8 +224,16 @@ function createVisualization(
     ])
     .range([height, 0])
 
-  // Add x-axis
+  // Add x-axis with custom labels
   const xAxis = d3.axisBottom(xScale)
+  if (props.viewType === 'location' && props.geoTree) {
+    // 自定义标签显示
+    xAxis.tickFormat((code: string) => {
+      const item = findGeoItemByCode(props.geoTree!, code)
+      return item ? item.data.name : code
+    })
+  }
+  
   g.append('g')
     .attr('class', 'x-axis')
     .attr('transform', `translate(0,${height})`)
@@ -253,6 +314,8 @@ function createVisualization(
           x = (xScale(event.characters[0]) || 0) + xScale.bandwidth() / 2
         } else if (props.viewType === 'faction') {
           x = (xScale(event.faction[0]) || 0) + xScale.bandwidth() / 2
+        } else if (props.viewType === 'location') {
+          x = (xScale(event.location) || 0) + xScale.bandwidth() / 2
         } else {
           x = (xScale(event[props.viewType]) || 0) + xScale.bandwidth() / 2
         }
@@ -261,41 +324,46 @@ function createVisualization(
         return [x, y]
       })
 
-      // Add intermediate points for vertical lines
-      const enhancedPoints: [number, number][] = []
-      if (points.length > 1) {
-        for (let i = 0; i < points.length - 1; i++) {
-          const [x1, y1] = points[i]
-          const [x2, y2] = points[i + 1]
-          const midY = (y1 + y2) / 2
-
-          // Add points for vertical line and curve
-          enhancedPoints.push([x1, y1]) // Start point
-          enhancedPoints.push([x1, midY]) // Vertical line end
-          enhancedPoints.push([x2, midY]) // Curve end
-          enhancedPoints.push([x2, y2]) // End point
+      // Group events by location
+      const locationGroups = new Map<string, { event: TimelineEvent, point: [number, number] }[]>()
+      storyEvents.forEach((event, index) => {
+        const location = event.location
+        if (!locationGroups.has(location)) {
+          locationGroups.set(location, [])
         }
+        locationGroups.get(location)?.push({
+          event,
+          point: points[index]
+        })
+      })
 
-        // Create the path
-        const line = d3.line<[number, number]>()
-          .x(d => d[0])
-          .y(d => d[1])
-          .curve(d3.curveBasis)
+      // Draw straight dashed lines for each location group
+      const lineColor = storylineColors.get(storyLine.id?.toString() || '') || '#1890ff'
+      
+      // Create a line generator
+      const line = d3.line<[number, number]>()
+        .x(d => d[0])
+        .y(d => d[1])
 
-        const lineColor = storylineColors.get(storyLine.id?.toString() || '') || '#1890ff'
+      // For each location group, connect events chronologically
+      locationGroups.forEach((group, location) => {
+        // Sort events by date
+        const sortedGroup = group.sort((a, b) => a.event.date - b.event.date)
         
-        // Draw the path
-        g.append('path')
-          .datum(enhancedPoints)
-          .attr('d', line)
-          .attr('fill', 'none')
-          .attr('stroke', lineColor)
-          .attr('stroke-width', 2)
-          .style('pointer-events', 'none') // Make the path non-interactive
-      }
+        // Draw lines between consecutive points
+        for (let i = 0; i < sortedGroup.length - 1; i++) {
+          g.append('path')
+            .datum([sortedGroup[i].point, sortedGroup[i + 1].point])
+            .attr('d', line)
+            .attr('fill', 'none')
+            .attr('stroke', lineColor)
+            .attr('stroke-width', 1)
+            .attr('stroke-dasharray', '4,4') // Create dashed line
+            .style('pointer-events', 'none') // Make the line non-interactive
+        }
+      })
 
       // Add event markers (circles) for each point
-      const lineColor = storylineColors.get(storyLine.id?.toString() || '') || '#1890ff'
       points.forEach(([x, y], index) => {
         const event = storyEvents[index]
         console.log('Drawing event marker:', { x, y, event: event.title })
@@ -332,11 +400,9 @@ function createVisualization(
             tooltip.style('visibility', 'hidden')
           })
           .on('click', function(mouseEvent, d) {
-            // 使用当前事件组绑定的数据
             const eventData = d3.select(this).datum() as TimelineEvent
-            console.log('Clicked event data:', eventData) // 添加日志
+            console.log('Clicked event data:', eventData)
             
-            // 确保所有必要字段都存在
             const originalEvent: TimelineEvent = {
               id: eventData.id,
               title: eventData.title,
@@ -349,7 +415,7 @@ function createVisualization(
               faction_ids: eventData.faction_ids || [],
               role_ids: eventData.role_ids || []
             }
-            console.log('Sending event to parent:', originalEvent) // 添加日志
+            console.log('Sending event to parent:', originalEvent)
             props.onEventSelect(originalEvent)
           })
 
@@ -362,14 +428,43 @@ function createVisualization(
           .attr('stroke', lineColor)
           .attr('stroke-width', 2)
 
-        // Add event title label
+        // Add timestamp label on the left
         eventGroup.append('text')
-          .attr('x', 0)
-          .attr('y', -10)
-          .attr('text-anchor', 'middle')
+          .attr('x', -10)
+          .attr('y', 4)  // 向下偏移半行
+          .attr('text-anchor', 'end')
+          .attr('font-size', '10px')
+          .attr('fill', lineColor)
+          .text(formatTimestamp(event.date))
+
+        // Add event title label on the right
+        eventGroup.append('text')
+          .attr('x', 10)
+          .attr('y', 4)  // 向下偏移半行
+          .attr('text-anchor', 'start')
           .attr('font-size', '12px')
           .attr('fill', lineColor)
           .text(event.title)
+
+        // Add location name only for the latest event in each location group
+        if (props.viewType === 'location' && props.geoTree) {
+          const locationGroup = locationGroups.get(event.location)
+          if (locationGroup) {
+            const latestEvent = locationGroup.sort((a, b) => b.event.date - a.event.date)[0]
+            if (latestEvent.event.id === event.id) {
+              const geoItem = findGeoItemByCode(props.geoTree, event.location)
+              if (geoItem) {
+                eventGroup.append('text')
+                  .attr('x', 0)
+                  .attr('y', -14)  // 向下偏移1行
+                  .attr('text-anchor', 'middle')
+                  .attr('font-size', '10px')
+                  .attr('fill', lineColor)
+                  .text(geoItem.data.name)
+              }
+            }
+          }
+        }
       })
     })
   }
@@ -388,9 +483,76 @@ export function UnifiedEventView({
   onEventDelete,
   viewType,
   worldViews,
-  secondsPerPixel
+  secondsPerPixel,
+  worldview_id
 }: UnifiedEventViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const [geoTree, setGeoTree] = useState<IGeoTreeItem<any>[]>([])
+
+  // Load geo tree data
+  useEffect(() => {
+    const loadGeoData = async () => {
+      console.log('Current viewType:', viewType)
+      console.log('Current worldview_id:', worldview_id)
+      console.log('Available worldViews:', worldViews)
+      
+      if (viewType === 'location') {
+        // 如果没有传入 worldview_id，尝试从 worldViews 中获取
+        const targetWorldviewId = worldview_id || (worldViews.length > 0 ? worldViews[0].id : undefined)
+        
+        if (!targetWorldviewId) {
+          console.error('No worldview_id available')
+          return
+        }
+
+        console.log('Loading geo tree for worldview_id:', targetWorldviewId)
+        try {
+          const tree = await loadGeoTree(targetWorldviewId)
+          
+          if (tree && tree.length > 0) {
+            // 打印树的基本信息而不是整个结构
+            console.log('Geo tree loaded with', tree.length, 'root items')
+            console.log('First item:', {
+              title: tree[0].title,
+              key: tree[0].key,
+              dataType: tree[0].dataType,
+              childrenCount: tree[0].children?.length || 0
+            })
+            setGeoTree(tree)
+          } else {
+            console.warn('Geo tree is empty')
+          }
+        } catch (error: any) {
+          console.error('Error loading geo tree:', error)
+        }
+      }
+    }
+    loadGeoData()
+  }, [viewType, worldview_id, worldViews])
+
+  // Add debug effect for geoTree changes
+  useEffect(() => {
+    if (viewType === 'location') {
+      console.log('Geo tree state updated with', geoTree.length, 'items')
+      if (geoTree && geoTree.length > 0) {
+        // Log all names in the tree
+        const logNames = (items: IGeoTreeItem<any>[]) => {
+          items.forEach(item => {
+            console.log('Item:', {
+              title: item.title,
+              key: item.key,
+              dataType: item.dataType,
+              childrenCount: item.children?.length || 0
+            })
+            if (item.children) {
+              logNames(item.children)
+            }
+          })
+        }
+        logNames(geoTree)
+      }
+    }
+  }, [geoTree, viewType])
 
   // Calculate container height based on timeline span
   const calculateContainerHeight = () => {
@@ -432,7 +594,8 @@ export function UnifiedEventView({
       selectedEventId,
       onEventSelect,
       viewType,
-      secondsPerPixel
+      secondsPerPixel,
+      geoTree: viewType === 'location' ? geoTree : undefined
     })
 
     // Add ResizeObserver to handle container size changes
@@ -452,7 +615,8 @@ export function UnifiedEventView({
               selectedEventId,
               onEventSelect,
               viewType,
-              secondsPerPixel
+              secondsPerPixel,
+              geoTree: viewType === 'location' ? geoTree : undefined
             })
           }
         }
@@ -466,7 +630,7 @@ export function UnifiedEventView({
       resizeObserver.disconnect()
       d3.select('body').selectAll('.tooltip').remove()
     }
-  }, [events, storyLines, selectedEventId, onEventSelect, viewType, secondsPerPixel])
+  }, [events, storyLines, selectedEventId, onEventSelect, viewType, secondsPerPixel, geoTree])
 
   return (
     <div 
