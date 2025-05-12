@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { IWorldViewDataWithExtra, ITimelineDef } from '@/src/types/IAiNoval'
 import { TimelineDateFormatter, ITimelineDateData } from '@/src/business/aiNoval/common/novelDateUtils'
 import { Form, InputNumber, Select, Space, Typography } from 'antd'
+import debounce from 'lodash/debounce'
 
 const { Option } = Select
 
@@ -31,59 +32,76 @@ function NovelTimeEdit({ value, onChange, timelineDef, disabled }: NovelTimeEdit
     }
   }, [value, formatter])
 
-  // Convert date components to seconds
-  const updateSeconds = () => {
-    const seconds = formatter.dateDataToSeconds(dateData)
-    onChange?.(seconds)
-  }
+  // Create a debounced update function
+  const debouncedUpdate = useCallback(
+    debounce((newDateData: ITimelineDateData) => {
+      const seconds = formatter.dateDataToSeconds(newDateData)
+      onChange?.(seconds)
+    }, 300),
+    [formatter, onChange]
+  )
 
-  // Update handlers
+  // Update handlers with debounced updates
   const handleEraChange = (newEra: 'BC' | 'AD') => {
-    setDateData(prev => ({ ...prev, isBC: newEra === 'BC' }))
-    updateSeconds()
+    const newDateData = { ...dateData, isBC: newEra === 'BC' }
+    setDateData(newDateData)
+    debouncedUpdate(newDateData)
   }
 
   const handleYearChange = (newYear: number | null) => {
     if (newYear !== null) {
-      setDateData(prev => ({ ...prev, year: newYear }))
-      updateSeconds()
+      const newDateData = { ...dateData, year: newYear }
+      setDateData(newDateData)
+      debouncedUpdate(newDateData)
     }
   }
 
   const handleMonthChange = (newMonth: number | null) => {
     if (newMonth !== null) {
-      setDateData(prev => ({ ...prev, month: newMonth }))
-      updateSeconds()
+      const newDateData = { ...dateData, month: newMonth }
+      setDateData(newDateData)
+      debouncedUpdate(newDateData)
     }
   }
 
   const handleDayChange = (newDay: number | null) => {
     if (newDay !== null) {
-      setDateData(prev => ({ ...prev, day: newDay }))
-      updateSeconds()
+      const newDateData = { ...dateData, day: newDay }
+      setDateData(newDateData)
+      debouncedUpdate(newDateData)
     }
   }
 
   const handleHourChange = (newHour: number | null) => {
     if (newHour !== null) {
-      setDateData(prev => ({ ...prev, hour: newHour }))
-      updateSeconds()
+      const newDateData = { ...dateData, hour: newHour }
+      setDateData(newDateData)
+      debouncedUpdate(newDateData)
     }
   }
 
   const handleMinuteChange = (newMinute: number | null) => {
     if (newMinute !== null) {
-      setDateData(prev => ({ ...prev, minute: newMinute }))
-      updateSeconds()
+      const newDateData = { ...dateData, minute: newMinute }
+      setDateData(newDateData)
+      debouncedUpdate(newDateData)
     }
   }
 
   const handleSecondChange = (newSecond: number | null) => {
     if (newSecond !== null) {
-      setDateData(prev => ({ ...prev, second: newSecond }))
-      updateSeconds()
+      const newDateData = { ...dateData, second: newSecond }
+      setDateData(newDateData)
+      debouncedUpdate(newDateData)
     }
   }
+
+  // Cleanup debounced function on unmount
+  useEffect(() => {
+    return () => {
+      debouncedUpdate.cancel()
+    }
+  }, [debouncedUpdate])
 
   return (
     <Space direction="vertical" size="small">
@@ -175,3 +193,4 @@ NovelTimeEdit.normalize = (value: any): number => {
 }
 
 export default NovelTimeEdit
+

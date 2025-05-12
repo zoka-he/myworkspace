@@ -1,8 +1,9 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import * as d3 from 'd3'
-import { Card } from 'antd'
+import { Card, Slider, Space } from 'antd'
 import { IStoryLine, IWorldViewData } from '@/src/types/IAiNoval'
 import { CharacterView } from './CharacterView'
+import { TIMELINE_CONFIG } from './config'
 
 export type ViewType = 'location' | 'faction' | 'character'
 
@@ -15,6 +16,8 @@ interface TimelineEvent {
   faction: string[]
   characters: string[]
   storyLine: string
+  faction_ids?: number[]
+  role_ids?: number[]
 }
 
 interface ProcessedEvent extends Omit<TimelineEvent, 'date'> {
@@ -29,6 +32,7 @@ interface UnifiedEventViewProps {
   onEventDelete: (eventId: string) => void
   viewType: ViewType
   worldViews: IWorldViewData[]
+  secondsPerPixel: number
 }
 
 // Generate evenly distributed colors for storylines
@@ -95,6 +99,7 @@ function createVisualization(
     selectedEventId?: string
     onEventSelect: (event: TimelineEvent) => void
     viewType: ViewType
+    secondsPerPixel: number
   }
 ) {
   console.log('Creating visualization with props:', props)
@@ -140,7 +145,7 @@ function createVisualization(
       ...event,
       date: event.date // 保持原始时间戳
     }
-  })
+  }).sort((a, b) => a.date - b.date) // 按时间顺序排序
   console.log('Processed events:', processedEvents)
 
   const groups = getGroups(processedEvents, props.viewType)
@@ -153,11 +158,18 @@ function createVisualization(
     .padding(0.2)
   console.log('xScale domain:', xScale.domain())
 
+  // 计算时间轴范围
+  const minTime = Math.min(...processedEvents.map(d => d.date))
+  const maxTime = Math.max(...processedEvents.map(d => d.date))
+  console.log('Time range:', { minTime, maxTime, padding: TIMELINE_CONFIG.TIME_RANGE_PADDING })
+
   // 使用线性比例尺替代时间比例尺
   const yScale = d3.scaleLinear()
-    .domain(d3.extent(processedEvents, d => d.date) as [number, number])
+    .domain([
+      minTime - TIMELINE_CONFIG.TIME_RANGE_PADDING,
+      maxTime + TIMELINE_CONFIG.TIME_RANGE_PADDING
+    ])
     .range([height, 0])
-    .nice()
 
   // Add x-axis
   const xAxis = d3.axisBottom(xScale)
@@ -224,14 +236,9 @@ function createVisualization(
     // Draw storylines for other views
     props.storyLines.forEach(storyLine => {
       console.log('Processing storyline:', storyLine)
-      const storyEvents = processedEvents.filter(event => {
-        console.log('Checking event:', {
-          eventStoryLine: event.storyLine,
-          storyLineId: storyLine.id?.toString(),
-          matches: event.storyLine === storyLine.id?.toString()
-        })
-        return event.storyLine === storyLine.id?.toString()
-      })
+      const storyEvents = processedEvents
+        .filter(event => event.storyLine === storyLine.id?.toString())
+        .sort((a, b) => a.date - b.date) // 按时间顺序排序
       console.log('Filtered story events for', storyLine.name, ':', storyEvents)
       
       // 即使只有一个事件也显示
@@ -325,10 +332,24 @@ function createVisualization(
             tooltip.style('visibility', 'hidden')
           })
           .on('click', function(mouseEvent, d) {
+            // 使用当前事件组绑定的数据
+            const eventData = d3.select(this).datum() as TimelineEvent
+            console.log('Clicked event data:', eventData) // 添加日志
+            
+            // 确保所有必要字段都存在
             const originalEvent: TimelineEvent = {
-              ...d,
-              date: d.date // 直接使用时间戳
+              id: eventData.id,
+              title: eventData.title,
+              description: eventData.description,
+              date: eventData.date,
+              location: eventData.location,
+              faction: eventData.faction || [],
+              characters: eventData.characters || [],
+              storyLine: eventData.storyLine,
+              faction_ids: eventData.faction_ids || [],
+              role_ids: eventData.role_ids || []
             }
+            console.log('Sending event to parent:', originalEvent) // 添加日志
             props.onEventSelect(originalEvent)
           })
 
@@ -366,9 +387,29 @@ export function UnifiedEventView({
   onEventSelect,
   onEventDelete,
   viewType,
-  worldViews
+  worldViews,
+  secondsPerPixel
 }: UnifiedEventViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+
+  // Calculate container height based on timeline span
+  const calculateContainerHeight = () => {
+    if (events.length === 0) return TIMELINE_CONFIG.MIN_CONTAINER_HEIGHT
+
+    const timestamps = events.map(event => event.date)
+    const minTime = Math.min(...timestamps)
+    const maxTime = Math.max(...timestamps)
+    const timeSpan = maxTime - minTime
+    
+    // Calculate height based on time span
+    const timelineHeight = Math.ceil(timeSpan / secondsPerPixel)
+    // Add padding above and below
+    const calculatedHeight = Math.max(
+      TIMELINE_CONFIG.MIN_CONTAINER_HEIGHT, 
+      timelineHeight + TIMELINE_CONFIG.TIMELINE_PADDING * 2
+    )
+    return calculatedHeight
+  }
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -377,9 +418,10 @@ export function UnifiedEventView({
     d3.select(containerRef.current).selectAll('*').remove()
     d3.select('body').selectAll('.tooltip').remove()
 
-    // Set a fixed height for the container
+    // Set dynamic height for the container based on timeline span
     const container = containerRef.current
-    container.style.height = '600px'
+    const containerHeight = calculateContainerHeight()
+    container.style.height = `${containerHeight}px`
     container.style.minHeight = '600px'
     container.style.position = 'relative'
 
@@ -389,7 +431,8 @@ export function UnifiedEventView({
       storyLines,
       selectedEventId,
       onEventSelect,
-      viewType
+      viewType,
+      secondsPerPixel
     })
 
     // Add ResizeObserver to handle container size changes
@@ -408,7 +451,8 @@ export function UnifiedEventView({
               storyLines,
               selectedEventId,
               onEventSelect,
-              viewType
+              viewType,
+              secondsPerPixel
             })
           }
         }
@@ -422,17 +466,17 @@ export function UnifiedEventView({
       resizeObserver.disconnect()
       d3.select('body').selectAll('.tooltip').remove()
     }
-  }, [events, storyLines, selectedEventId, onEventSelect, viewType])
+  }, [events, storyLines, selectedEventId, onEventSelect, viewType, secondsPerPixel])
 
   return (
     <div 
       ref={containerRef} 
       style={{ 
         width: '100%', 
-        height: '600px',
+        height: `${calculateContainerHeight()}px`,
         minHeight: '600px',
         position: 'relative'
       }}
     />
   )
-} 
+}

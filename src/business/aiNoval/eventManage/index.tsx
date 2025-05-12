@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { Layout, Menu, Tabs, Card, Button, Space, Modal, Form, Input, Select, DatePicker, Divider, Typography, Tag, Row, Col, Breadcrumb, TreeSelect } from 'antd'
+import { Layout, Menu, Tabs, Card, Button, Space, Modal, Form, Input, Select, DatePicker, Divider, Typography, Tag, Row, Col, Breadcrumb, TreeSelect, Slider } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, SaveOutlined, BookOutlined, EnvironmentOutlined, TeamOutlined, UserOutlined, HomeOutlined, CloseOutlined, ReloadOutlined } from '@ant-design/icons'
 import type { TabsProps } from 'antd'
 import dayjs from 'dayjs'
 import { StoryLineList } from './storyLineView'
 import { UnifiedEventView, ViewType } from './eventViews/UnifiedEventView'
+import { TIMELINE_CONFIG } from './eventViews/config'
 import { IWorldViewData, IStoryLine, IFactionDefData, IRoleData, IGeoStarSystemData, IGeoStarData, IGeoPlanetData, ITimelineDef, IWorldViewDataWithExtra, ITimelineEvent } from '@/src/types/IAiNoval'
 import * as worldviewApiCalls from '../worldViewManage/apiCalls'
 import * as eventApiCalls from './apiCalls'
@@ -54,6 +55,7 @@ function EventManager() {
   const [timelineDef, setTimelineDef] = useState<ITimelineDef | null>(null)
   const [isLoadingEvents, setIsLoadingEvents] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [secondsPerPixel, setSecondsPerPixel] = useState<number>(TIMELINE_CONFIG.SECONDS_PER_PIXEL)
 
   // Fetch world views when component mounts
   useEffect(() => {
@@ -271,14 +273,23 @@ function EventManager() {
   })
 
   const handleEventSelect = (event: TimelineEvent) => {
-    setIsAddingEvent(false)
-    setSelectedEvent(event)
-    editForm.setFieldsValue({
+    console.log('Selected event:', event) // 添加日志
+    // 确保事件数据包含所有必要字段
+    const selectedEventData: TimelineEvent = {
       ...event,
+      id: event.id,
+      title: event.title,
+      description: event.description,
       date: event.date,
-      faction: event.faction_ids || [],
-      characters: event.role_ids || []
-    })
+      location: event.location,
+      faction: event.faction || [],
+      characters: event.characters || [],
+      storyLine: event.storyLine,
+      faction_ids: event.faction_ids || [],
+      role_ids: event.role_ids || []
+    }
+    setSelectedEvent(selectedEventData)
+    setIsAddingEvent(false)
   }
 
   const handleDeleteEvent = async (eventId: string) => {
@@ -327,6 +338,7 @@ function EventManager() {
           onEventDelete={handleDeleteEvent}
           viewType={viewType}
           worldViews={worldViews}
+          secondsPerPixel={secondsPerPixel}
         />
       ),
     },
@@ -353,6 +365,7 @@ function EventManager() {
           onEventDelete={handleDeleteEvent}
           viewType={viewType}
           worldViews={worldViews}
+          secondsPerPixel={secondsPerPixel}
         />
       ),
     },
@@ -379,6 +392,7 @@ function EventManager() {
           onEventDelete={handleDeleteEvent}
           viewType={viewType}
           worldViews={worldViews}
+          secondsPerPixel={secondsPerPixel}
         />
       ),
     },
@@ -396,7 +410,6 @@ function EventManager() {
   const handleAddEvent = () => {
     setIsAddingEvent(true)
     setSelectedEvent(null)
-    editForm.resetFields()
   }
 
   const handleAddStoryLine = () => {
@@ -496,7 +509,38 @@ function EventManager() {
       }
       const response = await eventApiCalls.getEventList(params)
       if (response.data) {
-        setEvents(response.data)
+        // Transform the API response data into the format expected by UnifiedEventView
+        const transformedEvents = response.data.map((event: ITimelineEvent) => {
+          // 确保 faction_ids 和 role_ids 是数组
+          const factionIds = Array.isArray(event.faction_ids) ? event.faction_ids : []
+          const roleIds = Array.isArray(event.role_ids) ? event.role_ids : []
+
+          // 获取事件相关的派系和角色名称
+          const factionNames = factionIds.map(id => {
+            const faction = factions.find(f => f.id === id)
+            return faction?.name || id.toString()
+          })
+
+          const characterNames = roleIds.map(id => {
+            const role = roles.find(r => r.id === id)
+            return role?.name || id.toString()
+          })
+
+          return {
+            id: event.id?.toString() || '',
+            title: event.title || '',
+            description: event.description || '',
+            date: event.date || 0,
+            location: event.location || '',
+            faction: factionNames,
+            characters: characterNames,
+            storyLine: event.story_line_id?.toString() || '',
+            faction_ids: factionIds,
+            role_ids: roleIds
+          }
+        })
+        setEvents(transformedEvents)
+        setRefreshKey(prev => prev + 1) // 强制视图刷新
       }
 
       // 关闭编辑面板
@@ -707,7 +751,20 @@ function EventManager() {
         </Header>
         <Content style={{ padding: '16px 16px 32px 16px', height: 'calc(100% - 64px)', overflow: 'auto' }}>
           {selectedWorld ? (
-            <Tabs items={timelineItems} onChange={handleViewTypeChange} />
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <div style={{ padding: '0 20px', marginBottom: '10px' }}>
+                <Slider
+                  min={TIMELINE_CONFIG.SCALE_RANGE.MIN}
+                  max={TIMELINE_CONFIG.SCALE_RANGE.MAX}
+                  value={secondsPerPixel}
+                  onChange={setSecondsPerPixel}
+                  tooltip={{
+                    formatter: (value) => `1像素 = ${value}秒`
+                  }}
+                />
+              </div>
+              <Tabs items={timelineItems} onChange={handleViewTypeChange} />
+            </Space>
           ) : (
             <div style={{ 
               height: '100%', 

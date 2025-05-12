@@ -2,7 +2,7 @@ import fetch from '@/src/fetch';
 import { IStoryLine, ITimelineEvent } from '@/src/types/IAiNoval';
 import _ from 'lodash';
 
-export const getEventList = async (params: { worldview_id: number, story_line_id?: number }, page: number = 1, limit: number = 10) => {
+export const getEventList = async (params: { worldview_id: number, story_line_id?: number }, page: number = 1, limit: number = 200) => {
     return await fetch.get('/api/aiNoval/timeline/event/list', { params: {
         page,
         limit,

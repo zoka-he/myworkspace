@@ -32,7 +32,7 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
         }
     }
 
-    let ret = await service.query(queryObject, [], ['id asc'], page, limit);
+    let ret = await service.query(queryObject, [], ['date asc'], page, limit);
 
     // 拆解阵营id和角色id
     let dataList = ret.data.map(item => {

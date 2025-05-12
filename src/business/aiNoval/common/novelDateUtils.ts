@@ -33,7 +33,7 @@ export class TimelineDateFormatter {
    * @returns 结构化的日期数据
    */
   secondsToDateData(seconds: number): ITimelineDateData {
-    const absSeconds = Math.abs(seconds)
+    // const absSeconds = Math.abs(seconds)
     const isBC = seconds < 0
     
     // Calculate total seconds in a year
@@ -44,8 +44,8 @@ export class TimelineDateFormatter {
     const secondsInDay = this.dayLengthInHours * this.hourLengthInSeconds
 
     // Calculate year, month, and day
-    const year = Math.floor(absSeconds / secondsInYear) + (isBC ? 0 : 1)
-    const remainingSeconds = absSeconds % secondsInYear
+    const year = Math.floor(seconds / secondsInYear)
+    const remainingSeconds = seconds - year * secondsInYear
     const month = Math.floor(remainingSeconds / secondsInMonth) + 1
     const remainingSecondsAfterMonth = remainingSeconds % secondsInMonth
     const day = Math.floor(remainingSecondsAfterMonth / secondsInDay) + 1
@@ -57,15 +57,19 @@ export class TimelineDateFormatter {
     const minute = Math.floor(remainingSecondsAfterHour / 60)
     const second = remainingSecondsAfterHour % 60
 
-    return {
+    let dateData = {
       isBC,
-      year,
+      year: Math.abs(year) + (isBC ? 0 : 1),
       month,
       day,
       hour,
       minute,
       second
     }
+
+    console.debug(seconds, ' --> ', dateData)
+
+    return dateData
   }
 
   /**
@@ -100,6 +104,8 @@ export class TimelineDateFormatter {
                     (minute * 60) +
                     second
     }
+
+    console.debug(dateData, ' --> ', totalSeconds)
 
     return totalSeconds
   }

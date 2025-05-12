@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Form, Input, TreeSelect, Select, Button, Divider } from 'antd'
 import { SaveOutlined, CloseOutlined } from '@ant-design/icons'
 import { IStoryLine, IFactionDefData, IRoleData, IGeoStarSystemData, IGeoStarData, IGeoPlanetData, ITimelineDef } from '@/src/types/IAiNoval'
@@ -14,6 +14,8 @@ interface TimelineEvent {
   faction: string[]
   characters: string[]
   storyLine: string
+  faction_ids?: number[]
+  role_ids?: number[]
 }
 
 interface EventEditPanelProps {
@@ -42,6 +44,35 @@ function EventEditPanel({
   timelineDef
 }: EventEditPanelProps) {
   const [form] = Form.useForm()
+
+  // Reset form when isAddingEvent changes
+  useEffect(() => {
+    if (isAddingEvent) {
+      form.resetFields()
+      form.setFieldsValue({
+        date: 0,
+        faction: [],
+        characters: [],
+        title: '',
+        description: '',
+        location: undefined,
+        storyLine: undefined
+      })
+    }
+  }, [isAddingEvent, form])
+
+  // Update form when selectedEvent changes
+  useEffect(() => {
+    if (selectedEvent) {
+      console.log('Updating form with selected event:', selectedEvent)
+      form.setFieldsValue({
+        ...selectedEvent,
+        date: selectedEvent.date || 0,
+        faction: selectedEvent.faction_ids || [],
+        characters: selectedEvent.role_ids || []
+      })
+    }
+  }, [selectedEvent, form])
 
   // 构建阵营树形数据
   const getFactionTreeData = () => {
@@ -123,7 +154,8 @@ function EventEditPanel({
           initialValues={selectedEvent ? {
             ...selectedEvent,
             date: selectedEvent.date || 0,
-            faction: selectedEvent.faction || []
+            faction: selectedEvent.faction_ids || [],
+            characters: selectedEvent.role_ids || []
           } : {
             date: 0,
             faction: [],
@@ -168,7 +200,6 @@ function EventEditPanel({
           <Form.Item
             name="faction"
             label="相关阵营"
-            rules={[{ required: true, message: '请选择相关阵营' }]}
           >
             <TreeSelect
               treeData={getFactionTreeData()}
@@ -183,7 +214,6 @@ function EventEditPanel({
           <Form.Item
             name="characters"
             label="相关角色"
-            rules={[{ required: true, message: '请选择相关角色' }]}
           >
             <TreeSelect
               treeData={getRoleTreeData()}
