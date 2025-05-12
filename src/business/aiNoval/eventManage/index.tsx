@@ -339,6 +339,7 @@ function EventManager() {
           viewType={viewType}
           worldViews={worldViews}
           secondsPerPixel={secondsPerPixel}
+          worldview_id={Number(selectedWorld)}
         />
       ),
     },
@@ -366,6 +367,7 @@ function EventManager() {
           viewType={viewType}
           worldViews={worldViews}
           secondsPerPixel={secondsPerPixel}
+          worldview_id={Number(selectedWorld)}
         />
       ),
     },
@@ -393,6 +395,7 @@ function EventManager() {
           viewType={viewType}
           worldViews={worldViews}
           secondsPerPixel={secondsPerPixel}
+          worldview_id={Number(selectedWorld)}
         />
       ),
     },

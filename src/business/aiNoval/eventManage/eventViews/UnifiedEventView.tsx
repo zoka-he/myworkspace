@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react'
 import * as d3 from 'd3'
 import { Card, Slider, Space } from 'antd'
-import { IStoryLine, IWorldViewData } from '@/src/types/IAiNoval'
+import { IStoryLine, IWorldViewDataWithExtra, ITimelineDef } from '@/src/types/IAiNoval'
 import { CharacterView } from './CharacterView'
 import { TIMELINE_CONFIG } from './config'
 import { loadGeoTree, IGeoTreeItem } from '@/src/business/aiNoval/common/geoDataUtil'
 import fetch from '@/src/fetch'
+import { TimelineDateFormatter } from '../../common/novelDateUtils'
 
 export type ViewType = 'location' | 'faction' | 'character'
 
@@ -33,7 +34,7 @@ interface UnifiedEventViewProps {
   onEventSelect: (event: TimelineEvent) => void
   onEventDelete: (eventId: string) => void
   viewType: ViewType
-  worldViews: IWorldViewData[]
+  worldViews: IWorldViewDataWithExtra[]
   secondsPerPixel: number
   worldview_id: number
 }
@@ -53,9 +54,24 @@ function generateStorylineColors(storyLines: IStoryLine[]): Map<string, string> 
 }
 
 // 添加时间格式化函数
-function formatTimestamp(timestamp: number): string {
-  // 这里可以根据实际需求自定义时间格式
-  return `时间点 ${timestamp}`
+function formatTimestamp(timestamp: number, worldViews: IWorldViewDataWithExtra[], worldview_id: number): string {
+  const worldView = worldViews.find(view => view.id === worldview_id)
+  console.info('worldView:', worldView) 
+  console.log('worldview_id', worldview_id)
+  console.log('worldView timelineDef:', worldView)
+  
+  // 使用默认的时间线定义创建格式化器
+  const formatter = new TimelineDateFormatter({
+    id: worldview_id,
+    worldview_id: worldview_id,
+    epoch: worldView?.tl_epoch || '公元',
+    start_seconds: worldView?.tl_start_seconds || 0,
+    hour_length_in_seconds: worldView?.tl_hour_length_in_seconds || 3600,
+    day_length_in_hours: worldView?.tl_day_length_in_hours || 24,
+    month_length_in_days: worldView?.tl_month_length_in_days || 30,
+    year_length_in_months: worldView?.tl_year_length_in_months || 12
+  })
+  return formatter.formatSecondsToDate(timestamp)
 }
 
 // Add function to find geo item by code
@@ -159,6 +175,8 @@ function createVisualization(
     viewType: ViewType
     secondsPerPixel: number
     geoTree?: IGeoTreeItem<any>[]
+    worldview_id: number
+    worldviews: IWorldViewDataWithExtra[]
   }
 ) {
   console.log('Creating visualization with props:', props)
@@ -279,7 +297,7 @@ function createVisualization(
   // Create axes
   const yAxis = d3.axisLeft(yScale)
     .ticks(10)
-    .tickFormat(d => formatTimestamp(d as number))
+    .tickFormat(d => formatTimestamp(d as number, props.worldviews, props.worldview_id))
 
   // Add y-axis but hide it
   g.append('g')
@@ -419,7 +437,7 @@ function createVisualization(
                 <div style="font-weight: bold; margin-bottom: 5px;">${d.title}</div>
                 <div style="color: #666; margin-bottom: 5px;">${d.description}</div>
                 <div style="color: #999; font-size: 12px;">
-                  <div>时间: ${formatTimestamp(d.date)}</div>
+                  <div>时间: ${formatTimestamp(d.date, props.worldviews, props.worldview_id)}</div>
                   <div>地点: ${d.location}</div>
                   <div>阵营: ${d.faction.join(', ')}</div>
                   <div>角色: ${d.characters.join(', ')}</div>
@@ -466,16 +484,16 @@ function createVisualization(
         // Add timestamp label on the left
         eventGroup.append('text')
           .attr('x', -10)
-          .attr('y', 4)  // 向下偏移半行
+          .attr('y', 4)
           .attr('text-anchor', 'end')
           .attr('font-size', '10px')
           .attr('fill', lineColor)
-          .text(formatTimestamp(event.date))
+          .text(formatTimestamp(event.date, props.worldviews, props.worldview_id))
 
         // Add event title label on the right
         eventGroup.append('text')
           .attr('x', 10)
-          .attr('y', 4)  // 向下偏移半行
+          .attr('y', 4)
           .attr('text-anchor', 'start')
           .attr('font-size', '12px')
           .attr('fill', lineColor)
@@ -630,7 +648,9 @@ export function UnifiedEventView({
       onEventSelect,
       viewType,
       secondsPerPixel,
-      geoTree: viewType === 'location' ? geoTree : undefined
+      geoTree: viewType === 'location' ? geoTree : undefined,
+      worldview_id,
+      worldviews: worldViews
     })
 
     // Add ResizeObserver to handle container size changes
@@ -651,7 +671,9 @@ export function UnifiedEventView({
               onEventSelect,
               viewType,
               secondsPerPixel,
-              geoTree: viewType === 'location' ? geoTree : undefined
+              geoTree: viewType === 'location' ? geoTree : undefined,
+              worldview_id,
+              worldviews: worldViews
             })
           }
         }
@@ -665,7 +687,7 @@ export function UnifiedEventView({
       resizeObserver.disconnect()
       d3.select('body').selectAll('.tooltip').remove()
     }
-  }, [events, storyLines, selectedEventId, onEventSelect, viewType, secondsPerPixel, geoTree])
+  }, [events, storyLines, selectedEventId, onEventSelect, viewType, secondsPerPixel, geoTree, worldview_id])
 
   return (
     <div 
