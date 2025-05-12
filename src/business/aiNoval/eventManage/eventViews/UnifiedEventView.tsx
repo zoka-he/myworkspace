@@ -177,9 +177,10 @@ function createVisualization(
     .attr('height', '100%')
     .attr('viewBox', `0 0 ${containerElement.clientWidth} ${containerElement.clientHeight}`)
     .attr('preserveAspectRatio', 'xMidYMid meet')
+    .style('background-color', 'white')  // 设置背景为白色
 
   // Set up dimensions
-  const margin = { top: 40, right: 40, bottom: 60, left: 60 }
+  const margin = { top: 80, right: 40, bottom: 60, left: 60 }  // 增加顶部边距
   const width = containerElement.clientWidth - margin.left - margin.right
   console.log('Container width:', width)
   if (width <= 0) {
@@ -196,6 +197,42 @@ function createVisualization(
   // Create SVG container
   const g = svg.append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`)
+
+  // Add legend at the top
+  const legendGroup = svg.append('g')
+    .attr('class', 'legend')
+    .attr('transform', `translate(${margin.left},${margin.top - 60})`)
+
+  // Calculate legend item width and spacing
+  const legendItemWidth = 120
+  const legendSpacing = 20
+  const totalLegendWidth = props.storyLines.length * (legendItemWidth + legendSpacing)
+
+  // Center the legend
+  const legendStartX = (width - totalLegendWidth) / 2
+
+  // Add legend items
+  props.storyLines.forEach((storyLine, index) => {
+    const x = legendStartX + index * (legendItemWidth + legendSpacing)
+    const color = storylineColors.get(storyLine.id?.toString() || '') || '#1890ff'
+
+    // Add colored circle
+    legendGroup.append('circle')
+      .attr('cx', x)
+      .attr('cy', 0)
+      .attr('r', 4)
+      .attr('fill', color)
+      .attr('stroke', color)
+      .attr('stroke-width', 2)
+
+    // Add story line name
+    legendGroup.append('text')
+      .attr('x', x + 10)
+      .attr('y', 4)
+      .attr('font-size', '12px')
+      .attr('fill', color)
+      .text(storyLine.name)
+  })
 
   // Process data with geo codes if needed
   const processedEvents = processEventsWithGeo(props.events, props.viewType === 'location' ? props.geoTree : undefined)
@@ -224,10 +261,9 @@ function createVisualization(
     ])
     .range([height, 0])
 
-  // Add x-axis with custom labels
+  // Add x-axis with custom labels but hide it
   const xAxis = d3.axisBottom(xScale)
   if (props.viewType === 'location' && props.geoTree) {
-    // 自定义标签显示
     xAxis.tickFormat((code: string) => {
       const item = findGeoItemByCode(props.geoTree!, code)
       return item ? item.data.name : code
@@ -238,19 +274,18 @@ function createVisualization(
     .attr('class', 'x-axis')
     .attr('transform', `translate(0,${height})`)
     .call(xAxis)
-    .selectAll('text')
-    .attr('transform', 'rotate(-45)')
-    .style('text-anchor', 'end')
+    .style('display', 'none')  // 隐藏x轴
 
   // Create axes
   const yAxis = d3.axisLeft(yScale)
     .ticks(10)
     .tickFormat(d => formatTimestamp(d as number))
 
-  // Add y-axis
+  // Add y-axis but hide it
   g.append('g')
     .attr('class', 'y-axis')
     .call(yAxis)
+    .style('display', 'none')  // 隐藏y轴
 
   // Add grid lines
   g.append('g')

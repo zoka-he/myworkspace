@@ -3,7 +3,7 @@ export const TIMELINE_CONFIG = {
   // Number of seconds per pixel in the timeline
   SECONDS_PER_PIXEL: 100000000,
   // Padding above and below the timeline points (in pixels)
-  TIMELINE_PADDING: 10,
+  TIMELINE_PADDING: 20,
   // Minimum height of the timeline container (in pixels)
   MIN_CONTAINER_HEIGHT: 600,
   // Fixed time range padding in seconds
