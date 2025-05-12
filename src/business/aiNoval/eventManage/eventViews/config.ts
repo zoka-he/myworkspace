@@ -10,7 +10,7 @@ export const TIMELINE_CONFIG = {
   TIME_RANGE_PADDING: 1000,
   // Scale range configuration
   SCALE_RANGE: {
-    MIN: 1000000,  // 1 pixel per 100000000 seconds
-    MAX: 1000000000  // 1 pixel per 1000000000 seconds
+    MIN: 1,  // 1 pixel per 1 seconds
+    MAX: 200000000  // 1 pixel per 1000000000 seconds
   }
 } as const 

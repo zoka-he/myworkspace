@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Layout, Menu, Tabs, Card, Button, Space, Modal, Form, Input, Select, DatePicker, Divider, Typography, Tag, Row, Col, Breadcrumb, TreeSelect, Slider } from 'antd'
+import { Layout, Menu, Tabs, Card, Button, Space, Modal, Form, Input, Select, DatePicker, Divider, Typography, Tag, Row, Col, Breadcrumb, TreeSelect, Slider, InputNumber } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, SaveOutlined, BookOutlined, EnvironmentOutlined, TeamOutlined, UserOutlined, HomeOutlined, CloseOutlined, ReloadOutlined } from '@ant-design/icons'
 import type { TabsProps } from 'antd'
 import dayjs from 'dayjs'
@@ -13,6 +13,7 @@ import factionApiCalls from '../factionManage/apiCalls'
 import roleApiCalls from '../roleManage/apiCalls'
 import { loadGeoTree, type IGeoTreeItem } from '../common/geoDataUtil'
 import EventEditPanel from './components/EventEditPanel'
+import _ from 'lodash'
 
 
 const { Header, Sider, Content } = Layout
@@ -314,89 +315,101 @@ function EventManager() {
     }
   }
 
+  const unifiedEventViewWrapperStyle = {
+    height: 'calc(100vh - 272px)',
+    width: '100%',
+    overflow: 'auto'
+  }
+
   const timelineItems: TabsProps['items'] = [
     {
       key: 'location',
       label: '地点视图',
       children: (
-        <UnifiedEventView
-          key={`location-${refreshKey}`}
-          events={filteredEvents.map(event => ({
-            ...event,
-            faction: event.faction_ids?.map(id => {
-              const faction = factions.find(f => f.id === id)
-              return faction?.name || id.toString()
-            }) || [],
-            characters: event.role_ids?.map(id => {
-              const role = roles.find(r => r.id === id)
-              return role?.name || id.toString()
-            }) || []
-          }))}
-          storyLines={storyLines}
-          selectedEventId={selectedEvent?.id}
-          onEventSelect={handleEventSelect}
-          onEventDelete={handleDeleteEvent}
-          viewType={viewType}
-          worldViews={worldViews}
-          secondsPerPixel={secondsPerPixel}
-          worldview_id={Number(selectedWorld)}
-        />
+        <div style={unifiedEventViewWrapperStyle}>
+          <UnifiedEventView
+            key={`location-${refreshKey}`}
+            events={filteredEvents.map(event => ({
+              ...event,
+              faction: event.faction_ids?.map(id => {
+                const faction = factions.find(f => f.id === id)
+                return faction?.name || id.toString()
+              }) || [],
+              characters: event.role_ids?.map(id => {
+                const role = roles.find(r => r.id === id)
+                return role?.name || id.toString()
+              }) || []
+            }))}
+            storyLines={storyLines}
+            selectedEventId={selectedEvent?.id}
+            onEventSelect={handleEventSelect}
+            onEventDelete={handleDeleteEvent}
+            viewType={viewType}
+            worldViews={worldViews}
+            secondsPerPixel={secondsPerPixel}
+            worldview_id={Number(selectedWorld)}
+          />
+        </div>
       ),
     },
     {
       key: 'faction',
       label: '阵营视图',
       children: (
-        <UnifiedEventView
-          key={`faction-${refreshKey}`}
-          events={filteredEvents.map(event => ({
-            ...event,
-            faction: event.faction_ids?.map(id => {
-              const faction = factions.find(f => f.id === id)
-              return faction?.name || id.toString()
-            }) || [],
-            characters: event.role_ids?.map(id => {
-              const role = roles.find(r => r.id === id)
-              return role?.name || id.toString()
-            }) || []
-          }))}
-          storyLines={storyLines}
-          selectedEventId={selectedEvent?.id}
-          onEventSelect={handleEventSelect}
-          onEventDelete={handleDeleteEvent}
-          viewType={viewType}
-          worldViews={worldViews}
-          secondsPerPixel={secondsPerPixel}
-          worldview_id={Number(selectedWorld)}
-        />
+        <div style={unifiedEventViewWrapperStyle}>
+          <UnifiedEventView
+            key={`faction-${refreshKey}`}
+            events={filteredEvents.map(event => ({
+              ...event,
+              faction: event.faction_ids?.map(id => {
+                const faction = factions.find(f => f.id === id)
+                return faction?.name || id.toString()
+              }) || [],
+              characters: event.role_ids?.map(id => {
+                const role = roles.find(r => r.id === id)
+                return role?.name || id.toString()
+              }) || []
+            }))}
+            storyLines={storyLines}
+            selectedEventId={selectedEvent?.id}
+            onEventSelect={handleEventSelect}
+            onEventDelete={handleDeleteEvent}
+            viewType={viewType}
+            worldViews={worldViews}
+            secondsPerPixel={secondsPerPixel}
+            worldview_id={Number(selectedWorld)}
+          />
+        </div>
       ),
     },
     {
       key: 'character',
       label: '角色视图',
       children: (
-        <UnifiedEventView
-          key={`character-${refreshKey}`}
-          events={filteredEvents.map(event => ({
-            ...event,
-            faction: event.faction_ids?.map(id => {
-              const faction = factions.find(f => f.id === id)
-              return faction?.name || id.toString()
-            }) || [],
-            characters: event.role_ids?.map(id => {
-              const role = roles.find(r => r.id === id)
-              return role?.name || id.toString()
-            }) || []
-          }))}
-          storyLines={storyLines}
-          selectedEventId={selectedEvent?.id}
-          onEventSelect={handleEventSelect}
-          onEventDelete={handleDeleteEvent}
-          viewType={viewType}
-          worldViews={worldViews}
-          secondsPerPixel={secondsPerPixel}
-          worldview_id={Number(selectedWorld)}
-        />
+        <div style={unifiedEventViewWrapperStyle}>
+          <UnifiedEventView
+            key={`character-${refreshKey}`}
+            events={filteredEvents.map(event => ({
+              ...event,
+              faction: event.faction_ids?.map(id => {
+                const faction = factions.find(f => f.id === id)
+                return faction?.name || id.toString()
+              }) || [],
+              characters: event.role_ids?.map(id => {
+                const role = roles.find(r => r.id === id)
+                return role?.name || id.toString()
+              }) || []
+            }))}
+            storyLines={storyLines}
+            selectedEventId={selectedEvent?.id}
+            onEventSelect={handleEventSelect}
+            onEventDelete={handleDeleteEvent}
+            viewType={viewType}
+            worldViews={worldViews}
+            secondsPerPixel={secondsPerPixel}
+            worldview_id={Number(selectedWorld)}
+          />
+        </div>
       ),
     },
   ]
@@ -754,20 +767,37 @@ function EventManager() {
         </Header>
         <Content style={{ padding: '16px 16px 32px 16px', height: 'calc(100% - 64px)', overflow: 'auto' }}>
           {selectedWorld ? (
-            <Space direction="vertical" style={{ width: '100%' }}>
-              <div style={{ padding: '0 20px', marginBottom: '10px' }}>
-                <Slider
-                  min={TIMELINE_CONFIG.SCALE_RANGE.MIN}
-                  max={TIMELINE_CONFIG.SCALE_RANGE.MAX}
-                  value={secondsPerPixel}
-                  onChange={setSecondsPerPixel}
-                  tooltip={{
-                    formatter: (value) => `1像素 = ${value}秒`
-                  }}
-                />
-              </div>
-              <Tabs items={timelineItems} onChange={handleViewTypeChange} />
-            </Space>
+            <Layout style={{ height: '100%' }}>
+              <Header style={{ background: '#fff0', padding: '0 16px' }}>
+                <div style={{ padding: '0 20px', marginBottom: '10px', display: 'flex', alignItems: 'center' }}>
+                  <label htmlFor="secondsPerPixel">时间轴缩放：</label>
+                  <Slider
+                    id="secondsPerPixel"
+                    style={{ flex: 1, margin: '0 20px' }}
+                    min={TIMELINE_CONFIG.SCALE_RANGE.MIN}
+                    max={TIMELINE_CONFIG.SCALE_RANGE.MAX}
+                    value={secondsPerPixel}
+                    onChange={setSecondsPerPixel}
+                  />
+                  <span>1像素 = </span>
+                  <InputNumber
+                    min={TIMELINE_CONFIG.SCALE_RANGE.MIN}
+                    max={TIMELINE_CONFIG.SCALE_RANGE.MAX}
+                    value={secondsPerPixel}
+                    onChange={value => {
+                      const debouncedSetScale = _.debounce((val: number) => {
+                        setSecondsPerPixel(val || 1)
+                      }, 300)
+                      debouncedSetScale(value || 1)
+                    }}
+                  />
+                  <span>秒</span>
+                </div>
+              </Header>
+              <Content>
+                <Tabs items={timelineItems} onChange={handleViewTypeChange} />
+              </Content>
+            </Layout>
           ) : (
             <div style={{ 
               height: '100%', 
