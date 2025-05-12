@@ -3,6 +3,8 @@ import * as d3 from 'd3'
 import { Card, Slider, Space } from 'antd'
 import { IStoryLine, IWorldViewDataWithExtra, ITimelineDef } from '@/src/types/IAiNoval'
 import { CharacterView } from './CharacterView'
+import { LocationView } from './LocationView'
+import { FactionView } from './FactionView'
 import { TIMELINE_CONFIG } from './config'
 import { loadGeoTree, IGeoTreeItem } from '@/src/business/aiNoval/common/geoDataUtil'
 import fetch from '@/src/fetch'
@@ -332,7 +334,7 @@ function createVisualization(
     .style('z-index', '1000')
     .style('max-width', '300px')
 
-  // Draw storylines
+  // Draw storylines based on view type
   if (props.viewType === 'character') {
     // Use CharacterView for character view
     console.log('Using CharacterView with events:', processedEvents)
@@ -344,181 +346,42 @@ function createVisualization(
       xScale,
       yScale,
       g,
-      storylineColors
+      storylineColors,
+      geoTree: props.geoTree!,
+      worldview_id: props.worldview_id,
+      worldviews: props.worldviews
     })
-  } else {
-    // Draw storylines for other views
-    props.storyLines.forEach(storyLine => {
-      console.log('Processing storyline:', storyLine)
-      const storyEvents = processedEvents
-        .filter(event => event.storyLine === storyLine.id?.toString())
-        .sort((a, b) => a.date - b.date) // 按时间顺序排序
-      console.log('Filtered story events for', storyLine.name, ':', storyEvents)
-      
-      // 即使只有一个事件也显示
-      if (storyEvents.length === 0) {
-        console.log('No events found for storyline:', storyLine.name)
-        return
-      }
-
-      const points: [number, number][] = storyEvents.map(event => {
-        let x: number
-        if (props.viewType === 'character') {
-          x = (xScale(event.characters[0]) || 0) + xScale.bandwidth() / 2
-        } else if (props.viewType === 'faction') {
-          x = (xScale(event.faction[0]) || 0) + xScale.bandwidth() / 2
-        } else if (props.viewType === 'location') {
-          x = (xScale(event.location) || 0) + xScale.bandwidth() / 2
-        } else {
-          x = (xScale(event[props.viewType]) || 0) + xScale.bandwidth() / 2
-        }
-        const y = yScale(event.date)
-        console.log('Calculated point:', { x, y, event: event.title })
-        return [x, y]
-      })
-
-      // Group events by location
-      const locationGroups = new Map<string, { event: TimelineEvent, point: [number, number] }[]>()
-      storyEvents.forEach((event, index) => {
-        const location = event.location
-        if (!locationGroups.has(location)) {
-          locationGroups.set(location, [])
-        }
-        locationGroups.get(location)?.push({
-          event,
-          point: points[index]
-        })
-      })
-
-      // Draw straight dashed lines for each location group
-      const lineColor = storylineColors.get(storyLine.id?.toString() || '') || '#1890ff'
-      
-      // Create a line generator
-      const line = d3.line<[number, number]>()
-        .x(d => d[0])
-        .y(d => d[1])
-
-      // For each location group, connect events chronologically
-      locationGroups.forEach((group, location) => {
-        // Sort events by date
-        const sortedGroup = group.sort((a, b) => a.event.date - b.event.date)
-        
-        // Draw lines between consecutive points
-        for (let i = 0; i < sortedGroup.length - 1; i++) {
-          g.append('path')
-            .datum([sortedGroup[i].point, sortedGroup[i + 1].point])
-            .attr('d', line)
-            .attr('fill', 'none')
-            .attr('stroke', lineColor)
-            .attr('stroke-width', 1)
-            .attr('stroke-dasharray', '4,4') // Create dashed line
-            .style('pointer-events', 'none') // Make the line non-interactive
-        }
-      })
-
-      // Add event markers (circles) for each point
-      points.forEach(([x, y], index) => {
-        const event = storyEvents[index]
-        console.log('Drawing event marker:', { x, y, event: event.title })
-        
-        const eventGroup = g.append('g')
-          .attr('class', 'event-group')
-          .attr('transform', `translate(${x},${y})`)
-          .datum(event)
-          .style('cursor', 'pointer')
-          .on('mouseover', function(mouseEvent, d) {
-            d3.select(this).select('circle')
-              .attr('r', 6)
-              .attr('stroke-width', 3)
-
-            tooltip
-              .style('visibility', 'visible')
-              .html(`
-                <div style="font-weight: bold; margin-bottom: 5px;">${d.title}</div>
-                <div style="color: #666; margin-bottom: 5px;">${d.description}</div>
-                <div style="color: #999; font-size: 12px;">
-                  <div>时间: ${formatTimestamp(d.date, props.worldviews, props.worldview_id)}</div>
-                  <div>地点: ${d.location}</div>
-                  <div>阵营: ${d.faction.join(', ')}</div>
-                  <div>角色: ${d.characters.join(', ')}</div>
-                </div>
-              `)
-              .style('left', (mouseEvent.pageX + 10) + 'px')
-              .style('top', (mouseEvent.pageY - 10) + 'px')
-          })
-          .on('mouseout', function() {
-            d3.select(this).select('circle')
-              .attr('r', 4)
-              .attr('stroke-width', 2)
-            tooltip.style('visibility', 'hidden')
-          })
-          .on('click', function(mouseEvent, d) {
-            const eventData = d3.select(this).datum() as TimelineEvent
-            console.log('Clicked event data:', eventData)
-            
-            const originalEvent: TimelineEvent = {
-              id: eventData.id,
-              title: eventData.title,
-              description: eventData.description,
-              date: eventData.date,
-              location: eventData.location,
-              faction: eventData.faction || [],
-              characters: eventData.characters || [],
-              storyLine: eventData.storyLine,
-              faction_ids: eventData.faction_ids || [],
-              role_ids: eventData.role_ids || []
-            }
-            console.log('Sending event to parent:', originalEvent)
-            props.onEventSelect(originalEvent)
-          })
-
-        // Add event marker (circle)
-        eventGroup.append('circle')
-          .attr('cx', 0)
-          .attr('cy', 0)
-          .attr('r', 4)
-          .attr('fill', lineColor)
-          .attr('stroke', lineColor)
-          .attr('stroke-width', 2)
-
-        // Add timestamp label on the left
-        eventGroup.append('text')
-          .attr('x', -10)
-          .attr('y', 4)
-          .attr('text-anchor', 'end')
-          .attr('font-size', '10px')
-          .attr('fill', lineColor)
-          .text(formatTimestamp(event.date, props.worldviews, props.worldview_id))
-
-        // Add event title label on the right
-        eventGroup.append('text')
-          .attr('x', 10)
-          .attr('y', 4)
-          .attr('text-anchor', 'start')
-          .attr('font-size', '12px')
-          .attr('fill', lineColor)
-          .text(event.title)
-
-        // Add location name only for the latest event in each location group
-        if (props.viewType === 'location' && props.geoTree) {
-          const locationGroup = locationGroups.get(event.location)
-          if (locationGroup) {
-            const latestEvent = locationGroup.sort((a, b) => b.event.date - a.event.date)[0]
-            if (latestEvent.event.id === event.id) {
-              const geoItem = findGeoItemByCode(props.geoTree, event.location)
-              if (geoItem) {
-                eventGroup.append('text')
-                  .attr('x', 0)
-                  .attr('y', -14)  // 向下偏移1行
-                  .attr('text-anchor', 'middle')
-                  .attr('font-size', '10px')
-                  .attr('fill', lineColor)
-                  .text(geoItem.data.name)
-              }
-            }
-          }
-        }
-      })
+  } else if (props.viewType === 'location') {
+    // Use LocationView for location view
+    console.log('Using LocationView with events:', processedEvents)
+    LocationView({
+      events: processedEvents,
+      storyLines: props.storyLines,
+      selectedEventId: props.selectedEventId,
+      onEventSelect: props.onEventSelect,
+      xScale,
+      yScale,
+      g,
+      storylineColors,
+      geoTree: props.geoTree!,
+      worldview_id: props.worldview_id,
+      worldviews: props.worldviews
+    })
+  } else if (props.viewType === 'faction') {
+    // Use FactionView for faction view
+    console.log('Using FactionView with events:', processedEvents)
+    FactionView({
+      events: processedEvents,
+      storyLines: props.storyLines,
+      selectedEventId: props.selectedEventId,
+      onEventSelect: props.onEventSelect,
+      xScale,
+      yScale,
+      g,
+      storylineColors,
+      geoTree: props.geoTree!,
+      worldview_id: props.worldview_id,
+      worldviews: props.worldviews
     })
   }
 
