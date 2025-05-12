@@ -39,6 +39,9 @@ interface UnifiedEventViewProps {
   worldViews: IWorldViewDataWithExtra[]
   secondsPerPixel: number
   worldview_id: number
+  onScaleChange?: (newScale: number) => void
+  enableHeightLimit?: boolean  // 添加控制是否启用高度限制的选项
+  maxContainerHeight?: number  // 添加自定义最大高度选项  
 }
 
 // Generate evenly distributed colors for storylines
@@ -58,9 +61,9 @@ function generateStorylineColors(storyLines: IStoryLine[]): Map<string, string> 
 // 添加时间格式化函数
 function formatTimestamp(timestamp: number, worldViews: IWorldViewDataWithExtra[], worldview_id: number): string {
   const worldView = worldViews.find(view => view.id === worldview_id)
-  console.info('worldView:', worldView) 
-  console.log('worldview_id', worldview_id)
-  console.log('worldView timelineDef:', worldView)
+  // console.info('worldView:', worldView) 
+  // console.log('worldview_id', worldview_id)
+  // console.log('worldView timelineDef:', worldView)
   
   // 使用默认的时间线定义创建格式化器
   const formatter = new TimelineDateFormatter({
@@ -104,29 +107,29 @@ function getUniqueGeoCodes(events: TimelineEvent[]): string[] {
 
 // Add function to process events with geo codes
 function processEventsWithGeo(events: TimelineEvent[], geoTree?: IGeoTreeItem<any>[]): ProcessedEvent[] {
-  console.log('Processing events with geo tree:', events)
-  console.log('Geo tree available:', !!geoTree)
+  // console.log('Processing events with geo tree:', events)
+  // console.log('Geo tree available:', !!geoTree)
   
   const processed = events.map(event => {
-    console.log('Processing event:', event)
+    // console.log('Processing event:', event)
     // 保持原始的 location code
     const result = {
       ...event,
       location: event.location,
       date: event.date
     }
-    console.log('Processed event result:', result)
+    // console.log('Processed event result:', result)
     return result
   }).sort((a, b) => a.date - b.date)
   
-  console.log('Final processed events:', processed)
+  // console.log('Final processed events:', processed)
   return processed
 }
 
 function getGroups(events: ProcessedEvent[], viewType: ViewType, geoTree?: IGeoTreeItem<any>[]): string[] {
-  console.log('Getting groups for events:', events)
-  console.log('View type:', viewType)
-  console.log('Geo tree available:', !!geoTree)
+  // console.log('Getting groups for events:', events)
+  // console.log('View type:', viewType)
+  // console.log('Geo tree available:', !!geoTree)
   
   let groups: string[] = []
   
@@ -134,25 +137,25 @@ function getGroups(events: ProcessedEvent[], viewType: ViewType, geoTree?: IGeoT
     groups = Array.from(
       new Set(events.flatMap(event => event.characters))
     ).filter(Boolean).sort()
-    console.log('Character groups:', groups)
+    // console.log('Character groups:', groups)
   } else if (viewType === 'faction') {
     groups = Array.from(
       new Set(events.flatMap(event => event.faction))
     ).filter(Boolean).sort()
-    console.log('Faction groups:', groups)
+    // console.log('Faction groups:', groups)
   } else if (viewType === 'location' && geoTree) {
     // Use geo codes for location view
     groups = getUniqueGeoCodes(events)
-    console.log('Location groups (geo codes):', groups)
+    // console.log('Location groups (geo codes):', groups)
   } else {
     groups = Array.from(
       new Set(events.map(event => event[viewType]))
     ).filter(Boolean).sort()
-    console.log('Location groups:', groups)
+    // console.log('Location groups:', groups)
   }
 
   if (groups.length === 0) {
-    console.warn('No groups found for view type:', viewType)
+    // console.warn('No groups found for view type:', viewType)
     // 如果没有找到分组，使用默认值
     if (viewType === 'character') {
       groups = ['默认角色']
@@ -163,7 +166,7 @@ function getGroups(events: ProcessedEvent[], viewType: ViewType, geoTree?: IGeoT
     }
   }
 
-  console.log('Final groups:', groups)
+  // console.log('Final groups:', groups)
   return groups
 }
 
@@ -178,39 +181,41 @@ function createVisualization(
     secondsPerPixel: number
     geoTree?: IGeoTreeItem<any>[]
     worldview_id: number
-    worldviews: IWorldViewDataWithExtra[]
+    worldviews: IWorldViewDataWithExtra[],
+    containerHeight: number
   }
 ) {
-  console.log('Creating visualization with props:', props)
+  // console.log('Creating visualization with props:', props)
   // Clear any existing content
   d3.select(containerElement).selectAll('*').remove()
   d3.select('body').selectAll('.tooltip').remove()
 
   // Generate colors for storylines
   const storylineColors = generateStorylineColors(props.storyLines)
-  console.log('Generated storyline colors:', storylineColors)
+  // console.log('Generated storyline colors:', storylineColors)
 
   // Create a new SVG element
   const svg = d3.select(containerElement)
     .append('svg')
     .attr('width', '100%')
-    .attr('height', '100%')
+    // .attr('height', '100%')
     .attr('viewBox', `0 0 ${containerElement.clientWidth} ${containerElement.clientHeight}`)
+    // .attr('viewBox', `0 0 ${containerElement.clientWidth} ${props.containerHeight}`)
     .attr('preserveAspectRatio', 'xMidYMid meet')
     .style('background-color', 'white')  // 设置背景为白色
 
   // Set up dimensions
   const margin = { top: 80, right: 40, bottom: 60, left: 60 }  // 增加顶部边距
   const width = containerElement.clientWidth - margin.left - margin.right
-  console.log('Container width:', width)
+  // console.log('Container width:', width)
   if (width <= 0) {
-    console.warn('容器宽度为0，无法绘制横轴')
+    // console.warn('容器宽度为0，无法绘制横轴')
     return
   }
   const height = containerElement.clientHeight - margin.top - margin.bottom
-  console.log('Container height:', height)
+  // console.log('Container height:', height)
   if (height <= 0) {
-    console.warn('容器高度为0，无法绘制纵轴')
+    // console.warn('容器高度为0，无法绘制纵轴')
     return
   }
 
@@ -256,22 +261,22 @@ function createVisualization(
 
   // Process data with geo codes if needed
   const processedEvents = processEventsWithGeo(props.events, props.viewType === 'location' ? props.geoTree : undefined)
-  console.log('Processed events:', processedEvents)
+  // console.log('Processed events:', processedEvents)
 
   const groups = getGroups(processedEvents, props.viewType, props.geoTree)
-  console.log('Groups for view type', props.viewType, ':', groups)
+  // console.log('Groups for view type', props.viewType, ':', groups)
 
   // Create scales
   const xScale = d3.scaleBand()
     .domain(groups)
     .range([0, width])
     .padding(0.2)
-  console.log('xScale domain:', xScale.domain())
+  // console.log('xScale domain:', xScale.domain())
 
   // 计算时间轴范围
   const minTime = Math.min(...processedEvents.map(d => d.date))
   const maxTime = Math.max(...processedEvents.map(d => d.date))
-  console.log('Time range:', { minTime, maxTime, padding: TIMELINE_CONFIG.TIME_RANGE_PADDING })
+  // console.log('Time range:', { minTime, maxTime, padding: TIMELINE_CONFIG.TIME_RANGE_PADDING })
 
   // 使用线性比例尺替代时间比例尺
   const yScale = d3.scaleLinear()
@@ -337,7 +342,7 @@ function createVisualization(
   // Draw storylines based on view type
   if (props.viewType === 'character') {
     // Use CharacterView for character view
-    console.log('Using CharacterView with events:', processedEvents)
+    // console.log('Using CharacterView with events:', processedEvents)
     CharacterView({
       events: processedEvents,
       storyLines: props.storyLines,
@@ -349,11 +354,12 @@ function createVisualization(
       storylineColors,
       geoTree: props.geoTree!,
       worldview_id: props.worldview_id,
-      worldviews: props.worldviews
+      worldviews: props.worldviews,
+      containerHeight: props.containerHeight
     })
   } else if (props.viewType === 'location') {
     // Use LocationView for location view
-    console.log('Using LocationView with events:', processedEvents)
+    // console.log('Using LocationView with events:', processedEvents)
     LocationView({
       events: processedEvents,
       storyLines: props.storyLines,
@@ -365,11 +371,12 @@ function createVisualization(
       storylineColors,
       geoTree: props.geoTree!,
       worldview_id: props.worldview_id,
-      worldviews: props.worldviews
+      worldviews: props.worldviews,
+      containerHeight: props.containerHeight
     })
   } else if (props.viewType === 'faction') {
     // Use FactionView for faction view
-    console.log('Using FactionView with events:', processedEvents)
+    // console.log('Using FactionView with events:', processedEvents)
     FactionView({
       events: processedEvents,
       storyLines: props.storyLines,
@@ -381,7 +388,8 @@ function createVisualization(
       storylineColors,
       geoTree: props.geoTree!,
       worldview_id: props.worldview_id,
-      worldviews: props.worldviews
+      worldviews: props.worldviews,
+      containerHeight: props.containerHeight
     })
   }
 
@@ -400,7 +408,10 @@ export function UnifiedEventView({
   viewType,
   worldViews,
   secondsPerPixel,
-  worldview_id
+  worldview_id,
+  onScaleChange,
+  enableHeightLimit,
+  maxContainerHeight
 }: UnifiedEventViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [geoTree, setGeoTree] = useState<IGeoTreeItem<any>[]>([])
@@ -408,67 +419,43 @@ export function UnifiedEventView({
   // Load geo tree data
   useEffect(() => {
     const loadGeoData = async () => {
-      console.log('Current viewType:', viewType)
-      console.log('Current worldview_id:', worldview_id)
-      console.log('Available worldViews:', worldViews)
+      // console.log('Current viewType:', viewType)
+      // console.log('Current worldview_id:', worldview_id)
+      // console.log('Available worldViews:', worldViews)
       
       if (viewType === 'location') {
         // 如果没有传入 worldview_id，尝试从 worldViews 中获取
         const targetWorldviewId = worldview_id || (worldViews.length > 0 ? worldViews[0].id : undefined)
         
         if (!targetWorldviewId) {
-          console.error('No worldview_id available')
+          // console.error('No worldview_id available')
           return
         }
 
-        console.log('Loading geo tree for worldview_id:', targetWorldviewId)
+        // console.log('Loading geo tree for worldview_id:', targetWorldviewId)
         try {
           const tree = await loadGeoTree(targetWorldviewId)
           
           if (tree && tree.length > 0) {
             // 打印树的基本信息而不是整个结构
-            console.log('Geo tree loaded with', tree.length, 'root items')
-            console.log('First item:', {
-              title: tree[0].title,
-              key: tree[0].key,
-              dataType: tree[0].dataType,
-              childrenCount: tree[0].children?.length || 0
-            })
+            // console.log('Geo tree loaded with', tree.length, 'root items')
+            // console.log('First item:', {
+            //   title: tree[0].title,
+            //   key: tree[0].key,
+            //   dataType: tree[0].dataType,
+            //   childrenCount: tree[0].children?.length || 0
+            // })
             setGeoTree(tree)
           } else {
-            console.warn('Geo tree is empty')
+            // console.warn('Geo tree is empty')
           }
         } catch (error: any) {
-          console.error('Error loading geo tree:', error)
+          // console.error('Error loading geo tree:', error)
         }
       }
     }
     loadGeoData()
   }, [viewType, worldview_id, worldViews])
-
-  // Add debug effect for geoTree changes
-  useEffect(() => {
-    if (viewType === 'location') {
-      console.log('Geo tree state updated with', geoTree.length, 'items')
-      if (geoTree && geoTree.length > 0) {
-        // Log all names in the tree
-        const logNames = (items: IGeoTreeItem<any>[]) => {
-          items.forEach(item => {
-            console.log('Item:', {
-              title: item.title,
-              key: item.key,
-              dataType: item.dataType,
-              childrenCount: item.children?.length || 0
-            })
-            if (item.children) {
-              logNames(item.children)
-            }
-          })
-        }
-        logNames(geoTree)
-      }
-    }
-  }, [geoTree, viewType])
 
   // Calculate container height based on timeline span
   const calculateContainerHeight = () => {
@@ -481,11 +468,29 @@ export function UnifiedEventView({
     
     // Calculate height based on time span
     const timelineHeight = Math.ceil(timeSpan / secondsPerPixel)
+    console.log('timelineHeight:', timelineHeight)
+    
     // Add padding above and below
     const calculatedHeight = Math.max(
       TIMELINE_CONFIG.MIN_CONTAINER_HEIGHT, 
       timelineHeight + TIMELINE_CONFIG.TIMELINE_PADDING * 2
     )
+
+    // 如果启用了高度限制，则应用限制
+    if (enableHeightLimit !== false) {  // 默认启用高度限制
+      const MAX_CONTAINER_HEIGHT = maxContainerHeight || 2000 // 使用自定义最大高度或默认值
+      if (calculatedHeight > MAX_CONTAINER_HEIGHT) {
+        // 如果高度超过限制，调整 secondsPerPixel 的值
+        const adjustedSecondsPerPixel = timeSpan / (MAX_CONTAINER_HEIGHT - TIMELINE_CONFIG.TIMELINE_PADDING * 2)
+        // 更新 secondsPerPixel 的值
+        if (secondsPerPixel !== adjustedSecondsPerPixel && onScaleChange) {
+          // console.log('Adjusting secondsPerPixel from', secondsPerPixel, 'to', adjustedSecondsPerPixel)
+          onScaleChange(adjustedSecondsPerPixel)
+        }
+        return MAX_CONTAINER_HEIGHT
+      }
+    }
+
     return calculatedHeight
   }
 
@@ -513,7 +518,8 @@ export function UnifiedEventView({
       secondsPerPixel,
       geoTree: viewType === 'location' ? geoTree : undefined,
       worldview_id,
-      worldviews: worldViews
+      worldviews: worldViews,
+      containerHeight: containerHeight
     })
 
     // Add ResizeObserver to handle container size changes
@@ -522,7 +528,7 @@ export function UnifiedEventView({
         if (entry.target === containerRef.current) {
           const width = entry.contentRect.width
           const height = entry.contentRect.height
-          console.log('Container resized:', { width, height })
+          // console.log('Container resized:', { width, height })
           if (width > 0 && height > 0) {
             // Clear and recreate visualization when container size changes
             d3.select(containerRef.current).selectAll('*').remove()
@@ -536,7 +542,8 @@ export function UnifiedEventView({
               secondsPerPixel,
               geoTree: viewType === 'location' ? geoTree : undefined,
               worldview_id,
-              worldviews: worldViews
+              worldviews: worldViews,
+              containerHeight: containerHeight
             })
           }
         }

@@ -67,7 +67,7 @@ export class TimelineDateFormatter {
       second
     }
 
-    console.debug(seconds, ' --> ', dateData)
+    // console.debug(seconds, ' --> ', dateData)
 
     return dateData
   }
@@ -105,7 +105,7 @@ export class TimelineDateFormatter {
                     second
     }
 
-    console.debug(dateData, ' --> ', totalSeconds)
+    // console.debug(dateData, ' --> ', totalSeconds)
 
     return totalSeconds
   }

@@ -56,7 +56,10 @@ function EventManager() {
   const [timelineDef, setTimelineDef] = useState<ITimelineDef | null>(null)
   const [isLoadingEvents, setIsLoadingEvents] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
+
   const [secondsPerPixel, setSecondsPerPixel] = useState<number>(TIMELINE_CONFIG.SECONDS_PER_PIXEL)
+  const [logSecondsPerPixel, setLogSecondsPerPixel] = useState<number>(Math.log(TIMELINE_CONFIG.SECONDS_PER_PIXEL))
+  const [isUpdatingFromLog, setIsUpdatingFromLog] = useState(false)
 
   // Fetch world views when component mounts
   useEffect(() => {
@@ -195,25 +198,8 @@ function EventManager() {
           worldview_id: Number(selectedWorld),
           story_line_id: selectedStoryLine ? Number(selectedStoryLine) : undefined
         }
-        console.log('Fetching events with params:', params)
         const response = await eventApiCalls.getEventList(params)
-        console.log('API response:', response)
         if (response.data) {
-          console.log('Raw events data:', response.data)
-          // 检查第一个事件的数据结构
-          if (response.data.length > 0) {
-            console.log('First event structure:', {
-              id: response.data[0].id,
-              title: response.data[0].title,
-              description: response.data[0].description,
-              date: response.data[0].date,
-              location: response.data[0].location,
-              faction_ids: response.data[0].faction_ids,
-              role_ids: response.data[0].role_ids,
-              story_line_id: response.data[0].story_line_id,
-              worldview_id: response.data[0].worldview_id
-            })
-          }
           // Transform the API response data into the format expected by UnifiedEventView
           const transformedEvents = response.data.map((event: ITimelineEvent) => {
             // 确保 faction_ids 和 role_ids 是数组
@@ -223,13 +209,11 @@ function EventManager() {
             // 获取事件相关的派系和角色名称
             const factionNames = factionIds.map(id => {
               const faction = factions.find(f => f.id === id)
-              console.log('Looking up faction:', id, 'Found:', faction)
               return faction?.name || id.toString()
             })
 
             const characterNames = roleIds.map(id => {
               const role = roles.find(r => r.id === id)
-              console.log('Looking up role:', id, 'Found:', role)
               return role?.name || id.toString()
             })
 
@@ -245,10 +229,8 @@ function EventManager() {
               faction_ids: factionIds,
               role_ids: roleIds
             }
-            console.log('Transformed event:', transformed)
             return transformed
           })
-          console.log('Final transformed events:', transformedEvents)
           setEvents(transformedEvents)
         }
       } catch (error) {
@@ -261,21 +243,42 @@ function EventManager() {
     fetchEvents()
   }, [selectedWorld, selectedStoryLine, factions, roles])
 
+  // 处理双向转换
+  useEffect(() => {
+    if (isUpdatingFromLog) {
+      const newSecondsPerPixel = Math.exp(logSecondsPerPixel)
+      if (newSecondsPerPixel !== secondsPerPixel) {
+        setSecondsPerPixel(newSecondsPerPixel)
+      }
+    } else {
+      const newLogValue = Math.log(secondsPerPixel)
+      if (newLogValue !== logSecondsPerPixel) {
+        setLogSecondsPerPixel(newLogValue)
+      }
+    }
+  }, [logSecondsPerPixel, secondsPerPixel, isUpdatingFromLog])
+
+  const handleLogScaleChange = (value: number | null) => {
+    if (value !== null) {
+      setIsUpdatingFromLog(true)
+      setLogSecondsPerPixel(value)
+    }
+  }
+
+  const handleLinearScaleChange = (value: number | null) => {
+    if (value !== null) {
+      setIsUpdatingFromLog(false)
+      setSecondsPerPixel(value)
+    }
+  }
+
   const filteredEvents = events.filter(event => {
     const eventStoryLine = storyLines.find(sl => sl.id?.toString() === event.storyLine)
-    console.log('Filtering event:', {
-      ...event,
-      faction_ids: event.faction_ids,
-      role_ids: event.role_ids,
-      storyLine: event.storyLine
-    }, 'with storyLine:', eventStoryLine)
     return (!selectedWorld || eventStoryLine?.worldview_id?.toString() === selectedWorld) &&
            (!selectedStoryLine || event.storyLine === selectedStoryLine)
   })
 
   const handleEventSelect = (event: TimelineEvent) => {
-    console.log('Selected event:', event) // 添加日志
-    // 确保事件数据包含所有必要字段
     const selectedEventData: TimelineEvent = {
       ...event,
       id: event.id,
@@ -347,6 +350,7 @@ function EventManager() {
             viewType={viewType}
             worldViews={worldViews}
             secondsPerPixel={secondsPerPixel}
+            enableHeightLimit={false}
             worldview_id={Number(selectedWorld)}
           />
         </div>
@@ -377,6 +381,7 @@ function EventManager() {
             viewType={viewType}
             worldViews={worldViews}
             secondsPerPixel={secondsPerPixel}
+            enableHeightLimit={false}
             worldview_id={Number(selectedWorld)}
           />
         </div>
@@ -407,6 +412,7 @@ function EventManager() {
             viewType={viewType}
             worldViews={worldViews}
             secondsPerPixel={secondsPerPixel}
+            enableHeightLimit={false}
             worldview_id={Number(selectedWorld)}
           />
         </div>
@@ -502,7 +508,6 @@ function EventManager() {
 
   const handleEditPanelSave = async (values: any) => {
     try {
-      console.log('Received form values:', values) // 添加日志
       const eventData: ITimelineEvent = {
         id: selectedEvent?.id ? Number(selectedEvent.id) : 0,
         title: values.title,
@@ -515,7 +520,6 @@ function EventManager() {
         worldview_id: Number(selectedWorld)
       }
 
-      console.log('Saving event data:', eventData) // 添加日志
       await eventApiCalls.createOrUpdateEvent(eventData)
       
       // 刷新事件列表
@@ -774,22 +778,18 @@ function EventManager() {
                   <Slider
                     id="secondsPerPixel"
                     style={{ flex: 1, margin: '0 20px' }}
-                    min={TIMELINE_CONFIG.SCALE_RANGE.MIN}
-                    max={TIMELINE_CONFIG.SCALE_RANGE.MAX}
-                    value={secondsPerPixel}
-                    onChange={setSecondsPerPixel}
+                    step={0.01}
+                    min={Math.log(TIMELINE_CONFIG.SCALE_RANGE.MIN)}
+                    max={Math.log(TIMELINE_CONFIG.SCALE_RANGE.MAX)}
+                    value={logSecondsPerPixel}
+                    onChange={handleLogScaleChange}
                   />
                   <span>1像素 = </span>
                   <InputNumber
                     min={TIMELINE_CONFIG.SCALE_RANGE.MIN}
                     max={TIMELINE_CONFIG.SCALE_RANGE.MAX}
                     value={secondsPerPixel}
-                    onChange={value => {
-                      const debouncedSetScale = _.debounce((val: number) => {
-                        setSecondsPerPixel(val || 1)
-                      }, 300)
-                      debouncedSetScale(value || 1)
-                    }}
+                    onChange={handleLinearScaleChange}
                   />
                   <span>秒</span>
                 </div>
