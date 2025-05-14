@@ -194,6 +194,7 @@ export interface IRoleRelation {
     tl_day_length_in_hours?: number | null,
     tl_month_length_in_days?: number | null,
     tl_year_length_in_months?: number | null,
+    te_max_seconds?: number | null,
 }
 
 export interface IStoryLine {
@@ -215,4 +216,26 @@ export interface ITimelineEvent {
     role_ids: number[]
     story_line_id: number
     worldview_id: number
+}
+
+// Chapter types
+export interface IChapter {
+    id?: number
+    novel_id?: number
+    chapter_number?: number
+    version?: number
+    title?: string
+    worldview_id?: number
+    storyline_ids?: number[]
+    event_line_start1?: number
+    event_line_end1?: number
+    event_line_start2?: number
+    event_line_end2?: number
+    event_ids?: number[]
+    geo_ids?: number[]
+    faction_ids?: number[]
+    role_ids?: number[]
+    seed_prompt?: string
+    skeleton_prompt?: string
+    content?: string
 }

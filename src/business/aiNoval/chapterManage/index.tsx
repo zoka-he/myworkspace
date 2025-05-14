@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react'
-import { Card, Select, Space, Row, Col, Typography, Button, Input, message, Modal, Form, Radio } from 'antd'
+import { Card, Select, Space, Row, Col, Typography, Button, Input, message, Modal, Form, Radio, Tag, Pagination } from 'antd'
 import { DragDropContext } from 'react-beautiful-dnd'
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
-import { mockNovels, mockEventPool } from './mockData'
-import { Novel, Chapter, Event, EventPool } from './types'
+import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons'
+import { mockEventPool } from './mockData'
+import { INovalData, ITimelineEvent, IChapter, IWorldViewDataWithExtra } from '@/src/types/IAiNoval'
+import { EventPool, ExtendedNovelData } from './types'
 import EventPoolPanel from './components/EventPoolPanel'
 import styles from './index.module.scss'
+import * as chapterApi from './apiCalls'
 
 const { Text } = Typography
 const { TextArea } = Input
@@ -13,56 +15,96 @@ const { TextArea } = Input
 type ModuleType = 'event-pool' | 'chapter-skeleton' | 'chapter-generate'
 
 function ChapterManage() {
-  const [novels, setNovels] = useState<Novel[]>(mockNovels)
-  const [selectedNovel, setSelectedNovel] = useState<string>('')
-  const [selectedChapter, setSelectedChapter] = useState<string>('')
-  const [eventPool, setEventPool] = useState<EventPool>(mockEventPool)
+  const [novels, setNovels] = useState<ExtendedNovelData[]>([])
+  const [selectedNovel, setSelectedNovel] = useState<number | null>(null)
+  const [selectedChapter, setSelectedChapter] = useState<IChapter | null>(null)
   const [selectedWorldContext, setSelectedWorldContext] = useState<string>('all')
   const [selectedStoryLines, setSelectedStoryLines] = useState<string[]>([])
   const [timelineRange, setTimelineRange] = useState<[number, number]>([0, 100])
   const [timelineAdjustment, setTimelineAdjustment] = useState<[number, number]>([0, 0])
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [form] = Form.useForm()
-  const [editingChapter, setEditingChapter] = useState<Chapter | null>(null)
+  const [editingChapter, setEditingChapter] = useState<IChapter | null>(null)
   const [activeModule, setActiveModule] = useState<ModuleType>('event-pool')
+  const [loading, setLoading] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [totalChapters, setTotalChapters] = useState(0)
+  const [worldViewList, setWorldViewList] = useState<IWorldViewDataWithExtra[]>([])
+  const [selectedWorldView, setSelectedWorldView] = useState<IWorldViewDataWithExtra | null>(null)
 
-  // 获取所有世界观
-  const worldContexts = ['all', ...new Set(eventPool.selected.concat(eventPool.candidate).map(event => event.worldContext))]
+  // 组件挂载时，获取小说列表和世界观列表
+  useEffect(() => {
+    fetchNovels()
+    fetchWorldViewList()
+  }, [])
 
-  // 获取所有故事线
-  const storyLines = Array.from(new Set(eventPool.selected.concat(eventPool.candidate).map(event => event.storyLine)))
+  // 当小说被选中时，刷新章节列表
+  useEffect(() => {
+    if (selectedNovel) {
+      setSelectedChapter(null)
+    }
+  }, [selectedNovel])
 
-  const handleDragEnd = (result: any) => {
-    const { source, destination } = result
+  // 获取世界观列表
+  const fetchWorldViewList = async () => {
+    const response = await chapterApi.getWorldViewList()
+    if (response.data) {
+      setWorldViewList(response.data)
+    }
+  }
 
-    if (!destination) return
+  // 获取小说列表
+  const fetchNovels = async () => {
+    try {
+      setLoading(true)
+      const response = await chapterApi.getNovelList()
+      if (response.data) {
+        const novelsWithChapters = response.data.map(novel => ({ ...novel, chapters: [] }))
+        setNovels(novelsWithChapters)
+        
+        // 如果当前没有选中的小说，且获取到的小说列表不为空，则自动选中第一本小说
+        if (!selectedNovel && novelsWithChapters.length > 0) {
+          handleNovelChange(novelsWithChapters[0].id || null)
+        } else if (selectedNovel) {
+          // 如果当前有选中的小说，刷新其章节列表
+          await fetchChapters(selectedNovel)
+        }
+      }
+    } catch (error) {
+      message.error('获取小说列表失败')
+    } finally {
+      setLoading(false)
+    }
+  }
 
-    if (source.droppableId === destination.droppableId) {
-      // 在同一事件池内重新排序
-      const pool = source.droppableId === 'event-pool-selected' ? 'selected' : 'candidate'
-      const events = Array.from(eventPool[pool])
-      const [removed] = events.splice(source.index, 1)
-      events.splice(destination.index, 0, removed)
+  // 获取章节列表
+  const fetchChapters = async (novelId: number, page: number = currentPage, size: number = pageSize) => {
+    try {
+      setLoading(true)
+      const response = await chapterApi.getChapterList(novelId, page, size)
+      if (response.data) {
+        setNovels(prevNovels =>
+          prevNovels.map(novel =>
+            novel.id === novelId
+              ? { ...novel, chapters: response.data }
+              : novel
+          )
+        )
+        setTotalChapters(response.count)
+      }
+    } catch (error) {
+      message.error('获取章节列表失败')
+    } finally {
+      setLoading(false)
+    }
+  }
 
-      setEventPool({
-        ...eventPool,
-        [pool]: events
-      })
-    } else {
-      // 在不同事件池之间移动
-      const sourcePool = source.droppableId === 'event-pool-selected' ? 'selected' : 'candidate'
-      const destPool = destination.droppableId === 'event-pool-selected' ? 'selected' : 'candidate'
-      
-      const sourceEvents = Array.from(eventPool[sourcePool])
-      const destEvents = Array.from(eventPool[destPool])
-      const [removed] = sourceEvents.splice(source.index, 1)
-      destEvents.splice(destination.index, 0, removed)
-
-      setEventPool({
-        ...eventPool,
-        [sourcePool]: sourceEvents,
-        [destPool]: destEvents
-      })
+  const handleNovelChange = (novelId: number | null) => {
+    setSelectedNovel(novelId)
+    setSelectedChapter(null)
+    if (novelId) {
+      fetchChapters(novelId)
     }
   }
 
@@ -70,82 +112,129 @@ function ChapterManage() {
     setEditingChapter(null)
     form.resetFields()
     setIsModalVisible(true)
+
+    fetchMaxChapterNumber().then(data => {
+      form.setFieldsValue({
+        chapter_number: data + 1,
+        version: 1,
+      });
+    });
   }
 
-  const handleEditChapter = (chapter: Chapter) => {
+  const fetchMaxChapterNumber = async (): Promise<number> => {
+    let maxChapterNumber = 0;
+
+    if (selectedNovel) {
+      maxChapterNumber = await chapterApi.getMaxChapterNumber(selectedNovel);
+    }
+
+    return maxChapterNumber;
+  }
+
+  const handleEditChapter = (chapter: IChapter) => {
     setEditingChapter(chapter)
-    form.setFieldsValue(chapter)
+    form.setFieldsValue({
+      chapter_number: chapter.chapter_number,
+      version: chapter.version,
+      title: chapter.title,
+    })
     setIsModalVisible(true)
   }
 
-  const handleDeleteChapter = (chapterId: string) => {
+  
+
+  const handleDeleteChapter = async (chapterId: number) => {
     Modal.confirm({
       title: '确认删除',
       content: '确定要删除这个章节吗？',
-      onOk: () => {
-        setNovels(prevNovels =>
-          prevNovels.map(novel => ({
-            ...novel,
-            chapters: novel.chapters.filter(chapter => chapter.id !== chapterId)
-          }))
-        )
-        message.success('章节已删除')
+      onOk: async () => {
+        try {
+          await chapterApi.deleteChapter(chapterId)
+          if (selectedNovel) {
+            await fetchChapters(selectedNovel)
+          }
+          message.success('章节已删除')
+        } catch (error) {
+          message.error('删除章节失败')
+        }
       }
     })
   }
 
-  const handleModalOk = () => {
-    form.validateFields().then(values => {
+  const handleModalOk = async () => {
+    try {
+      const values = await form.validateFields()
       if (editingChapter) {
         // 编辑现有章节
-        setNovels(prevNovels =>
-          prevNovels.map(novel => ({
-            ...novel,
-            chapters: novel.chapters.map(chapter =>
-              chapter.id === editingChapter.id ? { ...chapter, ...values } : chapter
-            )
-          }))
-        )
+        const updatedChapter = {
+          ...editingChapter,
+          ...values
+        }
+        await chapterApi.updateChapter(updatedChapter)
+        if (selectedNovel) {
+          await fetchChapters(selectedNovel)
+        }
         message.success('章节已更新')
       } else {
         // 添加新章节
-        const newChapter: Chapter = {
-          id: Date.now().toString(),
+        const newChapter: IChapter = {
+          novel_id: selectedNovel || undefined,
+          chapter_number: values.chapter_number,
+          version: values.version,
           title: values.title,
-          seedPrompt: '',
-          skeletonPrompt: '',
-          events: []
+          content: values.content,
+          seed_prompt: '',
+          skeleton_prompt: '',
+          event_ids: [],
+          storyline_ids: [],
+          geo_ids: [],
+          faction_ids: [],
+          role_ids: []
         }
-        setNovels(prevNovels =>
-          prevNovels.map(novel =>
-            novel.id === selectedNovel
-              ? { ...novel, chapters: [...novel.chapters, newChapter] }
-              : novel
-          )
-        )
+        await chapterApi.addChapter(newChapter)
+        if (selectedNovel) {
+          await fetchChapters(selectedNovel)
+        }
         message.success('章节已添加')
       }
       setIsModalVisible(false)
-    })
+    } catch (error) {
+      message.error('保存章节失败')
+    }
   }
 
+  const handlePageChange = (page: number, size?: number) => {
+    setCurrentPage(page)
+    if (size) {
+      setPageSize(size)
+    }
+    if (selectedNovel) {
+      fetchChapters(selectedNovel, page, size || pageSize)
+    }
+  }
+
+  const handleWorldViewChange = (value?: number | null) => {
+    if (value) {
+      setSelectedWorldView(worldViewList.find(worldView => worldView.id === value) || null)
+    } else {
+      setSelectedWorldView(null)
+    }
+  }
+
+  /**
+   * 渲染右方面板内容
+   * @returns 
+   */
   const renderModuleContent = () => {
     switch (activeModule) {
       case 'event-pool':
         return (
           <EventPoolPanel
-            eventPool={eventPool}
             selectedWorldContext={selectedWorldContext}
-            selectedStoryLines={selectedStoryLines}
-            timelineRange={timelineRange}
-            timelineAdjustment={timelineAdjustment}
-            worldContexts={worldContexts}
-            storyLines={storyLines}
-            onWorldContextChange={setSelectedWorldContext}
-            onStoryLinesChange={setSelectedStoryLines}
-            onTimelineRangeChange={setTimelineRange}
-            onTimelineAdjustmentChange={setTimelineAdjustment}
-            onDragEnd={handleDragEnd}
+            worldViewList={worldViewList}
+            selectedWorldViewId={selectedWorldView?.id}
+            selectedChapter={selectedChapter}
+            onWorldViewChange={handleWorldViewChange}
           />
         )
       case 'chapter-skeleton':
@@ -167,29 +256,38 @@ function ChapterManage() {
 
   return (
     <div className={styles.container}>
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <Row gutter={16}>
-          <Col span={8}>
-            <Card 
-              title={
-                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
-                    <Text>选择小说：</Text>
-                  <Select
-                    style={{ flex: 1 }}
-                    placeholder="请选择小说"
-                    value={selectedNovel || undefined}
-                    onChange={setSelectedNovel}
-                    allowClear
-                    >
-                    {novels.map(novel => (
-                        <Select.Option key={novel.id} value={novel.id}>
-                        {novel.title}
-                        </Select.Option>
-                    ))}
-                    </Select>
-                </div>
-              }
-            >
+      <Row gutter={16} className='f-fit-height'>
+        <Col span={8} className='f-fit-height'>
+          {/* 章节列表外框 */}
+          <Card 
+            className='f-fit-height'
+            title={  // 章节列表title
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text>选择小说：</Text>
+                <Select
+                  style={{ flex: 1 }}
+                  placeholder="请选择小说"
+                  value={selectedNovel || undefined}
+                  onChange={handleNovelChange}
+                  allowClear
+                  loading={loading}
+                >
+                  {novels.map(novel => (
+                    <Select.Option key={novel.id} value={novel.id}>
+                      {novel.title}
+                    </Select.Option>
+                  ))}
+                </Select>
+                <Button
+                  icon={<ReloadOutlined />}
+                  onClick={fetchNovels}
+                  loading={loading}
+                />
+              </div>
+            }
+          >
+            {/* 章节列表内容 */}
+            {selectedNovel ? (
               <Space direction="vertical" size="large" style={{ width: '100%' }}>
                 <div>
                   <Space style={{ width: '100%', justifyContent: 'space-between' }}>
@@ -198,7 +296,6 @@ function ChapterManage() {
                       type="primary"
                       icon={<PlusOutlined />}
                       onClick={handleAddChapter}
-                      disabled={!selectedNovel}
                     >
                       添加章节
                     </Button>
@@ -208,7 +305,11 @@ function ChapterManage() {
                       .find(novel => novel.id === selectedNovel)
                       ?.chapters.map(chapter => (
                         <div key={chapter.id} className={styles.chapterItem}>
-                          <Text>{chapter.title}</Text>
+                          <Space style={{ cursor: 'pointer' }} onClick={() => setSelectedChapter(chapter)}>
+                            <Text type="secondary">第{chapter.chapter_number}章</Text>
+                            <Text>{chapter.title}</Text>
+                            <Tag color="green">v{chapter.version}</Tag>
+                          </Space>
                           <Space>
                             <Button
                               type="text"
@@ -219,20 +320,45 @@ function ChapterManage() {
                               type="text"
                               danger
                               icon={<DeleteOutlined />}
-                              onClick={() => handleDeleteChapter(chapter.id)}
+                              onClick={() => handleDeleteChapter(chapter.id || 0)}
                             />
                           </Space>
                         </div>
                       ))}
                   </div>
+                  <div style={{ marginTop: 16, textAlign: 'right' }}>
+                    <Pagination
+                      current={currentPage}
+                      pageSize={pageSize}
+                      total={totalChapters}
+                      onChange={handlePageChange}
+                      showSizeChanger
+                      showQuickJumper
+                      showTotal={(total) => `共 ${total} 章`}
+                    />
+                  </div>
                 </div>
               </Space>
-            </Card>
-          </Col>
+            ) : (
+              <div className={styles.selectPrompt}>
+                <Text>请先选择小说</Text>
+              </div>
+            )}
+          </Card>
+        </Col>
 
-          <Col span={16}>
-            <Card
-              title={
+        <Col span={16} className="f-fit-height">
+          {/* 右方面板 */}
+          <Card
+            className="f-fit-height"
+            title={  // 右方面板title
+              <Space>
+                { selectedChapter ? [
+                  <Text>当前章节：</Text>, 
+                  <Text>第{selectedChapter.chapter_number}章</Text>,
+                  <Text>{selectedChapter.title}</Text>,
+                  <Tag color='green'>v{selectedChapter.version}</Tag>
+                  ] : null}
                 <Radio.Group
                   value={activeModule}
                   onChange={e => setActiveModule(e.target.value)}
@@ -242,21 +368,45 @@ function ChapterManage() {
                   <Radio.Button value="chapter-skeleton">章节骨架</Radio.Button>
                   <Radio.Button value="chapter-generate">章节生成</Radio.Button>
                 </Radio.Group>
-              }
-            >
-              {renderModuleContent()}
-            </Card>
-          </Col>
-        </Row>
-      </DragDropContext>
+              </Space>
+            }
+          >
+            {selectedNovel && selectedChapter ? (
+              /* 右方面板内容 */
+              renderModuleContent()
+            ) : (
+              <div className={styles.selectPrompt}>
+                <Text>请先选择小说和章节</Text>
+              </div>
+            )}
+          </Card>
+        </Col>
+      </Row>
 
+      {/* 添加章节modal */}
       <Modal
         title={editingChapter ? '编辑章节' : '添加章节'}
         open={isModalVisible}
         onOk={handleModalOk}
         onCancel={() => setIsModalVisible(false)}
+        width={800}
+        confirmLoading={loading}
       >
         <Form form={form} layout="vertical">
+          <Form.Item
+            name="chapter_number"
+            label="章节号"
+            rules={[{ required: true, message: '请输入章节号' }]}
+          >
+            <Input type="number" placeholder="请输入章节号" />
+          </Form.Item>
+          <Form.Item
+            name="version"
+            label="版本号"
+            rules={[{ required: true, message: '请输入版本号' }]}
+          >
+            <Input type="number" placeholder="请输入版本号" />
+          </Form.Item>
           <Form.Item
             name="title"
             label="章节标题"

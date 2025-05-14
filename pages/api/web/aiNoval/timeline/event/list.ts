@@ -24,13 +24,22 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
 
         switch(k) {
             case 'worldview_id':
-                queryObject.worldview_id = v;
+                queryObject.worldview_id = _.toNumber(v);
                 break;
             case 'story_line_id':
-                queryObject.story_line_id = v;
+                queryObject.story_line_id = _.toNumber(v);
                 break;
         }
     }
+
+    if (req.query.start_date && req.query.end_date) {
+        queryObject.date = { $btw: [_.toNumber(req.query.start_date), _.toNumber(req.query.end_date)] };
+    } else if (req.query.start_date) {
+        queryObject.date = { $gt: _.toNumber(req.query.start_date) };
+    } else if (req.query.end_date) {
+        queryObject.date = { $lt: _.toNumber(req.query.end_date) };
+    }
+
 
     let ret = await service.query(queryObject, [], ['date asc'], page, limit);
 

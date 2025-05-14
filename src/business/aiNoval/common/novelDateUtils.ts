@@ -1,4 +1,4 @@
-import { ITimelineDef } from '@/src/types/IAiNoval'
+import { ITimelineDef, IWorldViewDataWithExtra } from '@/src/types/IAiNoval'
 
 export interface ITimelineDateData {
   isBC: boolean
@@ -17,6 +17,19 @@ export class TimelineDateFormatter {
   private readonly dayLengthInHours: number
   private readonly monthLengthInDays: number
   private readonly yearLengthInMonths: number
+
+  public static fromWorldViewWithExtra(worldView: IWorldViewDataWithExtra): TimelineDateFormatter {
+    return new TimelineDateFormatter({
+      id: worldView.tl_id ?? 0,
+      worldview_id: worldView.id ?? 0,
+      epoch: worldView.tl_epoch ?? '',
+      start_seconds: worldView.tl_start_seconds ?? 0,
+      hour_length_in_seconds: worldView.tl_hour_length_in_seconds ?? 3600,
+      day_length_in_hours: worldView.tl_day_length_in_hours ?? 24,
+      month_length_in_days: worldView.tl_month_length_in_days ?? 30,
+      year_length_in_months: worldView.tl_year_length_in_months ?? 365
+    })
+  }
 
   constructor(timelineDef: ITimelineDef) {
     this.epoch = timelineDef.epoch
@@ -117,6 +130,7 @@ export class TimelineDateFormatter {
    */
   formatSecondsToDate(seconds: number): string {
     const dateData = this.secondsToDateData(seconds)
+    // console.debug(dateData);
     return `${dateData.isBC ? '公元前' : '公元'}${dateData.year}年${dateData.month}月${dateData.day}日`
   }
 

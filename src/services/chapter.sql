@@ -1,0 +1,22 @@
+CREATE TABLE `chapters` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `chapter_number` int NOT NULL,
+  `version` int NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `content` longtext NOT NULL,
+  `seed_prompt` text NOT NULL,
+  `skeleton_prompt` text NOT NULL,
+  `events` json DEFAULT NULL,
+  `worldview_id` bigint DEFAULT NULL,
+  `storyline_id` bigint DEFAULT NULL,
+  `event_line_start1` int DEFAULT NULL,
+  `event_line_end1` int DEFAULT NULL,
+  `event_line_start2` int DEFAULT NULL,
+  `event_line_end2` int DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_chapter_number` (`chapter_number`),
+  KEY `idx_worldview_id` (`worldview_id`),
+  KEY `idx_storyline_id` (`storyline_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci; 

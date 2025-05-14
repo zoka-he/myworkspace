@@ -1,37 +1,15 @@
-// Event types
-export interface Event {
-  id: string
-  title: string
-  description: string
-  worldContext: string
-  storyLine: string
-  location?: string
-  faction?: string
-  characters?: string[]
-  category: 'selected' | 'candidate'
-}
+import type { INovalData, ITimelineEvent, IChapter } from '@/src/types/IAiNoval'
 
-// Chapter types
-export interface Chapter {
-  id: string
-  title: string
-  seedPrompt: string
-  skeletonPrompt: string
-  events: Event[]
-}
-
-// Novel types
-export interface Novel {
-  id: string
-  title: string
-  chapters: Chapter[]
+// Extended novel type with chapters
+export interface ExtendedNovelData extends INovalData {
+  chapters: IChapter[]
 }
 
 // Event pool types
 export interface EventPool {
-  selected: Event[]
-  candidate: Event[]
+  selected: ITimelineEvent[]
+  candidate: ITimelineEvent[]
 }
 
 // Export all types
-export type { Event, Chapter, Novel, EventPool } 
+export type { INovalData, ITimelineEvent, IChapter, EventPool, ExtendedNovelData } 
