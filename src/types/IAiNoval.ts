@@ -68,6 +68,10 @@ export interface IGeoGeographyUnitData {
     described_in_llm?: number | null,
 }
 
+export interface IGeoUnionData extends IGeoStarSystemData, IGeoStarData, IGeoPlanetData, IGeoSatelliteData, IGeoGeographyUnitData {
+    data_type?: string | null,
+}
+
 export interface IFactionDefData {
     id?: number | null,
     worldview_id?: number | null,

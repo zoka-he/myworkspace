@@ -1,4 +1,4 @@
-import { IGeoStarSystemData, IGeoStarData, IGeoPlanetData, IGeoSatelliteData, IGeoGeographyUnitData } from '@/src/types/IAiNoval';
+import { IGeoStarSystemData, IGeoStarData, IGeoPlanetData, IGeoSatelliteData, IGeoGeographyUnitData, IGeoUnionData } from '@/src/types/IAiNoval';
 import fetch from '@/src/fetch';
 
 function wrapDataToTreeData(
@@ -86,6 +86,60 @@ export interface IGeoTreeItem<T> {
     data: T;
     parent?: IGeoTreeItem<IGeoStarSystemData | IGeoStarData | IGeoPlanetData>;
     children?: IGeoTreeItem<IGeoStarSystemData | IGeoStarData | IGeoPlanetData>[];
+}
+
+export async function loadGeoUnionList(worldview_id: number): Promise<IGeoUnionData[]> {
+    let [
+        starSystemData,
+        starData,
+        planetData,
+        satelliteData,
+        geoUnitData,
+    ] = await Promise.all([
+        loadStarSystemData(worldview_id),
+        loadStarData(worldview_id),
+        loadPlanetData(worldview_id),
+        loadSatelliteData(worldview_id),
+        loadGeographyUnitData(worldview_id)
+    ]);
+
+    let unionDataList: IGeoUnionData[] = [];
+    starSystemData.forEach(starSystem => {
+        unionDataList.push({
+            ...starSystem.data,
+            data_type: 'starSystem',
+        });
+    });
+
+    starData.forEach(star => {
+        unionDataList.push({
+            ...star.data,
+            data_type: 'star',
+        });
+    });
+    
+    planetData.forEach(planet => {
+        unionDataList.push({
+            ...planet.data,
+            data_type: 'planet',
+        });
+    });
+
+    satelliteData.forEach(satellite => {
+        unionDataList.push({
+            ...satellite.data,
+            data_type: 'satellite',
+        });
+    });
+    
+    geoUnitData.forEach(geoUnit => {
+        unionDataList.push({
+            ...geoUnit.data,
+            data_type: 'geoUnit',
+        });
+    });
+
+    return unionDataList;
 }
 
 /**

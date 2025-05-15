@@ -2,7 +2,7 @@
   background: #fff;
   border-radius: 4px;
   padding: 16px;
-  height: 100%;
+  height: calc(100vh - 380px);
   display: flex;
   flex-direction: column;
 }

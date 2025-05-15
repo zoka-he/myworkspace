@@ -3,9 +3,9 @@ import { Select, Space, Row, Col, Typography, Slider, Tag, Button, Modal, Form, 
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
 import { EventPool } from '../types'
 import styles from './EventPoolPanel.module.scss'
-import { IChapter, IStoryLine, IWorldViewDataWithExtra, ITimelineEvent } from '@/src/types/IAiNoval'
+import { IChapter, IStoryLine, IWorldViewDataWithExtra, ITimelineEvent, IGeoUnionData, IFactionDefData, IRoleData } from '@/src/types/IAiNoval'
 import { TimelineDateFormatter } from '../../common/novelDateUtils'
-import { EditOutlined, ReloadOutlined } from '@ant-design/icons'
+import { EditOutlined, ReloadOutlined, SaveOutlined } from '@ant-design/icons'
 import * as apiCalls from '../apiCalls'
 
 const { Text } = Typography
@@ -14,9 +14,12 @@ type Event = ITimelineEvent
 
 interface EventPoolPanelProps {
   selectedWorldContext: string
-  worldViewList: IWorldViewDataWithExtra[]
+  worldViewList: IWorldViewDataWithExtra[],
   selectedWorldViewId?: number | null
   selectedChapter?: IChapter | null,
+  geoUnionList: IGeoUnionData[],
+  factionList: IFactionDefData[],
+  roleList: IRoleData[],
   onWorldViewChange: (value?: number | null) => void
 }
 
@@ -25,6 +28,9 @@ function EventPoolPanel({
   worldViewList,
   selectedWorldViewId,
   selectedChapter,
+  geoUnionList,
+  factionList,
+  roleList,
   onWorldViewChange,
 }: EventPoolPanelProps) {
   const [timelineStart, setTimelineStart] = useState(0)
@@ -50,7 +56,7 @@ function EventPoolPanel({
     setSelectedWorldView(selectedWorldView);
   }, [selectedWorldViewId, worldViewList]);
 
-  // 监听故事线变更
+  // 监听世界观变更
   useEffect(() => {
     if (selectedWorldView?.te_max_seconds) {
       setTimelineStart(selectedWorldView?.te_max_seconds - 30 * 24 * 3600);
@@ -71,27 +77,52 @@ function EventPoolPanel({
       setStoryLineList([])
       setSelectedStoryLineIds([])
     }
+
+    fillChapterInfo();
   }, [selectedWorldView])
 
+  // 监听章节变更
   useEffect(() => {
-    if (selectedChapter) {
-      if (selectedChapter?.storyline_ids?.length) {
-        setSelectedStoryLineIds(selectedChapter.storyline_ids)
-      } else {
-        setSelectedStoryLineIds(storyLineList.map(line => line.id))
-      }
-
-      if (timelineEnd) {
-        // 设置范围为最后30天
-        setTimelineStart(selectedChapter.event_line_start1 || timelineEnd - 30 * 24 * 3600)
-        setTimelineEnd(selectedChapter.event_line_end1 || timelineEnd)
-      } else {
-        setTimelineStart(selectedChapter.event_line_start1 || 0)
-        setTimelineEnd(selectedChapter.event_line_end1 || 100)
-      }
-      setTimelineAdjustment([selectedChapter.event_line_start2 || 0, selectedChapter.event_line_end2 || 100])
-    }
+    fillChapterInfo();
   }, [selectedChapter])
+
+  const fillChapterInfo = () => {
+    if (!selectedChapter) {
+      return
+    }
+
+    if (selectedChapter?.storyline_ids?.length) {
+      setSelectedStoryLineIds(selectedChapter.storyline_ids)
+    } else {
+      setSelectedStoryLineIds(storyLineList.map(line => line.id))
+    }
+
+    // 设置时间线范围
+    let timelineStart = 0;
+    let timelineEnd = 100;
+    if (selectedChapter.event_line_start1 && selectedChapter.event_line_end1) {
+      // 如果章节存储了事件线设置信息，则使用章节的事件线设置信息
+      timelineStart = selectedChapter.event_line_start1
+      timelineEnd = selectedChapter.event_line_end1
+    } else if (selectedWorldView?.te_max_seconds) {
+      // 设置范围为最后30天
+      timelineEnd = selectedWorldView.te_max_seconds;
+      timelineStart = timelineEnd - 30 * 24 * 3600;
+    } 
+
+    setTimelineStart(timelineStart)
+    setTimelineEnd(timelineEnd)
+
+    let timelineAdjustmentStart = timelineStart;
+    let timelineAdjustmentEnd = timelineEnd;
+
+    if (selectedChapter.event_line_start2 && selectedChapter.event_line_end2) {
+      timelineAdjustmentStart = selectedChapter.event_line_start2
+      timelineAdjustmentEnd = selectedChapter.event_line_end2
+    } 
+
+    setTimelineAdjustment([timelineAdjustmentStart, timelineAdjustmentEnd])
+  }
 
   const handleDragEnd = (result: any) => {
     const { source, destination } = result
@@ -147,10 +178,14 @@ function EventPoolPanel({
           message.warning('时间段内事件密集，建议缩小筛选范围')
         }
         
-        // 更新事件池
+        // 过滤掉已经在已选事件中的事件
+        const selectedEventIds = new Set(eventPool.selected.map(event => event.id))
+        const newCandidateEvents = response.data.filter(event => !selectedEventIds.has(event.id))
+        
+        // 更新事件池，保持已选事件不变
         setEventPool({
           selected: eventPool.selected,
-          candidate: response.data
+          candidate: newCandidateEvents
         })
       }
     } catch (error) {
@@ -160,6 +195,7 @@ function EventPoolPanel({
     }
   }
 
+  // 渲染时间点
   const renderNovelDate = (date: number = 0) => {
     if (!selectedWorldView) {
       return '时间点：' + date;
@@ -172,16 +208,17 @@ function EventPoolPanel({
   // 获取所有关联信息
   const getRelatedInfo = (events: Event[]) => {
     const locations = new Set<string>()
-    const factions = new Set<string>()
-    const characters = new Set<string>()
+    const factions = new Set<number>()
+    const characters = new Set<number>()
 
     events.forEach(event => {
+      // console.log('moved event ---> ', event)
       if (event.location) locations.add(event.location)
       if (event.faction_ids) {
-        event.faction_ids.forEach(id => factions.add(id.toString()))
+        event.faction_ids.forEach(id => factions.add(id))
       }
       if (event.role_ids) {
-        event.role_ids.forEach(id => characters.add(id.toString()))
+        event.role_ids.forEach(id => characters.add(id))
       }
     })
 
@@ -189,6 +226,36 @@ function EventPoolPanel({
       locations: Array.from(locations),
       factions: Array.from(factions),
       characters: Array.from(characters)
+    }
+  }
+
+  const saveChapterSetting = async () => {
+    if (!selectedChapter) {
+      message.warning('请先选择章节')
+      return
+    }
+
+    if (!selectedWorldView?.id) {
+      message.warning('请先选择世界观')
+      return
+    }
+
+    const settingParams = {
+      id: selectedChapter.id,
+      worldview_id: selectedWorldView.id,
+      storyline_ids: selectedStoryLineIds,
+      event_ids: eventPool.selected.map(event => event.id),
+      event_line_start1: timelineStart,
+      event_line_end1: timelineEnd,
+      event_line_start2: timelineAdjustment[0],
+      event_line_end2: timelineAdjustment[1]
+    }
+
+    try {
+      await apiCalls.updateChapter(settingParams);
+      message.success('保存章节参数成功')
+    } catch (error) {
+      message.error('保存章节参数失败')
     }
   }
 
@@ -202,23 +269,26 @@ function EventPoolPanel({
           <Text strong>关联地点：</Text>
           <Space wrap>
             {locations.map(location => (
-              <Tag key={location} color="blue">{location}</Tag>
+              <Tag key={location} color="blue">{geoUnionList.find(geoUnion => geoUnion.code === location)?.name}</Tag>
             ))}
           </Space>
         </div>
         <div className={styles.relatedInfoItem}>
           <Text strong>关联阵营：</Text>
           <Space wrap>
-            {factions.map(faction => (
-              <Tag key={faction} color="green">{faction}</Tag>
-            ))}
+            {factions.map(faction => {
+              const factionItem = factionList.find(item => item.id === faction);
+              console.debug('faction ---> ', faction);
+              console.debug('matched faction ---> ', factionItem);
+              return <Tag key={faction} color="green">{factionItem?.name}</Tag>
+            })}
           </Space>
         </div>
         <div className={styles.relatedInfoItem}>
           <Text strong>关联角色：</Text>
           <Space wrap>
             {characters.map(character => (
-              <Tag key={character} color="purple">{character}</Tag>
+              <Tag key={character} color="purple">{roleList.find(role => role.id === character)?.name}</Tag>
             ))}
           </Space>
         </div>
@@ -313,70 +383,73 @@ function EventPoolPanel({
 
   // 渲染事件线设置
   return (
-    <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      <Row gutter={16} className={styles.filterSection}>
-        <Col span={8}>
-          <Select
-            style={{ width: '100%' }}
-            placeholder="选择世界观"
-            value={selectedWorldViewId}
-            allowClear
-            onClear={() => onWorldViewChange(null)}
-            onChange={onWorldViewChange}
-          >
-            {worldViewList.map(context => (
-              <Select.Option key={context.id} value={context.id}>
-                {context.title}
-              </Select.Option>
-            ))}
-          </Select>
-        </Col>
-        <Col span={16}>
-          <Select
-            mode="multiple"
-            style={{ width: '100%' }}
-            placeholder="选择故事线"
-            value={selectedStoryLineIds.map(id => id.toString())}
-            onChange={(values: string[]) => setSelectedStoryLineIds(values.map(v => parseInt(v)))}
-          >
-            {storyLineList.map(line => (
-              <Select.Option key={line.id} value={line.id.toString()}>
-                {line.name}
-              </Select.Option>
-            ))}
-          </Select>
-        </Col>
-      </Row>
+    <DragDropContext onDragEnd={handleDragEnd}>
+      <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Row gutter={16} className={styles.filterSection}>
+          <Col span={8}>
+            <Select
+              style={{ width: '100%' }}
+              placeholder="选择世界观"
+              value={selectedWorldViewId}
+              allowClear
+              onClear={() => onWorldViewChange(null)}
+              onChange={onWorldViewChange}
+            >
+              {worldViewList.map(context => (
+                <Select.Option key={context.id} value={context.id}>
+                  {context.title}
+                </Select.Option>
+              ))}
+            </Select>
+          </Col>
+          <Col span={16}>
+            <Select
+              mode="multiple"
+              style={{ width: '100%' }}
+              placeholder="选择故事线"
+              value={selectedStoryLineIds.map(id => id.toString())}
+              onChange={(values: string[]) => setSelectedStoryLineIds(values.map(v => parseInt(v)))}
+            >
+              {storyLineList.map(line => (
+                <Select.Option key={line.id} value={line.id.toString()}>
+                  {line.name}
+                </Select.Option>
+              ))}
+            </Select>
+          </Col>
+        </Row>
 
-      {/* 事件线设置 */}
-      <Space>
-        <Text>时间线范围：</Text>
-        <Text>{renderNovelDate(timelineStart)}</Text>
-        <Button icon={<EditOutlined />} type="link" onClick={() => showTimelineModal('start')}>更改起点</Button> - 
-        <Text>{renderNovelDate(timelineEnd)}</Text>
-        <Button icon={<EditOutlined />} type="link" onClick={() => showTimelineModal('end')}>更改终点</Button>
-      </Space>
+        {/* 事件线设置 */}
+        <Space>
+          <Text>时间线范围：</Text>
+          <Text>{renderNovelDate(timelineStart)}</Text>
+          <Button icon={<EditOutlined />} type="link" onClick={() => showTimelineModal('start')}>更改起点</Button> - 
+          <Text>{renderNovelDate(timelineEnd)}</Text>
+          <Button icon={<EditOutlined />} type="link" onClick={() => showTimelineModal('end')}>更改终点</Button>
+        </Space>
 
-      <Space className="f-flex-row">
-        <Text>时间范围微调：</Text>
-        <Slider
-          style={{ width: 'calc(100vw - 1400px)', margin: '0 70px' }}
-          range
-          value={timelineAdjustment}
-          onChange={(value) => {setTimelineAdjustment(value as [number, number])}}
-          min={timelineStart || 0}
-          max={timelineEnd || 100}
-          marks={{
-            [timelineStart || 0]: renderNovelDate(timelineStart || 0),
-            0: '0',
-            [timelineEnd || 100]: renderNovelDate(timelineEnd || 100)
-          }}
-          tooltip={{ formatter: (value) => renderNovelDate(value) }}
-        />
-        <Button type="primary" icon={<ReloadOutlined />} onClick={loadEvents} loading={loading}>加载事件</Button>
-      </Space>
+        <div className="f-flex-row" style={{ alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          <Text>时间范围微调：</Text>
+          <div style={{ flex: 1, margin: '0 70px', padding: '20px 0 0', height: 30 }}>
+            <Slider
+              style={{ width: '100%', margin: '-10px 0 0' }}
+              range
+              value={timelineAdjustment}
+              onChange={(value) => {setTimelineAdjustment(value as [number, number])}}
+              min={timelineStart || 0}
+              max={timelineEnd || 100}
+              marks={{
+                [timelineStart || 0]: renderNovelDate(timelineStart || 0),
+                0: '0',
+                [timelineEnd || 100]: renderNovelDate(timelineEnd || 100)
+              }}
+              tooltip={{ formatter: (value) => renderNovelDate(value) }}
+            />
+          </div>
+          <Button type="primary" icon={<ReloadOutlined />} onClick={loadEvents} loading={loading}>加载事件</Button>
+          <Button icon={<SaveOutlined />} onClick={saveChapterSetting} loading={loading}>保存配置和事件到章节</Button>
+        </div>
 
-      <DragDropContext onDragEnd={handleDragEnd}>
         <Row gutter={16}>
           <Col span={12}>
             <div className={styles.eventPoolContainer}>
@@ -448,41 +521,41 @@ function EventPoolPanel({
             </div>
           </Col>
         </Row>
-      </DragDropContext>
 
-      {/* 事件线设置窗口 */}
-      <Modal
-        title={timelineType === 'start' ? '更改起点' : '更改终点'}
-        open={isTimelineModalVisible}
-        onOk={handleTimelineModalOk}
-        onCancel={() => {
-          setIsTimelineModalVisible(false)
-          timelineForm.resetFields()
-        }}
-      >
-        <Form form={timelineForm} layout="inline">
-          <Form.Item name="era" label="纪元" rules={[{ required: true }]}>
-            <Radio.Group>
-              <Radio value="BC">公元前</Radio>
-              <Radio value="AD">公元</Radio>
-            </Radio.Group>
-          </Form.Item>
-          <Form.Item label="日期" style={{ marginBottom: 0 }}>
-            <Space>
-              <Form.Item name="year" rules={[{ required: true, type: 'number', min: 0 }]} noStyle>
-                <InputNumber type="number" min={0} placeholder="年" style={{ width: 80 }} />
-              </Form.Item>
-              <Form.Item name="month" rules={[{ required: true, type: 'number', min: 1, max: selectedWorldView?.tl_year_length_in_months || 12 }]} noStyle>
-                <InputNumber type="number" min={1} max={selectedWorldView?.tl_year_length_in_months || 12} placeholder="月" style={{ width: 60 }} />
-              </Form.Item>
-              <Form.Item name="day" rules={[{ required: true, type: 'number', min: 1, max: selectedWorldView?.tl_month_length_in_days || 30 }]} noStyle>
-                <InputNumber type="number" min={1} max={selectedWorldView?.tl_month_length_in_days || 30} placeholder="日" style={{ width: 60 }} />
-              </Form.Item>
-            </Space>
-          </Form.Item>
-        </Form>
-      </Modal>
-    </Space>
+        {/* 事件线设置窗口 */}
+        <Modal
+          title={timelineType === 'start' ? '更改起点' : '更改终点'}
+          open={isTimelineModalVisible}
+          onOk={handleTimelineModalOk}
+          onCancel={() => {
+            setIsTimelineModalVisible(false)
+            timelineForm.resetFields()
+          }}
+        >
+          <Form form={timelineForm} layout="inline">
+            <Form.Item name="era" label="纪元" rules={[{ required: true }]}>
+              <Radio.Group>
+                <Radio value="BC">公元前</Radio>
+                <Radio value="AD">公元</Radio>
+              </Radio.Group>
+            </Form.Item>
+            <Form.Item label="日期" style={{ marginBottom: 0 }}>
+              <Space>
+                <Form.Item name="year" rules={[{ required: true, type: 'number', min: 0 }]} noStyle>
+                  <InputNumber type="number" min={0} placeholder="年" style={{ width: 80 }} />
+                </Form.Item>
+                <Form.Item name="month" rules={[{ required: true, type: 'number', min: 1, max: selectedWorldView?.tl_year_length_in_months || 12 }]} noStyle>
+                  <InputNumber type="number" min={1} max={selectedWorldView?.tl_year_length_in_months || 12} placeholder="月" style={{ width: 60 }} />
+                </Form.Item>
+                <Form.Item name="day" rules={[{ required: true, type: 'number', min: 1, max: selectedWorldView?.tl_month_length_in_days || 30 }]} noStyle>
+                  <InputNumber type="number" min={1} max={selectedWorldView?.tl_month_length_in_days || 30} placeholder="日" style={{ width: 60 }} />
+                </Form.Item>
+              </Space>
+            </Form.Item>
+          </Form>
+        </Modal>
+      </Space>
+    </DragDropContext>
   )
 }
 

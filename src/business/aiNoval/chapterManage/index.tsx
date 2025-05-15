@@ -3,11 +3,12 @@ import { Card, Select, Space, Row, Col, Typography, Button, Input, message, Moda
 import { DragDropContext } from 'react-beautiful-dnd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons'
 import { mockEventPool } from './mockData'
-import { INovalData, ITimelineEvent, IChapter, IWorldViewDataWithExtra } from '@/src/types/IAiNoval'
+import { INovalData, ITimelineEvent, IChapter, IWorldViewDataWithExtra, IGeoUnionData } from '@/src/types/IAiNoval'
 import { EventPool, ExtendedNovelData } from './types'
 import EventPoolPanel from './components/EventPoolPanel'
 import styles from './index.module.scss'
 import * as chapterApi from './apiCalls'
+import { loadGeoUnionList } from '../common/geoDataUtil'
 
 const { Text } = Typography
 const { TextArea } = Input
@@ -19,9 +20,6 @@ function ChapterManage() {
   const [selectedNovel, setSelectedNovel] = useState<number | null>(null)
   const [selectedChapter, setSelectedChapter] = useState<IChapter | null>(null)
   const [selectedWorldContext, setSelectedWorldContext] = useState<string>('all')
-  const [selectedStoryLines, setSelectedStoryLines] = useState<string[]>([])
-  const [timelineRange, setTimelineRange] = useState<[number, number]>([0, 100])
-  const [timelineAdjustment, setTimelineAdjustment] = useState<[number, number]>([0, 0])
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [form] = Form.useForm()
   const [editingChapter, setEditingChapter] = useState<IChapter | null>(null)
@@ -32,6 +30,9 @@ function ChapterManage() {
   const [totalChapters, setTotalChapters] = useState(0)
   const [worldViewList, setWorldViewList] = useState<IWorldViewDataWithExtra[]>([])
   const [selectedWorldView, setSelectedWorldView] = useState<IWorldViewDataWithExtra | null>(null)
+  const [geoUnionList, setGeoUnionList] = useState<IGeoUnionData[]>([])
+  const [factionList, setFactionList] = useState<IFactionData[]>([])
+  const [roleList, setRoleList] = useState<IRoleData[]>([])
 
   // 组件挂载时，获取小说列表和世界观列表
   useEffect(() => {
@@ -213,12 +214,36 @@ function ChapterManage() {
     }
   }
 
+  // 世界观变更
   const handleWorldViewChange = (value?: number | null) => {
-    if (value) {
-      setSelectedWorldView(worldViewList.find(worldView => worldView.id === value) || null)
-    } else {
+    if (!value) {
       setSelectedWorldView(null)
+      setGeoUnionList([])
+      setFactionList([])
+      setRoleList([])
+      return
     }
+
+    let worldView = worldViewList.find(worldView => worldView.id === value) || null;
+    if (!worldView) {
+      setSelectedWorldView(null)
+      setGeoUnionList([])
+      setFactionList([])
+      setRoleList([])
+      return
+    }
+
+    setSelectedWorldView(worldView);
+
+    Promise.all([
+      loadGeoUnionList(worldView.id!),
+      chapterApi.loadFactionList(worldView.id!),
+      chapterApi.loadRoleList(worldView.id!),
+    ]).then(([geoUnionList, factionList, roleList]) => {
+      setGeoUnionList(geoUnionList)
+      setFactionList(factionList)
+      setRoleList(roleList)
+    });
   }
 
   /**
@@ -235,6 +260,9 @@ function ChapterManage() {
             selectedWorldViewId={selectedWorldView?.id}
             selectedChapter={selectedChapter}
             onWorldViewChange={handleWorldViewChange}
+            geoUnionList={geoUnionList}
+            factionList={factionList}
+            roleList={roleList}
           />
         )
       case 'chapter-skeleton':

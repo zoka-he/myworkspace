@@ -1,5 +1,5 @@
 import fetch from '@/src/fetch';
-import { IChapter, INovalData, IStoryLine, ITimelineEvent, IWorldViewDataWithExtra } from '@/src/types/IAiNoval';
+import { IChapter, INovalData, IStoryLine, ITimelineEvent, IWorldViewDataWithExtra, IFactionDefData, IRoleData } from '@/src/types/IAiNoval';
 import _ from 'lodash';
 
 /**
@@ -168,3 +168,12 @@ export const getMaxChapterNumber = async (novelId: number): number => {
     return _.toNumber(response);
 }
 
+export const loadFactionList = async (worldviewId: number, page: number = 1, limit: number = 200) => {
+    const response = await fetch.get<IFactionDefData[]>('/api/aiNoval/faction/list', {params: {worldviewId, page, limit}});
+    return response.data || [];
+}
+
+export const loadRoleList = async (worldviewId: number, page: number = 1, limit: number = 200) => {
+    const response = await fetch.get<IRoleData[]>('/api/aiNoval/role/list', {params: {worldviewId, page, limit}});
+    return response.data || [];
+}
