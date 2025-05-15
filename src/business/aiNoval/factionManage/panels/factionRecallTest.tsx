@@ -4,6 +4,7 @@ import fetch from "@/src/fetch";
 
 export interface IFactionRecallTestProps {
     recommandQuery: string;
+    worldViewId?: number | null;
 }
 
 export default function(props: IFactionRecallTestProps) {
@@ -17,7 +18,7 @@ export default function(props: IFactionRecallTestProps) {
         const query = isManualQuery ? queryText : props.recommandQuery;
         try {
             const response = await fetch.get('/api/aiNoval/toolConfig/testRecall', {
-                params: { datasetName: 'DIFY_FACTION_DATASET_ID', query }
+                params: { datasetName: 'DIFY_FACTION_DATASET_ID_' + props.worldViewId, query }
             });
             const results = response?.records;
             console.debug('results', response);

@@ -1,9 +1,10 @@
-import { Button, Divider, Input, Radio, List, Tag, Col, Row, Alert } from "antd";
+import { Button, Divider, Input, Radio, List, Tag, Col, Row, Alert, message } from "antd";
 import { useEffect, useState } from "react";
 import fetch from "@/src/fetch";
 
 export interface IGeoRecallTestProps {
     recommandQuery: string;
+    worldViewId?: number | null;
 }
 
 export default function(props: IGeoRecallTestProps) {
@@ -14,10 +15,15 @@ export default function(props: IGeoRecallTestProps) {
     let [recallResults, setRecallResults] = useState([]);
 
     async function testRecall() {
+        if (!props.worldViewId) {
+            message.error('请先选择世界观');
+            return;
+        }
+
         const query = isManualQuery ? queryText : props.recommandQuery;
         try {
             const response = await fetch.get('/api/aiNoval/toolConfig/testRecall', {
-                params: { datasetName: 'DIFY_GEO_DATASET_ID', query }
+                params: { datasetName: 'DIFY_GEO_DATASET_ID_' + props.worldViewId, query }
             });
             const results = response?.records;
             console.debug('results', response);

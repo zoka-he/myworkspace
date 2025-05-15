@@ -36,7 +36,7 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
                         .filter((id: string) => id.trim() !== '')
                         .map((id: string) => _.toNumber(id)) 
                         .filter((id: number) => id > 0)
-                    if (ids.length > 0) {
+                    if (ids.length === 0) {
                         break
                     }
                     
@@ -47,6 +47,9 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
                             .map((id: string) => _.toNumber(id)) 
                             .filter((id: number) => id > 0)
                     };
+                }
+                if (_.isNumber(v)) {
+                    queryObject.id = _.toNumber(v);
                 }
                 break;
         }

@@ -42,7 +42,7 @@ export default function(props: IGeographyUnitPanelProps) {
         {
             label: `LLM召回测试`,
             key: '1',
-            children: <GeoRecallTest recommandQuery={`${data?.name} 设定`} />,
+            children: <GeoRecallTest worldViewId={props.worldViewId} recommandQuery={`${data?.name} 设定`} />,
         }
     ];
 

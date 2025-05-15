@@ -201,7 +201,11 @@ export default function FactionManage() {
                 <Col className="f-fit-height" span={6}>
                     <Card className="f-fit-height" title={factionInfoTitle}>
                         {factionInfoPanelId === 'factionInfo' && (
-                            <FactionInfoPanel faction={selectedFaction || undefined} onEdit={faction => handleEditFactionDef(faction)} />
+                            <FactionInfoPanel 
+                                faction={selectedFaction || undefined}
+                                worldViewId={worldViewId}
+                                onEdit={faction => handleEditFactionDef(faction)} 
+                            />
                         )}
                         {factionInfoPanelId === 'factionRelation' && (
                             <FactionRelationPanel 

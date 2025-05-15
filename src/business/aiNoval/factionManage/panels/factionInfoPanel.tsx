@@ -6,9 +6,10 @@ import FactionRecallTest from './factionRecallTest';
 interface FactionInfoPanelProps {
     faction?: IFactionDefData;
     onEdit?: (faction: IFactionDefData) => void;
+    worldViewId?: number | null;
 }
 
-export default function FactionInfoPanel({ faction, onEdit }: FactionInfoPanelProps) {
+export default function FactionInfoPanel({ faction, onEdit, worldViewId }: FactionInfoPanelProps) {
     if (!faction) {
         return <div>请选择阵营</div>;
     }
@@ -32,7 +33,7 @@ export default function FactionInfoPanel({ faction, onEdit }: FactionInfoPanelPr
 
             <Typography.Title level={4}>知识库召回测试</Typography.Title>
                 
-            <FactionRecallTest recommandQuery={recommandQuery} />
+            <FactionRecallTest worldViewId={worldViewId} recommandQuery={recommandQuery} />
         </div>
     );
 }
