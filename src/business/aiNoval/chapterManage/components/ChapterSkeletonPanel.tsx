@@ -239,9 +239,27 @@ function ChapterSkeletonPanel({
       roleList.find(role => role.id === id)?.name
     ).filter(Boolean) || []
 
+    const handleCopyEvent = () => {
+      const formattedDate = formatDate(event.date)
+      const copyText = `${formattedDate}\n${event.title}\n${event.description}`
+      navigator.clipboard.writeText(copyText)
+        .then(() => message.success('已复制到剪贴板'))
+        .catch(() => message.error('复制失败'))
+    }
+
     return (
       <div className={styles.eventDetail}>
-        <div className={styles.eventTitle}>{event.title}</div>
+        <div className={styles.eventTitle}>
+          <Space>
+            {event.title}
+            <Button
+              type="text"
+              icon={<CopyOutlined />}
+              onClick={handleCopyEvent}
+              title="复制事件内容"
+            />
+          </Space>
+        </div>
         <div className={styles.eventDescription}>{event.description}</div>
         {eventLocation && (
           <div className={styles.eventMeta}>
@@ -351,7 +369,24 @@ function ChapterSkeletonPanel({
                             {formatDate(event.date)}
                           </div>
                         </div>
-                        <div className={styles.eventCardDescription}>{event.description}</div>
+                        <div className={styles.eventCardDescription}>
+                          <Space>
+                            {event.description}
+                            <Button
+                              type="text"
+                              size="small"
+                              icon={<CopyOutlined />}
+                              onClick={() => {
+                                const formattedDate = formatDate(event.date)
+                                const copyText = `${formattedDate}\n${event.title}\n${event.description}`
+                                navigator.clipboard.writeText(copyText)
+                                  .then(() => message.success('已复制到剪贴板'))
+                                  .catch(() => message.error('复制失败'))
+                              }}
+                              title="复制事件内容"
+                            />
+                          </Space>
+                        </div>
                       </div>
                     ))
                   ) : (

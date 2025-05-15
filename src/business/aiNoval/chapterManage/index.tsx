@@ -344,7 +344,11 @@ function ChapterManage() {
                         <div key={chapter.id} className={styles.chapterItem}>
                           <Space style={{ cursor: 'pointer' }} onClick={() => setSelectedChapter(chapter)}>
                             <Text type="secondary">第{chapter.chapter_number}章</Text>
-                            <Text>{chapter.title}</Text>
+                            {chapter.title ? (
+                              <Text>{chapter.title}</Text>
+                            ) : (
+                              <Text type="secondary" italic>章节标题未设定</Text>
+                            )}
                             <Tag color="green">v{chapter.version}</Tag>
                           </Space>
                           <Space>
@@ -393,7 +397,11 @@ function ChapterManage() {
                 { selectedChapter ? [
                   <Text>当前章节：</Text>, 
                   <Text>第{selectedChapter.chapter_number}章</Text>,
-                  <Text>{selectedChapter.title}</Text>,
+                  selectedChapter.title ? (
+                    <Text>{selectedChapter.title}</Text>
+                  ) : (
+                    <Text type="secondary" italic>章节标题未设定</Text>
+                  ),
                   <Tag color='green'>v{selectedChapter.version}</Tag>
                   ] : null}
                 <Radio.Group
@@ -447,9 +455,8 @@ function ChapterManage() {
           <Form.Item
             name="title"
             label="章节标题"
-            rules={[{ required: true, message: '请输入章节标题' }]}
           >
-            <Input placeholder="请输入章节标题" />
+            <Input placeholder="请输入章节标题（可选）" />
           </Form.Item>
         </Form>
       </Modal>
