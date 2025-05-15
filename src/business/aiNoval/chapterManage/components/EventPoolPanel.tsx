@@ -21,6 +21,7 @@ interface EventPoolPanelProps {
   factionList: IFactionDefData[],
   roleList: IRoleData[],
   onWorldViewChange: (value?: number | null) => void
+  onChapterChange: (value?: IChapter | null) => void
 }
 
 function EventPoolPanel({
@@ -32,6 +33,7 @@ function EventPoolPanel({
   factionList,
   roleList,
   onWorldViewChange,
+  onChapterChange
 }: EventPoolPanelProps) {
   const [timelineStart, setTimelineStart] = useState(0)
   const [timelineEnd, setTimelineEnd] = useState(100)
@@ -86,6 +88,48 @@ function EventPoolPanel({
     fillChapterInfo();
   }, [selectedChapter])
 
+  // 加载章节事件
+  const loadChapterEvents = async () => {
+    if (!selectedWorldView?.id) {
+      // message.warning('请先选择世界观')
+      return
+    }
+
+    try {
+      setLoading(true)
+      const response = await apiCalls.getTimelineEventList(
+        selectedWorldView.id,
+        timelineAdjustment[0],
+        timelineAdjustment[1]
+      )
+
+      if (response.data) {
+        if (response.data.length > 10) {
+          message.warning('时间段内事件密集，建议缩小筛选范围')
+        }
+        
+        // 如果有章节的event_ids，则将其作为已选事件
+        const selectedEvents = selectedChapter?.event_ids && Array.isArray(selectedChapter.event_ids)
+          ? response.data.filter(event => selectedChapter?.event_ids?.includes(event.id))
+          : []
+        
+        // 过滤掉已经在已选事件中的事件作为候选事件
+        const selectedEventIds = new Set(selectedEvents.map(event => event.id))
+        const candidateEvents = response.data.filter(event => !selectedEventIds.has(event.id))
+        
+        // 更新事件池
+        setEventPool({
+          selected: selectedEvents,
+          candidate: candidateEvents
+        })
+      }
+    } catch (error) {
+      message.error('加载事件失败')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const fillChapterInfo = () => {
     if (!selectedChapter) {
       return
@@ -122,6 +166,9 @@ function EventPoolPanel({
     } 
 
     setTimelineAdjustment([timelineAdjustmentStart, timelineAdjustmentEnd])
+
+    // 加载章节事件
+    loadChapterEvents()
   }
 
   const handleDragEnd = (result: any) => {
@@ -155,43 +202,6 @@ function EventPoolPanel({
         [sourcePool]: sourceEvents,
         [destPool]: destEvents
       })
-    }
-  }
-
-  // 加载事件
-  const loadEvents = async () => {
-    if (!selectedWorldView?.id) {
-      message.warning('请先选择世界观')
-      return
-    }
-
-    try {
-      setLoading(true)
-      const response = await apiCalls.getTimelineEventList(
-        selectedWorldView.id,
-        timelineAdjustment[0],
-        timelineAdjustment[1]
-      )
-
-      if (response.data) {
-        if (response.data.length > 10) {
-          message.warning('时间段内事件密集，建议缩小筛选范围')
-        }
-        
-        // 过滤掉已经在已选事件中的事件
-        const selectedEventIds = new Set(eventPool.selected.map(event => event.id))
-        const newCandidateEvents = response.data.filter(event => !selectedEventIds.has(event.id))
-        
-        // 更新事件池，保持已选事件不变
-        setEventPool({
-          selected: eventPool.selected,
-          candidate: newCandidateEvents
-        })
-      }
-    } catch (error) {
-      message.error('加载事件失败')
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -254,6 +264,11 @@ function EventPoolPanel({
     try {
       await apiCalls.updateChapter(settingParams);
       message.success('保存章节参数成功')
+
+      // 通知父组件章节数据已更新
+      if (onChapterChange) {
+        onChapterChange(selectedChapter)
+      }
     } catch (error) {
       message.error('保存章节参数失败')
     }
@@ -446,7 +461,7 @@ function EventPoolPanel({
               tooltip={{ formatter: (value) => renderNovelDate(value) }}
             />
           </div>
-          <Button type="primary" icon={<ReloadOutlined />} onClick={loadEvents} loading={loading}>加载事件</Button>
+          <Button type="primary" icon={<ReloadOutlined />} onClick={loadChapterEvents} loading={loading}>加载事件</Button>
           <Button icon={<SaveOutlined />} onClick={saveChapterSetting} loading={loading}>保存配置和事件到章节</Button>
         </div>
 

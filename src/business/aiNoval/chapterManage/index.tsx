@@ -263,6 +263,7 @@ function ChapterManage() {
             geoUnionList={geoUnionList}
             factionList={factionList}
             roleList={roleList}
+            onChapterChange={() => fetchChapters(selectedNovel || 0)}
           />
         )
       case 'chapter-skeleton':
