@@ -1,7 +1,7 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from 'next'
 import TimelineEventService from '@/src/services/aiNoval/timelineEventService';
-import _ from 'lodash';
+import _, { reject } from 'lodash';
 import { ISqlCondMap } from '@/src/utils/mysql/types';
 
 type Data = Object;
@@ -28,6 +28,26 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
                 break;
             case 'story_line_id':
                 queryObject.story_line_id = _.toNumber(v);
+                break;
+            case 'ids':
+                if (_.isString(v)) {
+                    let ids = v
+                        .split(',')
+                        .filter((id: string) => id.trim() !== '')
+                        .map((id: string) => _.toNumber(id)) 
+                        .filter((id: number) => id > 0)
+                    if (ids.length > 0) {
+                        break
+                    }
+                    
+                    queryObject.id = { 
+                        $in: v
+                            .split(',')
+                            .filter((id: string) => id.trim() !== '')
+                            .map((id: string) => _.toNumber(id)) 
+                            .filter((id: number) => id > 0)
+                    };
+                }
                 break;
         }
     }

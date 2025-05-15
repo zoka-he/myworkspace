@@ -6,6 +6,7 @@ import { mockEventPool } from './mockData'
 import { INovalData, ITimelineEvent, IChapter, IWorldViewDataWithExtra, IGeoUnionData } from '@/src/types/IAiNoval'
 import { EventPool, ExtendedNovelData } from './types'
 import EventPoolPanel from './components/EventPoolPanel'
+import ChapterSkeletonPanel from './components/ChapterSkeletonPanel'
 import styles from './index.module.scss'
 import * as chapterApi from './apiCalls'
 import { loadGeoUnionList } from '../common/geoDataUtil'
@@ -268,9 +269,16 @@ function ChapterManage() {
         )
       case 'chapter-skeleton':
         return (
-          <div className={styles.moduleContent}>
-            <Text>章节骨架功能开发中...</Text>
-          </div>
+          <ChapterSkeletonPanel
+            selectedChapter={selectedChapter}
+            onChapterChange={() => fetchChapters(selectedNovel || 0)}
+            worldViewList={worldViewList}
+            geoUnionList={geoUnionList}
+            factionList={factionList}
+            roleList={roleList}
+            onRefresh={() => fetchChapters(selectedNovel || 0)}
+            onEditEventPool={() => setActiveModule('event-pool')}
+          />
         )
       case 'chapter-generate':
         return (

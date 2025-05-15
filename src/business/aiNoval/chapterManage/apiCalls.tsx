@@ -58,6 +58,18 @@ export const getTimelineEventList = async (worldViewId: number, startDate: numbe
     return response;
 }
 
+export const getTimelineEventByIds = async (ids: number[]) => {
+    if (ids.length === 0) {
+        return { data: [], count: 0 };
+    }
+
+    let params = {
+        ids: ids.join(',')
+    };
+    const response = await fetch.get<ITimelineEvent[]>('/api/aiNoval/timeline/event/list', { params });
+    return response;
+}
+
 
 function splitIds(ids: any) {
     if (!ids) {
