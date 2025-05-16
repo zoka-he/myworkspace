@@ -183,41 +183,30 @@ function createVisualization(
     worldview_id: number
     worldviews: IWorldViewDataWithExtra[],
     containerHeight: number
+    timeRange: { min: number; max: number }
   }
 ) {
-  // console.log('Creating visualization with props:', props)
   // Clear any existing content
   d3.select(containerElement).selectAll('*').remove()
   d3.select('body').selectAll('.tooltip').remove()
 
   // Generate colors for storylines
   const storylineColors = generateStorylineColors(props.storyLines)
-  // console.log('Generated storyline colors:', storylineColors)
 
   // Create a new SVG element
   const svg = d3.select(containerElement)
     .append('svg')
     .attr('width', '100%')
-    // .attr('height', '100%')
     .attr('viewBox', `0 0 ${containerElement.clientWidth} ${containerElement.clientHeight}`)
-    // .attr('viewBox', `0 0 ${containerElement.clientWidth} ${props.containerHeight}`)
     .attr('preserveAspectRatio', 'xMidYMid meet')
-    .style('background-color', 'white')  // 设置背景为白色
+    .style('background-color', 'white')
 
   // Set up dimensions
-  const margin = { top: 80, right: 40, bottom: 60, left: 60 }  // 增加顶部边距
+  const margin = { top: 80, right: 40, bottom: 60, left: 60 }
   const width = containerElement.clientWidth - margin.left - margin.right
-  // console.log('Container width:', width)
-  if (width <= 0) {
-    // console.warn('容器宽度为0，无法绘制横轴')
-    return
-  }
+  if (width <= 0) return
   const height = containerElement.clientHeight - margin.top - margin.bottom
-  // console.log('Container height:', height)
-  if (height <= 0) {
-    // console.warn('容器高度为0，无法绘制纵轴')
-    return
-  }
+  if (height <= 0) return
 
   // Create SVG container
   const g = svg.append('g')
@@ -261,28 +250,20 @@ function createVisualization(
 
   // Process data with geo codes if needed
   const processedEvents = processEventsWithGeo(props.events, props.viewType === 'location' ? props.geoTree : undefined)
-  // console.log('Processed events:', processedEvents)
 
   const groups = getGroups(processedEvents, props.viewType, props.geoTree)
-  // console.log('Groups for view type', props.viewType, ':', groups)
 
   // Create scales
   const xScale = d3.scaleBand()
     .domain(groups)
     .range([0, width])
     .padding(0.2)
-  // console.log('xScale domain:', xScale.domain())
 
-  // 计算时间轴范围
-  const minTime = Math.min(...processedEvents.map(d => d.date))
-  const maxTime = Math.max(...processedEvents.map(d => d.date))
-  // console.log('Time range:', { minTime, maxTime, padding: TIMELINE_CONFIG.TIME_RANGE_PADDING })
-
-  // 使用线性比例尺替代时间比例尺
+  // Use the provided timeRange for y-scale
   const yScale = d3.scaleLinear()
     .domain([
-      minTime - TIMELINE_CONFIG.TIME_RANGE_PADDING,
-      maxTime + TIMELINE_CONFIG.TIME_RANGE_PADDING
+      props.timeRange.min - TIMELINE_CONFIG.TIME_RANGE_PADDING,
+      props.timeRange.max + TIMELINE_CONFIG.TIME_RANGE_PADDING
     ])
     .range([height, 0])
 
@@ -299,7 +280,7 @@ function createVisualization(
     .attr('class', 'x-axis')
     .attr('transform', `translate(0,${height})`)
     .call(xAxis)
-    .style('display', 'none')  // 隐藏x轴
+    .style('display', 'none')
 
   // Create axes
   const yAxis = d3.axisLeft(yScale)
@@ -310,7 +291,7 @@ function createVisualization(
   g.append('g')
     .attr('class', 'y-axis')
     .call(yAxis)
-    .style('display', 'none')  // 隐藏y轴
+    .style('display', 'none')
 
   // Add grid lines
   g.append('g')
@@ -341,8 +322,6 @@ function createVisualization(
 
   // Draw storylines based on view type
   if (props.viewType === 'character') {
-    // Use CharacterView for character view
-    // console.log('Using CharacterView with events:', processedEvents)
     CharacterView({
       events: processedEvents,
       storyLines: props.storyLines,
@@ -354,12 +333,9 @@ function createVisualization(
       storylineColors,
       geoTree: props.geoTree!,
       worldview_id: props.worldview_id,
-      worldviews: props.worldviews,
-      containerHeight: props.containerHeight
+      worldviews: props.worldviews
     })
   } else if (props.viewType === 'location') {
-    // Use LocationView for location view
-    // console.log('Using LocationView with events:', processedEvents)
     LocationView({
       events: processedEvents,
       storyLines: props.storyLines,
@@ -371,12 +347,9 @@ function createVisualization(
       storylineColors,
       geoTree: props.geoTree!,
       worldview_id: props.worldview_id,
-      worldviews: props.worldviews,
-      containerHeight: props.containerHeight
+      worldviews: props.worldviews
     })
   } else if (props.viewType === 'faction') {
-    // Use FactionView for faction view
-    // console.log('Using FactionView with events:', processedEvents)
     FactionView({
       events: processedEvents,
       storyLines: props.storyLines,
@@ -388,8 +361,7 @@ function createVisualization(
       storylineColors,
       geoTree: props.geoTree!,
       worldview_id: props.worldview_id,
-      worldviews: props.worldviews,
-      containerHeight: props.containerHeight
+      worldviews: props.worldviews
     })
   }
 
@@ -415,42 +387,24 @@ export function UnifiedEventView({
 }: UnifiedEventViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [geoTree, setGeoTree] = useState<IGeoTreeItem<any>[]>([])
+  // Add state for time range
+  const [timeRange, setTimeRange] = useState<{ min: number; max: number } | null>(null)
 
   // Load geo tree data
   useEffect(() => {
     const loadGeoData = async () => {
-      // console.log('Current viewType:', viewType)
-      // console.log('Current worldview_id:', worldview_id)
-      // console.log('Available worldViews:', worldViews)
-      
       if (viewType === 'location') {
-        // 如果没有传入 worldview_id，尝试从 worldViews 中获取
         const targetWorldviewId = worldview_id || (worldViews.length > 0 ? worldViews[0].id : undefined)
         
-        if (!targetWorldviewId) {
-          // console.error('No worldview_id available')
-          return
-        }
+        if (!targetWorldviewId) return
 
-        // console.log('Loading geo tree for worldview_id:', targetWorldviewId)
         try {
           const tree = await loadGeoTree(targetWorldviewId)
-          
           if (tree && tree.length > 0) {
-            // 打印树的基本信息而不是整个结构
-            // console.log('Geo tree loaded with', tree.length, 'root items')
-            // console.log('First item:', {
-            //   title: tree[0].title,
-            //   key: tree[0].key,
-            //   dataType: tree[0].dataType,
-            //   childrenCount: tree[0].children?.length || 0
-            // })
             setGeoTree(tree)
-          } else {
-            // console.warn('Geo tree is empty')
           }
         } catch (error: any) {
-          // console.error('Error loading geo tree:', error)
+          console.error('Error loading geo tree:', error)
         }
       }
     }
@@ -464,27 +418,27 @@ export function UnifiedEventView({
     const timestamps = events.map(event => event.date)
     const minTime = Math.min(...timestamps)
     const maxTime = Math.max(...timestamps)
+    
+    // Update time range state if it's not set or if the range has changed significantly
+    if (!timeRange || 
+        Math.abs(timeRange.min - minTime) > TIMELINE_CONFIG.TIME_RANGE_PADDING ||
+        Math.abs(timeRange.max - maxTime) > TIMELINE_CONFIG.TIME_RANGE_PADDING) {
+      setTimeRange({ min: minTime, max: maxTime })
+    }
+    
     const timeSpan = maxTime - minTime
-    
-    // Calculate height based on time span
     const timelineHeight = Math.ceil(timeSpan / secondsPerPixel)
-    console.log('timelineHeight:', timelineHeight)
     
-    // Add padding above and below
     const calculatedHeight = Math.max(
       TIMELINE_CONFIG.MIN_CONTAINER_HEIGHT, 
       timelineHeight + TIMELINE_CONFIG.TIMELINE_PADDING * 2
     )
 
-    // 如果启用了高度限制，则应用限制
-    if (enableHeightLimit !== false) {  // 默认启用高度限制
-      const MAX_CONTAINER_HEIGHT = maxContainerHeight || 2000 // 使用自定义最大高度或默认值
+    if (enableHeightLimit !== false) {
+      const MAX_CONTAINER_HEIGHT = maxContainerHeight || 2000
       if (calculatedHeight > MAX_CONTAINER_HEIGHT) {
-        // 如果高度超过限制，调整 secondsPerPixel 的值
         const adjustedSecondsPerPixel = timeSpan / (MAX_CONTAINER_HEIGHT - TIMELINE_CONFIG.TIMELINE_PADDING * 2)
-        // 更新 secondsPerPixel 的值
         if (secondsPerPixel !== adjustedSecondsPerPixel && onScaleChange) {
-          // console.log('Adjusting secondsPerPixel from', secondsPerPixel, 'to', adjustedSecondsPerPixel)
           onScaleChange(adjustedSecondsPerPixel)
         }
         return MAX_CONTAINER_HEIGHT
@@ -508,7 +462,7 @@ export function UnifiedEventView({
     container.style.minHeight = '600px'
     container.style.position = 'relative'
 
-    // Create new visualization
+    // Create new visualization with current time range
     createVisualization(container, {
       events,
       storyLines,
@@ -519,7 +473,11 @@ export function UnifiedEventView({
       geoTree: viewType === 'location' ? geoTree : undefined,
       worldview_id,
       worldviews: worldViews,
-      containerHeight: containerHeight
+      containerHeight: containerHeight,
+      timeRange: timeRange || {
+        min: Math.min(...events.map(e => e.date)),
+        max: Math.max(...events.map(e => e.date))
+      }
     })
 
     // Add ResizeObserver to handle container size changes
@@ -528,7 +486,6 @@ export function UnifiedEventView({
         if (entry.target === containerRef.current) {
           const width = entry.contentRect.width
           const height = entry.contentRect.height
-          // console.log('Container resized:', { width, height })
           if (width > 0 && height > 0) {
             // Clear and recreate visualization when container size changes
             d3.select(containerRef.current).selectAll('*').remove()
@@ -543,7 +500,11 @@ export function UnifiedEventView({
               geoTree: viewType === 'location' ? geoTree : undefined,
               worldview_id,
               worldviews: worldViews,
-              containerHeight: containerHeight
+              containerHeight: containerHeight,
+              timeRange: timeRange || {
+                min: Math.min(...events.map(e => e.date)),
+                max: Math.max(...events.map(e => e.date))
+              }
             })
           }
         }
@@ -557,7 +518,7 @@ export function UnifiedEventView({
       resizeObserver.disconnect()
       d3.select('body').selectAll('.tooltip').remove()
     }
-  }, [events, storyLines, selectedEventId, onEventSelect, viewType, secondsPerPixel, geoTree, worldview_id])
+  }, [events, storyLines, selectedEventId, onEventSelect, viewType, secondsPerPixel, geoTree, worldview_id, timeRange])
 
   return (
     <div 
