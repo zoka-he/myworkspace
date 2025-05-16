@@ -240,6 +240,7 @@ function ChapterManage() {
 
   // 世界观变更
   const handleWorldViewChange = (value?: number | null) => {
+
     if (!value) {
       setSelectedWorldView(null)
       setGeoUnionList([])
@@ -299,8 +300,9 @@ function ChapterManage() {
             geoUnionList={geoUnionList}
             factionList={factionList}
             roleList={roleList}
-            onRefresh={() => fetchNovels()}
+            onRefresh={() => { fetchNovels(); handleWorldViewChange(selectedChapter?.worldview_id || null) }}
             onEditEventPool={() => setActiveModule('event-pool')}
+            onUpdateWorldView={handleWorldViewChange}
           />
         )
       case 'chapter-generate':

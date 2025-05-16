@@ -20,6 +20,7 @@ interface ChapterSkeletonPanelProps {
   geoUnionList: IGeoUnionData[]
   factionList: IFactionDefData[]
   roleList: IRoleData[]
+  onUpdateWorldView: (worldViewId?: number | null) => void
 }
 
 interface ISkeletonItem {
@@ -36,7 +37,8 @@ function ChapterSkeletonPanel({
   worldViewList,
   geoUnionList,
   factionList,
-  roleList
+  roleList,
+  onUpdateWorldView
 }: ChapterSkeletonPanelProps) {
   const [form] = Form.useForm()
   const [skeletonItems, setSkeletonItems] = useState<ISkeletonItem[]>([])
@@ -86,6 +88,12 @@ function ChapterSkeletonPanel({
     }
 
     fillRelatedEventRelatedInfo()
+
+
+    if (selectedChapter?.worldview_id && selectedWorldView?.id !== selectedChapter?.worldview_id) {
+      onUpdateWorldView(selectedChapter?.worldview_id || null)
+    } 
+
   }, [selectedChapter, form])
 
   // 获取当前世界观信息
