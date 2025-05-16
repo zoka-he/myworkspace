@@ -63,4 +63,31 @@ export default class DifyApi {
             throw error;
         }
     }
+
+    // async getWorkflows() {
+    //     try {
+    //         const response = await fetch.get(`${this.serverUrl}/workflows`, { headers: { 'Authorization': `Bearer ${this.apiKey}` } });
+    //     }
+    // }
+
+    // async runWorkflow(workflowId: string, input: any) {
+    //     try {
+    //         const response = await fetch.post(
+    //             `${this.serverUrl}/workflows/${workflowId}/info`, 
+    //             { input }, 
+    //             { headers: { 'Authorization': `Bearer ${this.apiKey}` } 
+    //         });
+
+    //         if (response.status >= 400) {
+    //             throw new Error(`HTTP error! status: ${response.status}`);
+    //         }
+
+    //         return response.data;
+    //     } catch (error) {
+    //         console.error('Error running workflow:', error);
+    //         throw error;
+    //     }
+    // }
+
+
 }

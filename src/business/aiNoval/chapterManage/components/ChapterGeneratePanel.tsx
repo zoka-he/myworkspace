@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Card, Button, Input, Space, Modal, message, Typography, Upload } from 'antd'
-import { EditOutlined, CopyOutlined, RobotOutlined, UploadOutlined } from '@ant-design/icons'
+import { EditOutlined, CopyOutlined, RobotOutlined, UploadOutlined, CompressOutlined } from '@ant-design/icons'
 import { IChapter } from '@/src/types/IAiNoval'
 import * as chapterApi from '../apiCalls'
 import styles from './ChapterGeneratePanel.module.scss'
@@ -20,6 +20,9 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
   const [isDiagnosisModalVisible, setIsDiagnosisModalVisible] = useState(false)
   const [diagnosisResult, setDiagnosisResult] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isSummarizeModalVisible, setIsSummarizeModalVisible] = useState(false)
+  const [summarizedContent, setSummarizedContent] = useState('')
+  const [isSummarizing, setIsSummarizing] = useState(false)
 
   // 当选中章节改变时，更新内容
   React.useEffect(() => {
@@ -65,7 +68,6 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
   // 复制诊断结果
   const handleCopyDiagnosis = () => {
     navigator.clipboard.writeText(diagnosisResult)
-      .then(() => message.success('诊断结果已复制到剪贴板'))
       .catch(() => message.error('复制失败'))
   }
 
@@ -79,6 +81,33 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
     } catch (error) {
       message.error('文件导入失败')
     }
+  }
+
+  // 处理章节缩写
+  const handleSummarize = async () => {
+    if (!content) return
+
+    try {
+      setIsSummarizing(true)
+      setSummarizedContent('')
+
+      const text = await chapterApi.stripChapterBlocking(selectedChapter?.id || 0, 300)
+
+      setSummarizedContent(text);
+
+    } catch (error) {
+      console.error('stripChapter error -> ', error)
+      message.error('缩写失败')
+    } finally {
+      setIsSummarizing(false)
+    }
+  }
+
+  // 复制缩写内容
+  const handleCopySummarized = () => {
+    navigator.clipboard.writeText(summarizedContent)
+      .then(() => message.success('缩写内容已复制到剪贴板'))
+      .catch(() => message.error('复制失败'))
   }
 
   if (!selectedChapter) {
@@ -119,6 +148,13 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
         }
         extra={
           <Space>
+            <Button
+              icon={<CompressOutlined />}
+              onClick={() => setIsSummarizeModalVisible(true)}
+              disabled={!content}
+            >
+              缩写章节
+            </Button>
             <Button
               icon={<CopyOutlined />}
               onClick={handleCopyContent}
@@ -194,6 +230,39 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
       >
         <div className={styles.diagnosisContent}>
           {diagnosisResult}
+        </div>
+      </Modal>
+
+      {/* 缩写章节模态框 */}
+      <Modal
+        title="章节缩写"
+        open={isSummarizeModalVisible}
+        onCancel={() => setIsSummarizeModalVisible(false)}
+        width={800}
+        footer={[
+          <Button key="copy" icon={<CopyOutlined />} onClick={handleCopySummarized}>
+            复制缩写内容
+          </Button>,
+          <Button key="close" onClick={() => setIsSummarizeModalVisible(false)}>
+            关闭
+          </Button>
+        ]}
+      >
+        <div className={styles.summarizeContent}>
+          <Space direction="vertical" style={{ width: '100%' }}>
+            <Button
+              type="primary"
+              icon={<RobotOutlined />}
+              onClick={handleSummarize}
+              loading={isSummarizing}
+              disabled={!content}
+            >
+              使用LLM缩写
+            </Button>
+            <div className={styles.summarizedText}>
+              {summarizedContent || '点击上方按钮开始缩写...'}
+            </div>
+          </Space>
         </div>
       </Modal>
     </div>

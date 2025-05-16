@@ -15,3 +15,5 @@ const difyApi = new DifyApi(
 )
 
 export default difyApi;
+
+export { difyCfg };

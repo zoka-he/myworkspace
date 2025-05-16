@@ -175,7 +175,7 @@ export const deleteChapter = async (id: number) => {
     return response;
 }
 
-export const getMaxChapterNumber = async (novelId: number): number => {
+export const getMaxChapterNumber = async (novelId: number): Promise<number> => {
     const response = await fetch.get<number>('/api/aiNoval/chapters/maxChapterNumber', {params: {novelId}});
     return _.toNumber(response);
 }
@@ -188,4 +188,45 @@ export const loadFactionList = async (worldviewId: number, page: number = 1, lim
 export const loadRoleList = async (worldviewId: number, page: number = 1, limit: number = 200) => {
     const response = await fetch.get<IRoleData[]>('/api/aiNoval/role/list', {params: {worldviewId, page, limit}});
     return response.data || [];
+}
+
+export const stripChapterBlocking = async (chapterId: number, stripLength: number = 300): Promise<string> => {
+    const response = await fetch.post(`/api/aiNoval/chapters/strip`, 
+        {},
+        {
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            params: {
+                chapterId,
+                stripLength,
+                mode: 'blocking'
+            }
+        }
+    );
+
+    console.debug('response -> ', response);
+
+    return response.data?.outputs?.text || '';
+}
+
+export const stripChapterStreaming = async (chapterId: number, stripLength: number = 300): Promise<ReadableStream<string>> => {
+    const response = await globalThis.fetch(`/api/aiNoval/chapters/strip?chapterId=${chapterId}&stripLength=${stripLength}&mode=streaming`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+    });
+    
+    if (!response.ok) {
+        throw new Error(`Failed to fetch stream: ${response.statusText}`);
+    }
+
+    if (!response.body) {
+        throw new Error('Response body is null');
+    }
+
+
+    const textStream = response.body.pipeThrough(new TextDecoderStream());
+    return textStream as unknown as ReadableStream<string>;
 }

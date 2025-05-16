@@ -42,6 +42,12 @@ export default function middleware(request: NextRequestWithAuth, event: NextFetc
         return NextResponse.next();
     }
 
+    // llmTools相关页面直接放行
+    if (/^(\/llmTools)/.test(pathname)) {
+        console.debug('origin req ------->>>>>', request);
+        return NextResponse.next();
+    }
+
     console.debug('access -->>', pathname);
 
     // app相关页面，使用app拦截器
