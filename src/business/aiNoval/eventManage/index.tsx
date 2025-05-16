@@ -197,64 +197,65 @@ function EventManager() {
     fetchGeoTree()
   }, [selectedWorld])
 
-  // Fetch events when selected world or story line changes
-  useEffect(() => {
-    const fetchEvents = async () => {
-      if (!selectedWorld) {
-        setEvents([])
-        return
-      }
-
-      try {
-        setIsLoadingEvents(true)
-        const params = {
-          worldview_id: Number(selectedWorld),
-          story_line_id: selectedStoryLine ? Number(selectedStoryLine) : undefined,
-          start_date: timeRange ? timeRange[0] : undefined,
-          end_date: timeRange ? timeRange[1] : undefined
-        }
-        const response = await eventApiCalls.getEventList(params)
-        if (response.data) {
-          // Transform the API response data into the format expected by UnifiedEventView
-          const transformedEvents = response.data.map((event: ITimelineEvent) => {
-            // 确保 faction_ids 和 role_ids 是数组
-            const factionIds = Array.isArray(event.faction_ids) ? event.faction_ids : []
-            const roleIds = Array.isArray(event.role_ids) ? event.role_ids : []
-
-            // 获取事件相关的派系和角色名称
-            const factionNames = factionIds.map(id => {
-              const faction = factions.find(f => f.id === id)
-              return faction?.name || id.toString()
-            })
-
-            const characterNames = roleIds.map(id => {
-              const role = roles.find(r => r.id === id)
-              return role?.name || id.toString()
-            })
-
-            const transformed = {
-              id: event.id?.toString() || '',
-              title: event.title || '',
-              description: event.description || '',
-              date: event.date || 0,
-              location: event.location || '',
-              faction: factionNames,
-              characters: characterNames,
-              storyLine: event.story_line_id?.toString() || '',
-              faction_ids: factionIds,
-              role_ids: roleIds
-            }
-            return transformed
-          })
-          setEvents(transformedEvents)
-        }
-      } catch (error) {
-        console.error('Failed to fetch events:', error)
-      } finally {
-        setIsLoadingEvents(false)
-      }
+  // 获取事件
+  const fetchEvents = async () => {
+    if (!selectedWorld) {
+      setEvents([])
+      return
     }
 
+    try {
+      setIsLoadingEvents(true)
+      const params = {
+        worldview_id: Number(selectedWorld),
+        story_line_id: selectedStoryLine ? Number(selectedStoryLine) : undefined,
+        start_date: timeRange ? timeRange[0] : undefined,
+        end_date: timeRange ? timeRange[1] : undefined
+      }
+      const response = await eventApiCalls.getEventList(params)
+      if (response.data) {
+        // Transform the API response data into the format expected by UnifiedEventView
+        const transformedEvents = response.data.map((event: ITimelineEvent) => {
+          // 确保 faction_ids 和 role_ids 是数组
+          const factionIds = Array.isArray(event.faction_ids) ? event.faction_ids : []
+          const roleIds = Array.isArray(event.role_ids) ? event.role_ids : []
+
+          // 获取事件相关的派系和角色名称
+          const factionNames = factionIds.map(id => {
+            const faction = factions.find(f => f.id === id)
+            return faction?.name || id.toString()
+          })
+
+          const characterNames = roleIds.map(id => {
+            const role = roles.find(r => r.id === id)
+            return role?.name || id.toString()
+          })
+
+          const transformed = {
+            id: event.id?.toString() || '',
+            title: event.title || '',
+            description: event.description || '',
+            date: event.date || 0,
+            location: event.location || '',
+            faction: factionNames,
+            characters: characterNames,
+            storyLine: event.story_line_id?.toString() || '',
+            faction_ids: factionIds,
+            role_ids: roleIds
+          }
+          return transformed
+        })
+        setEvents(transformedEvents)
+      }
+    } catch (error) {
+      console.error('Failed to fetch events:', error)
+    } finally {
+      setIsLoadingEvents(false)
+    }
+  }
+
+  // 当条件更新时，加载事件
+  useEffect(() => {
     fetchEvents()
   }, [selectedWorld, selectedStoryLine, factions, roles, timeRange])
 
@@ -326,7 +327,10 @@ function EventManager() {
       }
       const response = await eventApiCalls.getEventList(params)
       if (response.data) {
-        setEvents(response.data)
+        // setEvents(response.data)
+        // setRefreshKey(prev => prev + 1) // 强制视图刷新
+
+        fetchEvents();
       }
       // 如果删除的是当前选中的事件，清除选中状态
       if (selectedEvent?.id === eventId) {
@@ -464,6 +468,7 @@ function EventManager() {
     setIsStoryLineModalVisible(true)
   }
 
+  // 保存故事线
   const handleStoryLineModalOk = async () => {
     try {
       setIsSubmittingStoryLine(true)
@@ -526,6 +531,7 @@ function EventManager() {
     }
   }
 
+  // 保存事件
   const handleEditPanelSave = async (values: any) => {
     try {
       const eventData: ITimelineEvent = {
@@ -579,8 +585,10 @@ function EventManager() {
             role_ids: roleIds
           }
         })
-        setEvents(transformedEvents)
-        setRefreshKey(prev => prev + 1) // 强制视图刷新
+        // setEvents(transformedEvents)
+        // setRefreshKey(prev => prev + 1) // 强制视图刷新
+
+        fetchEvents();
       }
 
       // 关闭编辑面板
@@ -719,8 +727,10 @@ function EventManager() {
             role_ids: event.role_ids
           }
         })
-        setEvents(transformedEvents)
-        setRefreshKey(prev => prev + 1)
+        // setEvents(transformedEvents)
+        // setRefreshKey(prev => prev + 1)
+
+        fetchEvents();
       }
     } catch (error) {
       console.error('Failed to refresh events:', error)
