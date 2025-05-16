@@ -44,10 +44,22 @@ function ChapterManage() {
 
   // 当小说被选中时，刷新章节列表
   useEffect(() => {
-    if (selectedNovel) {
+    let selectedChapterId = selectedChapter?.id;
+
+    if (selectedNovel && selectedChapterId) {
+      setSelectedChapter(novels.find(novel => novel.id === selectedNovel)?.chapters.find(chapter => chapter.id === selectedChapterId) || null)
+    } else {
       setSelectedChapter(null)
     }
   }, [selectedNovel])
+
+  useEffect(() => {
+    if (selectedChapter && selectedChapter.worldview_id) {
+      setSelectedWorldView(worldViewList.find(worldView => worldView.id === selectedChapter.worldview_id) || null)
+    } else {
+      setSelectedWorldView(null)
+    }
+  }, [selectedChapter])
 
   // 获取世界观列表
   const fetchWorldViewList = async () => {
@@ -72,6 +84,10 @@ function ChapterManage() {
         } else if (selectedNovel) {
           // 如果当前有选中的小说，刷新其章节列表
           await fetchChapters(selectedNovel)
+        }
+
+        if (selectedChapter) {
+          setSelectedChapter(novels.find(novel => novel.id === selectedNovel)?.chapters.find(chapter => chapter.id === selectedChapter.id) || null)
         }
       }
     } catch (error) {
@@ -283,7 +299,7 @@ function ChapterManage() {
             geoUnionList={geoUnionList}
             factionList={factionList}
             roleList={roleList}
-            onRefresh={() => fetchChapters(selectedNovel || 0)}
+            onRefresh={() => fetchNovels()}
             onEditEventPool={() => setActiveModule('event-pool')}
           />
         )

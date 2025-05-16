@@ -70,6 +70,10 @@ function EventManager() {
   const [timeRangeForm] = Form.useForm()
   const [dateFormatter, setDateFormatter] = useState<TimelineDateFormatter | null>(null)
 
+  const [selectedLocations, setSelectedLocations] = useState<string[]>([])
+  const [selectedFactions, setSelectedFactions] = useState<string[]>([])
+  const [selectedCharacters, setSelectedCharacters] = useState<string[]>([])
+
   // Fetch world views when component mounts
   useEffect(() => {
     const fetchWorldViews = async () => {
@@ -285,8 +289,13 @@ function EventManager() {
 
   const filteredEvents = events.filter(event => {
     const eventStoryLine = storyLines.find(sl => sl.id?.toString() === event.storyLine)
-    return (!selectedWorld || eventStoryLine?.worldview_id?.toString() === selectedWorld) &&
-           (!selectedStoryLine || event.storyLine === selectedStoryLine)
+    const matchesWorld = !selectedWorld || eventStoryLine?.worldview_id?.toString() === selectedWorld
+    const matchesStoryLine = !selectedStoryLine || event.storyLine === selectedStoryLine
+    const matchesLocation = selectedLocations.length === 0 || selectedLocations.includes(event.location)
+    const matchesFaction = selectedFactions.length === 0 || event.faction_ids?.some(id => selectedFactions.includes(id.toString()))
+    const matchesCharacter = selectedCharacters.length === 0 || event.role_ids?.some(id => selectedCharacters.includes(id.toString()))
+    
+    return matchesWorld && matchesStoryLine && matchesLocation && matchesFaction && matchesCharacter
   })
 
   const handleEventSelect = (event: TimelineEvent) => {
@@ -330,7 +339,7 @@ function EventManager() {
   }
 
   const unifiedEventViewWrapperStyle = {
-    height: 'calc(100vh - 272px)',
+    height: 'calc(100vh - 310px)',
     width: '100%',
     overflow: 'auto'
   }
@@ -951,26 +960,75 @@ function EventManager() {
         <Content style={{ padding: '16px 16px 32px 16px', height: 'calc(100% - 64px)', overflow: 'auto' }}>
           {selectedWorld ? (
             <Layout style={{ height: '100%' }}>
-              <Header style={{ background: '#fff0', padding: '0 16px' }}>
-                <div style={{ padding: '0 20px', marginBottom: '10px', display: 'flex', alignItems: 'center' }}>
-                  <label htmlFor="secondsPerPixel">时间轴缩放：</label>
-                  <Slider
-                    id="secondsPerPixel"
-                    style={{ flex: 1, margin: '0 20px' }}
-                    step={0.01}
-                    min={Math.log(TIMELINE_CONFIG.SCALE_RANGE.MIN)}
-                    max={Math.log(TIMELINE_CONFIG.SCALE_RANGE.MAX)}
-                    value={logSecondsPerPixel}
-                    onChange={handleLogScaleChange}
-                  />
-                  <span>1像素 = </span>
-                  <InputNumber
-                    min={TIMELINE_CONFIG.SCALE_RANGE.MIN}
-                    max={TIMELINE_CONFIG.SCALE_RANGE.MAX}
-                    value={secondsPerPixel}
-                    onChange={handleLinearScaleChange}
-                  />
-                  <span>秒</span>
+              <Header style={{ background: '#fff0', padding: '0 16px', height: '100px', lineHeight: '40px' }}>
+                <div style={{ padding: '0 20px', marginBottom: '10px' }}>
+                  <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <Space>
+                      <Typography.Text>地点筛选：</Typography.Text>
+                      <TreeSelect
+                        treeData={getGeoTreeData()}
+                        value={selectedLocations}
+                        onChange={setSelectedLocations}
+                        multiple
+                        treeCheckable
+                        showCheckedStrategy={TreeSelect.SHOW_PARENT}
+                        placeholder="请选择地点"
+                        style={{ width: 200 }}
+                        allowClear
+                      />
+                    </Space>
+                    <Space>
+                      <Typography.Text>阵营筛选：</Typography.Text>
+                      <TreeSelect
+                        treeData={getFactionTreeData()}
+                        value={selectedFactions}
+                        onChange={setSelectedFactions}
+                        multiple
+                        treeCheckable
+                        showCheckedStrategy={TreeSelect.SHOW_PARENT}
+                        placeholder="请选择阵营"
+                        style={{ width: 200 }}
+                        allowClear
+                      />
+                    </Space>
+                    <Space>
+                      <Typography.Text>角色筛选：</Typography.Text>
+                      <Select
+                        mode="multiple"
+                        value={selectedCharacters}
+                        onChange={setSelectedCharacters}
+                        placeholder="请选择角色"
+                        style={{ width: 200 }}
+                        allowClear
+                      >
+                        {roles.map(role => (
+                          <Select.Option key={role.id} value={role.id?.toString()}>
+                            {role.name}
+                          </Select.Option>
+                        ))}
+                      </Select>
+                    </Space>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <label htmlFor="secondsPerPixel">时间轴缩放：</label>
+                    <Slider
+                      id="secondsPerPixel"
+                      style={{ flex: 1, margin: '0 20px' }}
+                      step={0.01}
+                      min={Math.log(TIMELINE_CONFIG.SCALE_RANGE.MIN)}
+                      max={Math.log(TIMELINE_CONFIG.SCALE_RANGE.MAX)}
+                      value={logSecondsPerPixel}
+                      onChange={handleLogScaleChange}
+                    />
+                    <span>1像素 = </span>
+                    <InputNumber
+                      min={TIMELINE_CONFIG.SCALE_RANGE.MIN}
+                      max={TIMELINE_CONFIG.SCALE_RANGE.MAX}
+                      value={secondsPerPixel}
+                      onChange={handleLinearScaleChange}
+                    />
+                    <span>秒</span>
+                  </div>
                 </div>
               </Header>
               <Content>
