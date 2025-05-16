@@ -230,4 +230,35 @@ export class TimelineDateFormatter {
   getYearLengthInMonths(): number {
     return this.yearLengthInMonths
   }
+
+  /**
+   * 判断给定的秒数是否在公元前
+   */
+  isBC(seconds: number): boolean {
+    return seconds < 0
+  }
+
+  /**
+   * 从秒数获取年份
+   */
+  getYear(seconds: number): number {
+    const dateData = this.secondsToDateData(seconds)
+    return dateData.year
+  }
+
+  /**
+   * 从秒数获取月份
+   */
+  getMonth(seconds: number): number {
+    const dateData = this.secondsToDateData(seconds)
+    return dateData.month
+  }
+
+  /**
+   * 从秒数获取日期
+   */
+  getDay(seconds: number): number {
+    const dateData = this.secondsToDateData(seconds)
+    return dateData.day
+  }
 } 

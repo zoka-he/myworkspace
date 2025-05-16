@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { Layout, Menu, Tabs, Card, Button, Space, Modal, Form, Input, Select, DatePicker, Divider, Typography, Tag, Row, Col, Breadcrumb, TreeSelect, Slider, InputNumber } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, SaveOutlined, BookOutlined, EnvironmentOutlined, TeamOutlined, UserOutlined, HomeOutlined, CloseOutlined, ReloadOutlined } from '@ant-design/icons'
+import { Layout, Menu, Tabs, Card, Button, Space, Modal, Form, Input, Select, DatePicker, Divider, Typography, Tag, Row, Col, Breadcrumb, TreeSelect, Slider, InputNumber, message } from 'antd'
+import { PlusOutlined, EditOutlined, DeleteOutlined, SaveOutlined, BookOutlined, EnvironmentOutlined, TeamOutlined, UserOutlined, HomeOutlined, CloseOutlined, ReloadOutlined, ClockCircleOutlined } from '@ant-design/icons'
 import type { TabsProps } from 'antd'
 import dayjs from 'dayjs'
 import { StoryLineList } from './storyLineView'
@@ -14,6 +14,7 @@ import roleApiCalls from '../roleManage/apiCalls'
 import { loadGeoTree, type IGeoTreeItem } from '../common/geoDataUtil'
 import EventEditPanel from './components/EventEditPanel'
 import _ from 'lodash'
+import { TimelineDateFormatter } from '../common/novelDateUtils'
 
 
 const { Header, Sider, Content } = Layout
@@ -60,6 +61,14 @@ function EventManager() {
   const [secondsPerPixel, setSecondsPerPixel] = useState<number>(TIMELINE_CONFIG.SECONDS_PER_PIXEL)
   const [logSecondsPerPixel, setLogSecondsPerPixel] = useState<number>(Math.log(TIMELINE_CONFIG.SECONDS_PER_PIXEL))
   const [isUpdatingFromLog, setIsUpdatingFromLog] = useState(false)
+
+  const [timelineStart, setTimelineStart] = useState<number | null>(null)
+  const [timelineEnd, setTimelineEnd] = useState<number | null>(null)
+
+  const [timeRange, setTimeRange] = useState<[number | null, number | null] | null>(null)
+  const [isTimeRangeModalVisible, setIsTimeRangeModalVisible] = useState(false)
+  const [timeRangeForm] = Form.useForm()
+  const [dateFormatter, setDateFormatter] = useState<TimelineDateFormatter | null>(null)
 
   // Fetch world views when component mounts
   useEffect(() => {
@@ -196,7 +205,9 @@ function EventManager() {
         setIsLoadingEvents(true)
         const params = {
           worldview_id: Number(selectedWorld),
-          story_line_id: selectedStoryLine ? Number(selectedStoryLine) : undefined
+          story_line_id: selectedStoryLine ? Number(selectedStoryLine) : undefined,
+          start_date: timeRange ? timeRange[0] : undefined,
+          end_date: timeRange ? timeRange[1] : undefined
         }
         const response = await eventApiCalls.getEventList(params)
         if (response.data) {
@@ -241,7 +252,7 @@ function EventManager() {
     }
 
     fetchEvents()
-  }, [selectedWorld, selectedStoryLine, factions, roles])
+  }, [selectedWorld, selectedStoryLine, factions, roles, timeRange])
 
   // 处理双向转换
   useEffect(() => {
@@ -709,6 +720,147 @@ function EventManager() {
     }
   }
 
+  // Update date formatter when timeline definition changes
+  useEffect(() => {
+    if (timelineDef) {
+      setDateFormatter(new TimelineDateFormatter(timelineDef))
+    } else {
+      setDateFormatter(null)
+    }
+  }, [timelineDef])
+
+  const handleTimeRangeEdit = () => {
+    if (timeRange) {
+      timeRangeForm.setFieldsValue({
+        startIsBC: timeRange[0] !== null ? dateFormatter?.isBC(timeRange[0]) : undefined,
+        startYear: timeRange[0] !== null ? dateFormatter?.getYear(timeRange[0]) : undefined,
+        startMonth: timeRange[0] !== null ? dateFormatter?.getMonth(timeRange[0]) : undefined,
+        startDay: timeRange[0] !== null ? dateFormatter?.getDay(timeRange[0]) : undefined,
+        endIsBC: timeRange[1] !== null ? dateFormatter?.isBC(timeRange[1]) : undefined,
+        endYear: timeRange[1] !== null ? dateFormatter?.getYear(timeRange[1]) : undefined,
+        endMonth: timeRange[1] !== null ? dateFormatter?.getMonth(timeRange[1]) : undefined,
+        endDay: timeRange[1] !== null ? dateFormatter?.getDay(timeRange[1]) : undefined
+      })
+    }
+    setIsTimeRangeModalVisible(true)
+  }
+
+  const handleQuickSelectTimeRange = (days: number | 'unlimited_start' | 'unlimited_end') => {
+    let selectedWorldData = worldViews.find(world => world.id?.toString() === selectedWorld)
+    if (!selectedWorldData) {
+      message.error('请先选择一个世界观！')
+      return
+    }
+
+    if (!selectedWorldData.te_max_seconds) {
+      message.error('世界观无最晚时间，可能没有设置事件，无法执行快捷计算！')
+      return
+    }
+
+    let dateFormatter = TimelineDateFormatter.fromWorldViewWithExtra(selectedWorldData)
+
+    if (days === 'unlimited_start') {
+      // 不限制开始时间，只设置结束时间
+      timeRangeForm.setFieldsValue({
+        startIsBC: undefined,
+        startYear: undefined,
+        startMonth: undefined,
+        startDay: undefined,
+      })
+    } else if (days === 'unlimited_end') {
+      // 不限制结束时间，只设置开始时间
+      timeRangeForm.setFieldsValue({
+        endIsBC: undefined,
+        endYear: undefined,
+        endMonth: undefined,
+        endDay: undefined
+      })
+    } else {
+      // 保持原有的时间范围计算逻辑
+      const endSeconds = selectedWorldData.te_max_seconds
+      const startSeconds = endSeconds - (days * 24 * 60 * 60)
+
+      const endDateData = dateFormatter.secondsToDateData(endSeconds)
+      const startDateData = dateFormatter.secondsToDateData(startSeconds)
+
+      timeRangeForm.setFieldsValue({
+        startIsBC: startDateData.isBC,
+        startYear: startDateData.year,
+        startMonth: startDateData.month,
+        startDay: startDateData.day,
+        endIsBC: endDateData.isBC,
+        endYear: endDateData.year,
+        endMonth: endDateData.month,
+        endDay: endDateData.day
+      })
+    }
+  }
+
+  const handleTimeRangeModalOk = async () => {
+    try {
+      const values = await timeRangeForm.validateFields()
+      if (dateFormatter) {
+        let startSeconds: number | undefined
+        let endSeconds: number | undefined
+
+        // 处理开始时间
+        if (values.startIsBC !== undefined && values.startYear !== undefined && 
+            values.startMonth !== undefined && values.startDay !== undefined) {
+          const startDateStr = values.startIsBC ? '公元前' : '公元'
+          const startDate = `${startDateStr}${values.startYear}年${values.startMonth}月${values.startDay}日`
+          startSeconds = dateFormatter.dateToSeconds(startDate)
+        }
+
+        // 处理结束时间
+        if (values.endIsBC !== undefined && values.endYear !== undefined && 
+            values.endMonth !== undefined && values.endDay !== undefined) {
+          const endDateStr = values.endIsBC ? '公元前' : '公元'
+          const endDate = `${endDateStr}${values.endYear}年${values.endMonth}月${values.endDay}日`
+          endSeconds = dateFormatter.dateToSeconds(endDate)
+        }
+
+        // 如果开始时间和结束时间都为空，则清除时间范围
+        if (startSeconds === undefined && endSeconds === undefined) {
+          setTimeRange(null)
+        } else {
+          // 如果只有一个时间点，则只使用该时间点进行筛选
+          // 使用 null 来表示未设置的时间点
+          setTimeRange([startSeconds ?? null, endSeconds ?? null] as [number | null, number | null])
+        }
+      }
+      setIsTimeRangeModalVisible(false)
+    } catch (error) {
+      console.error('Failed to save time range:', error)
+    }
+  }
+
+  const handleTimeRangeModalCancel = () => {
+    setIsTimeRangeModalVisible(false)
+    timeRangeForm.resetFields()
+  }
+
+  const handleClearTimeRange = () => {
+    setTimeRange(null)
+  }
+
+  const handleClearStartDate = () => {
+    timeRangeForm.setFieldsValue({
+      startIsBC: undefined,
+      startYear: undefined,
+      startMonth: undefined,
+      startDay: undefined
+    })
+  }
+
+  const handleClearEndDate = () => {
+    timeRangeForm.setFieldsValue({
+      endIsBC: undefined,
+      endYear: undefined,
+      endMonth: undefined,
+      endDay: undefined
+    })
+  }
+
   return (
     <Layout style={{ height: '100%', padding: '0 0 10px 0' }}>
       <Sider width={250} theme="light" style={{ height: '100%', overflow: 'auto' }}>
@@ -746,7 +898,9 @@ function EventManager() {
         </div>
       </Sider>
 
+      {/* 中部面板 */}
       <Layout style={{ height: '100%' }}>
+        {/* 中部面板头部 */}
         <Header style={{ background: '#fff', padding: '0 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Space>
             {renderBreadcrumb()}
@@ -754,6 +908,29 @@ function EventManager() {
               <Button onClick={() => setSelectedStoryLine('')}>
                 清除故事线筛选
               </Button>
+            )}
+          </Space>
+          <Space>
+            <ClockCircleOutlined />
+            <span>时间范围：</span>
+            {timeRange && dateFormatter ? (
+              <Space>
+                {timeRange[0] !== null ? (
+                  <span>{dateFormatter.formatSecondsToDate(timeRange[0])}</span>
+                ) : (
+                  <span>不限</span>
+                )}
+                <span>至</span>
+                {timeRange[1] !== null ? (
+                  <span>{dateFormatter.formatSecondsToDate(timeRange[1])}</span>
+                ) : (
+                  <span>不限</span>
+                )}
+                <Button type="link" icon={<EditOutlined />} onClick={handleTimeRangeEdit} />
+                <Button type="link" icon={<CloseOutlined />} onClick={handleClearTimeRange} />
+              </Space>
+            ) : (
+              <Button type="link" onClick={handleTimeRangeEdit}>设置时间范围</Button>
             )}
           </Space>
           <Space>
@@ -769,6 +946,8 @@ function EventManager() {
             </Button>
           </Space>
         </Header>
+
+        {/* 中部面板内容 */}
         <Content style={{ padding: '16px 16px 32px 16px', height: 'calc(100% - 64px)', overflow: 'auto' }}>
           {selectedWorld ? (
             <Layout style={{ height: '100%' }}>
@@ -830,6 +1009,7 @@ function EventManager() {
         />
       </Sider>
 
+      {/* 故事线编辑模态框 */}
       <Modal
         title={editingStoryLine ? '编辑故事线' : '添加故事线'}
         open={isStoryLineModalVisible}
@@ -869,6 +1049,7 @@ function EventManager() {
         </Form>
       </Modal>
 
+      {/* 删除确认模态框 */}
       <Modal
         title="删除确认"
         open={!!deletingStoryLine}
@@ -880,6 +1061,239 @@ function EventManager() {
       >
         <p>确定要删除故事线 "{deletingStoryLine?.name}" 吗？</p>
         <p style={{ color: '#ff4d4f' }}>删除后将无法恢复，请谨慎操作。</p>
+      </Modal>
+
+      {/* 时间范围设置模态框 */}
+      <Modal
+        title="设置时间范围"
+        open={isTimeRangeModalVisible}
+        onOk={handleTimeRangeModalOk}
+        onCancel={handleTimeRangeModalCancel}
+        width={600}
+      >
+        <Form form={timeRangeForm} layout="vertical">
+          <div style={{ marginBottom: 16 }}>
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <Space>
+                <Typography.Text strong>快捷选择：</Typography.Text>
+                <Button onClick={() => handleQuickSelectTimeRange(7)}>末7天</Button>
+                <Button onClick={() => handleQuickSelectTimeRange(30)}>末30天</Button>
+                <Button onClick={() => handleQuickSelectTimeRange(180)}>末180天</Button>
+              </Space>
+              <Space>
+                <Typography.Text strong>特殊模式：</Typography.Text>
+                <Button onClick={() => handleQuickSelectTimeRange('unlimited_start')}>不限制开始时间</Button>
+                <Button onClick={() => handleQuickSelectTimeRange('unlimited_end')}>不限制结束时间</Button>
+              </Space>
+            </Space>
+          </div>
+
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <Typography.Text strong>开始时间</Typography.Text>
+              <Button type="link" size="small" onClick={handleClearStartDate}>清空</Button>
+            </div>
+            <Row gutter={8}>
+              <Col span={6}>
+                <Form.Item
+                  name="startIsBC"
+                  rules={[
+                    {
+                      validator: async (_, value) => {
+                        const year = timeRangeForm.getFieldValue('startYear')
+                        const month = timeRangeForm.getFieldValue('startMonth')
+                        const day = timeRangeForm.getFieldValue('startDay')
+                        if ((value === undefined) !== (year === undefined && month === undefined && day === undefined)) {
+                          throw new Error('请完整填写时间')
+                        }
+                      }
+                    }
+                  ]}
+                >
+                  <Select placeholder="公元前后">
+                    <Select.Option value={true}>公元前</Select.Option>
+                    <Select.Option value={false}>公元</Select.Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Form.Item
+                  name="startYear"
+                  rules={[
+                    {
+                      validator: async (_, value) => {
+                        if (value !== undefined) {
+                          if (value <= 0) {
+                            throw new Error('年份必须大于0')
+                          }
+                          const isBC = timeRangeForm.getFieldValue('startIsBC')
+                          const month = timeRangeForm.getFieldValue('startMonth')
+                          const day = timeRangeForm.getFieldValue('startDay')
+                          if (isBC === undefined || month === undefined || day === undefined) {
+                            throw new Error('请完整填写时间')
+                          }
+                        }
+                      }
+                    }
+                  ]}
+                >
+                  <InputNumber style={{ width: '100%' }} placeholder="年" min={1} />
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Form.Item
+                  name="startMonth"
+                  rules={[
+                    {
+                      validator: async (_, value) => {
+                        if (value !== undefined) {
+                          if (value < 1 || value > (timelineDef?.year_length_in_months || 12)) {
+                            throw new Error(`月份必须在1-${timelineDef?.year_length_in_months || 12}之间`)
+                          }
+                          const isBC = timeRangeForm.getFieldValue('startIsBC')
+                          const year = timeRangeForm.getFieldValue('startYear')
+                          const day = timeRangeForm.getFieldValue('startDay')
+                          if (isBC === undefined || year === undefined || day === undefined) {
+                            throw new Error('请完整填写时间')
+                          }
+                        }
+                      }
+                    }
+                  ]}
+                >
+                  <InputNumber style={{ width: '100%' }} placeholder="月" min={1} max={timelineDef?.year_length_in_months || 12} />
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Form.Item
+                  name="startDay"
+                  rules={[
+                    {
+                      validator: async (_, value) => {
+                        if (value !== undefined) {
+                          if (value < 1 || value > (timelineDef?.month_length_in_days || 30)) {
+                            throw new Error(`日期必须在1-${timelineDef?.month_length_in_days || 30}之间`)
+                          }
+                          const isBC = timeRangeForm.getFieldValue('startIsBC')
+                          const year = timeRangeForm.getFieldValue('startYear')
+                          const month = timeRangeForm.getFieldValue('startMonth')
+                          if (isBC === undefined || year === undefined || month === undefined) {
+                            throw new Error('请完整填写时间')
+                          }
+                        }
+                      }
+                    }
+                  ]}
+                >
+                  <InputNumber style={{ width: '100%' }} placeholder="日" min={1} max={timelineDef?.month_length_in_days || 30} />
+                </Form.Item>
+              </Col>
+            </Row>
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <Typography.Text strong>结束时间</Typography.Text>
+              <Button type="link" size="small" onClick={handleClearEndDate}>清空</Button>
+            </div>
+            <Row gutter={8}>
+              <Col span={6}>
+                <Form.Item
+                  name="endIsBC"
+                  rules={[
+                    {
+                      validator: async (_, value) => {
+                        const year = timeRangeForm.getFieldValue('endYear')
+                        const month = timeRangeForm.getFieldValue('endMonth')
+                        const day = timeRangeForm.getFieldValue('endDay')
+                        if ((value === undefined) !== (year === undefined && month === undefined && day === undefined)) {
+                          throw new Error('请完整填写时间')
+                        }
+                      }
+                    }
+                  ]}
+                >
+                  <Select placeholder="公元前后">
+                    <Select.Option value={true}>公元前</Select.Option>
+                    <Select.Option value={false}>公元</Select.Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Form.Item
+                  name="endYear"
+                  rules={[
+                    {
+                      validator: async (_, value) => {
+                        if (value !== undefined) {
+                          if (value <= 0) {
+                            throw new Error('年份必须大于0')
+                          }
+                          const isBC = timeRangeForm.getFieldValue('endIsBC')
+                          const month = timeRangeForm.getFieldValue('endMonth')
+                          const day = timeRangeForm.getFieldValue('endDay')
+                          if (isBC === undefined || month === undefined || day === undefined) {
+                            throw new Error('请完整填写时间')
+                          }
+                        }
+                      }
+                    }
+                  ]}
+                >
+                  <InputNumber style={{ width: '100%' }} placeholder="年" min={1} />
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Form.Item
+                  name="endMonth"
+                  rules={[
+                    {
+                      validator: async (_, value) => {
+                        if (value !== undefined) {
+                          if (value < 1 || value > (timelineDef?.year_length_in_months || 12)) {
+                            throw new Error(`月份必须在1-${timelineDef?.year_length_in_months || 12}之间`)
+                          }
+                          const isBC = timeRangeForm.getFieldValue('endIsBC')
+                          const year = timeRangeForm.getFieldValue('endYear')
+                          const day = timeRangeForm.getFieldValue('endDay')
+                          if (isBC === undefined || year === undefined || day === undefined) {
+                            throw new Error('请完整填写时间')
+                          }
+                        }
+                      }
+                    }
+                  ]}
+                >
+                  <InputNumber style={{ width: '100%' }} placeholder="月" min={1} max={timelineDef?.year_length_in_months || 12} />
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Form.Item
+                  name="endDay"
+                  rules={[
+                    {
+                      validator: async (_, value) => {
+                        if (value !== undefined) {
+                          if (value < 1 || value > (timelineDef?.month_length_in_days || 30)) {
+                            throw new Error(`日期必须在1-${timelineDef?.month_length_in_days || 30}之间`)
+                          }
+                          const isBC = timeRangeForm.getFieldValue('endIsBC')
+                          const year = timeRangeForm.getFieldValue('endYear')
+                          const month = timeRangeForm.getFieldValue('endMonth')
+                          if (isBC === undefined || year === undefined || month === undefined) {
+                            throw new Error('请完整填写时间')
+                          }
+                        }
+                      }
+                    }
+                  ]}
+                >
+                  <InputNumber style={{ width: '100%' }} placeholder="日" min={1} max={timelineDef?.month_length_in_days || 30} />
+                </Form.Item>
+              </Col>
+            </Row>
+          </div>
+        </Form>
       </Modal>
     </Layout>
   )
