@@ -3,10 +3,11 @@ import { Card, Select, Space, Row, Col, Typography, Button, Input, message, Moda
 import { DragDropContext } from 'react-beautiful-dnd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons'
 import { mockEventPool } from './mockData'
-import { INovalData, ITimelineEvent, IChapter, IWorldViewDataWithExtra, IGeoUnionData } from '@/src/types/IAiNoval'
+import { IChapter, IWorldViewDataWithExtra, IGeoUnionData, IRoleData, IFactionDefData } from '@/src/types/IAiNoval'
 import { EventPool, ExtendedNovelData } from './types'
 import EventPoolPanel from './components/EventPoolPanel'
 import ChapterSkeletonPanel from './components/ChapterSkeletonPanel'
+import ChapterGeneratePanel from './components/ChapterGeneratePanel'
 import styles from './index.module.scss'
 import * as chapterApi from './apiCalls'
 import { loadGeoUnionList } from '../common/geoDataUtil'
@@ -32,7 +33,7 @@ function ChapterManage() {
   const [worldViewList, setWorldViewList] = useState<IWorldViewDataWithExtra[]>([])
   const [selectedWorldView, setSelectedWorldView] = useState<IWorldViewDataWithExtra | null>(null)
   const [geoUnionList, setGeoUnionList] = useState<IGeoUnionData[]>([])
-  const [factionList, setFactionList] = useState<IFactionData[]>([])
+  const [factionList, setFactionList] = useState<IFactionDefData[]>([])
   const [roleList, setRoleList] = useState<IRoleData[]>([])
 
   // 组件挂载时，获取小说列表和世界观列表
@@ -102,6 +103,7 @@ function ChapterManage() {
     }
   }
 
+  // 小说变更
   const handleNovelChange = (novelId: number | null) => {
     setSelectedNovel(novelId)
     setSelectedChapter(null)
@@ -110,6 +112,7 @@ function ChapterManage() {
     }
   }
 
+  // 打开modal添加章节
   const handleAddChapter = () => {
     setEditingChapter(null)
     form.resetFields()
@@ -123,6 +126,7 @@ function ChapterManage() {
     });
   }
 
+  // 获取最大章节号
   const fetchMaxChapterNumber = async (): Promise<number> => {
     let maxChapterNumber = 0;
 
@@ -133,6 +137,7 @@ function ChapterManage() {
     return maxChapterNumber;
   }
 
+  // 编辑章节信息
   const handleEditChapter = (chapter: IChapter) => {
     setEditingChapter(chapter)
     form.setFieldsValue({
@@ -144,7 +149,7 @@ function ChapterManage() {
   }
 
   
-
+  // 删除章节
   const handleDeleteChapter = async (chapterId: number) => {
     Modal.confirm({
       title: '确认删除',
@@ -163,6 +168,7 @@ function ChapterManage() {
     })
   }
 
+  // modal，提交，添加/编辑章节
   const handleModalOk = async () => {
     try {
       const values = await form.validateFields()
@@ -205,6 +211,7 @@ function ChapterManage() {
     }
   }
 
+  // 分页变更
   const handlePageChange = (page: number, size?: number) => {
     setCurrentPage(page)
     if (size) {
@@ -248,7 +255,7 @@ function ChapterManage() {
   }
 
   /**
-   * 渲染右方面板内容
+   * 渲染右方面板内容：事件池管理、章节骨架、章节生成
    * @returns 
    */
   const renderModuleContent = () => {
@@ -282,9 +289,10 @@ function ChapterManage() {
         )
       case 'chapter-generate':
         return (
-          <div className={styles.moduleContent}>
-            <Text>章节生成功能开发中...</Text>
-          </div>
+          <ChapterGeneratePanel
+            selectedChapter={selectedChapter}
+            onChapterChange={() => fetchChapters(selectedNovel || 0)}
+          />
         )
       default:
         return null

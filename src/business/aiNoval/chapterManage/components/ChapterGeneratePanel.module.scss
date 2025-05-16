@@ -1,0 +1,58 @@
+.container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.emptyState {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.editorContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.editorActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.contentDisplay {
+  min-height: 200px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 16px;
+  background-color: #fafafa;
+  border-radius: 4px;
+}
+
+.diagnosisContent {
+  max-height: 60vh;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 16px;
+  background-color: #fafafa;
+  border-radius: 4px;
+}
+
+.uploadDrag {
+  :global {
+    .ant-upload-drag {
+      border: 2px dashed #d9d9d9;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: border-color 0.3s;
+
+      &:hover {
+        border-color: #1890ff;
+      }
+    }
+  }
+} 
