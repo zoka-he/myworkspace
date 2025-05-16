@@ -387,8 +387,10 @@ export function UnifiedEventView({
 }: UnifiedEventViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [geoTree, setGeoTree] = useState<IGeoTreeItem<any>[]>([])
-  // Add state for time range
   const [timeRange, setTimeRange] = useState<{ min: number; max: number } | null>(null)
+  const isFirstRender = useRef(true)
+  // Add ref to store previous timestamps for comparison
+  const prevTimestamps = useRef<{ min: number; max: number } | null>(null)
 
   // Load geo tree data
   useEffect(() => {
@@ -419,11 +421,16 @@ export function UnifiedEventView({
     const minTime = Math.min(...timestamps)
     const maxTime = Math.max(...timestamps)
     
-    // Update time range state if it's not set or if the range has changed significantly
-    if (!timeRange || 
-        Math.abs(timeRange.min - minTime) > TIMELINE_CONFIG.TIME_RANGE_PADDING ||
-        Math.abs(timeRange.max - maxTime) > TIMELINE_CONFIG.TIME_RANGE_PADDING) {
+    // Check if we need to update time range
+    const shouldUpdateTimeRange = isFirstRender.current || 
+      !prevTimestamps.current ||
+      Math.abs(prevTimestamps.current.min - minTime) > TIMELINE_CONFIG.TIME_RANGE_PADDING ||
+      Math.abs(prevTimestamps.current.max - maxTime) > TIMELINE_CONFIG.TIME_RANGE_PADDING
+
+    if (shouldUpdateTimeRange) {
       setTimeRange({ min: minTime, max: maxTime })
+      prevTimestamps.current = { min: minTime, max: maxTime }
+      isFirstRender.current = false
     }
     
     const timeSpan = maxTime - minTime
@@ -447,6 +454,13 @@ export function UnifiedEventView({
 
     return calculatedHeight
   }
+
+  // Add effect to handle time range updates
+  useEffect(() => {
+    // Reset first render flag and previous timestamps when viewType changes
+    isFirstRender.current = true
+    prevTimestamps.current = null
+  }, [viewType])
 
   useEffect(() => {
     if (!containerRef.current) return
