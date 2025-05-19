@@ -5,23 +5,19 @@ import ChaptersService from "@/src/services/aiNoval/chaptersService";
 import { difyCfg } from "@/src/utils/dify";
 import _ from "lodash";
 
-const keyOfApiKey = 'DIFY_PARAGRAPH_STRIPPER_API_KEY';
+const keyOfApiKey = 'DIFY_PATAGRAPH_TITLE_API_KEY';
 
 interface Data {
     message?: string;
     data?: any;
 }
 
-async function handleStrip(req: NextApiRequest, res: NextApiResponse<Data>) {
-    let chapterId = _.toNumber(req.query.chapterId);
-    if (typeof chapterId !== 'number') {
-        res.status(500).json({ message: 'chapterId is not a number' });
-        return;
-    }
+async function handleNaming(req: NextApiRequest, res: NextApiResponse<Data>) {
+    console.log('handleNaming -->', req.query);
 
-    let stripLength = _.toNumber(req.query.stripLength);
-    if (typeof stripLength !== 'number') {
-        res.status(500).json({ message: 'stripLength is not a number' });
+    let chapterId = _.toNumber(req.query.chapterId);
+    if (typeof chapterId !== 'number' || _.isNaN(chapterId)) {
+        res.status(500).json({ message: 'chapterId is not a number' });
         return;
     }
 
@@ -43,7 +39,7 @@ async function handleStrip(req: NextApiRequest, res: NextApiResponse<Data>) {
         return;
     }
 
-    const response_mode = req.query.response_mode === 'streaming' ? 'streaming' : 'blocking';
+    const response_mode = 'blocking';
 
     try {
         const externalApiUrl = difyCfg.serverUrl + '/workflows/run';
@@ -54,51 +50,27 @@ async function handleStrip(req: NextApiRequest, res: NextApiResponse<Data>) {
 
         const body = {
             inputs: {
-                src_text,
-                stripped_length: stripLength
+                src_text
             },
             response_mode,
             user: "my-worksite"
         }
 
-        if (response_mode === 'streaming') {
-            // Set headers for streaming response
-            res.setHeader('Content-Type', 'text/event-stream');
-            res.setHeader('Cache-Control', 'no-cache');
-            res.setHeader('Connection', 'keep-alive');
+        
+        // Blocking mode
+        const response = await fetch(externalApiUrl, {
+            method: 'POST',
+            headers: reqHeaders,
+            body: JSON.stringify(body)
+        });
 
-            const response = await fetch(externalApiUrl, {
-                method: 'POST',
-                headers: reqHeaders,
-                body: JSON.stringify(body)
-            });
-
-            if (!response.ok) {
-                throw new Error(`External API responded with status: ${response.status}`);
-            }
-
-            // Pipe the streaming response to our client
-            response.body?.pipe(res);
-
-            // Handle client disconnect
-            req.on('close', () => {
-                res.end();
-            });
-        } else {
-            // Blocking mode
-            const response = await fetch(externalApiUrl, {
-                method: 'POST',
-                headers: reqHeaders,
-                body: JSON.stringify(body)
-            });
-
-            if (!response.ok) {
-                throw new Error(`External API responded with status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            res.status(200).json(data);
+        if (!response.ok) {
+            throw new Error(`External API responded with status: ${response.status}`);
         }
+
+        const data = await response.json();
+        res.status(200).json(data);
+
     } catch (error) {
         console.error('API error:', error);
         res.status(500).json({ message: 'Request failed' });
@@ -112,7 +84,7 @@ export default function handler(
     let processerFn: Function | undefined = undefined;
     switch (req.method) {
         case 'POST':
-            processerFn = handleStrip;
+            processerFn = handleNaming;
             break;
     }
 

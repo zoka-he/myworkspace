@@ -210,23 +210,20 @@ export const stripChapterBlocking = async (chapterId: number, stripLength: numbe
     return response.data?.outputs?.text || '';
 }
 
-export const stripChapterStreaming = async (chapterId: number, stripLength: number = 300): Promise<ReadableStream<string>> => {
-    const response = await globalThis.fetch(`/api/aiNoval/chapters/strip?chapterId=${chapterId}&stripLength=${stripLength}&mode=streaming`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-    });
-    
-    if (!response.ok) {
-        throw new Error(`Failed to fetch stream: ${response.statusText}`);
-    }
 
-    if (!response.body) {
-        throw new Error('Response body is null');
-    }
+export const nameChapterBlocking = async (chapterId: number): Promise<string> => {
+    const response = await fetch.post(`/api/aiNoval/chapters/genTitle`, 
+        {},
+        {
+            params: {
+                chapterId,
+                mode: 'blocking'
+            }
+        }
+    );
 
+    console.debug('response -> ', response);
 
-    const textStream = response.body.pipeThrough(new TextDecoderStream());
-    return textStream as unknown as ReadableStream<string>;
+    return response.data?.outputs?.output || '';
 }
+

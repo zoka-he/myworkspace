@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Card, Button, Input, Space, Modal, message, Typography, Upload } from 'antd'
-import { EditOutlined, CopyOutlined, RobotOutlined, UploadOutlined, CompressOutlined } from '@ant-design/icons'
+import { EditOutlined, CopyOutlined, RobotOutlined, UploadOutlined, CompressOutlined, TagOutlined } from '@ant-design/icons'
 import { IChapter } from '@/src/types/IAiNoval'
 import * as chapterApi from '../apiCalls'
 import styles from './ChapterGeneratePanel.module.scss'
@@ -23,6 +23,9 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
   const [isSummarizeModalVisible, setIsSummarizeModalVisible] = useState(false)
   const [summarizedContent, setSummarizedContent] = useState('')
   const [isSummarizing, setIsSummarizing] = useState(false)
+  const [isNameModalVisible, setIsNameModalVisible] = useState(false)
+  const [suggestedName, setSuggestedName] = useState('')
+  const [isNaming, setIsNaming] = useState(false)
 
   // 当选中章节改变时，更新内容
   React.useEffect(() => {
@@ -110,6 +113,53 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
       .catch(() => message.error('复制失败'))
   }
 
+  // 处理章节命名
+  const handleNameChapter = async () => {
+    if (!selectedChapter) return
+
+    try {
+      setIsNaming(true)
+      setSuggestedName('')
+
+      const text = await chapterApi.nameChapterBlocking(selectedChapter.id || 0)
+
+      setSuggestedName(text)
+
+    } catch (error) {
+      console.error('nameChapter error -> ', error)
+      message.error('命名失败')
+    } finally {
+      setIsNaming(false)
+    }
+  }
+
+  // 复制建议的章节名
+  const handleCopySuggestedName = () => {
+    navigator.clipboard.writeText(suggestedName)
+      .then(() => message.success('章节名已复制到剪贴板'))
+      .catch(() => message.error('复制失败'))
+  }
+
+  // 应用建议的章节名
+  const handleApplySuggestedName = async () => {
+    if (!selectedChapter || !suggestedName) return
+
+    try {
+      setIsLoading(true)
+      await chapterApi.updateChapter({
+        id: selectedChapter.id,
+        title: suggestedName
+      })
+      message.success('章节名已更新')
+      setIsNameModalVisible(false)
+      onChapterChange()
+    } catch (error) {
+      message.error('更新章节名失败')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   if (!selectedChapter) {
     return (
       <div className={styles.emptyState}>
@@ -148,6 +198,13 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
         }
         extra={
           <Space>
+            <Button
+              icon={<TagOutlined />}
+              onClick={() => setIsNameModalVisible(true)}
+              disabled={!content}
+            >
+              命名章节
+            </Button>
             <Button
               icon={<CompressOutlined />}
               onClick={() => setIsSummarizeModalVisible(true)}
@@ -261,6 +318,39 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
             </Button>
             <div className={styles.summarizedText}>
               {summarizedContent || '点击上方按钮开始缩写...'}
+            </div>
+          </Space>
+        </div>
+      </Modal>
+
+      {/* 命名章节模态框 */}
+      <Modal
+        title="命名章节"
+        open={isNameModalVisible}
+        onCancel={() => setIsNameModalVisible(false)}
+        width={800}
+        footer={[
+          <Button key="copy" icon={<CopyOutlined />} onClick={handleCopySuggestedName}>
+            复制章节名
+          </Button>,
+          <Button key="close" onClick={() => setIsNameModalVisible(false)}>
+            关闭
+          </Button>
+        ]}
+      >
+        <div className={styles.nameContent}>
+          <Space direction="vertical" style={{ width: '100%' }}>
+            <Button
+              type="primary"
+              icon={<RobotOutlined />}
+              onClick={handleNameChapter}
+              loading={isNaming}
+              disabled={!content}
+            >
+              使用LLM命名
+            </Button>
+            <div className={styles.suggestedName}>
+              {isNaming ? '命名中...' : (suggestedName || '点击上方按钮开始命名...')}
             </div>
           </Space>
         </div>

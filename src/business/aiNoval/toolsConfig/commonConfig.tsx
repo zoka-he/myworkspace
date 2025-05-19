@@ -23,6 +23,7 @@ export function CommonConfig() {
     function getDefaultToolConfig(): { [key: string]: string } {
         return {
             ['DIFY_PARAGRAPH_STRIPPER_API_KEY']: '',
+            ['DIFY_PATAGRAPH_TITLE_API_KEY']: '',
         }
     }
 
@@ -53,6 +54,10 @@ export function CommonConfig() {
     return (
         <Form form={formForCommon} {...formLayout} style={{ maxWidth: 600 }}>
             <Form.Item name={'DIFY_PARAGRAPH_STRIPPER_API_KEY'} label="段落缩写工作流API Key：">
+                <Input/>
+            </Form.Item>
+            
+            <Form.Item name={'DIFY_PATAGRAPH_TITLE_API_KEY'} label="段落标题工作流API Key：">
                 <Input/>
             </Form.Item>
 

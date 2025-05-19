@@ -20,53 +20,52 @@
 .editorActions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 8px;
 }
 
 .contentDisplay {
   min-height: 200px;
   white-space: pre-wrap;
-  word-break: break-word;
-  padding: 16px;
-  background-color: #fafafa;
-  border-radius: 4px;
-}
-
-.diagnosisContent {
-  max-height: 60vh;
-  overflow-y: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
-  padding: 16px;
-  background-color: #fafafa;
-  border-radius: 4px;
+  word-break: break-all;
 }
 
 .uploadDrag {
-  :global {
-    .ant-upload-drag {
-      border: 2px dashed #d9d9d9;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: border-color 0.3s;
+  padding: 24px;
+  border: 1px dashed #d9d9d9;
+  border-radius: 8px;
+  background: #fafafa;
+}
 
-      &:hover {
-        border-color: #1890ff;
-      }
-    }
-  }
+.diagnosisContent {
+  max-height: 400px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
 .summarizeContent {
+  min-height: 200px;
+}
+
+.summarizedText {
+  margin-top: 16px;
   padding: 16px;
-  
-  .summarizedText {
-    margin-top: 16px;
-    padding: 16px;
-    background-color: #f5f5f5;
-    border-radius: 4px;
-    min-height: 200px;
-    white-space: pre-wrap;
-    word-break: break-all;
-  }
+  background: #f5f5f5;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.nameContent {
+  min-height: 200px;
+}
+
+.suggestedName {
+  margin-top: 16px;
+  padding: 16px;
+  background: #f5f5f5;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-size: 16px;
+  font-weight: 500;
 } 
