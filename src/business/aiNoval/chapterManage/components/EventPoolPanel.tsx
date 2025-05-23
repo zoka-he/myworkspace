@@ -7,6 +7,7 @@ import { IChapter, IStoryLine, IWorldViewDataWithExtra, ITimelineEvent, IGeoUnio
 import { TimelineDateFormatter } from '../../common/novelDateUtils'
 import { EditOutlined, ReloadOutlined, SaveOutlined } from '@ant-design/icons'
 import * as apiCalls from '../apiCalls'
+import { loadGeoUnionList } from '../../common/geoDataUtil'
 
 const { Text } = Typography
 
@@ -45,9 +46,9 @@ function EventPoolPanel({
   // worldViewList,
   // selectedWorldViewId,
   selectedChapterId,
-  geoUnionList,
-  factionList,
-  roleList,
+  // geoUnionList,
+  // factionList,
+  // roleList,
   // onWorldViewChange,
   onChapterChange
 }: EventPoolPanelProps) {
@@ -96,6 +97,15 @@ function EventPoolPanel({
   // 当前选中的章节
   const [selectedChapter, setSelectedChapter] = useState<IChapter | null>(null)
 
+  // 关联地点列表
+  const [geoUnionList, setGeoUnionList] = useState<IGeoUnionData[]>([])
+
+  // 关联阵营列表
+  const [factionList, setFactionList] = useState<IFactionDefData[]>([])
+
+  // 关联角色列表
+  const [roleList, setRoleList] = useState<IRoleData[]>([])
+
   // 初始加载，加载完毕后触发isFirstLoad完成事件
   useEffect(() => {
     initData();
@@ -141,6 +151,35 @@ function EventPoolPanel({
       const [timelineAdjustmentStart, timelineAdjustmentEnd] = calculateAndSyncChapterDateRange(selectedChapter);
       loadChapterEvents([timelineAdjustmentStart, timelineAdjustmentEnd], selectedChapter.event_ids);
     }
+
+    // 加载备选地点
+    if (selectedWorldView?.id) {
+      loadGeoUnionList(selectedWorldView.id).then(res => {
+        setGeoUnionList(res);
+      })
+    } else {
+      setGeoUnionList([]);
+    }
+
+    // 加载备选阵营
+    if (selectedWorldView?.id) {
+      apiCalls.loadFactionList(selectedWorldView.id).then(res => {
+        setFactionList(res);
+      })
+    } else {
+      setFactionList([]);
+    }
+
+    // 加载备选角色
+    if (selectedWorldView?.id) {
+      apiCalls.loadRoleList(selectedWorldView.id).then(res => {
+        setRoleList(res);
+      })
+    } else {
+      setRoleList([]);
+    }
+
+
   }, [selectedWorldView])
 
   // 监听章节变更，包括初始化
@@ -157,6 +196,8 @@ function EventPoolPanel({
   // 初始化数据
   const initData = async () => {
     const worldViewList = (await apiCalls.getWorldViewList())?.data;
+
+    // 加载关联地点
     setWorldViewList(worldViewList);
 
     if (selectedChapterId) {
