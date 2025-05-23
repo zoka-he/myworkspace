@@ -34,4 +34,15 @@ export default class ChaptersService extends MysqlNovalService {
         return result.data[0].max_chapter_number;
     }
 
+    // 获取章节列表基础信息
+    async getChapterListBaseInfo(novelId, page = 1, limit = 20) {
+        const result = await this.query(
+            'SELECT id, chapter_number, version, title, event_ids FROM chapters WHERE novel_id = ?', [novelId],
+            ['chapter_number asc', 'version asc'],
+            page,
+            limit
+        );
+        return result;
+    }
+
 }

@@ -15,21 +15,25 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
     const page = _.toNumber(req.query.page || 1);
     const limit = _.toNumber(req.query.limit || 20);
 
-    let queryObject: ISqlCondMap = {};
+    const dataType = req.query.dataType || 'base';
 
-    for (let [k, v] of Object.entries(req.query)) {
-        if (v === undefined) {
-            continue;
-        }
+    // let queryObject: ISqlCondMap = {};
 
-        switch(k) {
-            case 'novel_id':
-                queryObject.novel_id = v;
-                break;
-        }
-    }
+    // for (let [k, v] of Object.entries(req.query)) {
+    //     if (v === undefined) {
+    //         continue;
+    //     }
 
-    let ret = await service.query(queryObject, [], ['chapter_number asc', 'version asc'], page, limit);
+    //     switch(k) {
+    //         case 'novel_id':
+    //             queryObject.novel_id = v;
+    //             break;
+    //     }
+    // }
+
+    // let ret = await service.query(queryObject, [], ['chapter_number asc', 'version asc'], page, limit);
+    let ret = await service.getChapterListBaseInfo(req.query.novelId, page, limit);
+
     res.status(200).json(ret);
 }
 

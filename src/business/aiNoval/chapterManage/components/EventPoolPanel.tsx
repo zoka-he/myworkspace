@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Select, Space, Row, Col, Typography, Slider, Tag, Button, Modal, Form, Radio, Input, InputNumber, message } from 'antd'
+import { Select, Space, Row, Col, Typography, Slider, Tag, Button, Modal, Form, Radio, Input, InputNumber, message, Alert } from 'antd'
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
 import { EventPool } from '../types'
 import styles from './EventPoolPanel.module.scss'
@@ -13,61 +13,117 @@ const { Text } = Typography
 type Event = ITimelineEvent
 
 interface EventPoolPanelProps {
-  selectedWorldContext: string
+  // selectedWorldContext: string
   worldViewList: IWorldViewDataWithExtra[],
-  selectedWorldViewId?: number | null
-  selectedChapter?: IChapter | null,
+  // selectedWorldViewId?: number | null
+  selectedChapterId?: number | null,
   geoUnionList: IGeoUnionData[],
   factionList: IFactionDefData[],
   roleList: IRoleData[],
-  onWorldViewChange: (value?: number | null) => void
+  // onWorldViewChange: (value?: number | null) => void
   onChapterChange: (value?: IChapter | null) => void
 }
 
+/*
+1.加载流程（初始化）：
+  1.1 加载世界观列表
+  1.2 加载章节数据
+  1.3 加载章节关联故事线
+  1.4 计算章节时间范围
+  1.5 加载章节关联事件
+
+2.加载流程（章节变更）：
+  2.1 加载章节数据
+  2.2 加载章节关联故事线
+  2.3 计算章节时间范围
+  2.4 加载章节关联事件 
+
+*/
+
 function EventPoolPanel({
-  selectedWorldContext,
-  worldViewList,
-  selectedWorldViewId,
-  selectedChapter,
+  // selectedWorldContext,
+  // worldViewList,
+  // selectedWorldViewId,
+  selectedChapterId,
   geoUnionList,
   factionList,
   roleList,
-  onWorldViewChange,
+  // onWorldViewChange,
   onChapterChange
 }: EventPoolPanelProps) {
+  // 时间线开始时间
   const [timelineStart, setTimelineStart] = useState(0)
+
+  // 时间线结束时间
   const [timelineEnd, setTimelineEnd] = useState(100)
-  const [selectedWorldView, setSelectedWorldView] = useState<IWorldViewDataWithExtra | null>(null)
+
+  // 时间线模态框是否可见
   const [isTimelineModalVisible, setIsTimelineModalVisible] = useState(false)
+
+  // 时间线表单
   const [timelineForm] = Form.useForm()
+
+  // 时间线类型
   const [timelineType, setTimelineType] = useState<'start' | 'end'>('start')
+
+  // 故事线列表
   const [storyLineList, setStoryLineList] = useState<IStoryLine[]>([])
+
+  // 当前选中的故事线ID列表
   const [selectedStoryLineIds, setSelectedStoryLineIds] = useState<number[]>([])
+
+  // 时间线范围（微调）
   const [timelineAdjustment, setTimelineAdjustment] = useState<[number, number]>([0, 100])
+
+  // 是否加载中
   const [loading, setLoading] = useState(false)
+
+  // 事件池
   const [eventPool, setEventPool] = useState<EventPool>({ selected: [], candidate: [] })
 
-  // 监听父组件变更
-  useEffect(() => {
-    let selectedWorldView = null;
+  // 是否是第一次加载
+  const [isFirstLoad, setIsFirstLoad] = useState(true)
 
-    if (selectedWorldViewId) {
-      selectedWorldView = worldViewList.find(worldView => worldView.id === selectedWorldViewId) ?? null;
+  // 世界观列表
+  const [worldViewList, setWorldViewList] = useState<IWorldViewDataWithExtra[]>([])
+
+  // 当前选中的世界观
+  const [selectedWorldView, setSelectedWorldView] = useState<IWorldViewDataWithExtra | null>(null)
+
+  // 当前选中的世界观ID，选择器专用，fuck antd
+  const [selectedWorldViewId, setSelectedWorldViewId] = useState<number | null>(null)
+
+  // 当前选中的章节
+  const [selectedChapter, setSelectedChapter] = useState<IChapter | null>(null)
+
+  // 初始加载，加载完毕后触发isFirstLoad完成事件
+  useEffect(() => {
+    initData();
+    setIsFirstLoad(false);
+  }, [])
+
+  // 监听世界观ID变更（选择器专属事件）
+  useEffect(() => {
+    if (!selectedWorldViewId) {
+      setSelectedWorldView(null);
+      return;
     }
 
-    setSelectedWorldView(selectedWorldView);
-  }, [selectedWorldViewId, worldViewList]);
+    const selectedWorldView = worldViewList.find(worldView => worldView.id === selectedWorldViewId);
+    setSelectedWorldView(selectedWorldView || null);
+  }, [selectedWorldViewId]);
 
   // 监听世界观变更
   useEffect(() => {
     if (selectedWorldView?.te_max_seconds) {
-      setTimelineStart(selectedWorldView?.te_max_seconds - 30 * 24 * 3600);
+      setTimelineStart(selectedWorldView?.te_max_seconds - 7 * 24 * 3600);
       setTimelineEnd(selectedWorldView?.te_max_seconds);
     } else {
       setTimelineStart(0);
       setTimelineEnd(100);
     }
 
+    // 加载故事线列表
     if (selectedWorldView?.id) {
       apiCalls.getStoryLineList(selectedWorldView.id).then(res => {
         setStoryLineList(res.data)
@@ -79,28 +135,89 @@ function EventPoolPanel({
       setStoryLineList([])
       setSelectedStoryLineIds([])
     }
-
-    fillChapterInfo();
   }, [selectedWorldView])
 
-  // 监听章节变更
+  // 监听章节变更，包括初始化
   useEffect(() => {
-    fillChapterInfo();
-  }, [selectedChapter])
+    loadChapterData();
+  }, [isFirstLoad, selectedChapterId])
+
+  // 初始化数据
+  const initData = async () => {
+    const worldViewList = (await apiCalls.getWorldViewList())?.data;
+    setWorldViewList(worldViewList);
+
+    if (selectedChapter?.worldview_id) {
+      const selectedWorldView = worldViewList.find(worldView => worldView.id === selectedChapter.worldview_id);
+      setSelectedWorldView(selectedWorldView || null);
+      setSelectedWorldViewId(selectedWorldView?.id || null);
+    } else {
+      setSelectedWorldView(null);
+      setSelectedWorldViewId(null);
+    } 
+  }
+
+  const loadChapterData = async () => {
+    console.debug('loadChapterData --> ', selectedChapter);
+
+    if (!selectedChapterId) {
+      console.debug('selectedChapterId is null');
+      setSelectedChapter(null);
+      return;
+    }
+
+    const chapterData = await apiCalls.getChapterById(selectedChapterId);
+    setSelectedChapter(chapterData);
+    
+    if (!chapterData) {
+      console.debug('chapterData is null')
+      return
+    }
+
+    // 设置关联世界观，注意还要设置ID，antd专用
+    if (!chapterData?.worldview_id) {
+      console.debug('chapterData?.worldview_id is null')
+      setSelectedWorldView(null)
+      setSelectedWorldViewId(null)
+    } else {
+      console.debug('chapterData?.worldview_id is not null')
+      setSelectedWorldView(worldViewList.find(worldView => worldView.id === chapterData.worldview_id) || null)
+      setSelectedWorldViewId(chapterData.worldview_id)
+    }
+
+    // 设置关联故事线
+    if (chapterData?.storyline_ids?.length) {
+      setSelectedStoryLineIds(chapterData.storyline_ids)
+    } else {
+      setSelectedStoryLineIds(storyLineList.map(line => line.id))
+    }
+
+    // 计算章节时间范围，并同步到时间线范围
+    let [timelineAdjustmentStart, timelineAdjustmentEnd] = calculateAndSyncChapterDateRange(chapterData);
+
+    // 加载章节事件
+    loadChapterEvents([timelineAdjustmentStart, timelineAdjustmentEnd], chapterData.event_ids)
+  }
 
   // 加载章节事件
-  const loadChapterEvents = async () => {
+  const loadChapterEvents = async (requestDateRange?: [number, number], chapterEventIds?: number[]) => {
     if (!selectedWorldView?.id) {
       // message.warning('请先选择世界观')
       return
+    }
+
+    if (!requestDateRange) {
+      // 如果未指定请求日期范围，则使用时间线范围
+      console.debug('requestDateRange is null, use timelineAdjustment: ', timelineAdjustment)
+      requestDateRange = [timelineAdjustment[0], timelineAdjustment[1]]
     }
 
     try {
       setLoading(true)
       const response = await apiCalls.getTimelineEventList(
         selectedWorldView.id,
-        timelineAdjustment[0],
-        timelineAdjustment[1]
+        requestDateRange[0],
+        requestDateRange[1]
       )
 
       if (response.data) {
@@ -108,10 +225,12 @@ function EventPoolPanel({
           message.warning('时间段内事件密集，建议缩小筛选范围')
         }
         
-        // 如果有章节的event_ids，则将其作为已选事件
-        const selectedEvents = selectedChapter?.event_ids && Array.isArray(selectedChapter.event_ids)
-          ? response.data.filter(event => selectedChapter?.event_ids?.includes(event.id))
-          : []
+        // 如果有章节的event_ids，则使用它作为已选事件，否则保留当前已选事件
+        const selectedEvents = chapterEventIds && Array.isArray(chapterEventIds)
+          ? response.data.filter(event => chapterEventIds.includes(event.id))
+          : eventPool.selected.filter(selectedEvent => 
+              response.data.some(newEvent => newEvent.id === selectedEvent.id)
+            )
         
         // 过滤掉已经在已选事件中的事件作为候选事件
         const selectedEventIds = new Set(selectedEvents.map(event => event.id))
@@ -130,29 +249,30 @@ function EventPoolPanel({
     }
   }
 
-  const fillChapterInfo = () => {
-    if (!selectedChapter) {
-      return
+  const calculateAndSyncChapterDateRange = (chapterData: IChapter) => {
+    if (!chapterData) {
+      setTimelineStart(0)
+      setTimelineEnd(100)
+
+      setTimelineAdjustment([0, 100])
+
+      return [0, 100];
     }
 
-    if (selectedChapter?.storyline_ids?.length) {
-      setSelectedStoryLineIds(selectedChapter.storyline_ids)
-    } else {
-      setSelectedStoryLineIds(storyLineList.map(line => line.id))
-    }
-
-    // 设置时间线范围
     let timelineStart = 0;
     let timelineEnd = 100;
-    if (selectedChapter.event_line_start1 && selectedChapter.event_line_end1) {
-      // 如果章节存储了事件线设置信息，则使用章节的事件线设置信息
-      timelineStart = selectedChapter.event_line_start1
-      timelineEnd = selectedChapter.event_line_end1
+
+    if (chapterData.event_line_start1) {
+      timelineStart = chapterData.event_line_start1
     } else if (selectedWorldView?.te_max_seconds) {
-      // 设置范围为最后30天
+      timelineStart = selectedWorldView.te_max_seconds - 7 * 24 * 3600;
+    }
+
+    if (chapterData.event_line_end1) {
+      timelineEnd = chapterData.event_line_end1
+    } else if (selectedWorldView?.te_max_seconds) {
       timelineEnd = selectedWorldView.te_max_seconds;
-      timelineStart = timelineEnd - 30 * 24 * 3600;
-    } 
+    }
 
     setTimelineStart(timelineStart)
     setTimelineEnd(timelineEnd)
@@ -160,15 +280,18 @@ function EventPoolPanel({
     let timelineAdjustmentStart = timelineStart;
     let timelineAdjustmentEnd = timelineEnd;
 
-    if (selectedChapter.event_line_start2 && selectedChapter.event_line_end2) {
-      timelineAdjustmentStart = selectedChapter.event_line_start2
-      timelineAdjustmentEnd = selectedChapter.event_line_end2
-    } 
+    if (chapterData.event_line_start2) {
+      timelineAdjustmentStart = chapterData.event_line_start2
+    }
+
+    if (chapterData.event_line_end2) {
+      timelineAdjustmentEnd = chapterData.event_line_end2
+    }
 
     setTimelineAdjustment([timelineAdjustmentStart, timelineAdjustmentEnd])
 
-    // 加载章节事件
-    loadChapterEvents()
+    return [timelineAdjustmentStart, timelineAdjustmentEnd];
+      
   }
 
   const handleDragEnd = (result: any) => {
@@ -293,8 +416,6 @@ function EventPoolPanel({
           <Space wrap>
             {factions.map(faction => {
               const factionItem = factionList.find(item => item.id === faction);
-              console.debug('faction ---> ', faction);
-              console.debug('matched faction ---> ', factionItem);
               return <Tag key={faction} color="green">{factionItem?.name}</Tag>
             })}
           </Space>
@@ -314,9 +435,8 @@ function EventPoolPanel({
   // 根据筛选条件过滤事件
   const filterEvents = (events: Event[]) => {
     return events.filter(event => {
-      const worldContextMatch = selectedWorldContext === 'all' || event.worldview_id.toString() === selectedWorldContext
       const storyLineMatch = selectedStoryLineIds.length === 0 || selectedStoryLineIds.includes(event.story_line_id)
-      return worldContextMatch && storyLineMatch
+      return storyLineMatch
     })
   }
 
@@ -397,6 +517,33 @@ function EventPoolPanel({
     setIsTimelineModalVisible(true)
   }
 
+  // 如果未选择世界观，则只显示选择器
+  if (!selectedWorldView) {
+    return (
+      <div>
+        <Row gutter={16} className={styles.filterSection}>
+          <Col span={8}>
+            <Select
+              style={{ width: '100%' }}
+              placeholder="选择世界观"
+              value={selectedWorldViewId}
+              allowClear
+              onClear={() => setSelectedWorldViewId(null)}
+              onChange={setSelectedWorldViewId}
+            >
+              {worldViewList.map(context => (
+                <Select.Option key={context.id} value={context.id}>
+                  {context.title}
+                </Select.Option>
+              ))}
+            </Select>
+          </Col>
+        </Row>
+        <Alert style={{ margin: '10px 0' }} message="请先选择世界观" type="warning" />
+      </div>
+    )
+  }
+
   // 渲染事件线设置
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
@@ -408,8 +555,8 @@ function EventPoolPanel({
               placeholder="选择世界观"
               value={selectedWorldViewId}
               allowClear
-              onClear={() => onWorldViewChange(null)}
-              onChange={onWorldViewChange}
+              onClear={() => setSelectedWorldViewId(null)}
+              onChange={setSelectedWorldViewId}
             >
               {worldViewList.map(context => (
                 <Select.Option key={context.id} value={context.id}>
@@ -462,7 +609,7 @@ function EventPoolPanel({
               tooltip={{ formatter: (value) => renderNovelDate(value) }}
             />
           </div>
-          <Button type="primary" icon={<ReloadOutlined />} onClick={loadChapterEvents} loading={loading}>加载事件</Button>
+          <Button type="primary" icon={<ReloadOutlined />} onClick={() => loadChapterData()} loading={loading}>加载事件</Button>
           <Button icon={<SaveOutlined />} onClick={saveChapterSetting} loading={loading}>保存配置和事件到章节</Button>
         </div>
 

@@ -88,12 +88,44 @@ function splitIds2String(ids?: number[]) {
 }
 
 /**
+ * 获取章节定义数据
+ * @param id 章节ID
+ * @returns { data: IChapter }
+ */
+export const getChapterById = async (id: number) => {
+    const chapter = (await fetch.get<IChapter>('/api/aiNoval/chapters', {params: {id}})) as unknown as IChapter;
+
+    if (chapter.storyline_ids) {
+        chapter.storyline_ids = splitIds(chapter.storyline_ids);
+    }
+
+    if (chapter.event_ids) {
+        chapter.event_ids = splitIds(chapter.event_ids);
+    }
+
+    if (chapter.geo_ids) {
+        chapter.geo_ids = splitIds(chapter.geo_ids);
+    }
+
+    if (chapter.role_ids) {
+        chapter.role_ids = splitIds(chapter.role_ids);
+    }
+
+    if (chapter.faction_ids) {
+        chapter.faction_ids = splitIds(chapter.faction_ids);
+    }
+
+    return chapter;
+}
+
+/**
  * 获取所有章节定义数据
  * @returns { data: IChapter[], count: number }
  */
 export const getChapterList = async (novelId: number, page: number = 1, limit: number = 100) => {
     let params = {
         novelId,
+        dataType: 'base',
         page,
         limit
     };
@@ -225,5 +257,22 @@ export const nameChapterBlocking = async (chapterId: number): Promise<string> =>
     console.debug('response -> ', response);
 
     return response.data?.outputs?.output || '';
+}
+
+// TODO: 续写章节，待调正
+export const continueChapterBlocking = async (chapterId: number): Promise<string> => {
+    const response = await fetch.post(`/api/aiNoval/chapters/continue`, 
+        {},
+        {
+            params: {
+                chapterId,
+                mode: 'blocking'
+            }
+        }
+    );
+
+    console.debug('response -> ', response);
+
+    return response.data?.outputs?.text || '';
 }
 

@@ -1,10 +1,11 @@
 import React, { useState } from 'react'
 import { Card, Button, Input, Space, Modal, message, Typography, Upload } from 'antd'
-import { EditOutlined, CopyOutlined, RobotOutlined, UploadOutlined, CompressOutlined, TagOutlined } from '@ant-design/icons'
+import { EditOutlined, CopyOutlined, UploadOutlined, CompressOutlined, TagOutlined, RobotOutlined } from '@ant-design/icons'
 import { IChapter } from '@/src/types/IAiNoval'
 import * as chapterApi from '../apiCalls'
 import styles from './ChapterGeneratePanel.module.scss'
 import type { UploadProps } from 'antd'
+import ChapterContinueModal from './ChapterContinueModal'
 
 const { TextArea } = Input
 const { Text } = Typography
@@ -17,8 +18,6 @@ interface ChapterGeneratePanelProps {
 function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGeneratePanelProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [content, setContent] = useState('')
-  const [isDiagnosisModalVisible, setIsDiagnosisModalVisible] = useState(false)
-  const [diagnosisResult, setDiagnosisResult] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isSummarizeModalVisible, setIsSummarizeModalVisible] = useState(false)
   const [summarizedContent, setSummarizedContent] = useState('')
@@ -26,6 +25,7 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
   const [isNameModalVisible, setIsNameModalVisible] = useState(false)
   const [suggestedName, setSuggestedName] = useState('')
   const [isNaming, setIsNaming] = useState(false)
+  const [isContinueModalVisible, setIsContinueModalVisible] = useState(false)
 
   // 当选中章节改变时，更新内容
   React.useEffect(() => {
@@ -58,19 +58,6 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
   const handleCopyContent = () => {
     navigator.clipboard.writeText(content)
       .then(() => message.success('内容已复制到剪贴板'))
-      .catch(() => message.error('复制失败'))
-  }
-
-  // 打开诊断模态框
-  const handleOpenDiagnosis = () => {
-    setIsDiagnosisModalVisible(true)
-    // TODO: 这里可以添加调用LLM进行诊断的逻辑
-    setDiagnosisResult('章节诊断功能开发中...')
-  }
-
-  // 复制诊断结果
-  const handleCopyDiagnosis = () => {
-    navigator.clipboard.writeText(diagnosisResult)
       .catch(() => message.error('复制失败'))
   }
 
@@ -192,6 +179,14 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
                 >
                   编辑内容
                 </Button>
+                <Button
+                  type="primary"
+                  icon={<RobotOutlined />}
+                  onClick={() => setIsContinueModalVisible(true)}
+                  disabled={!content}
+                >
+                  AI续写
+                </Button>
               </Space>
             )}
           </Space>
@@ -200,7 +195,7 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
           <Space>
             <Button
               icon={<TagOutlined />}
-              onClick={() => setIsNameModalVisible(true)}
+              onClick={() => {  setSuggestedName(''); setIsNameModalVisible(true); }}
               disabled={!content}
             >
               命名章节
@@ -211,21 +206,6 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
               disabled={!content}
             >
               缩写章节
-            </Button>
-            <Button
-              icon={<CopyOutlined />}
-              onClick={handleCopyContent}
-              disabled={!content}
-            >
-              复制内容
-            </Button>
-            <Button
-              type="primary"
-              icon={<RobotOutlined />}
-              onClick={handleOpenDiagnosis}
-              disabled={!content}
-            >
-              LLM诊断
             </Button>
           </Space>
         }
@@ -270,25 +250,13 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
         )}
       </Card>
 
-      {/* LLM诊断模态框 */}
-      <Modal
-        title="章节诊断"
-        open={isDiagnosisModalVisible}
-        onCancel={() => setIsDiagnosisModalVisible(false)}
-        width={800}
-        footer={[
-          <Button key="copy" icon={<CopyOutlined />} onClick={handleCopyDiagnosis}>
-            复制诊断结果
-          </Button>,
-          <Button key="close" onClick={() => setIsDiagnosisModalVisible(false)}>
-            关闭
-          </Button>
-        ]}
-      >
-        <div className={styles.diagnosisContent}>
-          {diagnosisResult}
-        </div>
-      </Modal>
+      {/* AI续写模态框 */}
+      <ChapterContinueModal
+        selectedChapter={selectedChapter}
+        isVisible={isContinueModalVisible}
+        onClose={() => setIsContinueModalVisible(false)}
+        onChapterChange={onChapterChange}
+      />
 
       {/* 缩写章节模态框 */}
       <Modal
@@ -309,7 +277,6 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
           <Space direction="vertical" style={{ width: '100%' }}>
             <Button
               type="primary"
-              icon={<RobotOutlined />}
               onClick={handleSummarize}
               loading={isSummarizing}
               disabled={!content}
@@ -342,7 +309,6 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
           <Space direction="vertical" style={{ width: '100%' }}>
             <Button
               type="primary"
-              icon={<RobotOutlined />}
               onClick={handleNameChapter}
               loading={isNaming}
               disabled={!content}

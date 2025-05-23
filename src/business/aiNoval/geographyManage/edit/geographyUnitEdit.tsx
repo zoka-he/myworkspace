@@ -200,6 +200,17 @@ class GeographyUnitEdit extends React.Component<IGeographyUnitEditProps, IGeogra
                                 <Select.Option value={'city'}>城市 - CT</Select.Option>
                                 <Select.Option value={'town'}>镇 - TO</Select.Option>
                                 <Select.Option value={'village'}>村 - VI</Select.Option>
+                                <Select.Option value={'street'}>街道 - ST</Select.Option>
+                                <Select.Option value={'building'}>建筑 - BL</Select.Option>
+                                <Select.Option value={'fort'}>防御工事 - FT</Select.Option>
+                                <Select.Option value={'hub'}>枢纽 - HB</Select.Option>
+                                <Select.Option value={'port'}>港口 - PG</Select.Option>
+                                <Select.Option value={'airport'}>机场 - AP</Select.Option>
+                                <Select.Option value={'military_base'}>军事基地 - MB</Select.Option>
+                                <Select.Option value={'factory'}>工厂 - FA</Select.Option>
+                                <Select.Option value={'mine'}>矿山 - MI</Select.Option>
+                                <Select.Option value={'power_plant'}>发电站 - PP</Select.Option>
+                                
                             </Select>
                         </Form.Item>
                         <Form.Item label={'地理单元描述'} name={'description'}>

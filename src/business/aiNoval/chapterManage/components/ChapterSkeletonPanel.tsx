@@ -3,7 +3,7 @@ import { Space, Typography, Button, Input, message, Form, Row, Col, Tag, Tooltip
 import { PlusOutlined, DeleteOutlined, ReloadOutlined, EditOutlined, InfoCircleOutlined, CopyOutlined } from '@ant-design/icons'
 import { IChapter, IWorldViewDataWithExtra, IGeoUnionData, IFactionDefData, IRoleData, ITimelineEvent } from '@/src/types/IAiNoval'
 import styles from './ChapterSkeletonPanel.module.scss'
-import { getTimelineEventByIds } from '../apiCalls'
+import { getTimelineEventByIds, updateChapter } from '../apiCalls'
 import _ from 'lodash'
 import { TimelineDateFormatter } from '@/src/business/aiNoval/common/novelDateUtils'
 
@@ -80,9 +80,9 @@ function ChapterSkeletonPanel({
     // 初始化表单数据
     if (selectedChapter) {
       form.setFieldsValue({
-        geo_ids: selectedChapter.geo_ids || [],
-        faction_ids: selectedChapter.faction_ids || [],
-        role_ids: selectedChapter.role_ids || [],
+        geo_ids: relatedEventLocationIds || [],
+        faction_ids: relatedEventFactionIds || [],
+        role_ids: relatedEventCharacterIds || [],
         seed_prompt: selectedChapter.seed_prompt || ''
       })
     }
@@ -227,6 +227,16 @@ function ChapterSkeletonPanel({
         return
       }
 
+      let updateObject: IChapter = {
+        id: selectedChapter.id,
+        geo_ids: values.geo_ids,
+        faction_ids: values.faction_ids,
+        role_ids: values.role_ids,
+        seed_prompt: values.seed_prompt
+      };
+
+      await updateChapter(updateObject);
+
       // TODO: 调用API保存章节信息
       message.success('保存成功')
       onChapterChange()
@@ -328,6 +338,7 @@ function ChapterSkeletonPanel({
                 </Button>
               </Space>
             </div>
+
             <div className={styles.relatedInfo}>
               <div className={styles.relatedInfoItem}>
                 <Text strong>关联地点：</Text>
@@ -341,6 +352,7 @@ function ChapterSkeletonPanel({
                   )}
                 </div>
               </div>
+
               <div className={styles.relatedInfoItem}>
                 <Text strong>关联阵营：</Text>
                 <div className={styles.tagsContainer}>
@@ -365,6 +377,7 @@ function ChapterSkeletonPanel({
                   )}
                 </div>
               </div>
+
               <div className={styles.relatedInfoItem}>
                 <Text strong>关联事件：</Text>
                 <div className={styles.eventsContainer}>
@@ -533,7 +546,7 @@ function ChapterSkeletonPanel({
         </Form.Item>
 
         <Form.Item
-          label={<Text strong>章节根提示词</Text>}
+          label={<Text strong>章节提示词（在生成面板中，会根据双换行进行切分）</Text>}
           name="seed_prompt"
         >
           <TextArea
@@ -545,59 +558,7 @@ function ChapterSkeletonPanel({
           />
         </Form.Item>
       </Form>
-
-      {/* 骨架操作按钮 */}
-      <div className={styles.skeletonActions}>
-        <Space>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={handleAddSkeletonItem}
-          >
-            添加骨架项
-          </Button>
-          <Button
-            type="primary"
-            onClick={handleSaveSkeleton}
-            loading={loading}
-          >
-            保存骨架
-          </Button>
-        </Space>
-      </div>
-
-      <div className={styles.skeletonList}>
-        {skeletonItems.map((item, index) => (
-          <div key={item.id} className={styles.skeletonItem}>
-            <Row gutter={16} align="middle">
-              <Col span={1}>
-                <Text type="secondary">{index + 1}.</Text>
-              </Col>
-              <Col span={22}>
-                <TextArea
-                  value={item.content}
-                  onChange={(e) => handleSkeletonItemChange(item.id, e.target.value)}
-                  placeholder="请输入骨架内容"
-                  autoSize={{ minRows: 2, maxRows: 6 }}
-                />
-              </Col>
-              <Col span={1}>
-                <Button
-                  type="text"
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={() => handleDeleteSkeletonItem(item.id)}
-                />
-              </Col>
-            </Row>
-          </div>
-        ))}
-        {skeletonItems.length === 0 && (
-          <div className={styles.emptyTip}>
-            <Text type="secondary">暂无骨架项，请点击"添加骨架项"按钮开始创建</Text>
-          </div>
-        )}
-      </div>
+      
     </div>
   )
 }

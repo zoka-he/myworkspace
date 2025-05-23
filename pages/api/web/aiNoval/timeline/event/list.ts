@@ -69,7 +69,7 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
     // 拆解阵营id和角色id
     let dataList = ret.data.map(item => {
 
-        console.debug('event item --> ', item);
+        // console.debug('event item --> ', item);
 
         if (item.faction_ids) {
             item.faction_ids = item.faction_ids.split(',').filter((id: string) => id.trim() !== '').map((id: string) => _.toNumber(id));

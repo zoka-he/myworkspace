@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { Card, Select, Space, Row, Col, Typography, Button, Input, message, Modal, Form, Radio, Tag, Pagination } from 'antd'
+import { Card, Select, Space, Row, Col, Typography, Button, Input, message, Modal, Form, Radio, Tag, Pagination, Tooltip } from 'antd'
 import { DragDropContext } from 'react-beautiful-dnd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons'
+import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined, WarningOutlined } from '@ant-design/icons'
 import { mockEventPool } from './mockData'
 import { IChapter, IWorldViewDataWithExtra, IGeoUnionData, IRoleData, IFactionDefData } from '@/src/types/IAiNoval'
 import { EventPool, ExtendedNovelData } from './types'
@@ -189,11 +189,14 @@ function ChapterManage() {
     try {
       const values = await form.validateFields()
       if (editingChapter) {
-        // 编辑现有章节
+        // 编辑现有章节，只提交关键信息
         const updatedChapter = {
-          ...editingChapter,
-          ...values
+          id: editingChapter.id,
+          chapter_number: values.chapter_number,
+          version: values.version,
+          title: values.title,
         }
+
         await chapterApi.updateChapter(updatedChapter)
         if (selectedNovel) {
           await fetchChapters(selectedNovel)
@@ -280,11 +283,8 @@ function ChapterManage() {
       case 'event-pool':
         return (
           <EventPoolPanel
-            selectedWorldContext={selectedWorldContext}
             worldViewList={worldViewList}
-            selectedWorldViewId={selectedWorldView?.id}
-            selectedChapter={selectedChapter}
-            onWorldViewChange={handleWorldViewChange}
+            selectedChapterId={selectedChapter?.id}
             geoUnionList={geoUnionList}
             factionList={factionList}
             roleList={roleList}
@@ -368,7 +368,7 @@ function ChapterManage() {
                       .find(novel => novel.id === selectedNovel)
                       ?.chapters.map(chapter => (
                         <div key={chapter.id} className={styles.chapterItem}>
-                          <Space style={{ cursor: 'pointer' }} onClick={() => setSelectedChapter(chapter)}>
+                          <Space style={{ cursor: 'pointer' }} onClick={() => setSelectedChapter({ ...chapter })}>
                             <Text type="secondary">第{chapter.chapter_number}章</Text>
                             {chapter.title ? (
                               <Text>{chapter.title}</Text>
@@ -376,6 +376,11 @@ function ChapterManage() {
                               <Text type="secondary" italic>章节标题未设定</Text>
                             )}
                             <Tag color="green">v{chapter.version}</Tag>
+                            {(!chapter.event_ids || chapter.event_ids.length === 0) && (
+                              <Tooltip title="章节未关联事件">
+                                <WarningOutlined style={{ color: '#faad14' }} />
+                              </Tooltip>
+                            )}
                           </Space>
                           <Space>
                             <Button
@@ -436,6 +441,7 @@ function ChapterManage() {
                   buttonStyle="solid"
                 >
                   <Radio.Button value="event-pool">事件池管理</Radio.Button>
+                  <Radio.Button value="chapter-relation">章节关系</Radio.Button>
                   <Radio.Button value="chapter-skeleton">章节骨架</Radio.Button>
                   <Radio.Button value="chapter-generate">章节生成</Radio.Button>
                 </Radio.Group>
