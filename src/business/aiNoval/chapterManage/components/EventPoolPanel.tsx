@@ -135,22 +135,37 @@ function EventPoolPanel({
       setStoryLineList([])
       setSelectedStoryLineIds([])
     }
+
+    // 如果当前有选中的章节，重新加载事件
+    if (selectedChapter?.id && selectedWorldView?.id) {
+      const [timelineAdjustmentStart, timelineAdjustmentEnd] = calculateAndSyncChapterDateRange(selectedChapter);
+      loadChapterEvents([timelineAdjustmentStart, timelineAdjustmentEnd], selectedChapter.event_ids);
+    }
   }, [selectedWorldView])
 
   // 监听章节变更，包括初始化
   useEffect(() => {
-    loadChapterData();
-  }, [isFirstLoad, selectedChapterId])
+    if (selectedChapterId) {
+      loadChapterData();
+    } else {
+      // 清空事件池
+      setEventPool({ selected: [], candidate: [] });
+      setSelectedChapter(null);
+    }
+  }, [selectedChapterId])
 
   // 初始化数据
   const initData = async () => {
     const worldViewList = (await apiCalls.getWorldViewList())?.data;
     setWorldViewList(worldViewList);
 
-    if (selectedChapter?.worldview_id) {
-      const selectedWorldView = worldViewList.find(worldView => worldView.id === selectedChapter.worldview_id);
-      setSelectedWorldView(selectedWorldView || null);
-      setSelectedWorldViewId(selectedWorldView?.id || null);
+    if (selectedChapterId) {
+      const chapterData = await apiCalls.getChapterById(selectedChapterId);
+      if (chapterData?.worldview_id) {
+        const selectedWorldView = worldViewList.find(worldView => worldView.id === chapterData.worldview_id);
+        setSelectedWorldView(selectedWorldView || null);
+        setSelectedWorldViewId(selectedWorldView?.id || null);
+      }
     } else {
       setSelectedWorldView(null);
       setSelectedWorldViewId(null);
@@ -163,6 +178,7 @@ function EventPoolPanel({
     if (!selectedChapterId) {
       console.debug('selectedChapterId is null');
       setSelectedChapter(null);
+      setEventPool({ selected: [], candidate: [] });
       return;
     }
 
@@ -171,6 +187,7 @@ function EventPoolPanel({
     
     if (!chapterData) {
       console.debug('chapterData is null')
+      setEventPool({ selected: [], candidate: [] });
       return
     }
 
@@ -179,24 +196,26 @@ function EventPoolPanel({
       console.debug('chapterData?.worldview_id is null')
       setSelectedWorldView(null)
       setSelectedWorldViewId(null)
+      setEventPool({ selected: [], candidate: [] })
     } else {
       console.debug('chapterData?.worldview_id is not null')
-      setSelectedWorldView(worldViewList.find(worldView => worldView.id === chapterData.worldview_id) || null)
+      const newWorldView = worldViewList.find(worldView => worldView.id === chapterData.worldview_id) || null;
+      setSelectedWorldView(newWorldView)
       setSelectedWorldViewId(chapterData.worldview_id)
+
+      // 设置关联故事线
+      if (chapterData?.storyline_ids?.length) {
+        setSelectedStoryLineIds(chapterData.storyline_ids)
+      } else {
+        setSelectedStoryLineIds(storyLineList.map(line => line.id))
+      }
+
+      // 计算章节时间范围，并同步到时间线范围
+      let [timelineAdjustmentStart, timelineAdjustmentEnd] = calculateAndSyncChapterDateRange(chapterData);
+
+      // 加载章节事件
+      loadChapterEvents([timelineAdjustmentStart, timelineAdjustmentEnd], chapterData.event_ids)
     }
-
-    // 设置关联故事线
-    if (chapterData?.storyline_ids?.length) {
-      setSelectedStoryLineIds(chapterData.storyline_ids)
-    } else {
-      setSelectedStoryLineIds(storyLineList.map(line => line.id))
-    }
-
-    // 计算章节时间范围，并同步到时间线范围
-    let [timelineAdjustmentStart, timelineAdjustmentEnd] = calculateAndSyncChapterDateRange(chapterData);
-
-    // 加载章节事件
-    loadChapterEvents([timelineAdjustmentStart, timelineAdjustmentEnd], chapterData.event_ids)
   }
 
   // 加载章节事件
@@ -609,7 +628,7 @@ function EventPoolPanel({
               tooltip={{ formatter: (value) => renderNovelDate(value) }}
             />
           </div>
-          <Button type="primary" icon={<ReloadOutlined />} onClick={() => loadChapterData()} loading={loading}>加载事件</Button>
+          <Button type="primary" icon={<ReloadOutlined />} onClick={() => loadChapterEvents()} loading={loading}>加载事件</Button>
           <Button icon={<SaveOutlined />} onClick={saveChapterSetting} loading={loading}>保存配置和事件到章节</Button>
         </div>
 
