@@ -28,6 +28,11 @@ export const getWorldViewList = async (page: number = 1, limit: number = 100) =>
     return response;
 }
 
+export const getWorldViewById = async (id: number) => {
+    const response = await fetch.get<IWorldViewDataWithExtra>('/api/aiNoval/worldView', {params: {id}});
+    return response;
+}
+
 /**
  * 获取所有故事线定义数据
  * @returns { data: IStoryLine[], count: number }
@@ -115,6 +120,10 @@ export const getChapterById = async (id: number) => {
         chapter.faction_ids = splitIds(chapter.faction_ids);
     }
 
+    if (chapter.related_chapter_ids) {
+        chapter.related_chapter_ids = splitIds(chapter.related_chapter_ids);
+    }
+
     return chapter;
 }
 
@@ -138,6 +147,7 @@ export const getChapterList = async (novelId: number, page: number = 1, limit: n
             chapter.geo_ids = splitIds(chapter.geo_ids);
             chapter.role_ids = splitIds(chapter.role_ids);
             chapter.faction_ids = splitIds(chapter.faction_ids);
+            chapter.related_chapter_ids = splitIds(chapter.related_chapter_ids);
         });
     }
 
@@ -157,6 +167,7 @@ export const addChapter = async (chapter: IChapter) => {
         geo_ids: splitIds2String(chapter.geo_ids),
         role_ids: splitIds2String(chapter.role_ids),
         faction_ids: splitIds2String(chapter.faction_ids),
+        related_chapter_ids: splitIds2String(chapter.related_chapter_ids),
     }
 
     const response = await fetch.post<IChapter>('/api/aiNoval/chapters', po);
@@ -191,6 +202,10 @@ export const updateChapter = async (chapter: IChapter) => {
 
     if (po.hasOwnProperty('faction_ids')) {
         po.faction_ids = splitIds2String(po.faction_ids);
+    }
+
+    if (po.hasOwnProperty('related_chapter_ids')) {
+        po.related_chapter_ids = splitIds2String(po.related_chapter_ids);
     }
 
     const response = await fetch.post<IChapter>('/api/aiNoval/chapters', po, {params: {id: chapter.id}});

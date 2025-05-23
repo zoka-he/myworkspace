@@ -280,7 +280,7 @@ function ChapterManage() {
    */
   const renderModuleContent = () => {
     switch (activeModule) {
-      case 'event-pool':
+      case 'event-pool':  // 事件池管理对话框
         return (
           <EventPoolPanel
             worldViewList={worldViewList}
@@ -291,21 +291,18 @@ function ChapterManage() {
             onChapterChange={() => fetchChapters(selectedNovel || 0)}
           />
         )
-      case 'chapter-skeleton':
+      case 'chapter-skeleton':  // 章节骨架对话框
         return (
           <ChapterSkeletonPanel
-            selectedChapter={selectedChapter}
+            selectedChapterId={selectedChapter?.id}
+            novelId={selectedNovel}
             onChapterChange={() => fetchChapters(selectedNovel || 0)}
-            worldViewList={worldViewList}
-            geoUnionList={geoUnionList}
-            factionList={factionList}
-            roleList={roleList}
             onRefresh={() => { fetchNovels(); handleWorldViewChange(selectedChapter?.worldview_id || null) }}
             onEditEventPool={() => setActiveModule('event-pool')}
             onUpdateWorldView={handleWorldViewChange}
           />
         )
-      case 'chapter-generate':
+      case 'chapter-generate': // 章节生成对话框
         return (
           <ChapterGeneratePanel
             selectedChapter={selectedChapter}
@@ -441,7 +438,7 @@ function ChapterManage() {
                   buttonStyle="solid"
                 >
                   <Radio.Button value="event-pool">事件池管理</Radio.Button>
-                  <Radio.Button value="chapter-relation">章节关系</Radio.Button>
+                  {/* <Radio.Button value="chapter-relation">章节关系</Radio.Button> */}
                   <Radio.Button value="chapter-skeleton">章节骨架</Radio.Button>
                   <Radio.Button value="chapter-generate">章节生成</Radio.Button>
                 </Radio.Group>

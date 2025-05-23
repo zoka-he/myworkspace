@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
-import { Modal, Button, Space, message } from 'antd'
-import { CopyOutlined, RobotOutlined } from '@ant-design/icons'
+import { Modal, Button, Space, message, Row, Col, Form, Select, Checkbox, Divider } from 'antd'
+import { CopyOutlined, EditOutlined, RobotOutlined } from '@ant-design/icons'
 import { IChapter } from '@/src/types/IAiNoval'
 import * as chapterApi from '../apiCalls'
-import styles from './ChapterGeneratePanel.module.scss'
+import styles from './ChapterContinuePanel.module.scss'
+import * as apiCalls from '../apiCalls'
 
 interface ChapterContinueModalProps {
   selectedChapter: IChapter | null
@@ -16,6 +17,7 @@ function ChapterContinueModal({ selectedChapter, isVisible, onClose, onChapterCh
   const [continuedContent, setContinuedContent] = useState('')
   const [isContinuing, setIsContinuing] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [form] = Form.useForm()
 
   // 处理AI续写
   const handleContinue = async () => {
@@ -69,7 +71,7 @@ function ChapterContinueModal({ selectedChapter, isVisible, onClose, onChapterCh
       title="AI续写"
       open={isVisible}
       onCancel={onClose}
-      width={800}
+      width={'80vw'}
       footer={[
         <Button key="copy" icon={<CopyOutlined />} onClick={handleCopyContinued}>
           复制续写内容
@@ -89,20 +91,44 @@ function ChapterContinueModal({ selectedChapter, isVisible, onClose, onChapterCh
       ]}
     >
       <div className={styles.continueContent}>
-        <Space direction="vertical" style={{ width: '100%' }}>
-          <Button
-            type="primary"
-            icon={<RobotOutlined />}
-            onClick={handleContinue}
-            loading={isContinuing}
-            disabled={!selectedChapter?.content}
-          >
-            使用AI续写
-          </Button>
-          <div className={styles.continuedText}>
-            {isContinuing ? '续写中...' : (continuedContent || '点击上方按钮开始续写...')}
-          </div>
-        </Space>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form form={form} layout="vertical">
+              <Divider orientation="left">前序章节</Divider>
+              <Form.Item name="previousChapters">
+                <Select
+                  mode="multiple"
+                  placeholder="请选择前序章节"
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+              <Divider orientation="left">提示词</Divider>
+              <div><Button type="link" icon={<EditOutlined />}>编辑原提示词</Button></div>
+              <Form.Item name="prompt">
+                <Checkbox>附加背景</Checkbox>
+                <Checkbox>本章内容提示词</Checkbox>
+                <Checkbox>本章发力点提示词</Checkbox>
+                <Checkbox>注意点提示词</Checkbox>
+              </Form.Item>
+            </Form>
+          </Col>
+          <Col span={12}>
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <Button
+                type="primary"
+                icon={<RobotOutlined />}
+                onClick={handleContinue}
+                loading={isContinuing}
+                disabled={!selectedChapter?.content}
+              >
+                使用AI续写
+              </Button>
+              <div className={styles.continuedText}>
+                {isContinuing ? '续写中...' : (continuedContent || '点击上方按钮开始续写...')}
+              </div>
+            </Space>
+          </Col>
+        </Row>
       </div>
     </Modal>
   )

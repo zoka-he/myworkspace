@@ -242,4 +242,5 @@ export interface IChapter {
     seed_prompt?: string
     skeleton_prompt?: string
     content?: string
+    related_chapter_ids?: number[]
 }

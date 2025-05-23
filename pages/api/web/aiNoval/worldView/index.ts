@@ -25,7 +25,7 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
     if (typeof id === 'undefined') {
         res.status(500).json({ message: 'id is required' });
     } else {
-        let data = await service.queryOne({ id });
+        let data = await service.getWorldViewById(id);
         if (!data) {
             res.status(404).json({ message: 'not found, id:' + id });
         } else {

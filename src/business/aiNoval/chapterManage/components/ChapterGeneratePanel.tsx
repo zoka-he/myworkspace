@@ -6,6 +6,7 @@ import * as chapterApi from '../apiCalls'
 import styles from './ChapterGeneratePanel.module.scss'
 import type { UploadProps } from 'antd'
 import ChapterContinueModal from './ChapterContinueModal'
+import * as apiCalls from '../apiCalls'
 
 const { TextArea } = Input
 const { Text } = Typography
@@ -29,8 +30,12 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
 
   // 当选中章节改变时，更新内容
   React.useEffect(() => {
-    if (selectedChapter) {
-      setContent(selectedChapter.content || '')
+    if (selectedChapter?.id) {
+      apiCalls.getChapterById(selectedChapter.id).then((res) => {
+        setContent(res.content || '')
+      })
+    } else {
+      setContent('');
     }
   }, [selectedChapter])
 

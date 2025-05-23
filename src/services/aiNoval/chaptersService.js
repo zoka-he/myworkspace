@@ -21,6 +21,7 @@ export default class ChaptersService extends MysqlNovalService {
             'geo_ids',
             'role_ids',
             'faction_ids',
+            'related_chapter_ids',
             'content',
             'seed_prompt',
             'skeleton_prompt',
