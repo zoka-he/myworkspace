@@ -70,7 +70,8 @@ async function handleStrip(req: NextApiRequest, res: NextApiResponse<Data>) {
             const response = await fetch(externalApiUrl, {
                 method: 'POST',
                 headers: reqHeaders,
-                body: JSON.stringify(body)
+                body: JSON.stringify(body),
+                timeout: 1000 * 60 * 10
             });
 
             if (!response.ok) {
@@ -86,11 +87,21 @@ async function handleStrip(req: NextApiRequest, res: NextApiResponse<Data>) {
             });
         } else {
             // Blocking mode
+            console.debug('strip chapter blocking -> ', chapterId, stripLength)
+            console.debug('External API URL:', externalApiUrl)
+            console.debug('Request headers:', reqHeaders)
+            console.debug('Request body:', body)
+            
             const response = await fetch(externalApiUrl, {
                 method: 'POST',
                 headers: reqHeaders,
-                body: JSON.stringify(body)
+                body: JSON.stringify(body),
+                timeout: 1000 * 60 * 10
             });
+
+            console.debug('strip chapter blocking response -> ', response)
+            console.debug('Response status:', response.status)
+            console.debug('Response headers:', response.headers)
 
             if (!response.ok) {
                 throw new Error(`External API responded with status: ${response.status}`);

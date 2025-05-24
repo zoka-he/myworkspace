@@ -272,7 +272,7 @@ export const stripChapterBlocking = async (chapterId: number, stripLength: numbe
 
     console.debug('response -> ', response);
 
-    return response.data?.outputs?.text || '';
+    return response.data?.outputs?.output || '';
 }
 
 
