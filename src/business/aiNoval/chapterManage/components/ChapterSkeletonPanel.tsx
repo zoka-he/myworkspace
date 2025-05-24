@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react'
-import { Space, Typography, Button, Input, message, Form, Row, Col, Tag, Tooltip, Select, TreeSelect } from 'antd'
-import { PlusOutlined, DeleteOutlined, ReloadOutlined, EditOutlined, InfoCircleOutlined, CopyOutlined, SortAscendingOutlined } from '@ant-design/icons'
+import { Space, Typography, Button, Input, message, Form, Tag, Select, TreeSelect } from 'antd'
+import { ReloadOutlined, EditOutlined, CopyOutlined, SortAscendingOutlined } from '@ant-design/icons'
 import { IChapter, IWorldViewDataWithExtra, IGeoUnionData, IFactionDefData, IRoleData, ITimelineEvent } from '@/src/types/IAiNoval'
 import styles from './ChapterSkeletonPanel.module.scss'
 import { getTimelineEventByIds, updateChapter, getChapterById, getChapterList } from '../apiCalls'
 import _ from 'lodash'
 import { TimelineDateFormatter } from '@/src/business/aiNoval/common/novelDateUtils'
 import * as apiCalls from '../apiCalls'
-import { loadGeoUnionList, loadGeoTree } from '../../common/geoDataUtil'
+import { loadGeoTree } from '../../common/geoDataUtil'
 
 const { Text } = Typography
 const { TextArea } = Input
@@ -92,7 +92,7 @@ function ChapterSkeletonPanel({
 
     if (selectedChapterId) {
       chapter = await getChapterById(selectedChapterId)
-      console.debug('Loaded chapter:', chapter);
+      // console.debug('Loaded chapter:', chapter);
     }
 
     setSelectedChapter(chapter)
@@ -110,9 +110,9 @@ function ChapterSkeletonPanel({
   // 获取章节列表
   const reloadChapterList = async () => {
     if (novelId) {
-      console.debug('call reloadChapterList', novelId);
+      // console.debug('call reloadChapterList', novelId);
       const res = await getChapterList(novelId, 1, 500)
-      console.debug('reloadChapterList res', res);
+      // console.debug('reloadChapterList res', res);
       setChapterList(res.data)
     } else {
       setChapterList([])
@@ -158,10 +158,11 @@ function ChapterSkeletonPanel({
   // 监听关联信息变化，更新表单
   useEffect(() => {
     if (selectedChapter) {
-      console.debug('Updating form with chapter data:', selectedChapter);
+      // console.debug('Updating form with chapter data:', selectedChapter);
 
       form.setFieldsValue({
-        geo_ids: (selectedChapter.geo_ids || []).map(item => { value: item }),
+        // geo_ids: (selectedChapter.geo_ids || []).map(item => { value: item }),
+        geo_ids: selectedChapter.geo_ids,
         faction_ids: selectedChapter.faction_ids || [],
         role_ids: selectedChapter.role_ids || [],
         seed_prompt: selectedChapter.seed_prompt || '',
@@ -175,7 +176,8 @@ function ChapterSkeletonPanel({
     ? worldViewList.find(wv => wv.id === selectedChapter.worldview_id)
     : null
 
-  // 获取关联信息
+  // 获取事件关联信息
+  // TODO: 修正地理位置的获取方式
   const getRelatedInfo = () => {
     const locations = relatedEventLocationIds.map(id => 
       geoUnionList.find(geo => geo.code === id)?.name
@@ -264,16 +266,34 @@ function ChapterSkeletonPanel({
         return
       }
 
+      // 处理飘忽不定的树选择器值，fuck antd
+      const processTreeSelectValue = (value: string | { value: string }) => {
+        if (typeof value === 'string') {
+          return value;
+        }
+
+        return value.value;
+      }
+
+      // 处理异常值
+      const processGeoIds = (value: string | { value: string }) => {
+        if (value instanceof Array) {
+          return value.map(processTreeSelectValue)
+        } else {
+          return [];
+        }
+      }
+
       let updateObject: IChapter = {
         id: selectedChapter.id,
-        geo_ids: values.geo_ids.map((obj: { value: string }) => obj.value),
+        geo_ids: processGeoIds(values.geo_ids),
         faction_ids: values.faction_ids,
         role_ids: values.role_ids,
         seed_prompt: values.seed_prompt,
         related_chapter_ids: values.related_chapter_ids
       };
 
-      console.debug('updateObject', updateObject);
+      // console.debug('updateObject', updateObject);
 
       await updateChapter(updateObject);
 
@@ -281,7 +301,8 @@ function ChapterSkeletonPanel({
       message.success('保存成功')
       onChapterChange()
     } catch (error) {
-      message.error('保存失败')
+      console.error('保存失败', error);
+      message.error('保存失败：' + error.message)
     }
   }
 

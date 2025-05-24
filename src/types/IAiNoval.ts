@@ -236,7 +236,7 @@ export interface IChapter {
     event_line_start2?: number
     event_line_end2?: number
     event_ids?: number[]
-    geo_ids?: number[]
+    geo_ids?: string[]
     faction_ids?: number[]
     role_ids?: number[]
     seed_prompt?: string

@@ -81,7 +81,23 @@ function splitIds(ids: any) {
         return [];
     }
 
-    return (ids + '').split(',').map(Number).filter(id => id > 0);
+    function processItem(str: string) {
+        if (/^\d+$/.test(str)) {
+            return Number(str);
+        }
+
+        return str;
+    }
+
+    function filterItem(item: string | number) {
+        if (typeof item === 'string') {
+            return item;
+        }
+
+        return item > 0;
+    }
+
+    return (ids + '').split(',').map(processItem).filter(filterItem);
 }
 
 function splitIds2String(ids?: number[]) {
@@ -99,6 +115,8 @@ function splitIds2String(ids?: number[]) {
  */
 export const getChapterById = async (id: number) => {
     const chapter = (await fetch.get<IChapter>('/api/aiNoval/chapters', {params: {id}})) as unknown as IChapter;
+
+    console.debug('chapter apicall -> ', chapter);
 
     if (chapter.storyline_ids) {
         chapter.storyline_ids = splitIds(chapter.storyline_ids);
