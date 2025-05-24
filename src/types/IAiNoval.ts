@@ -243,4 +243,7 @@ export interface IChapter {
     skeleton_prompt?: string
     content?: string
     related_chapter_ids?: number[]
+    actual_roles?: string
+    actual_factions?: string
+    actual_locations?: string
 }

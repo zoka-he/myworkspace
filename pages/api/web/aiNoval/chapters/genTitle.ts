@@ -6,7 +6,7 @@ import { difyCfg } from "@/src/utils/dify";
 import _ from "lodash";
 import { withErrorHandler, createApiError } from '@/src/utils/api/errorHandler';
 
-const keyOfApiKey = 'DIFY_PATAGRAPH_TITLE_API_KEY';
+const keyOfApiKey = 'DIFY_PARAGRAPH_TITLE_API_KEY';
 
 type Data = {
     message?: string;

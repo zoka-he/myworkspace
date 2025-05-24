@@ -26,7 +26,10 @@ export default class ChaptersService extends MysqlNovalService {
             'seed_prompt',
             'skeleton_prompt',
             'created_at',
-            'updated_at'
+            'updated_at',
+            'actual_roles',
+            'actual_factions',
+            'actual_locations'
         ]);
     }
 

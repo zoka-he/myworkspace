@@ -67,4 +67,24 @@ export default class RoleDefService extends MysqlNovalService {
         return this.query(sql, roleInfoCondVals.concat(roleInfoCondVals).concat(roleCondVals), ['id asc'], params.page || 1, params.limit || 100);
     }
 
+
+    async getRoleNamesOfCurrentVersion(roleIds) {
+        let verifiedRoleIds = roleIds.split(',').map(s => s.trim()).filter(s => s.length > 0).map(_.toNumber);
+        if (verifiedRoleIds.length === 0) {
+            return [];
+        }
+
+        let sql = `
+            select 
+                r.id,
+                ri.name_in_worldview name
+            from \`Role\` r 
+            left join role_info ri on ri.role_id = r.id and ri.id = r.version 
+            where r.id in(${verifiedRoleIds.join(',')})
+        `;
+
+        let ret = await this.query(sql, [], ['id asc'], 1, verifiedRoleIds.length);
+        return (ret.data || []).map(r => r.name).join(',');
+    }
+
 }

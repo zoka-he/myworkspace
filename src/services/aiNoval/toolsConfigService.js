@@ -15,7 +15,7 @@ export default class NovalManageService extends MysqlNovalService {
     async getConfig(cfgName) {
         let result = await this.query({ cfg_name: cfgName }, [], ['cfg_name asc'], 1, 1);
         console.debug('result', result);
-        return result.data[0].cfg_value_string;
+        return result.data[0]?.cfg_value_string || '';
     }
 
     async getConfigs(cfgNames) {

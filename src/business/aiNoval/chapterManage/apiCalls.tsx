@@ -309,3 +309,23 @@ export const continueChapterBlocking = async (chapterId: number): Promise<string
     return response.data?.outputs?.text || '';
 }
 
+
+export const getContinueInfo = async (chapterId: number): Promise<any> => {
+    const response = await fetch.get<any>('/api/aiNoval/chapters/continueInfo', {params: {chapterId}});
+    return response;
+}
+
+// 从文本中提取目标数据
+export const pickFromText = async (target: string, src_text: string): Promise<any> => {
+    const response = await fetch.post(`/api/aiNoval/chapters/pick`, 
+        {src_text},
+        {
+            params: {target},
+            timeout: 1000 * 60 * 10
+        }
+    );
+
+    let text = response.data?.outputs?.output || '';
+    text = text.replace(/<think>.*?<\/think>/gs, '');
+    return text || '';
+}

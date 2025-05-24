@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ILlmDatasetInfo } from "@/src/utils/dify/types";
-import { Button, Form, message, Select, Space } from "antd";
+import { Button, Form, Input, message, Select, Space } from "antd";
 import fetch from '@/src/fetch';
 import * as apiCalls from '../worldViewManage/apiCalls';
 
@@ -55,7 +55,9 @@ export function WorldViewConfig() {
             ['DIFY_EVENTS_DATASET_ID_' + selectedWorldView]: '',
             ['DIFY_FACTION_DATASET_ID_' + selectedWorldView]: '',
             ['DIFY_ITEM_DATASET_ID_' + selectedWorldView]: '',
-            ['DIFY_SKILL_DATASET_ID_' + selectedWorldView]: ''
+            ['DIFY_SKILL_DATASET_ID_' + selectedWorldView]: '',
+            ['DIFY_AUTO_CHAPTER_PROMPT_API_KEY_' + selectedWorldView]: '',
+            ['DIFY_AUTO_WRITE_API_KEY_' + selectedWorldView]: '',
         }
     }
 
@@ -65,8 +67,8 @@ export function WorldViewConfig() {
     }, []);
 
     const formLayout = {
-        labelCol: { span: 6 },
-        wrapperCol: { span: 18 },
+        labelCol: { span: 8 },
+        wrapperCol: { span: 16 },
     };
     
     const tailLayout = {
@@ -123,6 +125,14 @@ export function WorldViewConfig() {
 
             <Form.Item name={'DIFY_SKILL_DATASET_ID_' + selectedWorldView} label="技能知识库：">
                 <Select options={llmDatasetOptions} disabled={!selectedWorldView}/>
+            </Form.Item>
+
+            <Form.Item name={'DIFY_AUTO_CHAPTER_PROMPT_API_KEY_' + selectedWorldView} label="章节提示词工作流API Key：">
+                <Input disabled={!selectedWorldView}/>
+            </Form.Item>
+
+            <Form.Item name={'DIFY_AUTO_WRITE_API_KEY_' + selectedWorldView} label="写作工作流API Key：">
+                <Input disabled={!selectedWorldView}/>
             </Form.Item>
 
             <Form.Item {...tailLayout}>

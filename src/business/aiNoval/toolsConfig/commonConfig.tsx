@@ -23,7 +23,10 @@ export function CommonConfig() {
     function getDefaultToolConfig(): { [key: string]: string } {
         return {
             ['DIFY_PARAGRAPH_STRIPPER_API_KEY']: '',
-            ['DIFY_PATAGRAPH_TITLE_API_KEY']: '',
+            ['DIFY_PARAGRAPH_TITLE_API_KEY']: '',
+            ['DIFY_PARAGRAPH_ROLES_API_KEY']: '',
+            ['DIFY_PARAGRAPH_FACTIONS_API_KEY']: '',
+            ['DIFY_PARAGRAPH_LOCATIONS_API_KEY']: '',
         }
     }
 
@@ -57,7 +60,20 @@ export function CommonConfig() {
                 <Input/>
             </Form.Item>
             
-            <Form.Item name={'DIFY_PATAGRAPH_TITLE_API_KEY'} label="段落标题工作流API Key：">
+            <Form.Item name={'DIFY_PARAGRAPH_TITLE_API_KEY'} label="段落标题工作流API Key：">
+                <Input/>
+            </Form.Item>
+
+            <Form.Item name={'DIFY_PARAGRAPH_ROLES_API_KEY'} label="提取角色工作流API Key：">
+                <Input/>
+            </Form.Item>
+
+            <Form.Item name={'DIFY_PARAGRAPH_FACTIONS_API_KEY'} label="提取阵营工作流API Key：">
+                <Input/>
+
+            </Form.Item>
+
+            <Form.Item name={'DIFY_PARAGRAPH_LOCATIONS_API_KEY'} label="提取地理工作流API Key：">
                 <Input/>
             </Form.Item>
 

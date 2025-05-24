@@ -188,7 +188,7 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
                   type="primary"
                   icon={<RobotOutlined />}
                   onClick={() => setIsContinueModalVisible(true)}
-                  disabled={!content}
+                  // disabled={!content}
                 >
                   AI续写
                 </Button>
@@ -257,7 +257,7 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
 
       {/* AI续写模态框 */}
       <ChapterContinueModal
-        selectedChapter={selectedChapter}
+        selectedChapterId={selectedChapter?.id}
         isVisible={isContinueModalVisible}
         onClose={() => setIsContinueModalVisible(false)}
         onChapterChange={onChapterChange}
