@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { Space, Typography, Button, Input, message, Form, Tag, Select, TreeSelect } from 'antd'
 import { ReloadOutlined, EditOutlined, CopyOutlined, SortAscendingOutlined } from '@ant-design/icons'
-import { IChapter, IWorldViewDataWithExtra, IGeoUnionData, IFactionDefData, IRoleData, ITimelineEvent } from '@/src/types/IAiNoval'
+import { IChapter, IWorldViewDataWithExtra, IGeoUnionData, IFactionDefData, IRoleData, ITimelineEvent, IGeoStarSystemData, IGeoGeographyUnitData, IGeoPlanetData, IGeoSatelliteData, IGeoStarData } from '@/src/types/IAiNoval'
 import styles from './ChapterSkeletonPanel.module.scss'
 import { getTimelineEventByIds, updateChapter, getChapterById, getChapterList } from '../apiCalls'
 import _ from 'lodash'
 import { TimelineDateFormatter } from '@/src/business/aiNoval/common/novelDateUtils'
 import * as apiCalls from '../apiCalls'
-import { loadGeoTree } from '../../common/geoDataUtil'
+import { loadGeoTree, type IGeoTreeItem } from '../../common/geoDataUtil'
 
 const { Text } = Typography
 const { TextArea } = Input
@@ -53,6 +53,7 @@ function ChapterSkeletonPanel({
   const [geoUnionList, setGeoUnionList] = useState<IGeoUnionData[]>([])
   const [geoTree, setGeoTree] = useState<IGeoTreeData[]>([])
   const [factionList, setFactionList] = useState<IFactionDefData[]>([])
+  const [factionTree, setFactionTree] = useState<IFactionDefData[]>([])
   const [roleList, setRoleList] = useState<IRoleData[]>([])
 
   const [chapterList, setChapterList] = useState<IChapter[]>([])
@@ -158,11 +159,11 @@ function ChapterSkeletonPanel({
   // 监听关联信息变化，更新表单
   useEffect(() => {
     if (selectedChapter) {
-      // console.debug('Updating form with chapter data:', selectedChapter);
+      console.debug('Updating form with chapter data:', selectedChapter);
 
       form.setFieldsValue({
         // geo_ids: (selectedChapter.geo_ids || []).map(item => { value: item }),
-        geo_ids: selectedChapter.geo_ids,
+        geo_ids: selectedChapter.geo_ids || [],
         faction_ids: selectedChapter.faction_ids || [],
         role_ids: selectedChapter.role_ids || [],
         seed_prompt: selectedChapter.seed_prompt || '',
@@ -170,6 +171,65 @@ function ChapterSkeletonPanel({
       })
     }
   }, [selectedChapter])
+
+  // 当阵营列表更新时，自动构建阵营树
+  useEffect(() => {
+    if (!factionList.length) {
+      setFactionTree([]);
+      return;
+    }
+
+    const result: IFactionDefData[] = [];
+
+    const factionMap = new Map(); 
+    factionList.forEach(item => {
+      factionMap.set(item.id, { key: item.id, title: item.name, data: item, children: [] })
+    });
+
+    factionList.forEach(item => {
+      if (item.parent_id) {
+        const parent = factionMap.get(item.parent_id);
+        const child = factionMap.get(item.id);
+        if (parent && child) {
+          parent.children.push(child);
+        }
+      } else {
+        result.push(factionMap.get(item.id));
+      }
+    });
+
+    setFactionTree(result);
+
+  }, [factionList])
+
+  const findGeoTree = (codes: string[]): (IGeoStarSystemData | IGeoStarData | IGeoPlanetData | IGeoSatelliteData | IGeoGeographyUnitData)[] => {
+    let result: (IGeoStarSystemData | IGeoStarData | IGeoPlanetData | IGeoSatelliteData | IGeoGeographyUnitData)[] = [];
+
+    if (!codes.length) {
+      return result;
+    }
+
+    
+    function findInNodes(nodes?: IGeoTreeItem<IGeoStarSystemData | IGeoStarData | IGeoPlanetData | IGeoSatelliteData | IGeoGeographyUnitData>[]) {
+      if (!nodes ||!nodes.length) {
+        return;
+      }
+
+      for (const node of nodes) {
+        if (codes.includes(node.key)) {
+          result.push(node.data)
+        }
+
+        if (node.children) {
+          findInNodes(node.children)
+        }
+      }
+    }
+
+    findInNodes(geoTree);
+
+    return result;
+  }
 
   // 获取当前世界观信息
   const selectedWorldView = selectedChapter?.worldview_id 
@@ -179,9 +239,11 @@ function ChapterSkeletonPanel({
   // 获取事件关联信息
   // TODO: 修正地理位置的获取方式
   const getRelatedInfo = () => {
-    const locations = relatedEventLocationIds.map(id => 
-      geoUnionList.find(geo => geo.code === id)?.name
-    ).filter(Boolean) || []
+    // const locations = relatedEventLocationIds.map(id => 
+    //   geoUnionList.find(geo => geo.code === id)?.name
+    // ).filter(Boolean) || []
+
+    const locations = findGeoTree(relatedEventLocationIds);
 
     const factions = relatedEventFactionIds.map(id => 
       factionList.find(faction => faction.id === id)?.name
@@ -267,8 +329,12 @@ function ChapterSkeletonPanel({
       }
 
       // 处理飘忽不定的树选择器值，fuck antd
-      const processTreeSelectValue = (value: string | { value: string }) => {
+      const processTreeSelectValue = <T extends string | number>(value: T | { value: T }): T => {
         if (typeof value === 'string') {
+          return value;
+        }
+
+        if (typeof value === 'number') {
           return value;
         }
 
@@ -276,9 +342,13 @@ function ChapterSkeletonPanel({
       }
 
       // 处理异常值
-      const processGeoIds = (value: string | { value: string }) => {
+      const processIds = <T extends string | number>(value: T[] | { value: T }[] | T | undefined): T[] => {
+        if (!value) {
+          return [];
+        }
+
         if (value instanceof Array) {
-          return value.map(processTreeSelectValue)
+          return value.map(processTreeSelectValue<T>)
         } else {
           return [];
         }
@@ -286,8 +356,8 @@ function ChapterSkeletonPanel({
 
       let updateObject: IChapter = {
         id: selectedChapter.id,
-        geo_ids: processGeoIds(values.geo_ids),
-        faction_ids: values.faction_ids,
+        geo_ids: processIds<string>(values.geo_ids),
+        faction_ids: processIds<number>(values.faction_ids),
         role_ids: values.role_ids,
         seed_prompt: values.seed_prompt,
         related_chapter_ids: values.related_chapter_ids
@@ -309,67 +379,68 @@ function ChapterSkeletonPanel({
   const { locations, factions, characters } = getRelatedInfo()
 
   // 渲染事件详情
-  const renderEventDetail = (event: ITimelineEvent) => {
-    const eventLocation = geoUnionList.find(geo => geo.code === event.location)?.name
-    const eventFactions = event.faction_ids?.map(id => 
-      factionList.find(faction => faction.id === id)?.name
-    ).filter(Boolean) || []
-    const eventCharacters = event.role_ids?.map(id => 
-      roleList.find(role => role.id === id)?.name
-    ).filter(Boolean) || []
+  // const renderEventDetail = (event: ITimelineEvent) => {
+  //   const eventLocation = geoUnionList.find(geo => geo.code === event.location)?.name
+  //   const eventFactions = event.faction_ids?.map(id => 
+  //     factionList.find(faction => faction.id === id)?.name
+  //   ).filter(Boolean) || []
+  //   const eventCharacters = event.role_ids?.map(id => 
+  //     roleList.find(role => role.id === id)?.name
+  //   ).filter(Boolean) || []
 
-    const handleCopyEvent = () => {
-      const formattedDate = formatDate(event.date)
-      const copyText = `${formattedDate}\n${event.title}\n${event.description}`
-      navigator.clipboard.writeText(copyText)
-        .then(() => message.success('已复制到剪贴板'))
-        .catch(() => message.error('复制失败'))
-    }
+  //   const handleCopyEvent = () => {
+  //     const formattedDate = formatDate(event.date)
+  //     const copyText = `${formattedDate}\n${event.title}\n${event.description}`
+  //     navigator.clipboard.writeText(copyText)
+  //       .then(() => message.success('已复制到剪贴板'))
+  //       .catch(() => message.error('复制失败'))
+  //   }
 
-    return (
-      <div className={styles.eventDetail}>
-        <div className={styles.eventTitle}>
-          <Space>
-            {event.title}
-            <Button
-              type="text"
-              icon={<CopyOutlined />}
-              onClick={handleCopyEvent}
-              title="复制事件内容"
-            />
-          </Space>
-        </div>
-        <div className={styles.eventDescription}>{event.description}</div>
-        {eventLocation && (
-          <div className={styles.eventMeta}>
-            <Text type="secondary">地点：</Text>
-            <Tag color="blue">{eventLocation}</Tag>
-          </div>
-        )}
-        {eventFactions.length > 0 && (
-          <div className={styles.eventMeta}>
-            <Text type="secondary">阵营：</Text>
-            <Space wrap>
-              {eventFactions.map((faction, index) => (
-                <Tag key={index} color="green">{faction}</Tag>
-              ))}
-            </Space>
-          </div>
-        )}
-        {eventCharacters.length > 0 && (
-          <div className={styles.eventMeta}>
-            <Text type="secondary">角色：</Text>
-            <Space wrap>
-              {eventCharacters.map((character, index) => (
-                <Tag key={index} color="purple">{character}</Tag>
-              ))}
-            </Space>
-          </div>
-        )}
-      </div>
-    )
-  }
+  //   return (
+  //     <div className={styles.eventDetail}>
+  //       <div className={styles.eventTitle}>
+  //         <Space>
+  //           {event.title}
+  //           <Button
+  //             type="text"
+  //             icon={<CopyOutlined />}
+  //             onClick={handleCopyEvent}
+  //             title="复制事件内容"
+  //           />
+  //         </Space>
+  //       </div>
+  //       <div className={styles.eventDescription}>{event.description}</div>
+  //       {eventLocation && (
+  //         <div className={styles.eventMeta}>
+  //           <Text type="secondary">地点：</Text>
+  //           <Tag color="blue">{eventLocation}</Tag>
+  //         </div>
+  //       )}
+  //       {eventFactions.length > 0 && (
+  //         <div className={styles.eventMeta}>
+  //           <Text type="secondary">阵营：</Text>
+  //           <Space wrap>
+  //             {eventFactions.map((faction, index) => (
+  //               <Tag key={index} color="green">{faction}</Tag>
+  //             ))}
+  //           </Space>
+  //         </div>
+  //       )}
+  //       {eventCharacters.length > 0 && (
+  //         <div className={styles.eventMeta}>
+  //           <Text type="secondary">角色：</Text>
+  //           <Space wrap>
+  //             {eventCharacters.map((character, index) => (
+  //               <Tag key={index} color="purple">{character}</Tag>
+  //             ))}
+  //           </Space>
+  //         </div>
+  //       )}
+  //     </div>
+  //   )
+  // }
 
+  // 格式化小说时间
   const formatDate = (date: number) => {
     if (!selectedWorldView) {
       return '时间点 ' + date
@@ -379,6 +450,7 @@ function ChapterSkeletonPanel({
     return timelineDateFormatter.formatSecondsToDate(date)
   }
 
+  // 添加关联上一章
   const handleAddPreviousChapter = () => {
     if (!chapterList.length) {
       message.warning('未加载到章节，请检查数据或代码')
@@ -473,8 +545,8 @@ function ChapterSkeletonPanel({
                 <Text strong>关联地点：</Text>
                 <div className={styles.tagsContainer}>
                   {locations.length > 0 ? (
-                    locations.map((location, index) => (
-                      <Tag key={index} color="blue">{location}</Tag>
+                    locations.map((location) => (
+                      <Tag key={location.code} color="blue">{location.name}</Tag>
                     ))
                   ) : (
                     <Text type="secondary">暂无关联地点</Text>
@@ -664,7 +736,7 @@ function ChapterSkeletonPanel({
           }
           name="faction_ids"
         >
-          <Select
+          {/* <Select
             mode="multiple"
             placeholder="请选择关联阵营"
             optionFilterProp="children"
@@ -675,7 +747,22 @@ function ChapterSkeletonPanel({
                 {faction.name}
               </Option>
             ))}
-          </Select>
+          </Select> */}
+
+          <TreeSelect
+            treeData={factionTree || []}
+            placeholder="请选择关联阵营"
+            allowClear
+            treeDefaultExpandAll
+            showSearch
+            treeNodeFilterProp="title"
+            multiple
+            treeCheckable
+            treeCheckStrictly={true}
+            showCheckedStrategy={TreeSelect.SHOW_ALL}
+            fieldNames={{label:'title', value: 'key'}}    // fuck antd
+          >
+          </TreeSelect>
         </Form.Item>
 
         <Form.Item
