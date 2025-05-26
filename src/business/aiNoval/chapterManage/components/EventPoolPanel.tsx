@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Select, Space, Row, Col, Typography, Slider, Tag, Button, Modal, Form, Radio, Input, InputNumber, message, Alert } from 'antd'
+import { Select, Space, Row, Col, Typography, Slider, Tag, Button, Modal, Form, Radio, Input, InputNumber, message, Alert, Divider } from 'antd'
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
 import { EventPool } from '../types'
 import styles from './EventPoolPanel.module.scss'
@@ -24,6 +24,183 @@ interface EventPoolPanelProps {
   // onWorldViewChange: (value?: number | null) => void
   onChapterChange: (value?: IChapter | null) => void
 }
+
+// 新增：时间线范围编辑 Modal 组件
+const TimelineRangeModal = React.forwardRef(({
+  onOk,
+  onCancel,
+  form,
+  selectedWorldView,
+  onChangeTimeline,
+  eventPool
+}: {
+  onOk: () => void
+  onCancel: () => void
+  form: any
+  selectedWorldView: IWorldViewDataWithExtra | null
+  onChangeTimeline: (type: 'start' | 'end', value: number | null) => void
+  eventPool: EventPool
+}, ref) => {
+  const [visible, setVisible] = useState(false)
+  const [type, setType] = useState<'start' | 'end'>('start')
+  const [initialSeconds, setInitialSeconds] = useState<number | null>(null)
+  React.useImperativeHandle(ref, () => ({
+    open: (type: 'start' | 'end', seconds: number | null) => {
+      setType(type)
+      setInitialSeconds(seconds)
+      setVisible(true)
+    }
+  }))
+  React.useEffect(() => {
+    if (!visible) return
+    let isBC = null
+    let year = null
+    let month = null
+    let day = null
+    if (initialSeconds) {
+      isBC = initialSeconds < 0
+      if (selectedWorldView) {
+        const timeUtil = TimelineDateFormatter.fromWorldViewWithExtra(selectedWorldView)
+        let dateStruct = timeUtil.secondsToDateData(initialSeconds)
+        isBC = dateStruct.isBC
+        year = dateStruct.year
+        month = dateStruct.month
+        day = dateStruct.day
+      } else {
+        isBC = initialSeconds < 0
+        let absValue = Math.abs(initialSeconds)
+        year = Math.floor(absValue / 365)
+        month = Math.floor((absValue % 365) / 30)
+        day = absValue % 30
+      }
+    }
+    form.setFieldsValue({
+      era: isBC ? 'BC' : 'AD',
+      year,
+      month,
+      day
+    })
+  }, [visible, initialSeconds, selectedWorldView, form])
+
+  async function handleOk() {
+    let { era, year, month, day } = form.getFieldsValue()
+    if (!year && !month && !day) {
+      onChangeTimeline(type, null)
+      onOk()
+      form.resetFields()
+      setVisible(false)
+      return;
+    }
+
+    await form.validateFields()
+
+    let totalSeconds = 0
+    if (selectedWorldView) {
+      const timeUtil = TimelineDateFormatter.fromWorldViewWithExtra(selectedWorldView)
+      totalSeconds = timeUtil.dateDataToSeconds({
+        isBC: era === 'BC',
+        year,
+        month,
+        day,
+        hour: 0,
+        minute: 0,
+        second: 0
+      })
+    } else {
+      totalSeconds = (era === 'BC' ? -1 : 1) * (
+        year * 365 +
+        month * 30 +
+        day
+      )
+    }
+
+    if (type === 'start') {
+      const minDate = Math.min(...eventPool.selected.map(event => event.date))
+      if (totalSeconds > minDate) {
+        totalSeconds = minDate - 1000
+        message.warning('时间线起点晚于某个已选事件，已按最早事件设置')
+      }
+    }
+
+    if (type === 'end') {
+      const maxDate = Math.max(...eventPool.selected.map(event => event.date))
+      if (totalSeconds < maxDate) {
+        totalSeconds = maxDate + 1000
+        message.warning('时间线终点早于某个已选事件，已按最晚事件设置')
+      }
+    } 
+
+    onChangeTimeline(type, totalSeconds)
+    onOk()
+    form.resetFields()
+    setVisible(false)
+  }
+
+  function handleUnlimited() {
+    setInitialSeconds(null)
+  }
+
+  function handleSetByLastDays(days: number) {
+    let lastDateSeconds;
+    if (selectedWorldView) {
+      if (selectedWorldView.te_max_seconds) {
+        lastDateSeconds = selectedWorldView.te_max_seconds - days * 24 * 3600
+      } else {
+        lastDateSeconds = null
+      }
+    } else {
+      const now = new Date()
+      const lastDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
+      lastDateSeconds = lastDate.getTime() / 1000
+    }
+    setInitialSeconds(lastDateSeconds)
+  }
+
+  return (
+    <Modal
+      title={type === 'start' ? '更改起点' : '更改终点'}
+      open={visible}
+      onOk={handleOk}
+      onCancel={() => {
+        onCancel()
+        setVisible(false)
+      }}
+    >
+      <div className='f-flex-two-side'>
+        <Space>
+          <Button onClick={() => handleSetByLastDays(7)}>末7天</Button>
+          <Button onClick={() => handleSetByLastDays(30)}>末30天</Button>
+          <Button onClick={() => handleSetByLastDays(180)}>末180天</Button>
+        </Space>
+        <Space>
+          <Button onClick={handleUnlimited}>不限</Button>
+        </Space>
+      </div>
+      <Divider />
+      <Form form={form} layout="inline">
+        <Form.Item name="era" label="纪元" rules={[{ required: true }]}> 
+          <Radio.Group>
+            <Radio value="BC">公元前</Radio>
+            <Radio value="AD">公元</Radio>
+          </Radio.Group>
+        </Form.Item>
+        <Form.Item label="日期" style={{ marginBottom: 0 }}>
+          <Space>
+            <Form.Item name="year" rules={[{ required: true, type: 'number', min: 0 }]} noStyle>
+              <InputNumber type="number" min={0} placeholder="年" style={{ width: 80 }} />
+            </Form.Item>
+            <Form.Item name="month" rules={[{ required: true, type: 'number', min: 1, max: selectedWorldView?.tl_year_length_in_months || 12 }]} noStyle>
+              <InputNumber type="number" min={1} max={selectedWorldView?.tl_year_length_in_months || 12} placeholder="月" style={{ width: 60 }} />
+            </Form.Item>
+            <Form.Item name="day" rules={[{ required: true, type: 'number', min: 1, max: selectedWorldView?.tl_month_length_in_days || 30 }]} noStyle>
+              <InputNumber type="number" min={1} max={selectedWorldView?.tl_month_length_in_days || 30} placeholder="日" style={{ width: 60 }} />
+            </Form.Item>
+          </Space>
+        </Form.Item>
+      </Form>
+    </Modal>
+  )
+})
 
 /*
 1.加载流程（初始化）：
@@ -53,19 +230,13 @@ function EventPoolPanel({
   onChapterChange
 }: EventPoolPanelProps) {
   // 时间线开始时间
-  const [timelineStart, setTimelineStart] = useState(0)
+  const [timelineStart, setTimelineStart] = useState<number | null>(null)
 
   // 时间线结束时间
-  const [timelineEnd, setTimelineEnd] = useState(100)
-
-  // 时间线模态框是否可见
-  const [isTimelineModalVisible, setIsTimelineModalVisible] = useState(false)
+  const [timelineEnd, setTimelineEnd] = useState<number | null>(null)
 
   // 时间线表单
   const [timelineForm] = Form.useForm()
-
-  // 时间线类型
-  const [timelineType, setTimelineType] = useState<'start' | 'end'>('start')
 
   // 故事线列表
   const [storyLineList, setStoryLineList] = useState<IStoryLine[]>([])
@@ -105,6 +276,12 @@ function EventPoolPanel({
 
   // 关联角色列表
   const [roleList, setRoleList] = useState<IRoleData[]>([])
+
+  // 新增：时间线范围编辑 Modal 组件
+  const timelineModalRef = React.useRef<{ open: (type: 'start' | 'end', seconds: number | null) => void }>(null)
+  function showTimelineModal(type: 'start' | 'end', seconds: number | null) {
+    timelineModalRef.current?.open(type, seconds)
+  }
 
   // 初始加载，加载完毕后触发isFirstLoad完成事件
   useEffect(() => {
@@ -146,11 +323,11 @@ function EventPoolPanel({
       setSelectedStoryLineIds([])
     }
 
-    // 如果当前有选中的章节，重新加载事件
-    if (selectedChapter?.id && selectedWorldView?.id) {
-      const [timelineAdjustmentStart, timelineAdjustmentEnd] = calculateAndSyncChapterDateRange(selectedChapter);
-      loadChapterEvents([timelineAdjustmentStart, timelineAdjustmentEnd], selectedChapter.event_ids);
-    }
+    // // 如果当前有选中的章节，重新加载事件
+    // if (selectedChapter?.id && selectedWorldView?.id) {
+    //   const [timelineAdjustmentStart, timelineAdjustmentEnd] = calculateAndSyncChapterDateRange(selectedChapter);
+    //   loadChapterEvents(selectedChapter.event_ids);
+    // }
 
     // 加载备选地点
     if (selectedWorldView?.id) {
@@ -192,6 +369,11 @@ function EventPoolPanel({
       setSelectedChapter(null);
     }
   }, [selectedChapterId])
+
+  useEffect(() => {
+    console.debug('selectedChapter?.event_ids: ', selectedChapter?.event_ids);
+    loadChapterEvents(selectedChapter?.event_ids)
+  }, [timelineStart, timelineEnd, selectedChapter])
 
   // 初始化数据
   const initData = async () => {
@@ -251,33 +433,52 @@ function EventPoolPanel({
         setSelectedStoryLineIds(storyLineList.map(line => line.id))
       }
 
-      // 计算章节时间范围，并同步到时间线范围
-      let [timelineAdjustmentStart, timelineAdjustmentEnd] = calculateAndSyncChapterDateRange(chapterData);
+      if (chapterData.event_line_start1) {
+        setTimelineStart(chapterData.event_line_start1)
+      }
+
+      if (chapterData.event_line_end1) {
+        setTimelineEnd(chapterData.event_line_end1)
+      }
+
+      setEventPool({
+        selected: [],
+        candidate: []
+      })
 
       // 加载章节事件
-      loadChapterEvents([timelineAdjustmentStart, timelineAdjustmentEnd], chapterData.event_ids)
+      // loadChapterEvents(chapterData.event_ids)
     }
   }
 
   // 加载章节事件
-  const loadChapterEvents = async (requestDateRange?: [number, number], chapterEventIds?: number[]) => {
+  const loadChapterEvents = async (chapterEventIds?: number[]) => {
     if (!selectedWorldView?.id) {
       // message.warning('请先选择世界观')
       return
     }
 
-    if (!requestDateRange) {
-      // 如果未指定请求日期范围，则使用时间线范围
-      console.debug('requestDateRange is null, use timelineAdjustment: ', timelineAdjustment)
-      requestDateRange = [timelineAdjustment[0], timelineAdjustment[1]]
-    }
+    // if (!requestDateRange) {
+    //   // 如果未指定请求日期范围，则使用时间线范围
+    //   console.debug('requestDateRange is null, use timelineAdjustment: ', timelineAdjustment)
+    //   requestDateRange = [timelineAdjustment[0], timelineAdjustment[1]]
+    // }
 
     try {
       setLoading(true)
+
+      // 如果时间线范围小于24小时，则将时间线范围设置为24小时
+      let realEnd = timelineEnd;
+      if (timelineEnd && timelineStart && timelineEnd - timelineStart < 24 * 3600) {
+        realEnd = timelineStart + 24 * 3600;
+      }
+
       const response = await apiCalls.getTimelineEventList(
         selectedWorldView.id,
-        requestDateRange[0],
-        requestDateRange[1]
+        timelineStart,
+        realEnd
+        // requestDateRange[0],
+        // requestDateRange[1]
       )
 
       if (response.data) {
@@ -298,8 +499,8 @@ function EventPoolPanel({
         
         // 更新事件池
         setEventPool({
-          selected: selectedEvents,
-          candidate: candidateEvents
+          selected: selectedEvents.sort((a, b) => b.date - a.date),
+          candidate: candidateEvents.sort((a, b) => b.date - a.date)
         })
       }
     } catch (error) {
@@ -438,8 +639,8 @@ function EventPoolPanel({
       worldview_id: selectedWorldView.id,
       storyline_ids: selectedStoryLineIds,
       event_ids: eventPool.selected.map(event => event.id),
-      event_line_start1: timelineStart,
-      event_line_end1: timelineEnd,
+      event_line_start1: timelineStart === null ? undefined : timelineStart,
+      event_line_end1: timelineEnd === null ? undefined : timelineEnd,
       event_line_start2: timelineAdjustment[0],
       event_line_end2: timelineAdjustment[1]
     }
@@ -513,96 +714,7 @@ function EventPoolPanel({
     </div>
   )
 
-  const handleTimelineModalOk = () => {
-    timelineForm.validateFields().then(values => {
-      const { era, year, month, day } = values
-
-      let totalSeconds = 0;
-      if (selectedWorldView) {
-        const timeUtil = TimelineDateFormatter.fromWorldViewWithExtra(selectedWorldView);
-        totalSeconds = timeUtil.dateDataToSeconds({ 
-          isBC: era === 'BC', 
-          year, 
-          month, 
-          day, 
-          hour: 0,
-          minute: 0,
-          second: 0
-        });
-      } else {
-        totalSeconds = (era === 'BC' ? -1 : 1) * (
-          year * 365 + 
-          month * 30 + 
-          day
-        )
-      }
-      
-      if (timelineType === 'start') {
-        setTimelineStart(totalSeconds)
-      } else {
-        setTimelineEnd(totalSeconds)
-      }
-      
-      setIsTimelineModalVisible(false)
-      timelineForm.resetFields()
-    })
-  }
-
-  // 显示时间线模态框
-  const showTimelineModal = (type: 'start' | 'end') => {
-    setTimelineType(type)
-    const currentValue = type === 'start' ? timelineStart : timelineEnd
-    
-    let isBC = currentValue < 0
-    let absValue = Math.abs(currentValue)
-    let year = Math.floor(absValue / 365)
-    let month = Math.floor((absValue % 365) / 30)
-    let day = absValue % 30
-
-    if (selectedWorldView) {
-      const timeUtil = TimelineDateFormatter.fromWorldViewWithExtra(selectedWorldView);
-      let dateStruct = timeUtil.secondsToDateData(currentValue)
-      isBC = dateStruct.isBC
-      year = dateStruct.year
-      month = dateStruct.month
-      day = dateStruct.day
-    }
-
-    timelineForm.setFieldsValue({
-      era: isBC ? 'BC' : 'AD',
-      year,
-      month,
-      day
-    })
-    setIsTimelineModalVisible(true)
-  }
-
-  // 如果未选择世界观，则只显示选择器
-  if (!selectedWorldView) {
-    return (
-      <div>
-        <Row gutter={16} className={styles.filterSection}>
-          <Col span={8}>
-            <Select
-              style={{ width: '100%' }}
-              placeholder="选择世界观"
-              value={selectedWorldViewId}
-              allowClear
-              onClear={() => setSelectedWorldViewId(null)}
-              onChange={setSelectedWorldViewId}
-            >
-              {worldViewList.map(context => (
-                <Select.Option key={context.id} value={context.id}>
-                  {context.title}
-                </Select.Option>
-              ))}
-            </Select>
-          </Col>
-        </Row>
-        <Alert style={{ margin: '10px 0' }} message="请先选择世界观" type="warning" />
-      </div>
-    )
-  }
+  
 
   // 渲染事件线设置
   return (
@@ -642,35 +754,21 @@ function EventPoolPanel({
           </Col>
         </Row>
 
-        {/* 事件线设置 */}
-        <Space>
-          <Text>时间线范围：</Text>
-          <Text>{renderNovelDate(timelineStart)}</Text>
-          <Button icon={<EditOutlined />} type="link" onClick={() => showTimelineModal('start')}>更改起点</Button> - 
-          <Text>{renderNovelDate(timelineEnd)}</Text>
-          <Button icon={<EditOutlined />} type="link" onClick={() => showTimelineModal('end')}>更改终点</Button>
-        </Space>
+        
 
         <div className="f-flex-row" style={{ alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-          <Text>时间范围微调：</Text>
-          <div style={{ flex: 1, margin: '0 70px', padding: '20px 0 0', height: 30 }}>
-            <Slider
-              style={{ width: '100%', margin: '-10px 0 0' }}
-              range
-              value={timelineAdjustment}
-              onChange={(value) => {setTimelineAdjustment(value as [number, number])}}
-              min={timelineStart || 0}
-              max={timelineEnd || 100}
-              marks={{
-                [timelineStart || 0]: renderNovelDate(timelineStart || 0),
-                0: '0',
-                [timelineEnd || 100]: renderNovelDate(timelineEnd || 100)
-              }}
-              tooltip={{ formatter: (value) => renderNovelDate(value) }}
-            />
-          </div>
-          <Button type="primary" icon={<ReloadOutlined />} onClick={() => loadChapterEvents()} loading={loading}>加载事件</Button>
-          <Button icon={<SaveOutlined />} onClick={saveChapterSetting} loading={loading}>保存配置和事件到章节</Button>
+          {/* 事件线设置 */}
+          <Space>
+            <Text>时间线范围：</Text>
+            <Text>{timelineStart !== null ? renderNovelDate(timelineStart) : '不限'}</Text>
+            <Button icon={<EditOutlined />} type="link" onClick={() => showTimelineModal('start', timelineStart)}>更改起点</Button> - 
+            <Text>{timelineEnd !== null ? renderNovelDate(timelineEnd) : '不限'}</Text>
+            <Button icon={<EditOutlined />} type="link" onClick={() => showTimelineModal('end', timelineEnd)}>更改终点</Button>
+          </Space>
+          <Space>
+            <Button type="primary" icon={<ReloadOutlined />} onClick={() => loadChapterEvents()} loading={loading}>加载事件</Button>
+            <Button icon={<SaveOutlined />} onClick={saveChapterSetting} loading={loading}>保存配置和事件到章节</Button>
+          </Space>
         </div>
 
         <Row gutter={16}>
@@ -746,40 +844,26 @@ function EventPoolPanel({
         </Row>
 
         {/* 事件线设置窗口 */}
-        <Modal
-          title={timelineType === 'start' ? '更改起点' : '更改终点'}
-          open={isTimelineModalVisible}
-          onOk={handleTimelineModalOk}
+        <TimelineRangeModal
+          ref={timelineModalRef}
+          onOk={() => {}}
           onCancel={() => {
-            setIsTimelineModalVisible(false)
             timelineForm.resetFields()
           }}
-        >
-          <Form form={timelineForm} layout="inline">
-            <Form.Item name="era" label="纪元" rules={[{ required: true }]}>
-              <Radio.Group>
-                <Radio value="BC">公元前</Radio>
-                <Radio value="AD">公元</Radio>
-              </Radio.Group>
-            </Form.Item>
-            <Form.Item label="日期" style={{ marginBottom: 0 }}>
-              <Space>
-                <Form.Item name="year" rules={[{ required: true, type: 'number', min: 0 }]} noStyle>
-                  <InputNumber type="number" min={0} placeholder="年" style={{ width: 80 }} />
-                </Form.Item>
-                <Form.Item name="month" rules={[{ required: true, type: 'number', min: 1, max: selectedWorldView?.tl_year_length_in_months || 12 }]} noStyle>
-                  <InputNumber type="number" min={1} max={selectedWorldView?.tl_year_length_in_months || 12} placeholder="月" style={{ width: 60 }} />
-                </Form.Item>
-                <Form.Item name="day" rules={[{ required: true, type: 'number', min: 1, max: selectedWorldView?.tl_month_length_in_days || 30 }]} noStyle>
-                  <InputNumber type="number" min={1} max={selectedWorldView?.tl_month_length_in_days || 30} placeholder="日" style={{ width: 60 }} />
-                </Form.Item>
-              </Space>
-            </Form.Item>
-          </Form>
-        </Modal>
+          form={timelineForm}
+          selectedWorldView={selectedWorldView}
+          onChangeTimeline={(type, value) => {
+            if (type === 'start') setTimelineStart(value)
+            else setTimelineEnd(value)
+          }}
+          eventPool={eventPool}
+        />
       </Space>
     </DragDropContext>
   )
 }
+
+
+
 
 export default EventPoolPanel 

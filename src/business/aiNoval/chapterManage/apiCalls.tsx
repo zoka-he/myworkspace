@@ -51,7 +51,7 @@ export const getStoryLineList = async (worldViewId: number, page: number = 1, li
  * 获取所有事件线定义数据
  * @returns { data: ITimelineEvent[], count: number }
  */
-export const getTimelineEventList = async (worldViewId: number, startDate: number, endDate: number, page: number = 1, limit: number = 100) => {
+export const getTimelineEventList = async (worldViewId: number, startDate: number | null, endDate: number | null, page: number = 1, limit: number = 100) => {
     let params = {
         worldview_id: worldViewId,
         start_date: startDate,
