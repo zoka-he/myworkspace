@@ -100,7 +100,7 @@ function splitIds(ids: any) {
     return (ids + '').split(',').map(processItem).filter(filterItem);
 }
 
-function splitIds2String(ids?: number[]) {
+function splitIds2String(ids?: number[] | string[]) {
     if (!ids || ids.length === 0) {
         return '';
     }
@@ -119,27 +119,27 @@ export const getChapterById = async (id: number) => {
     console.debug('chapter apicall -> ', chapter);
 
     if (chapter.storyline_ids) {
-        chapter.storyline_ids = splitIds(chapter.storyline_ids);
+        chapter.storyline_ids = splitIds(chapter.storyline_ids).map(Number);
     }
 
     if (chapter.event_ids) {
-        chapter.event_ids = splitIds(chapter.event_ids);
+        chapter.event_ids = splitIds(chapter.event_ids).map(Number);
     }
 
     if (chapter.geo_ids) {
-        chapter.geo_ids = splitIds(chapter.geo_ids);
+        chapter.geo_ids = splitIds(chapter.geo_ids).map(String);
     }
 
     if (chapter.role_ids) {
-        chapter.role_ids = splitIds(chapter.role_ids);
+        chapter.role_ids = splitIds(chapter.role_ids).map(Number);
     }
 
     if (chapter.faction_ids) {
-        chapter.faction_ids = splitIds(chapter.faction_ids);
+        chapter.faction_ids = splitIds(chapter.faction_ids).map(Number);
     }
 
     if (chapter.related_chapter_ids) {
-        chapter.related_chapter_ids = splitIds(chapter.related_chapter_ids);
+        chapter.related_chapter_ids = splitIds(chapter.related_chapter_ids).map(Number);
     }
 
     return chapter;
@@ -160,12 +160,12 @@ export const getChapterList = async (novelId: number, page: number = 1, limit: n
 
     if (response.data) {
         response.data.forEach(chapter => {
-            chapter.storyline_ids = splitIds(chapter.storyline_ids);
-            chapter.event_ids = splitIds(chapter.event_ids);
-            chapter.geo_ids = splitIds(chapter.geo_ids);
-            chapter.role_ids = splitIds(chapter.role_ids);
-            chapter.faction_ids = splitIds(chapter.faction_ids);
-            chapter.related_chapter_ids = splitIds(chapter.related_chapter_ids);
+            chapter.storyline_ids = splitIds(chapter.storyline_ids).map(Number);
+            chapter.event_ids = splitIds(chapter.event_ids).map(Number);
+            chapter.geo_ids = splitIds(chapter.geo_ids).map(String);
+            chapter.role_ids = splitIds(chapter.role_ids).map(Number);
+            chapter.faction_ids = splitIds(chapter.faction_ids).map(Number);
+            chapter.related_chapter_ids = splitIds(chapter.related_chapter_ids).map(Number);
         });
     }
 
@@ -240,6 +240,11 @@ export const deleteChapter = async (id: number) => {
     return response;
 }
 
+/**
+ * 获取最大章节编号
+ * @param novelId 小说ID
+ * @returns 最大章节编号
+ */
 export const getMaxChapterNumber = async (novelId: number): Promise<number> => {
     const response = await fetch.get<number>('/api/aiNoval/chapters/maxChapterNumber', {params: {novelId}});
     return _.toNumber(response);
@@ -309,7 +314,7 @@ export const continueChapterBlocking = async (chapterId: number): Promise<string
     return response.data?.outputs?.text || '';
 }
 
-
+// 获取续写信息
 export const getContinueInfo = async (chapterId: number): Promise<any> => {
     const response = await fetch.get<any>('/api/aiNoval/chapters/continueInfo', {params: {chapterId}});
     return response;
@@ -328,4 +333,16 @@ export const pickFromText = async (target: string, src_text: string): Promise<an
     let text = response.data?.outputs?.output || '';
     text = text.replace(/<think>.*?<\/think>/gs, '');
     return text || '';
+}
+
+// 生成章节
+export const genChapterBlocking = async (worldviewId: number, inputs: any): Promise<string> => {
+    const response = await fetch.post(`/api/aiNoval/chapters/genChapter`, 
+        inputs,
+        {
+            params: {worldviewId},
+            timeout: 1000 * 60 * 10
+        }
+    );
+    return response.data?.outputs?.output || '';
 }

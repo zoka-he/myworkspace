@@ -6,6 +6,7 @@ import * as chapterApi from '../apiCalls'
 import styles from './ChapterContinuePanel.module.scss'
 import * as apiCalls from '../apiCalls'
 import TextArea from 'antd/es/input/TextArea'
+import _ from 'lodash'
 
 interface ChapterContinueModalProps {
   selectedChapterId: number | undefined
@@ -93,6 +94,9 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
   const [keepGoing, setKeepGoing] = useState<boolean>(false)
   const keepGoingRef = useRef<boolean>(false)
 
+  // 自动续写结果
+  const [autoWriteResult, setAutoWriteResult] = useState<string>('114514');
+
   // 更新 keepGoing 时同步更新 ref
   useEffect(() => {
     keepGoingRef.current = keepGoing
@@ -115,10 +119,12 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
     reloadChapter();
   }, [])
 
+  // 当章节id变化时，刷新章节数据
   useEffect(() => {
     reloadChapter();
   }, [selectedChapterId])
 
+  // 刷新章节数据
   const reloadChapter = async () => {
     if (selectedChapterId) {
       const res = await apiCalls.getContinueInfo(selectedChapterId)
@@ -131,7 +137,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
   useEffect(() => {
     if (selectedChapter) {
       setNovelId(selectedChapter.novel_id)
-      setRelatedChapterIds(selectedChapter?.related_chapter_ids?.split(',').map(s => s.trim()).filter(s => s.length > 0).map(_.toNumber) || [])
+      setRelatedChapterIds(selectedChapter?.related_chapter_ids?.split(',').map((s: string) => s.trim()).filter((s: string | any[]) => s.length > 0).map(_.toNumber) || [])
       setSeedPrompt(selectedChapter.skeleton_prompt || selectedChapter.seed_prompt || '')
       setRoleNames(selectedChapter?.actual_roles || selectedChapter?.role_names || '')
       setFactionNames(selectedChapter?.actual_factions || selectedChapter?.faction_names || '')
@@ -155,7 +161,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
     }
   }, [novelId])
 
-  // 处理AI续写
+  // 处理AI续写（全流程：缩写+续写）
   const handleContinue = async () => {
     if (!selectedChapter) return
     if (relatedChapterIds.length === 0 && !isReferSelf) return
@@ -183,6 +189,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
         });
       }
 
+      // 如果参考本章，则将本章内容加入到preparedChapterList中，注意是否需要缩写本章
       if (isReferSelf) {
         preparedChapterList.push({
           state: isStripSelf ? 'pending' : 'completed',
@@ -230,14 +237,13 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
         chapterIndex++;
       }
 
-      // 第四步：使用AI续写
+      // 第四步：使用AI续写，续写前先确认用户指令
       if (!keepGoingRef.current) {
         throw new Error('用户已停止续写')
+      } else {
+        await executeAutoWrite();
       }
-
-
-      // const text = await chapterApi.continueChapterBlocking(selectedChapter.id || 0)
-      // setContinuedContent(text)
+      
 
     } catch (error: any) {
       console.error('continueChapter error -> ', error)
@@ -249,6 +255,60 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
     }
   }
 
+  const handleReContinue = async () => {
+    if (!selectedChapter) return
+
+    try {
+      // 第一步：设置状态，关闭所有编辑权限
+      setIsContinuing(true)
+      setIsLoading(true)
+
+      // 第二步：使用AI续写
+      await executeAutoWrite();
+
+    } catch (error: any) {
+      console.error('continueChapter error -> ', error)
+      message.error('续写失败，原因：' + error.message)
+    } finally {
+      setIsContinuing(false)
+      setIsLoading(false)
+    }
+  }
+
+  // 执行自动续写
+  const executeAutoWrite = async () => {
+    if (!selectedChapter) return
+    // if (relatedChapterIds.length === 0 && !isReferSelf) return
+
+    setAutoWriteResult('正在续写...')
+
+    // 使用函数式更新获取最新的stripReportList状态
+    const latestStripReportList = await new Promise<ChapterStripReport[]>(resolve => {
+      setStripReportList(prevList => {
+        resolve(prevList);
+        return prevList;
+      });
+    });
+
+    const reqObj = {
+      prev_content: latestStripReportList
+        .filter(chapter => chapter.state === 'completed' && chapter.strippedContent)
+        .map(chapter => chapter.strippedContent)
+        .join('\n\n'),
+      curr_context: seedPrompt,
+      role_names: roleNames,
+      faction_names: factionNames,
+      geo_names: geoNames,
+    };
+    console.info('auto write reqObj -> ', reqObj);
+
+    const res = await chapterApi.genChapterBlocking(selectedChapter.worldview_id, reqObj);
+    console.info('auto write res -> ', res);
+
+    setAutoWriteResult(res || '续写已结束，未返回内容');
+  }
+
+  // 存储实际提示词
   const handleStoreActualPrompt = async () => {
     if (!selectedChapterId) {
       message.error('章节id为空，请检查程序或数据状态')
@@ -410,7 +470,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
     }
   }
 
-  // Add handlers for content viewing
+  // 显示章节原文
   const handleViewOriginal = (content: string, chapterInfo: ChapterStripReport) => {
     setViewingContent(content)
     setViewingChapterInfo({
@@ -421,6 +481,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
     setIsOriginalModalVisible(true)
   }
 
+  // 显示章节缩写
   const handleViewStripped = (content: string, chapterInfo: ChapterStripReport) => {
     setViewingContent(content)
     setViewingChapterInfo({
@@ -470,9 +531,9 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
         <div className={styles.continueContent}>
           <Row gutter={16}>
             <Col span={12}>
-                <div>
+                <Space>
                   <Button icon={<RedoOutlined/>} onClick={reloadChapter}>刷新</Button>
-                </div>
+                </Space>
 
                 <Divider orientation="left">前序章节</Divider>
 
@@ -568,7 +629,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
             </Col>
 
             <Col span={12}>
-              <Space direction="vertical" style={{ width: '100%' }}>
+              <div>
                 <Space>
                   { isContinuing ? (
                     <Button
@@ -594,20 +655,39 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
                   <Checkbox checked={isReferSelf} onChange={(e) => setIsReferSelf(e.target.checked)}>参考本章已有内容</Checkbox>
                   <Checkbox checked={isStripSelf} onChange={(e) => setIsStripSelf(e.target.checked)}>缩写本章</Checkbox>
                 </Space>
-                <div className={styles.continuedText}>
-                  {isContinuing ? null : '点击上方按钮开始续写...'}
-                </div>
+                <Divider orientation='left'>
+                  {isContinuing ? '续写中...' : '点击上方按钮开始续写...'}
+                </Divider>
 
                 {
-                  stripReportList.length > 0 && (
+                  stripReportList.length > 0 && [
                     <Card size="small" title="章节缩写">
                       { stripReportList.map((item, index) => (
                         <ChapterStripState key={index} {...item} onViewOriginal={handleViewOriginal} onViewStripped={handleViewStripped} />
                       ))}
                     </Card>
+                  ]
+                }
+
+                {
+                  autoWriteResult && (
+                    <Card size="small" style={{ marginTop: 16 }} title={
+                        <div className='f-flex-two-side' style={{ alignItems: 'center' }}>
+                          <div>
+                            <span>自动续写结果 - {selectedChapter?.chapter_number} {selectedChapter?.title || '未命名章节'}:v{selectedChapter?.version}</span>
+                          </div>
+                          <Space>
+                            <Button type="primary" size="small" disabled={isLoading || isContinuing || true}>复制</Button>
+                            <Button danger size="small" disabled={isLoading || isContinuing} onClick={handleReContinue}>重写</Button>
+                          </Space>
+                        </div>
+                        
+                      }>
+                      <Typography.Text>{autoWriteResult} </Typography.Text>
+                    </Card>
                   )
                 }
-              </Space>
+              </div>
             </Col>
           </Row>
         </div>
@@ -632,7 +712,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
   )
 }
 
-
+// 章节缩写状态组件
 interface ChapterStripStateProps extends ChapterStripReport {
   onViewOriginal?: (content: string, chapterInfo: ChapterStripReport) => void
   onViewStripped?: (content: string, chapterInfo: ChapterStripReport) => void

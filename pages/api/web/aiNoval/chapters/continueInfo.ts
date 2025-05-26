@@ -39,6 +39,7 @@ async function handleContinueInfo(req: NextApiRequest, res: NextApiResponse<Data
             title: chapter.title,
             version: chapter.version,
             related_chapter_ids: chapter.related_chapter_ids,
+            worldview_id: chapter.worldview_id,
             role_names: roleNames,
             faction_names: factionNames,
             geo_names: geoNames,
