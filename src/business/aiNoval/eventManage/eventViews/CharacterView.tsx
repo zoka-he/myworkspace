@@ -81,6 +81,57 @@ export function CharacterView({
     .style('max-width', '300px')
 
   // Draw storylines
+  // 1. 预处理：收集所有event的所有节点x坐标
+  const eventNodeMap = new Map<string, { minX: number, maxX: number, minChar: string, maxChar: string }>()
+  storyLines.forEach(storyLine => {
+    const storyEvents = filteredEvents.filter(event => event.storyLine === storyLine.id?.toString())
+    if (storyEvents.length === 0) return
+    const characterGroups = new Map<string, { event: TimelineEvent, character: string }[]>()
+    storyEvents.forEach(event => {
+      event.characters.forEach(character => {
+        if (!characterGroups.has(character)) characterGroups.set(character, [])
+        characterGroups.get(character)!.push({ event, character })
+      })
+    })
+    characterGroups.forEach((group, character) => {
+      group.forEach(({ event }) => {
+        const x = (xScale(character) || 0) + xScale.bandwidth() / 2
+        const info = eventNodeMap.get(event.id)
+        if (!info) {
+          eventNodeMap.set(event.id, { minX: x, maxX: x, minChar: character, maxChar: character })
+        } else {
+          if (x < info.minX) {
+            info.minX = x
+            info.minChar = character
+          }
+          if (x > info.maxX) {
+            info.maxX = x
+            info.maxChar = character
+          }
+        }
+      })
+    })
+  })
+
+  // 在所有节点渲染前，连接同一event的最左和最右节点
+  eventNodeMap.forEach((info, eventId) => {
+    const event = filteredEvents.find(e => e.id === eventId)
+    if (!event) return
+    const y = yScale(event.date)
+    // 获取该event所属storyLine的颜色
+    const storyLine = storyLines.find(sl => sl.id?.toString() === event.storyLine)
+    const lineColor = storylineColors.get(storyLine?.id?.toString() || '') || '#1890ff'
+    g.append('line')
+      .attr('x1', info.minX)
+      .attr('y1', y)
+      .attr('x2', info.maxX)
+      .attr('y2', y)
+      .attr('stroke', lineColor)
+      .attr('stroke-width', 2)
+      .attr('stroke-dasharray', 'none')
+  })
+
+  // Draw storylines
   storyLines.forEach(storyLine => {
     // 只处理属于当前storyLine的事件
     const storyEvents = filteredEvents.filter(event => event.storyLine === storyLine.id?.toString())
@@ -163,22 +214,26 @@ export function CharacterView({
           .attr('fill', lineColor)
           .attr('stroke', lineColor)
           .attr('stroke-width', 2)
-        // 左侧显示时间
-        eventGroup.append('text')
-          .attr('x', -10)
-          .attr('y', 4)
-          .attr('text-anchor', 'end')
-          .attr('font-size', '10px')
-          .attr('fill', lineColor)
-          .text(formatTimestamp(event.date, worldviews, worldview_id))
-        // 右侧显示事件标题
-        eventGroup.append('text')
-          .attr('x', 10)
-          .attr('y', 4)
-          .attr('text-anchor', 'start')
-          .attr('font-size', '12px')
-          .attr('fill', lineColor)
-          .text(event.title)
+        // 判断是否为该event的最左/最右节点
+        const eventInfo = eventNodeMap.get(event.id)
+        if (eventInfo && x === eventInfo.minX) {
+          eventGroup.append('text')
+            .attr('x', -10)
+            .attr('y', 4)
+            .attr('text-anchor', 'end')
+            .attr('font-size', '10px')
+            .attr('fill', lineColor)
+            .text(formatTimestamp(event.date, worldviews, worldview_id))
+        }
+        if (eventInfo && x === eventInfo.maxX) {
+          eventGroup.append('text')
+            .attr('x', 10)
+            .attr('y', 4)
+            .attr('text-anchor', 'start')
+            .attr('font-size', '12px')
+            .attr('fill', lineColor)
+            .text(event.title)
+        }
         // 最后一个node上方显示角色名称
         if (idx === sortedGroup.length - 1) {
           eventGroup.append('text')

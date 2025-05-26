@@ -77,6 +77,31 @@ export function FactionView({
 
     const lineColor = storylineColors.get(storyLine.id?.toString() || '') || '#1890ff'
 
+    // --- 新增：为同一事件的所有 faction node 用一条直线连接 ---
+    storyEvents.forEach(event => {
+      // 收集所有 faction 的 x 坐标
+      const points = event.faction
+        .map(faction => ([
+          (xScale(faction) || 0) + xScale.bandwidth() / 2,
+          yScale(event.date)
+        ] as [number, number]))
+        .sort((a, b) => a[0] - b[0])
+      if (points.length > 1) {
+        const eventLineGenerator = d3.line<[number, number]>()
+          .x(d => d[0])
+          .y(d => d[1])
+        g.append('path')
+          .datum(points)
+          .attr('d', eventLineGenerator)
+          .attr('fill', 'none')
+          .attr('stroke', lineColor)
+          .attr('stroke-width', 2)
+          .attr('opacity', 0.7)
+          .lower() // 保证线在节点下方
+      }
+    })
+    // ---
+
     // Group events by factionName for this storyline
     const eventsByFaction = new Map<string, ProcessedEvent[]>()
     storyEvents.forEach(event => {
@@ -119,11 +144,30 @@ export function FactionView({
         }
       }
 
+      // --- 新增: 预处理每个事件在所有 faction 的 x 坐标 ---
+      // Map: event.id -> x 坐标数组
+      const eventIdToXList = new Map<string, number[]>()
+      storyEvents.forEach(event => {
+        event.faction.forEach(faction => {
+          const x = (xScale(faction) || 0) + xScale.bandwidth() / 2
+          if (!eventIdToXList.has(event.id)) eventIdToXList.set(event.id, [])
+          eventIdToXList.get(event.id)!.push(x)
+        })
+      })
+      // ---
+
       // Process each event to draw markers and labels
       sortedFactionEvents.forEach((event, eventIdx) => {
         const x = (xScale(factionName) || 0) + xScale.bandwidth() / 2
         const y = yScale(event.date)
-        
+
+        // --- 新增: 判断当前 node 是否是最左/最右 ---
+        const xList = eventIdToXList.get(event.id) || []
+        const minX = Math.min(...xList)
+        const maxX = Math.max(...xList)
+        const isLeftMost = x === minX
+        const isRightMost = x === maxX
+        // ---
         const eventGroup = g.append('g')
           .attr('class', 'event-group')
           .attr('transform', `translate(${x},${y})`)
@@ -158,7 +202,6 @@ export function FactionView({
           })
           .on('click', function(mouseEvent, d) {
             const eventData = d3.select(this).datum() as TimelineEvent
-            
             const originalEvent: TimelineEvent = {
               id: eventData.id,
               title: eventData.title,
@@ -183,23 +226,26 @@ export function FactionView({
           .attr('stroke', lineColor)
           .attr('stroke-width', 2)
 
-        // Add timestamp label on the left
-        eventGroup.append('text')
-          .attr('x', -10)
-          .attr('y', 4)
-          .attr('text-anchor', 'end')
-          .attr('font-size', '10px')
-          .attr('fill', lineColor)
-          .text(formatTimestamp(event.date, worldviews, worldview_id))
-
-        // Add event title label on the right
-        eventGroup.append('text')
-          .attr('x', 10)
-          .attr('y', 4)
-          .attr('text-anchor', 'start')
-          .attr('font-size', '12px')
-          .attr('fill', lineColor)
-          .text(event.title)
+        // 只在最左侧 node 左侧显示日期
+        if (isLeftMost) {
+          eventGroup.append('text')
+            .attr('x', -10)
+            .attr('y', 4)
+            .attr('text-anchor', 'end')
+            .attr('font-size', '10px')
+            .attr('fill', lineColor)
+            .text(formatTimestamp(event.date, worldviews, worldview_id))
+        }
+        // 只在最右侧 node 右侧显示标题
+        if (isRightMost) {
+          eventGroup.append('text')
+            .attr('x', 10)
+            .attr('y', 4)
+            .attr('text-anchor', 'start')
+            .attr('font-size', '12px')
+            .attr('fill', lineColor)
+            .text(event.title)
+        }
 
         // 在最后一个节点上方添加阵营名称
         if (eventIdx === sortedFactionEvents.length - 1) {
