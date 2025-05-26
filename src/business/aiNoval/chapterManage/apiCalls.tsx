@@ -271,7 +271,8 @@ export const stripChapterBlocking = async (chapterId: number, stripLength: numbe
                 chapterId,
                 stripLength,
                 mode: 'blocking'
-            }
+            },
+            timeout: 1000 * 60 * 10
         }
     );
 
@@ -288,7 +289,8 @@ export const nameChapterBlocking = async (chapterId: number): Promise<string> =>
             params: {
                 chapterId,
                 mode: 'blocking'
-            }
+            },
+            timeout: 1000 * 60 * 10
         }
     );
 
@@ -305,7 +307,8 @@ export const continueChapterBlocking = async (chapterId: number): Promise<string
             params: {
                 chapterId,
                 mode: 'blocking'
-            }
+            },
+            timeout: 1000 * 60 * 10
         }
     );
 

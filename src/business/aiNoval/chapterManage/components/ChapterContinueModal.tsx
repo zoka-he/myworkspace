@@ -37,6 +37,7 @@ interface ContentViewModalProps {
   type: 'original' | 'stripped'
 }
 
+// 展示章节内容
 function ContentViewModal({ isVisible, onClose, content, chapterInfo, type }: ContentViewModalProps) {
   const modalTitle = chapterInfo 
     ? `${chapterInfo.chapterNumber} ${chapterInfo.chapterTitle} (v${chapterInfo.version}) - ${type === 'original' ? '原文' : '缩写'}`
@@ -69,19 +70,104 @@ function ContentViewModal({ isVisible, onClose, content, chapterInfo, type }: Co
   )
 }
 
+// 注意事项快速复制 Modal
+interface AttentionRefModalProps {
+  isVisible: boolean
+  onClose: () => void
+  content: string
+}
+
+function AttentionRefModal({ isVisible, onClose, content }: AttentionRefModalProps) {
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'success' | 'error'>('idle')
+
+  const refList = [
+    {
+      title: '基础',
+      color: 'blue',
+      content: '* 扩写时，请仔细分析用户提供的片段，理解其含义和作用。\n' +
+               '* 扩写时，请充分利用前情提要和相关设定，为故事增加细节和深度。\n' +
+               '* 扩写时，请注意人物的心理活动和行为动机，使人物更加立体和真实。\n' +
+               '* 扩写时，请注意情节的节奏和悬念，使故事更加引人入胜。'
+    },
+    {
+      title: '轻松',
+      color: 'green',
+      content: '- 对人物对话、人物心理活动、人物动作细节、场景塑造进行综合调优\n' +
+               '- 使用流畅、地道的表达，适当的时机使用俚语化的表达，加强气氛\n' +
+               '- 加上日式吐槽优化语言张力；'
+    }
+  ]
+
+  
+
+  async function handleCopy(content: string) {
+    try {
+      await navigator.clipboard.writeText(content)
+      message.success('复制成功')
+    } catch (error) {
+      message.error('复制失败')
+    }
+  }
+
+
+  function RefItem(props: { title: string, color: string, content: string }) {
+    const title = <div className={'f-flex-two-side'}>
+      <Tag color={props.color}>{props.title}</Tag>
+      <Button type="link" size="small" icon={<CopyOutlined />} onClick={() => handleCopy(props.content)}>复制</Button>
+    </div>
+
+    return (
+      <Card size="small" title={title} style={{ marginTop: '10px' }}>
+        <Typography.Paragraph style={{ whiteSpace: 'pre-wrap' }}>{props.content}</Typography.Paragraph>
+      </Card>
+    )
+  }
+
+  return (
+    <Modal
+      title="注意事项参考"
+      open={isVisible}
+      onCancel={onClose}
+      width={520}
+      footer={[
+        <Button key="close" onClick={onClose}>关闭</Button>
+      ]}
+    >
+      {refList.map((item, index) => (
+        <RefItem key={index} title={item.title} color={item.color} content={item.content} />
+      ))}
+    </Modal>
+  )
+}
+
 function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapterChange }: ChapterContinueModalProps) {
   const [continuedContent, setContinuedContent] = useState('')
   const [isContinuing, setIsContinuing] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [form] = Form.useForm()
 
+  // 当前章节
   const [selectedChapter, setSelectedChapter] = useState<any | null>(null)
+
+  // 小说id
   const [novelId, setNovelId] = useState<number | undefined>(undefined)
+
+  // 章节列表
   const [chapterList, setChapterList] = useState<IChapter[]>([])
+
+  // 关联章节id列表
   const [relatedChapterIds, setRelatedChapterIds] = useState<number[]>([])
+
+  // 种子提示词
   const [seedPrompt, setSeedPrompt] = useState<string>('')
+
+  // 角色名称
   const [roleNames, setRoleNames] = useState<string>('')
+
+  // 势力名称
   const [factionNames, setFactionNames] = useState<string>('')
+
+  // 地理名称
   const [geoNames, setGeoNames] = useState<string>('')
 
   // 是否参考本章已有内容
@@ -95,24 +181,53 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
   const keepGoingRef = useRef<boolean>(false)
 
   // 自动续写结果
-  const [autoWriteResult, setAutoWriteResult] = useState<string>('114514');
+  const [autoWriteResult, setAutoWriteResult] = useState<string>('');
+
+  // 自动续写耗时
+  const [autoWriteElapsed, setAutoWriteElapsed] = useState<number>(0)
 
   // 更新 keepGoing 时同步更新 ref
   useEffect(() => {
     keepGoingRef.current = keepGoing
   }, [keepGoing])
 
+  // 缩写状态列表
   const [stripReportList, setStripReportList] = useState<ChapterStripReport[]>([])
 
-  // Add new state for content viewing modals
+  // 是否展示章节内容 - 原文
   const [isOriginalModalVisible, setIsOriginalModalVisible] = useState(false)
+
+
+  // 展示章节内容 - 缩写后
   const [isStrippedModalVisible, setIsStrippedModalVisible] = useState(false)
+
+  // 展示章节内容 - 原文
   const [viewingContent, setViewingContent] = useState('')
+
+  // 展示章节内容
   const [viewingChapterInfo, setViewingChapterInfo] = useState<{
     chapterNumber: number
     chapterTitle: string
     version: number
   } | null>(null)
+
+  // 提示词工作模式
+  const [promptWorkMode, setPromptWorkMode] = useState<'full' | 'part'>('full');
+
+  // 提示词分段列表
+  const [promptPartList, setPromptPartList] = useState<string[]>([]);
+
+  // 已选提示词分段
+  const [selectedPromptParts, setSelectPromptParts] = useState<string[]>([]);
+
+  // 注意事项
+  const [attention, setAttention] = useState<string>('')
+
+  // 额外设置
+  const [extraSettings, setExtraSettings] = useState<string>('')
+
+  // 注意事项参考 Modal
+  const [isAttentionRefVisible, setIsAttentionRefVisible] = useState(false)
 
   // 初始化
   useEffect(() => {
@@ -136,16 +251,49 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
   // 填充章节数据
   useEffect(() => {
     if (selectedChapter) {
+      // 小说id
       setNovelId(selectedChapter.novel_id)
+
+      // 关联章节id列表
       setRelatedChapterIds(selectedChapter?.related_chapter_ids?.split(',').map((s: string) => s.trim()).filter((s: string | any[]) => s.length > 0).map(_.toNumber) || [])
+
+      // 种子提示词
       setSeedPrompt(selectedChapter.skeleton_prompt || selectedChapter.seed_prompt || '')
+
+      // 提示词分段列表
+      setPromptPartList(selectedChapter?.skeleton_prompt?.split('\n') || [])
+      
+      // 角色名称
       setRoleNames(selectedChapter?.actual_roles || selectedChapter?.role_names || '')
+
+      // 势力名称
       setFactionNames(selectedChapter?.actual_factions || selectedChapter?.faction_names || '')
+
+      // 地理名称
       setGeoNames(selectedChapter?.actual_locations || selectedChapter?.geo_names || '')
+
+      // 注意事项
+      setAttention(selectedChapter?.attension || '')
+
+      // 额外设置
+      setExtraSettings(selectedChapter?.extra_settings || '')
+
+      // 自动续写结果
+      setAutoWriteResult(selectedChapter?.content || '')
     }
   }, [selectedChapter])
 
-  
+  useEffect(() => {
+    setSelectPromptParts([]);
+    if (seedPrompt && promptWorkMode === 'part') {
+      setPromptPartList(seedPrompt.split('\n'))
+    }
+  }, [promptWorkMode])
+
+  useEffect(() => {
+    console.debug('selectedPromptParts -> ', selectedPromptParts);
+  }, [selectedPromptParts])
+
 
   // 获取章节列表
   useEffect(() => {
@@ -290,12 +438,19 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
       });
     });
 
+    let prompt = '';
+    if (promptWorkMode === 'full') {
+      prompt = seedPrompt;
+    } else {
+      prompt = selectedPromptParts.join('\n');
+    }
+
     const reqObj = {
       prev_content: latestStripReportList
         .filter(chapter => chapter.state === 'completed' && chapter.strippedContent)
         .map(chapter => chapter.strippedContent)
         .join('\n\n'),
-      curr_context: seedPrompt,
+      curr_context: prompt,
       role_names: roleNames,
       faction_names: factionNames,
       geo_names: geoNames,
@@ -308,7 +463,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
     setAutoWriteResult(res || '续写已结束，未返回内容');
   }
 
-  // 存储实际提示词
+  // 保存实际提示词
   const handleStoreActualPrompt = async () => {
     if (!selectedChapterId) {
       message.error('章节id为空，请检查程序或数据状态')
@@ -322,12 +477,14 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
         actual_roles: roleNames,
         actual_factions: factionNames,
         actual_locations: geoNames,
-        skeleton_prompt: seedPrompt
+        skeleton_prompt: seedPrompt,
+        attension: attention,
+        extra_settings: extraSettings
       })  
-      message.success('存储成功')
+      message.success('保存成功')
     } catch (error) {
       console.error('storeActualPrompt error -> ', error)
-      message.error('存储失败')
+      message.error('保存失败')
     } finally {
       reloadChapter();
       setIsLoading(false)
@@ -367,6 +524,14 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
 
       case 'skeleton_prompt':
         setSeedPrompt(selectedChapter?.skeleton_prompt || '')
+        break;
+
+      case 'attension':
+        setAttention(selectedChapter?.attension || '')
+        break;
+
+      case 'extra_settings':
+        setExtraSettings(selectedChapter?.extra_settings || '')
         break;
     }
   }
@@ -494,6 +659,10 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
 
   const modalTitle = selectedChapter ? `AI续写 - 当前第 ${selectedChapter.chapter_number} 章: ${selectedChapter.title}，版本：v${selectedChapter.version}` : 'AI续写'
 
+  function handleShowAttentionRef() {
+    setIsAttentionRefVisible(true)
+  }
+
   return (
     <>
       <Modal
@@ -607,10 +776,49 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
 
                 <div className={styles.prompt_title}>
                   <div>
+                    <span>注意事项：</span>
+                    { attention === selectedChapter?.attension ? <Tag color="blue">存储值</Tag> : null }
+                    { (attention !== selectedChapter?.attension) ?  <Tag color="red">已修改</Tag> : null }
+                  </div>
+                  <div>
+                    <Button size="small" disabled={isLoading} onClick={handleShowAttentionRef}>参考值</Button>
+                    <Button type="link" size="small" icon={<RedoOutlined />} disabled={isLoading} onClick={() => handleResetPrompt('attension')}>复原存储值</Button>
+                  </div>
+                </div>
+                <div>
+                  <TextArea autoSize={{ minRows: 1 }} disabled={isLoading} value={attention} onChange={(e) => setAttention(e.target.value)} />
+                </div>
+
+                <div className={styles.prompt_title}>
+                  <div>
+                    <span>额外设置：(慎用，会触发全库检索，产生巨大耗时，建议先切换GPU)。</span>
+                    { extraSettings === selectedChapter?.extra_settings ? <Tag color="blue">存储值</Tag> : null }
+                    { (extraSettings !== selectedChapter?.extra_settings) ?  <Tag color="red">已修改</Tag> : null }
+                  </div>
+                  <div>
+                    <Button type="link" size="small" icon={<RedoOutlined />} disabled={isLoading} onClick={() => handleResetPrompt('extra_settings')}>复原存储值</Button>
+                  </div>
+                </div>
+                <div>
+                  <TextArea autoSize={{ minRows: 1 }} disabled={isLoading} value={extraSettings} onChange={(e) => setExtraSettings(e.target.value)} />
+                </div>
+
+                <div className={styles.prompt_title}>
+                  <div>
                     <span>章节提示词：</span>
                     { seedPrompt === selectedChapter?.seed_prompt ? <Tag color="blue">初始值</Tag> : null }
                     { seedPrompt === selectedChapter?.skeleton_prompt ?  <Tag color="green">存储值</Tag> : null }
                     { (seedPrompt !== selectedChapter?.seed_prompt && seedPrompt !== selectedChapter?.skeleton_prompt) ?  <Tag color="red">已修改</Tag> : null }
+                    <Select size="small" value={promptWorkMode} onChange={(value) => setPromptWorkMode(value)}>
+                      <Select.Option value="full">编辑模式</Select.Option>
+                      <Select.Option value="part">分段模式</Select.Option>
+                    </Select>
+                    {
+                      promptWorkMode === 'part' ? [
+                        <Button size="small" disabled={isLoading} onClick={() => setSelectPromptParts([...promptPartList])}>全选</Button>,
+                        <Button size="small" disabled={isLoading} onClick={() => setSelectPromptParts([])}>全不选</Button>
+                       ] : []
+                    }
                   </div>
                   <div>
                     <Button size="small" disabled={isLoading} onClick={() => handleOptimizePrompt('seed_prompt')}>AI优化</Button>
@@ -619,12 +827,29 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
                   </div>
                 </div>
                 <div>
-                  <TextArea
-                    disabled={isLoading}
-                    autoSize={{ minRows: 19 }}
-                    value={seedPrompt}
-                    onChange={(e) => setSeedPrompt(e.target.value)}
-                  />
+                  {
+                    promptWorkMode === 'full' ? (
+                      <TextArea
+                        disabled={isLoading}
+                        autoSize={{ minRows: 19 }}
+                        value={seedPrompt}
+                        onChange={(e) => setSeedPrompt(e.target.value)}
+                      />
+                    ) : (
+                      <Checkbox.Group className={styles.prompt_part_list}
+                        value={selectedPromptParts}
+                        onChange={(value) => setSelectPromptParts(value.map(String))} 
+                      >
+                        {
+                          promptPartList.map((item, index) => (
+                            <Row key={index}>
+                              <Checkbox key={index} value={item}>{item}</Checkbox>
+                            </Row>
+                          ))
+                        }
+                      </Checkbox.Group>
+                    )
+                  }
                 </div>
             </Col>
 
@@ -683,7 +908,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
                         </div>
                         
                       }>
-                      <Typography.Text>{autoWriteResult} </Typography.Text>
+                      <Typography.Paragraph style={{ whiteSpace: 'pre-wrap' }}>{autoWriteResult} </Typography.Paragraph>
                     </Card>
                   )
                 }
@@ -708,18 +933,44 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
         chapterInfo={viewingChapterInfo}
         type="stripped"
       />
+
+      <AttentionRefModal
+        isVisible={isAttentionRefVisible}
+        onClose={() => setIsAttentionRefVisible(false)}
+        content={selectedChapter?.attension || ''}
+      />
     </>
   )
 }
 
-// 章节缩写状态组件
+// 章节缩写状态组件Props
 interface ChapterStripStateProps extends ChapterStripReport {
   onViewOriginal?: (content: string, chapterInfo: ChapterStripReport) => void
   onViewStripped?: (content: string, chapterInfo: ChapterStripReport) => void
 }
 
+
+// 章节缩写状态组件
 function ChapterStripState(props: ChapterStripStateProps) {
   const { state, chapterNumber, chapterTitle, version, originalContent, strippedContent } = props
+
+  const [processStartTime, setProcessStartTime] = useState<number>(0)
+  const [processEndTime, setProcessEndTime] = useState<number>(0)
+
+  useEffect(() => {
+    if (state === 'processing') {
+      setProcessStartTime(new Date().getTime())
+      setProcessEndTime(0)
+    }
+  }, [state])
+
+  useEffect(() => {
+    if (state === 'completed') {
+      setProcessEndTime(new Date().getTime())
+    }
+  }, [state])
+  
+  
 
   const getStatusColor = () => {
     switch (state) {
@@ -747,6 +998,8 @@ function ChapterStripState(props: ChapterStripStateProps) {
     }
   }
 
+  const elapsedTimeString = processEndTime > 0 ? `${((processEndTime - processStartTime) / 1000).toFixed(2)}s` : ''
+
   return (
     <Card size="small" style={{ marginBottom: 8 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -757,6 +1010,11 @@ function ChapterStripState(props: ChapterStripStateProps) {
           <Tag color={getStatusColor()} style={{ marginLeft: 8 }}>
             {getStatusText()}
           </Tag>
+          {elapsedTimeString && (
+            <Tag color="#ccc" style={{ marginLeft: 8 }}>
+              {elapsedTimeString}
+            </Tag>
+          )}
         </div>
         <Space>
           <Button 

@@ -57,7 +57,8 @@ async function handleNaming(req: NextApiRequest, res: NextApiResponse<Data>) {
         const response = await fetch(externalApiUrl, {
             method: 'POST',
             headers: reqHeaders,
-            body: JSON.stringify(body)
+            body: JSON.stringify(body),
+            timeout: 1000 * 60 * 10
         });
 
         if (!response.ok) {

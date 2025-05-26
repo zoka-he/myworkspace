@@ -246,4 +246,6 @@ export interface IChapter {
     actual_roles?: string
     actual_factions?: string
     actual_locations?: string
+    attension?: string
+    extra_settings?: string
 }

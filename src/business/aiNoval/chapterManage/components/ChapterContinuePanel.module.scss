@@ -12,3 +12,22 @@
 .footer {
     width: 100%;
 }
+
+.prompt_part_list {
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    .ant-checkbox-wrapper {
+        margin-left: 0;
+        margin-inline-start: 0 !important;
+    }
+
+    .ant-checkbox-wrapper + .ant-checkbox-wrapper {
+        margin-left: 0;
+        margin-inline-start: 0 !important;
+    }
+}
+
+

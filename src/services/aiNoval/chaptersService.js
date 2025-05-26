@@ -29,7 +29,9 @@ export default class ChaptersService extends MysqlNovalService {
             'updated_at',
             'actual_roles',
             'actual_factions',
-            'actual_locations'
+            'actual_locations',
+            'attension',
+            'extra_settings'
         ]);
     }
 
