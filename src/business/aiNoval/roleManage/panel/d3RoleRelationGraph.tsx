@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import * as d3 from 'd3'
 import type { SimulationNodeDatum } from 'd3'
-import type { IRoleRelation, IRoleData } from '@/src/types/IAiNoval'
+import type { IRoleRelation, IRoleData, IRoleInfo } from '@/src/types/IAiNoval'
 import { RELATION_TYPES } from '@/src/types/IAiNoval'
 import apiCalls from '../../../aiNoval/roleManage/apiCalls'
 
@@ -11,6 +11,7 @@ interface RoleNode extends SimulationNodeDatum {
   id: string
   name: string
   type: string
+  faction_id?: number | null
   x?: number
   y?: number
 }
@@ -69,6 +70,15 @@ export function D3RoleRelationGraph({
       .attr('width', dimensions.width)
       .attr('height', dimensions.height)
 
+    // Add zoom behavior
+    const zoom = d3.zoom<SVGSVGElement, unknown>()
+      .scaleExtent([0.1, 4])
+      .on('zoom', (event) => {
+        g.attr('transform', event.transform)
+      })
+
+    svg.call(zoom)
+
     // Create a group for the graph
     const g = svg.append('g')
 
@@ -80,22 +90,35 @@ export function D3RoleRelationGraph({
       .force('charge', d3.forceManyBody().strength(-300))
       .force('center', d3.forceCenter(dimensions.width / 2, dimensions.height / 2))
 
-    // Fetch data
+    // 获取数据
     Promise.all([
       apiCalls.getRoleList(Number(worldview_id)),
-      apiCalls.getWorldViewRoleRelationList(Number(worldview_id))
-    ]).then(([roleRes, relationRes]) => {
+      apiCalls.getWorldViewRoleRelationList(Number(worldview_id)),
+      apiCalls.getWorldViewRoleInfoList(Number(worldview_id), 200)
+    ]).then(([roleRes, relationRes, roleInfoRes]) => {
       const data: RoleGraphData = {
         nodes: roleRes.data,
         relations: relationRes.data
       }
 
-      // Convert IRoleData to RoleNode
-      const roleNodes: RoleNode[] = data.nodes.map(role => ({
-        id: role.id?.toString() || '',
-        name: role.name || '',
-        type: 'role'
-      }))
+      // Create a map of role info by role_id
+      const roleInfoMap = new Map<number, IRoleInfo>()
+      roleInfoRes.data.forEach((info: IRoleInfo) => {
+        if (info.role_id) {
+          roleInfoMap.set(info.role_id, info)
+        }
+      })
+
+      // Convert IRoleData to RoleNode with faction information
+      const roleNodes: RoleNode[] = data.nodes.map(role => {
+        const roleInfo = role.id ? roleInfoMap.get(role.id) : null
+        return {
+          id: role.id?.toString() || '',
+          name: role.name || '',
+          type: 'role',
+          faction_id: roleInfo?.faction_id || null
+        }
+      })
 
       // Process relations to create links
       const linkMap = new Map<string, RoleLink>()
@@ -119,35 +142,39 @@ export function D3RoleRelationGraph({
         .force('link', d3.forceLink<RoleNode, RoleLink>()
           .id(d => d.id)
           .distance(d => {
-            // 计算双边关系的乘积
+            // 计算双边关系的之和
             const strength = d.relations.reduce((acc, r) => {
-              const strength1 = r.relation_strength || 35
+              const strength1 = r.relation_strength || 50
               const strength2 = d.relations.find(r2 => 
                 r2.role_id === r.related_role_id && r2.related_role_id === r.role_id
-              )?.relation_strength || 35
-              return Math.max(acc, strength1 * strength2)
+              )?.relation_strength || 50
+              return strength1 + strength2;
+              // return Math.max(acc, strength1 + strength2)
             }, 0)
             
-            // 将0-10000的范围映射到200-50的距离范围
+            // 将0-2000的范围映射到600-20的距离范围
             // 关系越强，距离越近
-            return 200 - (strength / 10000) * 150
+            return 500 - (strength / 200) * 480
           })
           .strength(d => {
             // 计算双边关系的乘积
             const strength = d.relations.reduce((acc, r) => {
-              const strength1 = r.relation_strength || 35
+              const strength1 = r.relation_strength || 50
               const strength2 = d.relations.find(r2 => 
                 r2.role_id === r.related_role_id && r2.related_role_id === r.role_id
-              )?.relation_strength || 35
-              return Math.max(acc, strength1 * strength2)
+              )?.relation_strength || 50
+              // return strength1 + strength2 - 100; 
+              return Math.min(0, strength1 + strength2 - 50) // 低于50表现为排斥
             }, 0)
             
-            // 将0-10000的范围映射到0.1-1的强度范围
+            // 将0-200的范围映射到0.1-1的强度范围
             // 关系越强，引力越大
-            return 0.1 + (strength / 10000) * 0.9
+            return 0.1 + (strength / 200) * 0.9
           }))
         .force('charge', d3.forceManyBody().strength(-300))
         .force('center', d3.forceCenter(dimensions.width / 2, dimensions.height / 2))
+        .alpha(1) // Restart the simulation with full alpha
+        .restart() // Force restart to apply new center position
 
       // Create links with multiple relations
       const linkGroup = g.append('g')
@@ -179,23 +206,43 @@ export function D3RoleRelationGraph({
           )
         )
 
+        // Calculate combined strength
+        const combinedStrength = d.relations.reduce((acc, r) => {
+          const strength1 = r.relation_strength || 50
+          const strength2 = d.relations.find(r2 => 
+            r2.role_id === r.related_role_id && r2.related_role_id === r.role_id
+          )?.relation_strength || 50
+          return strength1 + strength2
+        }, 0)
+
+        // Set color based on relationship type and strength
+        let linkColor = '#999'
+        if (isTwoWay) {
+          // For two-way relationships, use red if combined strength < 70
+          linkColor = combinedStrength < 70 ? '#ff4d4f' : '#999'
+        } else {
+          // For one-way relationships, use red if any relation strength < 45
+          const hasWeakRelation = d.relations.some(r => (r.relation_strength || 50) < 45)
+          linkColor = hasWeakRelation ? '#ff4d4f' : '#999'
+        }
+
         if (isTwoWay) {
           // 双向关系显示为双实线
           d3.select(this).append('line')
-            .attr('stroke', '#999')
+            .attr('stroke', linkColor)
             .attr('stroke-opacity', 0.4)
             .attr('stroke-width', 1)
             .attr('marker-end', null)
 
           d3.select(this).append('line')
-            .attr('stroke', '#999')
+            .attr('stroke', linkColor)
             .attr('stroke-opacity', 0.4)
             .attr('stroke-width', 1)
             .attr('marker-end', null)
         } else {
           // 单向关系显示为带箭头的线，箭头指向目标角色
           d3.select(this).append('line')
-            .attr('stroke', '#999')
+            .attr('stroke', linkColor)
             .attr('stroke-opacity', 0.4)
             .attr('stroke-width', 1)
             .attr('marker-end', 'url(#arrow)')
@@ -218,20 +265,25 @@ export function D3RoleRelationGraph({
         .attr('font-size', 10)
         .attr('fill', '#666')
 
-      // Create nodes
+      // Create nodes with faction-based colors
       const node = g.append('g')
         .selectAll<SVGCircleElement, RoleNode>('circle')
         .data(roleNodes)
         .enter()
         .append('circle')
         .attr('r', 5)
-        .attr('fill', '#69b3a2')
+        .attr('fill', d => {
+          if (!d.faction_id) return '#999' // Gray for no faction
+          // Generate a color based on faction_id
+          const hue = (d.faction_id * 137.5) % 360 // Golden ratio to spread colors
+          return `hsl(${hue}, 70%, 50%)`
+        })
         .call(d3.drag<SVGCircleElement, RoleNode>()
           .on('start', dragstarted)
           .on('drag', dragged)
           .on('end', dragended))
 
-      // Add node labels
+      // Add node labels with faction information
       const label = g.append('g')
         .selectAll<SVGTextElement, RoleNode>('text')
         .data(roleNodes)
@@ -241,6 +293,11 @@ export function D3RoleRelationGraph({
         .attr('font-size', 12)
         .attr('dx', 12)
         .attr('dy', 4)
+        .attr('fill', d => {
+          if (!d.faction_id) return '#666' // Darker gray for no faction
+          const hue = (d.faction_id * 137.5) % 360
+          return `hsl(${hue}, 70%, 30%)` // Darker version of the node color
+        })
 
       // Add tooltips for relations
       linkGroup.append('title')
@@ -344,7 +401,7 @@ export function D3RoleRelationGraph({
   }, [worldview_id, dimensions, updateTimestamp])
 
   return (
-    <div ref={containerRef} style={{ width: '100%', height: '600px' }}>
+    <div ref={containerRef} style={{ width: '100%', height: '100%' }}>
       <svg ref={svgRef} style={{ width: '100%', height: '100%' }}></svg>
     </div>
   )

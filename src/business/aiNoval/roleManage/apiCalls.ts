@@ -17,6 +17,9 @@ const apiCalls = {
     getRoleInfoList: (roleId: number, limit: number = 20) => {
         return fetch.get(`/api/aiNoval/role/info/list`, { params: { role_id: roleId, page: 1, limit } });
     },
+    getWorldViewRoleInfoList: (worldViewId: number, limit: number = 20) => {
+        return fetch.get(`/api/aiNoval/role/info/list`, { params: { worldview_id: worldViewId, page: 1, limit } });
+    },
     createRoleInfo: (data: IRoleInfo) => {
         return fetch.post(`/api/aiNoval/role/info`, data );
     },

@@ -1,7 +1,8 @@
-import { Modal, Form, Input, InputNumber, Select, Button, Row, Col, Divider, TreeSelect } from 'antd'
+import { Modal, Form, Input, InputNumber, Select, Button, Row, Col, Divider, TreeSelect, Space, message } from 'antd'
 import { useState, useEffect, forwardRef, useImperativeHandle, useMemo } from 'react'
 import { IRoleInfo, IRoleData, IWorldViewData, IFactionDefData } from '@/src/types/IAiNoval'
 import factionApiCalls from '@/src/business/aiNoval/factionManage/apiCalls'
+import { CopyOutlined } from '@ant-design/icons'
 
 interface RoleInfoEditModalProps {
   open: boolean
@@ -87,6 +88,24 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
     fetchFactionData()
   }, [form.getFieldValue('worldview_id')])
 
+  const copyName = () => {
+    const name = roleData?.name;
+    if (!name) {
+      message.error('没有可参考的角色名称！')
+      return
+    }
+
+    form.setFieldsValue({
+      name_in_worldview: name
+    })
+  }
+
+  const fastVersion = (s: string) => {
+    form.setFieldsValue({
+      version_name: s
+    })
+  }
+
   const handleSubmit = async () => {
     try {
       setLoading(true)
@@ -150,6 +169,19 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
               <Input placeholder="请输入版本" />
             </Form.Item>
           </Col>
+          <Col span={24}>
+            <Form.Item
+              label={'快速版本'}
+              labelCol={{ span: 3 }}
+              wrapperCol={{ span: 21 }}
+            >
+              <Space>
+                <Button type="primary" onClick={() => fastVersion('1.0')}>1.0</Button>
+                <Button onClick={() => fastVersion('2.0')}>2.0</Button>
+                <Button onClick={() => fastVersion('3.0')}>3.0</Button>
+              </Space>
+            </Form.Item>
+          </Col>
         </Row>
 
         <Divider orientation="left">角色属性</Divider>
@@ -172,11 +204,14 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
           </Col>
           <Col span={12}>
             <Form.Item
-              name="name_in_worldview"
               label="角色名称"
-              rules={[{ required: true, message: '请输入角色名称' }]}
             >
-              <Input placeholder="请输入角色名称" />
+              <Space.Compact>
+                <Form.Item name="name_in_worldview" noStyle rules={[{ required: true, message: '请输入角色名称' }]}>
+                  <Input placeholder="请输入角色名称" />
+                </Form.Item>
+                <Button type="primary" icon={<CopyOutlined />} onClick={copyName}>复制</Button>
+              </Space.Compact>
             </Form.Item>
           </Col>
         </Row>

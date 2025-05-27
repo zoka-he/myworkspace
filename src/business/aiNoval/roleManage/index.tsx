@@ -4,7 +4,7 @@ import { getWorldViews } from "../common/worldViewUtil";
 import { IRoleData, IWorldViewData, IRoleInfo } from "@/src/types/IAiNoval";
 import apiCalls from "./apiCalls";
 import { RoleDefModal, useRoleDefModal } from "./edit/roleDefModal";
-import { DeleteOutlined, ExclamationCircleOutlined, PlusOutlined } from "@ant-design/icons";
+import { DeleteOutlined, ExclamationCircleOutlined, PlusOutlined, ReloadOutlined } from "@ant-design/icons";
 import { RoleInfoPanel } from "./panel/roleInfoPanel";
 import { RoleInfoEditModal, RoleInfoEditModalRef } from './edit/roleInfoEditModal';
 import { RoleRelationPanel } from "./panel/roleRelationPanel";
@@ -243,7 +243,12 @@ export default function RoleManage() {
                     </Card>
                 </Col>
                 <Col className="f-fit-height" span={11}>
-                    <Card className="f-fit-height" title="角色关系图">
+                    <Card className="f-fit-height" title={
+                        <Space>
+                            <span>角色关系图</span>
+                            <Button type="primary" size="small" icon={<ReloadOutlined />} onClick={() => setUpdateTimestamp(Date.now())}>刷新</Button>
+                        </Space>
+                    }>
                         <D3RoleRelationGraph 
                             worldview_id={worldViewId?.toString() || ''} 
                             updateTimestamp={updateTimestamp}
