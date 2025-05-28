@@ -1,26 +1,26 @@
 import { NextResponse } from 'next/server'
 import type { NextFetchEvent, NextRequest } from 'next/server'
 import { NextRequestWithAuth, withAuth } from 'next-auth/middleware';
-import AUTH_SECRET from '@/src/utils/auth/secret.json';
+// import AUTH_SECRET from '@/src/utils/auth/secret.json';
 import appInterceptor from './interceptors/appInterceptor';
 
-const pcInterceptor = withAuth(
-    {
-        callbacks: {
-            authorized: ({ token, req }) => {
-                // console.debug('[middleware.ts] req', req.nextUrl.pathname);
+// const pcInterceptor = withAuth(
+//     {
+//         callbacks: {
+//             authorized: ({ token, req }) => {
+//                 // console.debug('[middleware.ts] req', req.nextUrl.pathname);
 
-                // 如果包含token，则放行
-                if (!!token?.user) {
-                    return true;
-                }
+//                 // 如果包含token，则放行
+//                 if (!!token?.user) {
+//                     return true;
+//                 }
 
-                return false;
-            },
-        },
-        secret: AUTH_SECRET,
-    }
-)
+//                 return false;
+//             },
+//         },
+//         secret: AUTH_SECRET,
+//     }
+// )
 
 export default function middleware(request: NextRequestWithAuth, event: NextFetchEvent) {
 
@@ -56,7 +56,10 @@ export default function middleware(request: NextRequestWithAuth, event: NextFetc
     }
     
     // 由于前期架构原因，在前序进行减法处理后，默认进入pc拦截器，进行pc端统一鉴权
-    return pcInterceptor(request, event);
+    // return pcInterceptor(request, event);
+
+    // 不再部署在公网，直接放行
+    return NextResponse.next();
 }
 
 export const config = {
