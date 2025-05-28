@@ -39,6 +39,9 @@ const AiNovalFactionManage = lazy(() => import('../business/aiNoval/factionManag
 const AiNovalEventManage = lazy(() => import('../business/aiNoval/eventManage'));
 const AiNovalChapterManage = lazy(() => import('../business/aiNoval/chapterManage'));
 
+// b2c爬虫
+const B2CScrapy = lazy(() => import('../business/b2c_scrapy'));
+
 async function mainFrameLoader() {
     let matches = useMatches();
     console.debug('matches', matches);
@@ -85,6 +88,8 @@ export default function () {
                     <Route path="novel/factionManage" element={<AiNovalFactionManage/>}/>
                     <Route path="novel/eventManage" element={<AiNovalEventManage/>}/>
                     <Route path="novel/chapterManage" element={<AiNovalChapterManage/>}/>
+
+                    <Route path="b2c-scrapy" element={<B2CScrapy />} />
 
                     <Route path="*" element={<div><h1>此页面尚未实现！</h1></div>} />
                 </Route>

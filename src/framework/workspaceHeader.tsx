@@ -83,6 +83,8 @@ function WorkspaceHeader(props: IWorkspaceHeaderProps) {
     }
 
     function renderHisTag(item: any, index: number) {
+        // console.debug('tags -->', item);
+
         let color: string;
         let removable: boolean = false; // TODO 以前是true，有问题待解决
         if (pathname === item.url) {
@@ -95,6 +97,7 @@ function WorkspaceHeader(props: IWorkspaceHeaderProps) {
         }
 
         return <Tag 
+            key={item.url}
             className="m-mainframe_context-mainheader-tabs-tab" 
             color={color} 
             closable={removable}

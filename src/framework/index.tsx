@@ -8,8 +8,6 @@ import { setNavMenu as setStoreNavMenu } from '../store/navigatorSlice';
 import getPermissionTree from '../business/user/permission/getPermissionTree';
 import { IPermission } from '../business/user/permission/IPermission';
 import { ItemType } from 'antd/es/menu/hooks/useItems';
-import { useSession, signOut } from 'next-auth/react';
-import { LogoutOutlined, UserOutlined, SettingOutlined, FullscreenOutlined, FullscreenExitOutlined } from "@ant-design/icons";
 import fetch from '@/src/fetch';
 import { setLoginUser } from '../store/loginSlice';
 import AppHeader from './appHeader';
@@ -82,6 +80,8 @@ function MainFrame(props: IMainFrameProps) {
                 }
             });
 
+            // console.debug('menu2 -->', menu2);
+
             return menu2;
         }
 
@@ -146,6 +146,8 @@ function MainFrame(props: IMainFrameProps) {
         let to = props.loginUser.main_url || '/taskManage/dashboard';
         return <Navigate to={to} />;
     }
+
+    // console.debug('menu -->', menu);
 
     return (
         <Layout className="f-fit-height">

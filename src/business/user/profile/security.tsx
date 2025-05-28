@@ -6,9 +6,16 @@ import DayJS from 'dayjs';
 
 const smCrypto = require('sm-crypto');
 
+interface LoginLogRecord {
+    id?: number;
+    username: string;
+    nickname: string;
+    login_time: string;
+}
+
 export default function() {
     let [chpwdForm] = Form.useForm();
-    let [ loginLog, setLoginLog ] = useState([]);
+    let [ loginLog, setLoginLog ] = useState<LoginLogRecord[]>([]);
 
 
     useEffect(() => {
@@ -71,7 +78,7 @@ export default function() {
             </Card>
             <br />
             <Card title="访问记录" size="small" style={{ width: 450 }}>
-                <Table size="small" dataSource={loginLog}>
+                <Table size="small" dataSource={loginLog} rowKey={(record) => record.id || record.login_time}>
                     <Table.Column title="账号" dataIndex="username"></Table.Column>
                     <Table.Column title="用户名" dataIndex="nickname"></Table.Column>
                     <Table.Column title="日期" dataIndex="login_time" render={renderDatetime}></Table.Column>
