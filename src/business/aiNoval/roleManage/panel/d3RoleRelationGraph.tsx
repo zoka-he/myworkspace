@@ -30,11 +30,13 @@ interface RoleGraphData {
 interface D3RoleRelationGraphProps {
   worldview_id: string
   updateTimestamp?: number
+  onNodeClick?: (roleId: string) => void
 }
 
 export function D3RoleRelationGraph({ 
   worldview_id,
-  updateTimestamp
+  updateTimestamp,
+  onNodeClick
 }: D3RoleRelationGraphProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
@@ -144,12 +146,11 @@ export function D3RoleRelationGraph({
           .distance(d => {
             // 计算双边关系的之和
             const strength = d.relations.reduce((acc, r) => {
-              const strength1 = r.relation_strength || 50
+              const strength1 = r.relation_strength || 35
               const strength2 = d.relations.find(r2 => 
                 r2.role_id === r.related_role_id && r2.related_role_id === r.role_id
-              )?.relation_strength || 50
+              )?.relation_strength || 35
               return strength1 + strength2;
-              // return Math.max(acc, strength1 + strength2)
             }, 0)
             
             // 将0-2000的范围映射到600-20的距离范围
@@ -159,12 +160,11 @@ export function D3RoleRelationGraph({
           .strength(d => {
             // 计算双边关系的乘积
             const strength = d.relations.reduce((acc, r) => {
-              const strength1 = r.relation_strength || 50
+              const strength1 = r.relation_strength || 35
               const strength2 = d.relations.find(r2 => 
                 r2.role_id === r.related_role_id && r2.related_role_id === r.role_id
-              )?.relation_strength || 50
-              // return strength1 + strength2 - 100; 
-              return Math.min(0, strength1 + strength2 - 50) // 低于50表现为排斥
+              )?.relation_strength || 35
+              return Math.min(0, strength1 + strength2 - 35) // 低于50表现为排斥
             }, 0)
             
             // 将0-200的范围映射到0.1-1的强度范围
@@ -173,6 +173,22 @@ export function D3RoleRelationGraph({
           }))
         .force('charge', d3.forceManyBody().strength(-300))
         .force('center', d3.forceCenter(dimensions.width / 2, dimensions.height / 2))
+        // 添加同阵营节点之间的吸引力
+        .force('faction', d3.forceManyBody<RoleNode>()
+          .strength((d, i, nodes) => {
+            // 计算当前节点与其他节点的力
+            const node = nodes[i]
+            // 如果是同一个节点，返回0
+            if (d === node) return 0
+            
+            // 如果两个节点都有阵营ID且相同，则产生吸引力
+            if (d.faction_id && node.faction_id && d.faction_id === node.faction_id) {
+              return 0.7 // 同阵营节点之间的吸引力
+            }
+            
+            // 其他情况返回默认的斥力
+            return -0.4
+          }))
         .alpha(1) // Restart the simulation with full alpha
         .restart() // Force restart to apply new center position
 
@@ -208,10 +224,10 @@ export function D3RoleRelationGraph({
 
         // Calculate combined strength
         const combinedStrength = d.relations.reduce((acc, r) => {
-          const strength1 = r.relation_strength || 50
+          const strength1 = r.relation_strength || 35
           const strength2 = d.relations.find(r2 => 
             r2.role_id === r.related_role_id && r2.related_role_id === r.role_id
-          )?.relation_strength || 50
+          )?.relation_strength || 35
           return strength1 + strength2
         }, 0)
 
@@ -222,7 +238,7 @@ export function D3RoleRelationGraph({
           linkColor = combinedStrength < 70 ? '#ff4d4f' : '#999'
         } else {
           // For one-way relationships, use red if any relation strength < 45
-          const hasWeakRelation = d.relations.some(r => (r.relation_strength || 50) < 45)
+          const hasWeakRelation = d.relations.some(r => (r.relation_strength || 35) < 35)
           linkColor = hasWeakRelation ? '#ff4d4f' : '#999'
         }
 
@@ -276,7 +292,12 @@ export function D3RoleRelationGraph({
           if (!d.faction_id) return '#999' // Gray for no faction
           // Generate a color based on faction_id
           const hue = (d.faction_id * 137.5) % 360 // Golden ratio to spread colors
-          return `hsl(${hue}, 70%, 50%)`
+          return `hsl(${hue}, 70%, 35%)`
+        })
+        .style('cursor', 'pointer') // 添加鼠标指针样式
+        .on('click', (event, d) => {
+          event.stopPropagation() // 阻止事件冒泡
+          onNodeClick?.(d.id)
         })
         .call(d3.drag<SVGCircleElement, RoleNode>()
           .on('start', dragstarted)
@@ -398,7 +419,7 @@ export function D3RoleRelationGraph({
     return () => {
       simulation.stop()
     }
-  }, [worldview_id, dimensions, updateTimestamp])
+  }, [worldview_id, dimensions, updateTimestamp, onNodeClick])
 
   return (
     <div ref={containerRef} style={{ width: '100%', height: '100%' }}>

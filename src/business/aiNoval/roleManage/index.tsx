@@ -159,6 +159,13 @@ export default function RoleManage() {
         );
     }
 
+    const handleNodeClick = (roleId: string | number) => {
+        let role = roleList.find(item => item.id == Number(roleId));
+        if (role) {
+            setSelectedRole(role);
+        }
+    }
+
     // 更改角色属性的版本
     const handleVersionChange = async (roleDef: IRoleData) => {
         try {
@@ -252,6 +259,7 @@ export default function RoleManage() {
                         <D3RoleRelationGraph 
                             worldview_id={worldViewId?.toString() || ''} 
                             updateTimestamp={updateTimestamp}
+                            onNodeClick={handleNodeClick}
                         />
                     </Card>
                 </Col>
