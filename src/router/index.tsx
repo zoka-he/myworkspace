@@ -89,7 +89,7 @@ export default function () {
                     <Route path="novel/eventManage" element={<AiNovalEventManage/>}/>
                     <Route path="novel/chapterManage" element={<AiNovalChapterManage/>}/>
 
-                    <Route path="b2c-scrapy" element={<B2CScrapy />} />
+                    <Route path="b2c-scrapy/*" element={<B2CScrapy />} />
 
                     <Route path="*" element={<div><h1>此页面尚未实现！</h1></div>} />
                 </Route>

@@ -13,7 +13,7 @@ function App() {
     <div style={{ width: '100%', height: '100vh' }}>
       <MicroAppContainer
         name="b2c-scrapy"
-        entry="http://localhost:8080"
+        entry="http://localhost:23005"
         activeRule="/b2c-scrapy"
         onBeforeLoad={handleBeforeLoad}
         onAfterMount={handleAfterMount}
