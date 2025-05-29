@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { registerMicroApps, start, initGlobalState, loadMicroApp } from 'qiankun'
 import styles from './MicroAppContainer.module.css'
 
@@ -30,6 +30,8 @@ function MicroAppContainer({
   const [isMounted, setIsMounted] = useState(false)
   const [hasError, setHasError] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string>('')
+  const containerRef = useRef<HTMLDivElement>(null)
+  const appRef = useRef<any>(null)
 
   const handleBeforeLoad = useCallback(async () => {
     setIsLoading(true)
@@ -39,7 +41,6 @@ function MicroAppContainer({
     try {
       if (onBeforeLoad) await onBeforeLoad()
     } catch (error) {
-      // setHasError(true)
       setErrorMessage(error instanceof Error ? error.message : 'Failed to load micro-app')
       setIsLoading(false)
       throw error
@@ -51,7 +52,6 @@ function MicroAppContainer({
     try {
       if (onBeforeMount) await onBeforeMount()
     } catch (error) {
-      // setHasError(true)
       setErrorMessage(error instanceof Error ? error.message : 'Failed to mount micro-app')
       setIsLoading(false)
       throw error
@@ -108,35 +108,24 @@ function MicroAppContainer({
         throw new Error(`Entry file is not accessible: ${error instanceof Error ? error.message : 'Unknown error'}`)
       }
 
-      // 注册微应用
-      registerMicroApps([
-        {
-          name,
-          entry,
-          container: `#${containerId}`,
-          activeRule: activeRule,
-          props: {
-            getGlobalState: () => window.__POWERED_BY_QIANKUN__ ? window.__INJECTED_PUBLIC_PATH_BY_QIANKUN__ : '',
-          }
-        }
-      ], {
-        beforeLoad: handleBeforeLoad,
-        beforeMount: handleBeforeMount,
-        afterMount: handleAfterMount,
-        beforeUnmount: handleBeforeUnmount,
-        afterUnmount: handleAfterUnmount
-      })
+      // 确保容器元素存在
+      if (!containerRef.current) {
+        throw new Error('Container element not found')
+      }
 
-      // 启动 qiankun
-      await start({
-        sandbox: {
-          strictStyleIsolation: true,
-          experimentalStyleIsolation: true
-        },
-        singular: false,
-        prefetch: false,
-        excludeAssetFilter: (assetUrl: string) => {
-          return assetUrl.includes('single-spa');
+      // 如果已经存在应用实例，先卸载
+      if (appRef.current) {
+        await appRef.current.unmount()
+        appRef.current = null
+      }
+
+      // 加载微应用
+      appRef.current = loadMicroApp({
+        name,
+        entry,
+        container: containerRef.current,
+        props: {
+          getGlobalState: () => window.__POWERED_BY_QIANKUN__ ? window.__INJECTED_PUBLIC_PATH_BY_QIANKUN__ : '',
         }
       })
 
@@ -148,7 +137,7 @@ function MicroAppContainer({
       setErrorMessage(error instanceof Error ? error.message : 'Failed to load micro-app')
       setIsLoading(false)
     }
-  }, [name, entry, containerId, activeRule, handleBeforeLoad, handleBeforeMount, handleAfterMount, handleBeforeUnmount, handleAfterUnmount])
+  }, [name, entry])
 
   const handleReload = useCallback(() => {
     loadApp()
@@ -199,6 +188,11 @@ function MicroAppContainer({
 
     return () => {
       isComponentMounted = false
+      // 清理微应用
+      if (appRef.current) {
+        appRef.current.unmount()
+        appRef.current = null
+      }
     }
   }, [loadApp])
 
@@ -224,6 +218,7 @@ function MicroAppContainer({
         </div>
       )}
       <div
+        ref={containerRef}
         id={containerId}
         className={`${styles['micro-app']} ${isMounted ? styles.active : ''}`}
       />
