@@ -13,7 +13,7 @@ type EnvMap = {
 function App() {
 
   const [env, setEnv] = useState('develop')
-  const [entry, setEntry] = useState('http://localhost:23005')
+  const [entry, setEntry] = useState('http://localhost:8080')
   const [appName, setAppName] = useState('b2c-scrapy-develop')
 
   const handleBeforeLoad = async () => {
@@ -27,7 +27,7 @@ function App() {
   useEffect(() => {
     const envMap: EnvMap = {
       develop: {
-        entry: 'http://localhost:23005',
+        entry: 'http://localhost:8080',
         appName: 'b2c-scrapy-develop'
       },
       production: {
