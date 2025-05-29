@@ -20,7 +20,7 @@ export default function(props: IFactionRecallTestProps) {
             const response = await fetch.get('/api/aiNoval/toolConfig/testRecall', {
                 params: { datasetName: 'DIFY_FACTION_DATASET_ID_' + props.worldViewId, query }
             });
-            const results = response?.records;
+            const results = (response as any)?.records;
             console.debug('results', response);
             setRecallResults(results);
         } catch (error) {
@@ -53,7 +53,7 @@ export default function(props: IFactionRecallTestProps) {
 
     let lowQuality = false;
     if (recallResults.length > 0) {
-        if (!recallResults.some(item => item.score > 0.7)) {
+        if (!recallResults.some(item => (item as any).score > 0.7)) {
             lowQuality = true;
         }
     }
@@ -72,7 +72,7 @@ export default function(props: IFactionRecallTestProps) {
                     <dd>
                         <Radio.Group size="small" value={isManualQuery} onChange={e => setIsManualQuery(e.target.value)}>
                             <Radio value={false}>{props.recommandQuery}</Radio>
-                            <Radio value={true}><Input size="small" value={queryText} onInput={e => setQueryText(e.target.value)}></Input></Radio>
+                            <Radio value={true}><Input size="small" value={queryText} onInput={e => setQueryText((e.target as HTMLInputElement).value)}></Input></Radio>
                         </Radio.Group>
                     </dd>
                     <dd>
@@ -81,7 +81,7 @@ export default function(props: IFactionRecallTestProps) {
                 </dl>
             </div>
             <div>
-                {lowQuality && <Alert message="召回结果置信度全部小于0.7，请检查Dify知识库质量。" type="warning" size="small" />}
+                {lowQuality && <Alert message="召回结果置信度全部小于0.7，请检查Dify知识库质量。" type="warning"/>}
             </div>
 
 
@@ -94,8 +94,8 @@ export default function(props: IFactionRecallTestProps) {
                     return (
                         <List.Item>
                             <dl>
-                                <p><strong>置信度：</strong><Tag size="small" color={getColorOfScore(item?.score)}>{item?.score}</Tag></p>
-                                <p>{item?.segment?.content}</p>
+                                <p><strong>置信度：</strong><Tag color={getColorOfScore((item as any)?.score)}>{(item as any)?.score}</Tag></p>
+                                <p>{(item as any)?.segment?.content}</p>
                             </dl>
                         </List.Item>
                     )

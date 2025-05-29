@@ -4,7 +4,7 @@ import { ITimelineDef } from '@/src/types/IAiNoval'
 import { TimelineDateFormatter } from '@/src/business/aiNoval/common/novelDateUtils'
 
 interface TimelineDefViewProps {
-  data?: ITimelineDef
+  data?: ITimelineDef | null
   onEdit: () => void
 }
 

@@ -12,7 +12,7 @@ interface Data {
     data?: any;
 }
 
-async function handleContinueInfo(req: NextApiRequest, res: NextApiResponse<Data>) {
+async function handleContinueInfo(req: NextApiRequest, res: NextApiResponse<any>) {
     let chapterId = _.toNumber(req.query.chapterId);
     if (typeof chapterId !== 'number') {
         res.status(500).json({ message: 'chapterId is not a number' });
@@ -56,7 +56,7 @@ async function handleContinueInfo(req: NextApiRequest, res: NextApiResponse<Data
         res.status(200).json(data);
     } catch (error) {
         console.error('getContinueInfo error -> ', error);
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ message: error instanceof Error ? error.message : 'Unknown error' });
         return;
     }
 }

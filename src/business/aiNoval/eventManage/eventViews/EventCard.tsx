@@ -1,7 +1,11 @@
 import React from 'react'
 import { Card, Space, Tag } from 'antd'
 import { UserOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
-import type { TimelineEvent, StoryLine } from '../mockData'
+// import type { TimelineEvent, StoryLine } from '../mockData'
+
+
+type TimelineEvent = any
+type StoryLine = any
 
 interface EventCardProps {
   event: TimelineEvent
@@ -53,7 +57,7 @@ export function EventCard({
             <Space>
               <Tag color="blue">{event.faction}</Tag>
               <Tag color="green">{event.location}</Tag>
-              {event.characters.map(char => (
+              {event.characters.map((char: any) => (
                 <Tag key={char} icon={<UserOutlined />}>{char}</Tag>
               ))}
             </Space>

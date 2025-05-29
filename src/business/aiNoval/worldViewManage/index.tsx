@@ -36,7 +36,7 @@ export default function WorldViewManage() {
     let [timelineEditOpen, setTimelineEditOpen] = useState(false);
     let pagination = usePagination();
     let mEditor = useRef<WorldViewInfoEditor>();
-    let timelineEditorRef = useRef<{ openAndEdit: (values: ITimelineDef, mode: string) => void }>();
+    let timelineEditorRef = useRef<{ openAndEdit: (values: ITimelineDef, mode: string) => void } | null>(null);
 
     useEffect(() => {
         onQuery();
@@ -50,7 +50,7 @@ export default function WorldViewManage() {
         try {
             updateSpinning(true);
             const response = await apiCalls.getWorldViewList((userParams as any).title, pagination.page, pagination.pageSize);
-            const { data, count } = response;
+            const { data, count } = (response as any);
 
             updateListData(data);
             pagination.setTotal(count);

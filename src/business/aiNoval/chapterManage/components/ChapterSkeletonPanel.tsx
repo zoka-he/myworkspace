@@ -51,7 +51,7 @@ function ChapterSkeletonPanel({
   const [worldViewId, setWorldViewId] = useState<number | null>(null)
   const [worldViewList, setWorldViewList] = useState<IWorldViewDataWithExtra[]>([])
   const [geoUnionList, setGeoUnionList] = useState<IGeoUnionData[]>([])
-  const [geoTree, setGeoTree] = useState<IGeoTreeData[]>([])
+  const [geoTree, setGeoTree] = useState<IGeoTreeItem<IGeoStarSystemData | IGeoStarData | IGeoPlanetData | IGeoSatelliteData | IGeoGeographyUnitData>[]>([])
   const [factionList, setFactionList] = useState<IFactionDefData[]>([])
   const [factionTree, setFactionTree] = useState<IFactionDefData[]>([])
   const [roleList, setRoleList] = useState<IRoleData[]>([])
@@ -372,7 +372,7 @@ function ChapterSkeletonPanel({
       onChapterChange()
     } catch (error) {
       console.error('保存失败', error);
-      message.error('保存失败：' + error.message)
+      message.error('保存失败：' + (error instanceof Error ? error.message : 'Unknown error'))
     }
   }
 
@@ -465,7 +465,7 @@ function ChapterSkeletonPanel({
       return
     }
 
-    let previousChapter = chapterList.find(chapter => chapter.chapter_number === currentChapterNumber - 1 && chapter.version === currentChaoterVersion)
+    let previousChapter = chapterList.find(chapter => chapter.chapter_number === currentChapterNumber! - 1 && chapter.version === currentChaoterVersion)
     if (!previousChapter) {
       message.warning('未找到上一章节，请确认不是第一章、不是故事线第一张，再检查数据或代码');
       return

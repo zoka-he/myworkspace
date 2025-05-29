@@ -11,6 +11,7 @@ interface IStarSystemEditState {
 }
 
 interface IStarSystemEditProps {
+    // worldviewId: number | null;
     onFinish: (() => void) | undefined
 }
 
@@ -70,7 +71,7 @@ class StarSystemEdit extends React.Component<IStarSystemEditProps, IStarSystemEd
         if (this.oldData) {
             let updateObj = {
                 ...this.oldData,
-                worldview_id: this.props.worldviewId,
+                // worldview_id: this.props.worldviewId,
                 ...values,
                 updated_at: DayJS().format('YYYY-MM-DD HH:mm:ss')
             };
@@ -89,7 +90,7 @@ class StarSystemEdit extends React.Component<IStarSystemEditProps, IStarSystemEd
         } else {
             let createObj = {
                 ...values,
-                worldview_id: this.props.worldviewId
+                // worldview_id: this.props.worldviewId
             };
 
             try {

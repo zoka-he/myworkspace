@@ -40,7 +40,7 @@ export default function(props: IGeoTreeProps) {
                 message.info('该世界观没有星系数据！');
                 return;
             }
-        } catch (e: unknown) {
+        } catch (e: any) {
             message.error(e?.message || '加载地理资源树失败！');
             return;
         }

@@ -45,7 +45,7 @@ async function deleteOne(req: NextApiRequest, res: NextApiResponse) {
 
 export default function handler(
     req: NextApiRequest,
-    res: NextApiResponse<Data>
+    res: NextApiResponse<any>
 ) {
     let processerFn: Function | undefined = undefined;
     switch (req.method) {

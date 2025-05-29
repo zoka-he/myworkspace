@@ -104,8 +104,10 @@ executing @ file:///opt/conda/conda-bld/executing_1646925071911/work
 fastjsonschema @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/python-fastjsonschema_1699475134300/work
 filelock @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/filelock_1701807523603/work
 flake8 @ file:///C:/b/abs_caud66drfv/croot/flake8_1708965316778/work
-Flask @ file:///C:/b/abs_f9w7doyu0h/croot/flask_1716545924884/work
+Flask==3.0.2
+Flask-Cors==4.0.0
 Flask-Login==0.6.3
+Flask-Migrate==4.0.5
 Flask-RESTful==0.3.10
 Flask-SQLAlchemy==3.1.1
 fonttools @ file:///C:/b/abs_f47gnfqnx0/croot/fonttools_1713551644747/work
@@ -125,6 +127,7 @@ HeapDict @ file:///Users/ktietz/demo/mc3/conda-bld/heapdict_1630598515714/work
 holoviews @ file:///C:/b/abs_5f962ukrbq/croot/holoviews_1720534381286/work
 httpcore @ file:///C:/b/abs_55n7g233bw/croot/httpcore_1706728507241/work
 httpx @ file:///C:/b/abs_43e135shby/croot/httpx_1723474830126/work
+huggingface-hub==0.30.2
 hvplot @ file:///C:/b/abs_b05v45vms6/croot/hvplot_1727775587313/work
 hyperlink @ file:///tmp/build/80754af9/hyperlink_1610130746837/work
 idna @ file:///C:/b/abs_aad84bnnw5/croot/idna_1714398896795/work
@@ -275,6 +278,7 @@ PyJWT @ file:///C:/b/abs_04qhgo75wz/croot/pyjwt_1715095119685/work
 pylint @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/pylint_1699495689806/work
 pylint-venv @ file:///C:/b/abs_3f6p_17zia/croot/pylint-venv_1709837680309/work
 pyls-spyder==0.4.0
+PyMySQL==1.1.0
 PyNaCl @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/pynacl_1699563077212/work
 pyodbc @ file:///C:/b/abs_cbgr1yn8qs/croot/pyodbc_1725560257385/work
 pyOpenSSL @ file:///C:/b/abs_61vvbgrloc/croot/pyopenssl_1723651600236/work
@@ -285,7 +289,7 @@ PyQtWebEngine==5.15.6
 PySocks @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/pysocks_1699473336188/work
 pytest @ file:///C:/b/abs_een_3z747j/croot/pytest_1717793253670/work
 python-dateutil @ file:///C:/b/abs_3au_koqnbs/croot/python-dateutil_1716495777160/work
-python-dotenv @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/python-dotenv_1699475097728/work
+python-dotenv==1.0.1
 python-json-logger @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/python-json-logger_1699543626759/work
 python-lsp-black @ file:///C:/b/abs_5dhen_5vga/croot/python-lsp-black_1709232962589/work
 python-lsp-jsonrpc @ file:///croot/python-lsp-jsonrpc_1708962872556/work
@@ -307,10 +311,10 @@ qtconsole @ file:///C:/b/abs_03f8rg9vl6/croot/qtconsole_1709231218069/work
 QtPy @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/qtpy_1701807198514/work
 queuelib @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/queuelib_1699543858829/work
 readchar @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/readchar_1699483104212/work
-redis==5.2.1
+redis==5.0.1
 referencing @ file:///C:/Users/dev-admin/py312/referencing_1706802962559/work
 regex @ file:///C:/b/abs_5cm86yjgo3/croot/regex_1726670543261/work
-requests @ file:///C:/b/abs_9frifg92q2/croot/requests_1721410901096/work
+requests==2.31.0
 requests-file @ file:///Users/ktietz/demo/mc3/conda-bld/requests-file_1629455781986/work
 requests-toolbelt @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/requests-toolbelt_1699475466775/work
 rfc3339-validator @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/rfc3339-validator_1699543924991/work

@@ -12,4 +12,4 @@ export interface EventPool {
 }
 
 // Export all types
-export type { INovalData, ITimelineEvent, IChapter, EventPool, ExtendedNovelData } 
+export type { INovalData, ITimelineEvent, IChapter } 
