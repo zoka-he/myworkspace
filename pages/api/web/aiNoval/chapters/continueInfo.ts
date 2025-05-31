@@ -48,7 +48,7 @@ async function handleContinueInfo(req: NextApiRequest, res: NextApiResponse<any>
             actual_roles: chapter.actual_roles,
             actual_factions: chapter.actual_factions,
             actual_locations: chapter.actual_locations,
-            skeleton_prompt: chapter.skeleton_prompt,
+            actual_seed_prompt: chapter.actual_seed_prompt,
             attension: chapter.attension,
             extra_settings: chapter.extra_settings
         }

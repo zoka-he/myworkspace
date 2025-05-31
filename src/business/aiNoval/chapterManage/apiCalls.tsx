@@ -349,3 +349,15 @@ export const genChapterBlocking = async (worldviewId: number, inputs: any): Prom
     );
     return response.data?.outputs?.output || '';
 }
+
+// 生成章节骨架提示词
+export const genSkeletonPrompt = async (worldviewId: number, inputs: any): Promise<string> => {
+    const response = await fetch.post(`/api/aiNoval/chapters/genSkeleton`, 
+        inputs,
+        {
+            params: { worldviewId }, 
+            timeout: 1000 * 60 * 10
+        }
+    );
+    return response.data?.outputs?.output || '';
+}
