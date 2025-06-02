@@ -725,8 +725,12 @@ function ChapterSkeletonPanel({
             </Select>
           </Form.Item>
 
+          <div className="f-flex-two-side f-fit-width" style={{marginBottom: 12}}>
+            <Text strong>章节提示词（在生成面板中，会根据双换行进行切分）</Text>
+            <Button size="small" type="primary" onClick={handleSaveChapterInfo}>保存</Button>
+          </div>
           <Form.Item
-            label={<Text strong>章节提示词（在生成面板中，会根据双换行进行切分）</Text>}
+            label={null}
             name="seed_prompt"
           >
             <TextArea
@@ -737,42 +741,53 @@ function ChapterSkeletonPanel({
             />
           </Form.Item>
 
+
+          <div className="f-flex-two-side f-fit-width" style={{marginBottom: 8}}>
+            <Space>
+              <Text strong>章节细纲（对应细纲生成工作流）</Text>
+              <Button
+                type="link"
+                icon={<CopyOutlined />}
+                disabled={!worldViewId}
+                onClick={() => {
+                  const formValues = form.getFieldsValue();
+                  
+                  const locations = findGeoTree(relatedEventLocationIds);
+
+                  const factions = relatedEventFactionIds.map(id => 
+                    factionList.find(faction => faction.id === id)?.name
+                  ).filter(Boolean) || []
+
+                  const characters = relatedEventCharacterIds.map(id => 
+                    roleList.find(role => role.id === id)?.name
+                  ).filter(Boolean) || []
+                  
+
+
+                  showGenSkeletonModal({
+                    worldviewId: worldViewId!,
+                    seedPrompt: formValues.seed_prompt,
+                    savedSeedPrompt: selectedChapter?.seed_prompt,
+                    actualSeedPrompt: selectedChapter?.actual_seed_prompt,
+                    relativeChapters: formValues.related_chapter_ids,
+                    characters: characters.join(','),
+                    factions: factions.join(','),
+                    locations: locations.map(item => item.name).join(','),
+                    skeletonPrompt: formValues.skeleton_prompt,
+                    savedSkeletonPrompt: selectedChapter?.skeleton_prompt,
+                    actualSkeletonPrompt: selectedChapter?.actual_skeleton_prompt,
+                    chapterId: selectedChapter?.id
+                  });
+                }}
+              >
+                AI生成{worldViewId ? '' : '(请先设置世界观)'}
+              </Button>
+            </Space>
+
+            <Button size="small" type="primary" onClick={handleSaveChapterInfo}>保存</Button>
+          </div>
           <Form.Item
-          label={<div className={styles.formItemLabel}>
-            <Text strong>章节细纲（对应细纲生成工作流）</Text>
-            <Button
-              type="link"
-              icon={<CopyOutlined />}
-              disabled={!worldViewId}
-              onClick={() => {
-                const formValues = form.getFieldsValue();
-                
-                const locations = findGeoTree(relatedEventLocationIds);
-
-                const factions = relatedEventFactionIds.map(id => 
-                  factionList.find(faction => faction.id === id)?.name
-                ).filter(Boolean) || []
-
-                const characters = relatedEventCharacterIds.map(id => 
-                  roleList.find(role => role.id === id)?.name
-                ).filter(Boolean) || []
-                
-
-
-                showGenSkeletonModal({
-                  worldviewId: worldViewId!,
-                  seedPrompt: formValues.seed_prompt,
-                  relativeChapters: formValues.related_chapter_ids,
-                  characters: characters.join(','),
-                  factions: factions.join(','),
-                  locations: locations.map(item => item.name).join(','),
-                  skeletonPrompt: formValues.skeleton_prompt
-                });
-              }}
-            >
-              AI生成{worldViewId ? '' : '(请先设置世界观)'}
-            </Button>
-          </div>}
+          label={null}
           name="skeleton_prompt"
         >
           <TextArea

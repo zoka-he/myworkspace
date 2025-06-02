@@ -1,16 +1,22 @@
-import { Alert, Button, Card, message, Modal, Space, Tag, Typography } from 'antd'
+import { Alert, Button, Card, Col, Input, message, Modal, Row, Space, Tag, Typography } from 'antd'
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import ChapterStripState, { type ChapterStripReport, type ChapterStripStateProps } from './ChapterStripState'
 import * as apiCalls from '../apiCalls';
+import TextArea from 'antd/es/input/TextArea';
 
 interface GenSkeletonModalProps {
   worldviewId: number
   seedPrompt: string
+  savedSeedPrompt?: string
+  actualSeedPrompt?: string
   relativeChapters: number[]
   characters: string
   factions: string
   locations: string
   skeletonPrompt: string
+  savedSkeletonPrompt?: string
+  actualSkeletonPrompt?: string
+  chapterId?: number
 }
 
 interface ModalContextType {
@@ -103,9 +109,14 @@ function GenSkeletonModalContent(props: GenSkeletonModalProps & { onClose: () =>
     const [stripReportList, setStripReportList] = useState<ChapterStripReport[]>([])
 
     const [isStrippedModalVisible, setIsStrippedModalVisible] = useState(false)
+
     const [viewingContent, setViewingContent] = useState('')
+
     const [viewingChapterInfo, setViewingChapterInfo] = useState<ChapterStripReport | null>(null)
+
     const [viewingType, setViewingType] = useState<'original' | 'stripped'>('stripped')
+
+    const [seedPrompt, setSeedPrompt] = useState('')
 
     const [skeletonPrompt, setSkeletonPrompt] = useState('')
 
@@ -118,13 +129,20 @@ function GenSkeletonModalContent(props: GenSkeletonModalProps & { onClose: () =>
     }, [props.relativeChapters])
 
     useEffect(() => {
-        if (props.skeletonPrompt.replace('\n', '').trim() === '') {
-            setSkeletonPrompt('')
+
+        if (props.seedPrompt.replace('\n', '').trim() === '') {
+            setSeedPrompt('')
             return;
+        } else {
+            setSeedPrompt(props.seedPrompt)
         }
 
-        setSkeletonPrompt(props.skeletonPrompt)
-    }, [props.skeletonPrompt])
+        if (props.skeletonPrompt.replace('\n', '').trim() === '') {
+            setSkeletonPrompt('')
+        } else {
+            setSkeletonPrompt(props.skeletonPrompt)
+        }
+    }, [props.seedPrompt, props.skeletonPrompt])
 
     useEffect(() => {
         let satisfied = true;
@@ -283,7 +301,7 @@ function GenSkeletonModalContent(props: GenSkeletonModalProps & { onClose: () =>
             setSkeletonPrompt('生成中...')
 
             const params = {
-                root_prompt: props.seedPrompt,
+                root_prompt: seedPrompt,
                 characters: props.characters,
                 factions: props.factions,
                 locations: props.locations,
@@ -306,6 +324,62 @@ function GenSkeletonModalContent(props: GenSkeletonModalProps & { onClose: () =>
         message.success('章节骨架提示词已复制到剪贴板')
     }
 
+    function handleCopySeedPrompt() {
+        navigator.clipboard.writeText(seedPrompt)
+        message.success('根提示词已复制到剪贴板')
+    }
+
+    function showValueSource(savedValue: string, actualValue: string, currentValue: string) {
+        let source = '已修改', color = 'red';
+        if (currentValue === savedValue) {
+            source = '初始值'
+            color = 'blue'
+        } else if (currentValue === actualValue) {
+            source = '存储值'
+            color = 'green'
+        }
+        
+        return <Tag color={color}>{source}</Tag>
+    }
+
+    async function handleSaveSkeletonPrompt() {
+        if (!props.chapterId) {
+            message.error('章节ID不存在，请检查程序或数据')
+            return;
+        }
+
+        try {
+            // 仅更新细纲提示词
+            await apiCalls.updateChapter({
+                id: props.chapterId,
+                skeleton_prompt: skeletonPrompt
+            })
+            message.success('保存成功')
+        } catch (error) {
+            message.error('保存失败')
+            console.error(error)
+        }
+    }
+
+    async function handleSaveSeedPrompt() {
+        if (!props.chapterId) {
+            message.error('章节ID不存在，请检查程序或数据')
+            return;
+        }
+
+        try {
+            // 仅更新根提示词
+            await apiCalls.updateChapter({
+                id: props.chapterId,
+                seed_prompt: seedPrompt
+            })
+            message.success('保存成功')
+        } catch (error) {
+            message.error('保存失败')
+            console.error(error)
+        }
+    }
+
     return (
         <Modal
             title="Generate Skeleton"
@@ -314,63 +388,93 @@ function GenSkeletonModalContent(props: GenSkeletonModalProps & { onClose: () =>
             footer={null}
             width={'80vw'}
         >
-            <Space direction="vertical" size={16}>
-                <Card title="根提示词" size="small">
-                <Typography.Paragraph style={{ whiteSpace: 'pre-wrap' }}>{props.seedPrompt}</Typography.Paragraph>
-                </Card>
+            <Row gutter={16}>
+                {/* 左侧是编辑区 */}
+                <Col span={12}>
+                    <Space direction="vertical" size={16}>
+                        <Card title="角色" size="small">
+                        {props.characters.split(',').map((character: string, index: number) => (
+                            <Tag key={index}>{character}</Tag>
+                        ))}
+                        </Card>
 
-                <Card title="角色" size="small">
-                {props.characters.split(',').map((character: string, index: number) => (
-                    <Tag key={index}>{character}</Tag>
-                ))}
-                </Card>
-
-                <Card title="势力" size="small">
-                {props.factions.split(',').map((faction: string, index: number) => (
-                    <Tag key={index}>{faction}</Tag>
-                ))}
-                </Card>
-                
-
-                <Card title="地点" size="small">
-                {props.locations.split(',').map((location: string, index: number) => (
-                    <Tag key={index}>{location}</Tag>
-                ))}
-                </Card>
-
-                <Card title={
-                    <div className="f-flex-two-side">
-                        <span className="font-medium">背景概括</span>
-                        {
-                            stripReportList?.length > 0 && (
-                                <Button type="primary" danger size="small" onClick={() => setBackgroundSummary('')} disabled={isWorking}>重写</Button>
-                            )
-                        }
-                    </div>    
-                } size="small">
-                    { stripReportList?.length > 0 ? renderStripReportList() : renderBeginStripBackground() }
-                </Card>
-
-                <Card title={<div className="f-flex-two-side">
-                        <Space>
-                            <span className="font-medium">章节骨架提示词</span>
-                            <Button type="link" onClick={handleCopySkeletonPrompt}>复制</Button>
-                        </Space>
+                        <Card title="势力" size="small">
+                        {props.factions.split(',').map((faction: string, index: number) => (
+                            <Tag key={index}>{faction}</Tag>
+                        ))}
+                        </Card>
                         
-                        {[
-                            skeletonPrompt && canGenerateSkeletonPrompt && (
-                                <Button type="primary" danger size="small" onClick={() => beginGenSkeletonPrompt()} disabled={isWorking}>重写</Button>
-                            ),
-                            skeletonPrompt && !canGenerateSkeletonPrompt && (
-                                <span color="gray">重写条件未满足，请检查（特别是背景概括）</span>
-                            )
-                        ]}
-                    </div>} size="small">
-                    {
-                        skeletonPrompt ? handleViewSkeletonPrompt() : handleHintWriteSkeletonPrompt()
-                    }
-                </Card>
-            </Space>
+
+                        <Card title="地点" size="small">
+                        {props.locations.split(',').map((location: string, index: number) => (
+                            <Tag key={index}>{location}</Tag>
+                        ))}
+                        </Card>
+
+                        <Card title={
+                            <div className="f-flex-two-side">
+                                <Space>
+                                    <span className="font-medium">根提示词</span>
+                                    <Button type="link" onClick={handleCopySeedPrompt}>复制</Button>
+                                </Space>
+                                <Space>
+                                    <Button size="small" onClick={handleSaveSeedPrompt}>保存</Button>
+                                </Space>
+                            </div>
+                        } size="small">
+                        {/* <Typography.Paragraph style={{ whiteSpace: 'pre-wrap' }}>{props.seedPrompt}</Typography.Paragraph> */}
+                            <Input.TextArea
+                                value={seedPrompt}
+                                autoSize={true}
+                                onInput={(e) => setSeedPrompt((e.target as HTMLTextAreaElement).value)}
+                            />
+                        </Card>
+                    </Space>
+                </Col>
+                {/* 右侧是预览区 */}
+                <Col span={12}>
+                    <Space direction="vertical" size={16}>
+                        <Card title={
+                            <div className="f-flex-two-side">
+                                <Space>
+                                    <span className="font-medium">背景概括</span>
+                                </Space>
+                                {
+                                    stripReportList?.length > 0 && (
+                                        <Button type="primary" danger size="small" onClick={() => setBackgroundSummary('')} disabled={isWorking}>重写</Button>
+                                    )
+                                }
+                            </div>    
+                        } size="small">
+                            { stripReportList?.length > 0 ? renderStripReportList() : renderBeginStripBackground() }
+                        </Card>
+
+                        <Card title={<div className="f-flex-two-side">
+                            <Space>
+                                <span className="font-medium">章节骨架提示词</span>
+                                {showValueSource(props.savedSkeletonPrompt || '', props.actualSkeletonPrompt || '', skeletonPrompt)}
+                                <Button type="link" onClick={handleCopySkeletonPrompt}>复制</Button>
+                                <Button size="small" onClick={handleSaveSkeletonPrompt}>保存</Button>
+                            </Space>
+                            
+                            <Space>
+                                {[
+                                    skeletonPrompt && canGenerateSkeletonPrompt && (
+                                        <Button type="primary" danger size="small" onClick={() => beginGenSkeletonPrompt()} disabled={isWorking}>重写</Button>
+                                    ),
+                                    skeletonPrompt && !canGenerateSkeletonPrompt && (
+                                        <span color="gray">重写条件未满足，请检查（特别是背景概括）</span>
+                                    )
+                                ]}
+                            </Space>
+                            </div>} size="small">
+                            {
+                                skeletonPrompt ? handleViewSkeletonPrompt() : handleHintWriteSkeletonPrompt()
+                            }
+                        </Card>
+                    </Space>
+                </Col>
+            </Row>
 
             <ContentViewModal
                 isVisible={isStrippedModalVisible}
