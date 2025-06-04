@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Modal, Steps, Button, Card, Input, Space, message, Row, Col, Divider, Alert, Typography } from 'antd'
-import { CopyOutlined } from '@ant-design/icons'
+import { CopyOutlined, DeleteOutlined } from '@ant-design/icons'
 import type { ModalProps } from 'antd'
 import type { IChapter } from '@/src/types/IAiNoval'
 import { getChapterById, genParagraphs, combineParagraphs, getWriteWithChatUrl } from '../apiCalls'
@@ -63,14 +63,27 @@ function JsonEditor({
 // 正文内容编辑器
 function ContentEditor({
   value,
-  onChange
+  onChange,
+  onTextSelect
 }: {
   value: string
   onChange: (value: string) => void
+  onTextSelect?: (selectedText: string) => void
 }) {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
     message.success('复制成功')
+  }
+
+  const handleTextSelect = (e: React.SyntheticEvent<HTMLTextAreaElement>) => {
+    const textarea = e.target as HTMLTextAreaElement
+    const selectedText = textarea.value.substring(
+      textarea.selectionStart,
+      textarea.selectionEnd
+    )
+    if (selectedText && onTextSelect) {
+      onTextSelect(selectedText)
+    }
   }
 
   const titleJsx = (  
@@ -91,12 +104,15 @@ function ContentEditor({
       <TextArea
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onSelect={handleTextSelect}
         autoSize={{ minRows: 20 }}
       />
     </Card>
   )
 }
 
+
+// 精修提示词编辑器
 function RefinementEditor({
   paragraph,
   onParagraphChange,
@@ -137,7 +153,10 @@ function RefinementEditor({
   return (
     <Card size="small" title="精修提示词">
       <Row>
-        <div>待修段落：</div>
+        <div className='f-flex-two-side' style={{ width: '100%' }}>
+          <span>待修段落：</span>
+          <Button type="link" size="small" icon={<DeleteOutlined />} onClick={() => onParagraphChange('')} danger>清空</Button>
+        </div>
         <Input.TextArea
           placeholder="待修段落"
           value={paragraph}
@@ -260,6 +279,7 @@ function GenChapterByDetailModal({ onOk, ...props }: GenChapterByDetailModalProp
     <ContentEditor
       value={content}
       onChange={setContent}
+      onTextSelect={currentStep === 2 ? (text) => setRefineParagraph(text) : undefined}
     />
   )
 
