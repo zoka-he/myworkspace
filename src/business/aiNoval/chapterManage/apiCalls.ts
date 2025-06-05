@@ -399,5 +399,5 @@ export const getWriteWithChatUrl = async (worldviewId: number): Promise<string> 
         }
     );
 
-    return response.url;
+    return (response as any).url;
 }
