@@ -31,7 +31,9 @@ export default class ChaptersService extends MysqlNovalService {
             'actual_factions',
             'actual_locations',
             'attension',
-            'extra_settings'
+            'extra_settings',
+            'actual_seed_prompt',
+            'actual_skeleton_prompt'
         ]);
     }
 

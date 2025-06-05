@@ -349,3 +349,55 @@ export const genChapterBlocking = async (worldviewId: number, inputs: any): Prom
     );
     return response.data?.outputs?.output || '';
 }
+
+// 生成章节骨架提示词
+export const genSkeletonPrompt = async (worldviewId: number, inputs: any): Promise<string> => {
+    const response = await fetch.post(`/api/aiNoval/chapters/genSkeleton`, 
+        inputs,
+        {
+            params: { worldviewId }, 
+            timeout: 1000 * 60 * 10
+        }
+    );
+    return response.data?.outputs?.output || '';
+}
+
+export const genParagraphs = async (worldviewId: number, skeleton: string): Promise<string> => {
+    const response = await fetch.post(`/api/aiNoval/chapters/genParagraphs`, 
+        {
+            skeleton,
+        },
+        {
+            params: {
+                worldviewId
+            }, 
+            timeout: 1000 * 60 * 10
+    }
+    );
+    const textArr = response.data?.outputs?.output || [];
+
+    return JSON.stringify(textArr);
+}
+
+// 融合文段
+export const combineParagraphs = async (paragraphs: string): Promise<string> => {
+    const response = await fetch.post(`/api/aiNoval/chapters/combineParagraphs`, 
+        { chapter: paragraphs },
+        {
+            timeout: 1000 * 60 * 10
+        }
+    );
+
+    return response.data?.outputs?.text || '';
+}
+
+// 获取写作(对话)应用url
+export const getWriteWithChatUrl = async (worldviewId: number): Promise<string> => {
+    const response = await fetch.get(`/api/aiNoval/chapters/writeChatUrl`, 
+        {
+            params: {worldviewId}
+        }
+    );
+
+    return (response as any).url;
+}

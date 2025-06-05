@@ -56,8 +56,10 @@ export function WorldViewConfig() {
             ['DIFY_FACTION_DATASET_ID_' + selectedWorldView]: '',
             ['DIFY_ITEM_DATASET_ID_' + selectedWorldView]: '',
             ['DIFY_SKILL_DATASET_ID_' + selectedWorldView]: '',
-            ['DIFY_AUTO_CHAPTER_PROMPT_API_KEY_' + selectedWorldView]: '',
+            ['DIFY_AUTO_SKELETON_PROMPT_API_KEY_' + selectedWorldView]: '',
             ['DIFY_AUTO_WRITE_API_KEY_' + selectedWorldView]: '',
+            ['DIFY_AUTO_WRITE_WITH_SKELETON_API_KEY_' + selectedWorldView]: '',
+            ['DIFY_AUTO_WRITE_WITH_CHAT_API_KEY_' + selectedWorldView]: '',
         }
     }
 
@@ -127,11 +129,20 @@ export function WorldViewConfig() {
                 <Select options={llmDatasetOptions} disabled={!selectedWorldView}/>
             </Form.Item>
 
-            <Form.Item name={'DIFY_AUTO_CHAPTER_PROMPT_API_KEY_' + selectedWorldView} label="章节提示词工作流API Key：">
+            <Form.Item name={'DIFY_AUTO_SKELETON_PROMPT_API_KEY_' + selectedWorldView} label="章节细纲工作流API Key：">
                 <Input disabled={!selectedWorldView}/>
             </Form.Item>
 
             <Form.Item name={'DIFY_AUTO_WRITE_API_KEY_' + selectedWorldView} label="写作工作流API Key：">
+                <Input disabled={!selectedWorldView}/>
+            </Form.Item>
+
+
+            <Form.Item name={'DIFY_AUTO_WRITE_WITH_SKELETON_API_KEY_' + selectedWorldView} label="写作(细纲)API Key：">
+                <Input disabled={!selectedWorldView}/>
+            </Form.Item>
+
+            <Form.Item name={'DIFY_AUTO_WRITE_WITH_CHAT_API_KEY_' + selectedWorldView} label="写作(对话)应用url：">
                 <Input disabled={!selectedWorldView}/>
             </Form.Item>
 

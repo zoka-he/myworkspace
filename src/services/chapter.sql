@@ -5,7 +5,7 @@ CREATE TABLE `chapters` (
   `title` varchar(255) NOT NULL,
   `content` longtext NOT NULL,
   `seed_prompt` text NOT NULL,
-  `skeleton_prompt` text NOT NULL,
+  `actual_seed_prompt` text NOT NULL,
   `events` json DEFAULT NULL,
   `worldview_id` bigint DEFAULT NULL,
   `storyline_id` bigint DEFAULT NULL,

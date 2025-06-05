@@ -210,7 +210,7 @@ function ChapterManage() {
           title: values.title,
           content: values.content,
           seed_prompt: '',
-          skeleton_prompt: '',
+          actual_seed_prompt: '',
           event_ids: [],
           storyline_ids: [],
           geo_ids: [],

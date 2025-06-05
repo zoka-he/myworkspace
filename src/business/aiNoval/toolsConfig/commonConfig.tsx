@@ -27,6 +27,7 @@ export function CommonConfig() {
             ['DIFY_PARAGRAPH_ROLES_API_KEY']: '',
             ['DIFY_PARAGRAPH_FACTIONS_API_KEY']: '',
             ['DIFY_PARAGRAPH_LOCATIONS_API_KEY']: '',
+            ['DIFY_PARAGRAPH_COMBINE_API_KEY']: '',
         }
     }
 
@@ -76,6 +77,11 @@ export function CommonConfig() {
             <Form.Item name={'DIFY_PARAGRAPH_LOCATIONS_API_KEY'} label="提取地理工作流API Key：">
                 <Input/>
             </Form.Item>
+
+            <Form.Item name={'DIFY_PARAGRAPH_COMBINE_API_KEY'} label="融合文段工作流API Key：">
+                <Input/>
+            </Form.Item>
+
 
             <Form.Item {...tailLayout}>
                 <Space>

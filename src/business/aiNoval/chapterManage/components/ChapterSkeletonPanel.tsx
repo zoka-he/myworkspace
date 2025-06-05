@@ -4,10 +4,11 @@ import { ReloadOutlined, EditOutlined, CopyOutlined, SortAscendingOutlined } fro
 import { IChapter, IWorldViewDataWithExtra, IGeoUnionData, IFactionDefData, IRoleData, ITimelineEvent, IGeoStarSystemData, IGeoGeographyUnitData, IGeoPlanetData, IGeoSatelliteData, IGeoStarData } from '@/src/types/IAiNoval'
 import styles from './ChapterSkeletonPanel.module.scss'
 import { getTimelineEventByIds, updateChapter, getChapterById, getChapterList } from '../apiCalls'
-import _ from 'lodash'
+import _, { divide } from 'lodash'
 import { TimelineDateFormatter } from '@/src/business/aiNoval/common/novelDateUtils'
 import * as apiCalls from '../apiCalls'
 import { loadGeoTree, type IGeoTreeItem } from '../../common/geoDataUtil'
+import { ModalProvider, showGenSkeletonModal, useGenSkeletonModal } from './GenSkeletonModal'
 
 const { Text } = Typography
 const { TextArea } = Input
@@ -167,7 +168,8 @@ function ChapterSkeletonPanel({
         faction_ids: selectedChapter.faction_ids || [],
         role_ids: selectedChapter.role_ids || [],
         seed_prompt: selectedChapter.seed_prompt || '',
-        related_chapter_ids: selectedChapter.related_chapter_ids || []
+        related_chapter_ids: selectedChapter.related_chapter_ids || [],
+        skeleton_prompt: selectedChapter.skeleton_prompt || ''
       })
     }
   }, [selectedChapter])
@@ -360,7 +362,8 @@ function ChapterSkeletonPanel({
         faction_ids: processIds<number>(values.faction_ids),
         role_ids: values.role_ids,
         seed_prompt: values.seed_prompt,
-        related_chapter_ids: values.related_chapter_ids
+        related_chapter_ids: values.related_chapter_ids,
+        skeleton_prompt: values.skeleton_prompt
       };
 
       // console.debug('updateObject', updateObject);
@@ -377,68 +380,6 @@ function ChapterSkeletonPanel({
   }
 
   const { locations, factions, characters } = getRelatedInfo()
-
-  // 渲染事件详情
-  // const renderEventDetail = (event: ITimelineEvent) => {
-  //   const eventLocation = geoUnionList.find(geo => geo.code === event.location)?.name
-  //   const eventFactions = event.faction_ids?.map(id => 
-  //     factionList.find(faction => faction.id === id)?.name
-  //   ).filter(Boolean) || []
-  //   const eventCharacters = event.role_ids?.map(id => 
-  //     roleList.find(role => role.id === id)?.name
-  //   ).filter(Boolean) || []
-
-  //   const handleCopyEvent = () => {
-  //     const formattedDate = formatDate(event.date)
-  //     const copyText = `${formattedDate}\n${event.title}\n${event.description}`
-  //     navigator.clipboard.writeText(copyText)
-  //       .then(() => message.success('已复制到剪贴板'))
-  //       .catch(() => message.error('复制失败'))
-  //   }
-
-  //   return (
-  //     <div className={styles.eventDetail}>
-  //       <div className={styles.eventTitle}>
-  //         <Space>
-  //           {event.title}
-  //           <Button
-  //             type="text"
-  //             icon={<CopyOutlined />}
-  //             onClick={handleCopyEvent}
-  //             title="复制事件内容"
-  //           />
-  //         </Space>
-  //       </div>
-  //       <div className={styles.eventDescription}>{event.description}</div>
-  //       {eventLocation && (
-  //         <div className={styles.eventMeta}>
-  //           <Text type="secondary">地点：</Text>
-  //           <Tag color="blue">{eventLocation}</Tag>
-  //         </div>
-  //       )}
-  //       {eventFactions.length > 0 && (
-  //         <div className={styles.eventMeta}>
-  //           <Text type="secondary">阵营：</Text>
-  //           <Space wrap>
-  //             {eventFactions.map((faction, index) => (
-  //               <Tag key={index} color="green">{faction}</Tag>
-  //             ))}
-  //           </Space>
-  //         </div>
-  //       )}
-  //       {eventCharacters.length > 0 && (
-  //         <div className={styles.eventMeta}>
-  //           <Text type="secondary">角色：</Text>
-  //           <Space wrap>
-  //             {eventCharacters.map((character, index) => (
-  //               <Tag key={index} color="purple">{character}</Tag>
-  //             ))}
-  //           </Space>
-  //         </div>
-  //       )}
-  //     </div>
-  //   )
-  // }
 
   // 格式化小说时间
   const formatDate = (date: number) => {
@@ -519,296 +460,346 @@ function ChapterSkeletonPanel({
     setIsReordering(false)
   }
 
+
   return (
     <div className={styles.container}>
-      {/* 世界观信息展示 */}
-      <div className={styles.worldViewInfo}>
-        {selectedWorldView ? (
-          <>
-            <div className={styles.worldViewTitle}>
-              <Space>
-                <Text strong>世界观：</Text>
-                <Text>{selectedWorldView.title}</Text>
-                <Button
-                  type="link"
-                  icon={<ReloadOutlined />}
-                  onClick={handleRefresh}
-                  loading={refreshing}
-                >
-                  刷新
-                </Button>
-              </Space>
-            </div>
-
-            <div className={styles.relatedInfo}>
-              <div className={styles.relatedInfoItem}>
-                <Text strong>关联地点：</Text>
-                <div className={styles.tagsContainer}>
-                  {locations.length > 0 ? (
-                    locations.map((location) => (
-                      <Tag key={location.code} color="blue">{location.name}</Tag>
-                    ))
-                  ) : (
-                    <Text type="secondary">暂无关联地点</Text>
-                  )}
-                </div>
+      <ModalProvider>
+        {/* 世界观信息展示 */}
+        <div className={styles.worldViewInfo}>
+          {selectedWorldView ? (
+            <>
+              <div className={styles.worldViewTitle}>
+                <Space>
+                  <Text strong>世界观：</Text>
+                  <Text>{selectedWorldView.title}</Text>
+                  <Button
+                    type="link"
+                    icon={<ReloadOutlined />}
+                    onClick={handleRefresh}
+                    loading={refreshing}
+                  >
+                    刷新
+                  </Button>
+                </Space>
               </div>
 
-              <div className={styles.relatedInfoItem}>
-                <Text strong>关联阵营：</Text>
-                <div className={styles.tagsContainer}>
-                  {factions.length > 0 ? (
-                    factions.map((faction, index) => (
-                      <Tag key={index} color="green">{faction}</Tag>
-                    ))
-                  ) : (
-                    <Text type="secondary">暂无关联阵营</Text>
-                  )}
+              <div className={styles.relatedInfo}>
+                <div className={styles.relatedInfoItem}>
+                  <Text strong>关联地点：</Text>
+                  <div className={styles.tagsContainer}>
+                    {locations.length > 0 ? (
+                      locations.map((location) => (
+                        <Tag key={location.code} color="blue">{location.name}</Tag>
+                      ))
+                    ) : (
+                      <Text type="secondary">暂无关联地点</Text>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <div className={styles.relatedInfoItem}>
-                <Text strong>关联角色：</Text>
-                <div className={styles.tagsContainer}>
-                  {characters.length > 0 ? (
-                    characters.map((character, index) => (
-                      <Tag key={index} color="purple">{character}</Tag>
-                    ))
-                  ) : (
-                    <Text type="secondary">暂无关联角色</Text>
-                  )}
-                </div>
-              </div>
 
-              <div className={styles.relatedInfoItem}>
-                <Text strong>关联事件：</Text>
-                <div className={styles.eventsContainer}>
-                  {eventList.length > 0 ? (
-                    eventList.map((event, index) => (
-                      <div key={index} className={styles.eventCard}>
-                        <div className={styles.eventCardHeader}>
-                          <div className={styles.eventCardTitle}>{event.title}</div>
-                          <div className={styles.eventCardTimestamp}>
-                            {formatDate(event.date)}
+                <div className={styles.relatedInfoItem}>
+                  <Text strong>关联阵营：</Text>
+                  <div className={styles.tagsContainer}>
+                    {factions.length > 0 ? (
+                      factions.map((faction, index) => (
+                        <Tag key={index} color="green">{faction}</Tag>
+                      ))
+                    ) : (
+                      <Text type="secondary">暂无关联阵营</Text>
+                    )}
+                  </div>
+                </div>
+                <div className={styles.relatedInfoItem}>
+                  <Text strong>关联角色：</Text>
+                  <div className={styles.tagsContainer}>
+                    {characters.length > 0 ? (
+                      characters.map((character, index) => (
+                        <Tag key={index} color="purple">{character}</Tag>
+                      ))
+                    ) : (
+                      <Text type="secondary">暂无关联角色</Text>
+                    )}
+                  </div>
+                </div>
+
+                <div className={styles.relatedInfoItem}>
+                  <Text strong>关联事件：</Text>
+                  <div className={styles.eventsContainer}>
+                    {eventList.length > 0 ? (
+                      eventList.map((event, index) => (
+                        <div key={index} className={styles.eventCard}>
+                          <div className={styles.eventCardHeader}>
+                            <div className={styles.eventCardTitle}>{event.title}</div>
+                            <div className={styles.eventCardTimestamp}>
+                              {formatDate(event.date)}
+                            </div>
+                          </div>
+                          <div className={styles.eventCardDescription}>
+                            <Space>
+                              {event.description}
+                              <Button
+                                type="text"
+                                size="small"
+                                icon={<CopyOutlined />}
+                                onClick={() => {
+                                  const formattedDate = formatDate(event.date)
+                                  const copyText = `${formattedDate}\n${event.title}\n${event.description}`
+                                  navigator.clipboard.writeText(copyText)
+                                    .then(() => message.success('已复制到剪贴板'))
+                                    .catch(() => message.error('复制失败'))
+                                }}
+                                title="复制事件内容"
+                              />
+                            </Space>
                           </div>
                         </div>
-                        <div className={styles.eventCardDescription}>
-                          <Space>
-                            {event.description}
-                            <Button
-                              type="text"
-                              size="small"
-                              icon={<CopyOutlined />}
-                              onClick={() => {
-                                const formattedDate = formatDate(event.date)
-                                const copyText = `${formattedDate}\n${event.title}\n${event.description}`
-                                navigator.clipboard.writeText(copyText)
-                                  .then(() => message.success('已复制到剪贴板'))
-                                  .catch(() => message.error('复制失败'))
-                              }}
-                              title="复制事件内容"
-                            />
-                          </Space>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <Text type="secondary">暂无关联事件</Text>
-                  )}
+                      ))
+                    ) : (
+                      <Text type="secondary">暂无关联事件</Text>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          </>
-        ) : (
-          <div className={styles.emptyWorldView}>
-            <Space direction="vertical" align="center" style={{ width: '100%' }}>
-              <Text type="secondary">请先编辑章节事件池，设置世界观和关联信息</Text>
-              <Space>
-                <Button
-                  type="primary"
-                  icon={<EditOutlined />}
-                  onClick={onEditEventPool}
-                >
-                  编辑事件池
-                </Button>
-                <Button
-                  icon={<ReloadOutlined />}
-                  onClick={handleRefresh}
-                  loading={refreshing}
-                >
-                  刷新
-                </Button>
+            </>
+          ) : (
+            <div className={styles.emptyWorldView}>
+              <Space direction="vertical" align="center" style={{ width: '100%' }}>
+                <Text type="secondary">请先编辑章节事件池，设置世界观和关联信息</Text>
+                <Space>
+                  <Button
+                    type="primary"
+                    icon={<EditOutlined />}
+                    onClick={onEditEventPool}
+                  >
+                    编辑事件池
+                  </Button>
+                  <Button
+                    icon={<ReloadOutlined />}
+                    onClick={handleRefresh}
+                    loading={refreshing}
+                  >
+                    刷新
+                  </Button>
+                </Space>
               </Space>
-            </Space>
-          </div>
-        )}
-      </div>
-
-      {/* 章节关联信息表单 */}
-      <Form
-        form={form}
-        className={styles.chapterInfo}
-        layout="vertical"
-      >
-        <div className={styles.formHeader}>
-          <Text strong>章节关联信息</Text>
-          <Button type="primary" onClick={handleSaveChapterInfo}>
-            保存
-          </Button>
+            </div>
+          )}
         </div>
 
-        <Form.Item label={
-            <div className={styles.formItemLabel}>
-              <Text strong>相关章节</Text>
-              <Button
-                type="link"
-                icon={<CopyOutlined />}
-                onClick={handleAddPreviousChapter}
-              >
-                关联上一章
-              </Button>
-              <Button
-                type="link"
-                icon={<SortAscendingOutlined />}
-                onClick={handleReorderChapters}
-                loading={isReordering}
-              >
-                重排序
-              </Button>
-            </div>
-          } name="related_chapter_ids">
-          <Select
-            mode="multiple"
-            placeholder="请选择相关章节"
-            optionFilterProp="children"
-            className={styles.multiSelect}
-          >
-            { chapterList.reverse().map(chapter => (
-              <Select.Option value={chapter.id}>{chapter.chapter_number} {chapter.title} : v{chapter.version}</Select.Option>
-            ))}
-          </Select>
-        </Form.Item>
-
-        <Form.Item
-          label={
-            <div className={styles.formItemLabel}>
-              <Text strong>章节关联地点</Text>
-              <Button
-                type="link"
-                icon={<CopyOutlined />}
-                onClick={() => copyFromWorldView('geo')}
-                disabled={!relatedEventLocationIds.length}
-              >
-                从关联信息复制
-              </Button>
-            </div>
-          }
-          name="geo_ids"
+        {/* 章节关联信息表单 */}
+        <Form
+          form={form}
+          className={styles.chapterInfo}
+          layout="vertical"
         >
-          <TreeSelect
-            treeData={geoTree || []}
-            placeholder="请选择发生地点"
-            allowClear
-            treeDefaultExpandAll
-            showSearch
-            treeNodeFilterProp="title"
-            multiple
-            treeCheckable
-            treeCheckStrictly={true}
-            showCheckedStrategy={TreeSelect.SHOW_ALL}
-            fieldNames={{label:'title', value: 'key'}}    // fuck antd
-          >
-          </TreeSelect>
-        </Form.Item>
+          <div className={styles.formHeader}>
+            <Text strong>章节关联信息</Text>
+            <Button type="primary" onClick={handleSaveChapterInfo}>
+              保存
+            </Button>
+          </div>
 
-        <Form.Item
-          label={
-            <div className={styles.formItemLabel}>
-              <Text strong>章节关联阵营</Text>
+          <Form.Item label={
+              <div className={styles.formItemLabel}>
+                <Text strong>相关章节</Text>
+                <Button
+                  type="link"
+                  icon={<CopyOutlined />}
+                  onClick={handleAddPreviousChapter}
+                >
+                  关联上一章
+                </Button>
+                <Button
+                  type="link"
+                  icon={<SortAscendingOutlined />}
+                  onClick={handleReorderChapters}
+                  loading={isReordering}
+                >
+                  重排序
+                </Button>
+              </div>
+            } name="related_chapter_ids">
+            <Select
+              mode="multiple"
+              placeholder="请选择相关章节"
+              optionFilterProp="children"
+              className={styles.multiSelect}
+            >
+              { chapterList.reverse().map(chapter => (
+                <Select.Option value={chapter.id}>{chapter.chapter_number} {chapter.title} : v{chapter.version}</Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            label={
+              <div className={styles.formItemLabel}>
+                <Text strong>章节关联地点</Text>
+                <Button
+                  type="link"
+                  icon={<CopyOutlined />}
+                  onClick={() => copyFromWorldView('geo')}
+                  disabled={!relatedEventLocationIds.length}
+                >
+                  从关联信息复制
+                </Button>
+              </div>
+            }
+            name="geo_ids"
+          >
+            <TreeSelect
+              treeData={geoTree || []}
+              placeholder="请选择发生地点"
+              allowClear
+              treeDefaultExpandAll
+              showSearch
+              treeNodeFilterProp="title"
+              multiple
+              treeCheckable
+              treeCheckStrictly={true}
+              showCheckedStrategy={TreeSelect.SHOW_ALL}
+              fieldNames={{label:'title', value: 'key'}}    // fuck antd
+            >
+            </TreeSelect>
+          </Form.Item>
+
+          <Form.Item
+            label={
+              <div className={styles.formItemLabel}>
+                <Text strong>章节关联阵营</Text>
+                <Button
+                  type="link"
+                  icon={<CopyOutlined />}
+                  onClick={() => copyFromWorldView('faction')}
+                  disabled={!relatedEventFactionIds.length}
+                >
+                  从关联信息复制
+                </Button>
+              </div>
+            }
+            name="faction_ids"
+          >
+            <TreeSelect
+              treeData={factionTree || []}
+              placeholder="请选择关联阵营"
+              allowClear
+              treeDefaultExpandAll
+              showSearch
+              treeNodeFilterProp="title"
+              multiple
+              treeCheckable
+              treeCheckStrictly={true}
+              showCheckedStrategy={TreeSelect.SHOW_ALL}
+              fieldNames={{label:'title', value: 'key'}}    // fuck antd
+            >
+            </TreeSelect>
+          </Form.Item>
+
+          <Form.Item
+            label={
+              <div className={styles.formItemLabel}>
+                <Text strong>章节关联角色</Text>
+                <Button
+                  type="link"
+                  icon={<CopyOutlined />}
+                  onClick={() => copyFromWorldView('role')}
+                  disabled={!relatedEventCharacterIds.length}
+                >
+                  从关联信息复制
+                </Button>
+              </div>
+            }
+            name="role_ids"
+          >
+            <Select
+              mode="multiple"
+              placeholder="请选择关联角色"
+              optionFilterProp="children"
+              className={styles.multiSelect}
+            >
+              {roleList.map(role => (
+                <Option key={role.id} value={role.id}>
+                  {role.name}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <div className="f-flex-two-side f-fit-width" style={{marginBottom: 12}}>
+            <Text strong>章节提示词（在生成面板中，会根据双换行进行切分）</Text>
+            <Button size="small" type="primary" onClick={handleSaveChapterInfo}>保存</Button>
+          </div>
+          <Form.Item
+            label={null}
+            name="seed_prompt"
+          >
+            <TextArea
+              placeholder="请输入章节根提示词"
+              autoSize={{ minRows: 8 }}
+              className={styles.promptTextArea}
+              showCount
+            />
+          </Form.Item>
+
+
+          <div className="f-flex-two-side f-fit-width" style={{marginBottom: 8}}>
+            <Space>
+              <Text strong>章节细纲（对应细纲生成工作流）</Text>
               <Button
                 type="link"
                 icon={<CopyOutlined />}
-                onClick={() => copyFromWorldView('faction')}
-                disabled={!relatedEventFactionIds.length}
+                disabled={!worldViewId}
+                onClick={() => {
+                  const formValues = form.getFieldsValue();
+                  
+                  const locations = findGeoTree(relatedEventLocationIds);
+
+                  const factions = relatedEventFactionIds.map(id => 
+                    factionList.find(faction => faction.id === id)?.name
+                  ).filter(Boolean) || []
+
+                  const characters = relatedEventCharacterIds.map(id => 
+                    roleList.find(role => role.id === id)?.name
+                  ).filter(Boolean) || []
+                  
+
+
+                  showGenSkeletonModal({
+                    worldviewId: worldViewId!,
+                    seedPrompt: formValues.seed_prompt,
+                    savedSeedPrompt: selectedChapter?.seed_prompt,
+                    actualSeedPrompt: selectedChapter?.actual_seed_prompt,
+                    relativeChapters: formValues.related_chapter_ids,
+                    characters: characters.join(','),
+                    factions: factions.join(','),
+                    locations: locations.map(item => item.name).join(','),
+                    skeletonPrompt: formValues.skeleton_prompt,
+                    savedSkeletonPrompt: selectedChapter?.skeleton_prompt,
+                    actualSkeletonPrompt: selectedChapter?.actual_skeleton_prompt,
+                    chapterId: selectedChapter?.id
+                  });
+                }}
               >
-                从关联信息复制
+                AI生成{worldViewId ? '' : '(请先设置世界观)'}
               </Button>
-            </div>
-          }
-          name="faction_ids"
-        >
-          {/* <Select
-            mode="multiple"
-            placeholder="请选择关联阵营"
-            optionFilterProp="children"
-            className={styles.multiSelect}
-          >
-            {factionList.map(faction => (
-              <Option key={faction.id} value={faction.id}>
-                {faction.name}
-              </Option>
-            ))}
-          </Select> */}
+            </Space>
 
-          <TreeSelect
-            treeData={factionTree || []}
-            placeholder="请选择关联阵营"
-            allowClear
-            treeDefaultExpandAll
-            showSearch
-            treeNodeFilterProp="title"
-            multiple
-            treeCheckable
-            treeCheckStrictly={true}
-            showCheckedStrategy={TreeSelect.SHOW_ALL}
-            fieldNames={{label:'title', value: 'key'}}    // fuck antd
-          >
-          </TreeSelect>
-        </Form.Item>
-
-        <Form.Item
-          label={
-            <div className={styles.formItemLabel}>
-              <Text strong>章节关联角色</Text>
-              <Button
-                type="link"
-                icon={<CopyOutlined />}
-                onClick={() => copyFromWorldView('role')}
-                disabled={!relatedEventCharacterIds.length}
-              >
-                从关联信息复制
-              </Button>
-            </div>
-          }
-          name="role_ids"
-        >
-          <Select
-            mode="multiple"
-            placeholder="请选择关联角色"
-            optionFilterProp="children"
-            className={styles.multiSelect}
-          >
-            {roleList.map(role => (
-              <Option key={role.id} value={role.id}>
-                {role.name}
-              </Option>
-            ))}
-          </Select>
-        </Form.Item>
-
-        <Form.Item
-          label={<Text strong>章节提示词（在生成面板中，会根据双换行进行切分）</Text>}
-          name="seed_prompt"
+            <Button size="small" type="primary" onClick={handleSaveChapterInfo}>保存</Button>
+          </div>
+          <Form.Item
+          label={null}
+          name="skeleton_prompt"
         >
           <TextArea
-            placeholder="请输入章节根提示词"
-            autoSize={{ minRows: 8, maxRows: 15 }}
-            className={styles.promptTextArea}
+            placeholder="请输入章节细纲"
+            autoSize={{ minRows: 8 }}
             showCount
-            maxLength={2000}
           />
         </Form.Item>
-      </Form>
-      
+        </Form>
+
+      </ModalProvider>
+
     </div>
   )
 }

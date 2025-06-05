@@ -248,4 +248,6 @@ export interface IChapter {
     actual_locations?: string
     attension?: string
     extra_settings?: string
+    actual_seed_prompt?: string
+    actual_skeleton_prompt?: string
 }

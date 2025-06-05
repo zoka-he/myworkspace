@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
 import { Card, Button, Input, Space, Modal, message, Typography, Upload } from 'antd'
-import { EditOutlined, CopyOutlined, UploadOutlined, CompressOutlined, TagOutlined, RobotOutlined } from '@ant-design/icons'
+import { EditOutlined, CopyOutlined, UploadOutlined, CompressOutlined, TagOutlined, RobotOutlined, FileTextOutlined } from '@ant-design/icons'
 import { IChapter } from '@/src/types/IAiNoval'
 import * as chapterApi from '../apiCalls'
 import styles from './ChapterGeneratePanel.module.scss'
 import type { UploadProps } from 'antd'
 import ChapterContinueModal from './ChapterContinueModal'
+import GenChapterByDetailModal from './GenChapterByDetailModal'
 import * as apiCalls from '../apiCalls'
 
 const { TextArea } = Input
@@ -27,6 +28,7 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
   const [suggestedName, setSuggestedName] = useState('')
   const [isNaming, setIsNaming] = useState(false)
   const [isContinueModalVisible, setIsContinueModalVisible] = useState(false)
+  const [isGenDetailModalVisible, setIsGenDetailModalVisible] = useState(false)
 
   // 当选中章节改变时，更新内容
   React.useEffect(() => {
@@ -38,33 +40,6 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
       setContent('');
     }
   }, [selectedChapter])
-
-  // 保存章节内容
-  const handleSaveContent = async () => {
-    if (!selectedChapter) return
-
-    try {
-      setIsLoading(true)
-      await chapterApi.updateChapter({
-        id: selectedChapter.id,
-        content
-      })
-      message.success('内容已保存')
-      setIsEditing(false)
-      onChapterChange()
-    } catch (error) {
-      message.error('保存失败')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  // 复制内容到剪贴板
-  const handleCopyContent = () => {
-    navigator.clipboard.writeText(content)
-      .then(() => message.success('内容已复制到剪贴板'))
-      .catch(() => message.error('复制失败'))
-  }
 
   // 处理文件导入
   const handleFileImport: UploadProps['customRequest'] = async ({ file }) => {
@@ -78,78 +53,131 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
     }
   }
 
-  // 处理章节缩写
-  const handleSummarize = async () => {
-    if (!content) return
+  // 渲染编辑功能
+  const renderEditFeature = () => {
+    if (!isEditing) return null
 
-    try {
-      setIsSummarizing(true)
-      setSummarizedContent('')
-
-      const text = await chapterApi.stripChapterBlocking(selectedChapter?.id || 0, 300)
-
-      setSummarizedContent(text);
-
-    } catch (error) {
-      console.error('stripChapter error -> ', error)
-      message.error('缩写失败')
-    } finally {
-      setIsSummarizing(false)
-    }
+    return (
+      <div className={styles.editorContainer}>
+        <TextArea
+          value={content}
+          onChange={e => setContent(e.target.value)}
+          placeholder="请输入章节内容..."
+          autoSize={{ minRows: 10 }}
+        />
+        <Space className={styles.editorActions}>
+          <Button onClick={() => setIsEditing(false)}>取消</Button>
+          <Button 
+            type="primary" 
+            onClick={async () => {
+              if (!selectedChapter) return
+              try {
+                setIsLoading(true)
+                await chapterApi.updateChapter({
+                  id: selectedChapter.id,
+                  content
+                })
+                message.success('内容已保存')
+                setIsEditing(false)
+                onChapterChange()
+              } catch (error) {
+                message.error('保存失败')
+              } finally {
+                setIsLoading(false)
+              }
+            }} 
+            loading={isLoading}
+          >
+            保存
+          </Button>
+        </Space>
+      </div>
+    )
   }
 
-  // 复制缩写内容
-  const handleCopySummarized = () => {
-    navigator.clipboard.writeText(summarizedContent)
-      .then(() => message.success('缩写内容已复制到剪贴板'))
-      .catch(() => message.error('复制失败'))
+  // 渲染AI续写功能
+  const renderContinueFeature = () => {
+    return (
+      <ChapterContinueModal
+        selectedChapterId={selectedChapter?.id}
+        isVisible={isContinueModalVisible}
+        onClose={() => setIsContinueModalVisible(false)}
+        onChapterChange={onChapterChange}
+      />
+    )
   }
 
-  // 处理章节命名
-  const handleNameChapter = async () => {
-    if (!selectedChapter) return
-
-    try {
-      setIsNaming(true)
-      setSuggestedName('')
-
-      const text = await chapterApi.nameChapterBlocking(selectedChapter.id || 0)
-
-      setSuggestedName(text)
-
-    } catch (error) {
-      console.error('nameChapter error -> ', error)
-      message.error('命名失败')
-    } finally {
-      setIsNaming(false)
-    }
+  // 渲染AI扩写细纲功能
+  const renderGenDetailFeature = () => {
+    return (
+      <GenChapterByDetailModal
+        selectedChapter={selectedChapter}
+        open={isGenDetailModalVisible}
+        onCancel={() => setIsGenDetailModalVisible(false)}
+        onOk={(content) => {
+          setContent(content)
+          setIsGenDetailModalVisible(false)
+          onChapterChange()
+        }}
+      />
+    )
   }
 
-  // 复制建议的章节名
-  const handleCopySuggestedName = () => {
-    navigator.clipboard.writeText(suggestedName)
-      .then(() => message.success('章节名已复制到剪贴板'))
-      .catch(() => message.error('复制失败'))
-  }
-
-  // 应用建议的章节名
-  const handleApplySuggestedName = async () => {
-    if (!selectedChapter || !suggestedName) return
-
-    try {
-      setIsLoading(true)
-      await chapterApi.updateChapter({
-        id: selectedChapter.id,
-        title: suggestedName
-      })
-      message.success('章节名已更新')
-      setIsNameModalVisible(false)
-      onChapterChange()
-    } catch (error) {
-      message.error('更新章节名失败')
-    } finally {
-      setIsLoading(false)
-    }
+  // 渲染缩写功能
+  const renderSummarizeFeature = () => {
+    return (
+      <Modal
+        title="章节缩写"
+        open={isSummarizeModalVisible}
+        onCancel={() => setIsSummarizeModalVisible(false)}
+        width={800}
+        footer={[
+          <Button 
+            key="copy" 
+            icon={<CopyOutlined />} 
+            onClick={() => {
+              navigator.clipboard.writeText(summarizedContent)
+                .then(() => message.success('缩写内容已复制到剪贴板'))
+                .catch(() => message.error('复制失败'))
+            }}
+          >
+            复制缩写内容
+          </Button>,
+          <Button key="close" onClick={() => setIsSummarizeModalVisible(false)}>
+            关闭
+          </Button>
+        ]}
+      >
+        <div className={styles.summarizeContent}>
+          <Space direction="vertical" style={{ width: '100%' }}>
+            <Button
+              type="primary"
+              onClick={async () => {
+                if (!content) return
+                try {
+                  setIsSummarizing(true)
+                  setSummarizedContent('')
+                  const text = await chapterApi.stripChapterBlocking(selectedChapter?.id || 0, 300)
+                  setSummarizedContent(text)
+                } catch (error) {
+                  console.error('stripChapter error -> ', error)
+                  message.error('缩写失败')
+                } finally {
+                  setIsSummarizing(false)
+                }
+              }}
+              loading={isSummarizing}
+              disabled={!content}
+            >
+              使用LLM缩写
+            </Button>
+            <div className={styles.summarizedText}>
+              {summarizedContent || '点击上方按钮开始缩写...'}
+            </div>
+          </Space>
+        </div>
+      </Modal>
+    )
   }
 
   if (!selectedChapter) {
@@ -188,9 +216,15 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
                   type="primary"
                   icon={<RobotOutlined />}
                   onClick={() => setIsContinueModalVisible(true)}
-                  // disabled={!content}
                 >
                   AI续写
+                </Button>
+                <Button
+                  type="primary"
+                  icon={<FileTextOutlined />}
+                  onClick={() => setIsGenDetailModalVisible(true)}
+                >
+                  AI扩写细纲
                 </Button>
               </Space>
             )}
@@ -216,20 +250,7 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
         }
       >
         {isEditing ? (
-          <div className={styles.editorContainer}>
-            <TextArea
-              value={content}
-              onChange={e => setContent(e.target.value)}
-              placeholder="请输入章节内容..."
-              autoSize={{ minRows: 10 }}
-            />
-            <Space className={styles.editorActions}>
-              <Button onClick={() => setIsEditing(false)}>取消</Button>
-              <Button type="primary" onClick={handleSaveContent} loading={isLoading}>
-                保存
-              </Button>
-            </Space>
-          </div>
+          renderEditFeature()
         ) : (
           <div className={styles.contentDisplay}>
             {content ? (
@@ -255,45 +276,9 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
         )}
       </Card>
 
-      {/* AI续写模态框 */}
-      <ChapterContinueModal
-        selectedChapterId={selectedChapter?.id}
-        isVisible={isContinueModalVisible}
-        onClose={() => setIsContinueModalVisible(false)}
-        onChapterChange={onChapterChange}
-      />
-
-      {/* 缩写章节模态框 */}
-      <Modal
-        title="章节缩写"
-        open={isSummarizeModalVisible}
-        onCancel={() => setIsSummarizeModalVisible(false)}
-        width={800}
-        footer={[
-          <Button key="copy" icon={<CopyOutlined />} onClick={handleCopySummarized}>
-            复制缩写内容
-          </Button>,
-          <Button key="close" onClick={() => setIsSummarizeModalVisible(false)}>
-            关闭
-          </Button>
-        ]}
-      >
-        <div className={styles.summarizeContent}>
-          <Space direction="vertical" style={{ width: '100%' }}>
-            <Button
-              type="primary"
-              onClick={handleSummarize}
-              loading={isSummarizing}
-              disabled={!content}
-            >
-              使用LLM缩写
-            </Button>
-            <div className={styles.summarizedText}>
-              {summarizedContent || '点击上方按钮开始缩写...'}
-            </div>
-          </Space>
-        </div>
-      </Modal>
+      {renderContinueFeature()}
+      {renderGenDetailFeature()}
+      {renderSummarizeFeature()}
 
       {/* 命名章节模态框 */}
       <Modal
@@ -302,7 +287,15 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
         onCancel={() => setIsNameModalVisible(false)}
         width={800}
         footer={[
-          <Button key="copy" icon={<CopyOutlined />} onClick={handleCopySuggestedName}>
+          <Button 
+            key="copy" 
+            icon={<CopyOutlined />} 
+            onClick={() => {
+              navigator.clipboard.writeText(suggestedName)
+                .then(() => message.success('章节名已复制到剪贴板'))
+                .catch(() => message.error('复制失败'))
+            }}
+          >
             复制章节名
           </Button>,
           <Button key="close" onClick={() => setIsNameModalVisible(false)}>
@@ -314,7 +307,20 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
           <Space direction="vertical" style={{ width: '100%' }}>
             <Button
               type="primary"
-              onClick={handleNameChapter}
+              onClick={async () => {
+                if (!selectedChapter) return
+                try {
+                  setIsNaming(true)
+                  setSuggestedName('')
+                  const text = await chapterApi.nameChapterBlocking(selectedChapter.id || 0)
+                  setSuggestedName(text)
+                } catch (error) {
+                  console.error('nameChapter error -> ', error)
+                  message.error('命名失败')
+                } finally {
+                  setIsNaming(false)
+                }
+              }}
               loading={isNaming}
               disabled={!content}
             >
