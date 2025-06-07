@@ -752,13 +752,13 @@ function ChapterSkeletonPanel({
                 onClick={() => {
                   const formValues = form.getFieldsValue();
                   
-                  const locations = findGeoTree(relatedEventLocationIds);
+                  const locations = findGeoTree(formValues.geo_ids);
 
-                  const factions = relatedEventFactionIds.map(id => 
+                  const factions = formValues.faction_ids.map((id: number) => 
                     factionList.find(faction => faction.id === id)?.name
                   ).filter(Boolean) || []
 
-                  const characters = relatedEventCharacterIds.map(id => 
+                  const characters = formValues.role_ids.map((id: number) => 
                     roleList.find(role => role.id === id)?.name
                   ).filter(Boolean) || []
                   

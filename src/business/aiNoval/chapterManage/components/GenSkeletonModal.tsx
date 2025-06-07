@@ -391,7 +391,7 @@ function GenSkeletonModalContent(props: GenSkeletonModalProps & { onClose: () =>
             <Row gutter={16}>
                 {/* 左侧是编辑区 */}
                 <Col span={12}>
-                    <Space direction="vertical" size={16}>
+                    <Space direction="vertical" size={16} style={{ width: '100%' }}>
                         <Card title="角色" size="small">
                         {props.characters.split(',').map((character: string, index: number) => (
                             <Tag key={index}>{character}</Tag>
@@ -433,7 +433,7 @@ function GenSkeletonModalContent(props: GenSkeletonModalProps & { onClose: () =>
                 </Col>
                 {/* 右侧是预览区 */}
                 <Col span={12}>
-                    <Space direction="vertical" size={16}>
+                    <Space direction="vertical" size={16} style={{ width: '100%' }}>
                         <Card title={
                             <div className="f-flex-two-side">
                                 <Space>
