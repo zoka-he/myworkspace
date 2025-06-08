@@ -30,7 +30,7 @@ export default function Home() {
 
         <Script src="/scripts/initGaodeSafeCode.js" strategy='beforeInteractive'/>
         <Script src="https://webapi.amap.com/maps?v=2.0&key=aaf9abee1eb38e393da832ed8d387f4b&plugin=AMap.PlaceSearch,AMap.Driving,AMap.Geocoder" strategy='beforeInteractive'/>
-        <script src="https://api.map.baidu.com/api?type=webgl&v=1.0&ak=wODxcvAVzRcq8Y76oqFHvSsmm338mZ19"/>
+        {/* <script src="https://api.map.baidu.com/api?type=webgl&v=1.0&ak=wODxcvAVzRcq8Y76oqFHvSsmm338mZ19"/> */}
       
     </>
   )
