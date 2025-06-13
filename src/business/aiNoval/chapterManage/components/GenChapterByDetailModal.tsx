@@ -34,6 +34,14 @@ function JsonEditor({
     onChange(value.replace('```json', '').replace('```', ''))
   }
 
+  const copyPureText = () => {
+    const pureJsonString = value.replace('```json', '').replace('```', '')
+    const pureText = pureJsonString.replace(/\\n/g, '\n').replace(/","/g, '\n\n').replace(/\["/g, '').replace(/"\]/g, '')
+
+    navigator.clipboard.writeText(pureText)
+    message.success('复制成功')
+  }
+
   const titleJsx = (  
     <div className="f-flex-two-side">
       <Space>
@@ -45,6 +53,7 @@ function JsonEditor({
         <Button size="small" icon={<CopyOutlined />} onClick={() => copyToClipboard(value)}>
           复制
         </Button>
+        <Button size="small" type="primary" icon={<CopyOutlined />} onClick={copyPureText}>复制纯文本</Button>
       </Space>
     </div>
   )
