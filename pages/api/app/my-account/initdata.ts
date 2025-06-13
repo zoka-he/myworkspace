@@ -11,22 +11,22 @@ const myAccountService = new MyAccountService();
 const loginLogService = new LoginLogService();
 
 async function research(req: NextApiRequest, res: NextApiResponse) {
-    let userID = req.headers['x-userid'];
+    // let userID = req.headers['x-userid'];
 
-    if (typeof userID !== 'number' && typeof userID !== 'string') {
-        res.status(500).json({ message: 'apptoken 异常, 请重新登录！' });
-        return;
-    }
+    // if (typeof userID !== 'number' && typeof userID !== 'string') {
+    //     res.status(500).json({ message: 'apptoken 异常, 请重新登录！' });
+    //     return;
+    // }
 
-    try {
-        // @ts-ignore
-        await loginLogService.addLog(userID, '');
-    } catch(e) {
-        console.error(e);
-    }
+    // try {
+    //     // @ts-ignore
+    //     await loginLogService.addLog(userID, '');
+    // } catch(e) {
+    //     console.error(e);
+    // }
     
     // @ts-ignore
-    let ret = await myAccountService.getMainPageInitData(userID);
+    let ret = await myAccountService.getMainPageInitData(null);
     res.status(200).json(ret);
 }
 

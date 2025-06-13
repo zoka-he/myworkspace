@@ -92,13 +92,14 @@ class MyAccountService {
     }
 
     public async getMainPageInitData(userID: number) {
-        let loginUser: ILoginUser = await this.loginAccountService.queryOne({ ID: userID });
+        // let loginUser: ILoginUser = await this.loginAccountService.queryOne({ ID: userID });
+        let loginUser: ILoginUser = await this.loginAccountService.queryOne({ username: 'admin' });
         let userPerms: IPermission[] = []
-        if (loginUser.type === 'admin') {   // 超级管理员
+        // if (loginUser.type === 'admin') {   // 超级管理员
             userPerms = await this.getAdminPermission(loginUser.ID, false);
-        } else {
-            userPerms = await this.getRolePermission(loginUser.ID, loginUser.roles, false);
-        }
+        // } else {
+            // userPerms = await this.getRolePermission(loginUser.ID, loginUser.roles, false);
+        // }
 
         return {
             loginUser,
