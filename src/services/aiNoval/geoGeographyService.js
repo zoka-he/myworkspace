@@ -53,4 +53,23 @@ export default class GeoGeographyService extends MysqlNovalService {
         return ret.data.map(r => r.name).join(',');
     }
 
+    // 获取某个地理单元的最大code
+    async getMaxCode(prefix) {
+        if (!prefix) {
+            return '';
+        }
+
+        let sql = `
+            select max(code) code from geo_geography_unit where code like '${prefix}%'
+        `;
+
+        let ret = await this.query(sql, [], ['code asc'], 1, 1);
+
+        if (ret.data.length > 0) {
+            return ret.data[0].code;
+        }
+
+        return '';
+    }
+
 }

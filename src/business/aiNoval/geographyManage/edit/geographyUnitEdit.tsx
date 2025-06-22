@@ -176,7 +176,24 @@ class GeographyUnitEdit extends React.Component<IGeographyUnitEditProps, IGeogra
                         <Form.Item label={'地理单元名称'} name={'name'} rules={[{ required: true, message: '地理单元名称为必填！' }]}>
                             <Input/>
                         </Form.Item>
-                        <Form.Item label={'地理单元编码'} name={'code'} rules={[{ required: true, message: '地理单元编码为必填！' }]}>
+                        <Form.Item label={'地理单元编码'} name={'code'} rules={[{ required: true, message: '地理单元编码为必填！' }, {
+                            validateTrigger: ['onChange', 'onBlur'],
+                            warningOnly: true,
+                            validator: async (arg1: any, value: string) => {
+                                if (!value || value.length < 2) return Promise.resolve()
+                                // 查询maxcode
+                                try {
+                                    const res = await fetch.get('/api/web/aiNoval/geo/geoUnit/maxCode', { params: { prefix: value.slice(0, 2) } })
+                                    const maxcode = res?.data
+                                    if (value < maxcode) {
+                                        return Promise.reject(new Error(`当前最大编码：${maxcode}`))
+                                    }
+                                } catch (e) {
+                                    // 忽略接口异常
+                                }
+                                return Promise.resolve()
+                            }
+                        }]}>
                             <Input/>
                         </Form.Item>
                         <Form.Item label={'地理单元类型'} name={'type'} rules={[{ required: true, message: '地理单元类型为必填！' }]}>
@@ -214,7 +231,7 @@ class GeographyUnitEdit extends React.Component<IGeographyUnitEditProps, IGeogra
                             </Select>
                         </Form.Item>
                         <Form.Item label={'地理单元描述'} name={'description'}>
-                            <Input.TextArea/>
+                            <Input.TextArea autoSize={{ minRows: 6 }}/>
                         </Form.Item>
                         <Form.Item label={'是否在知识库中'} name={'described_in_llm'}>
                             <Radio.Group>
