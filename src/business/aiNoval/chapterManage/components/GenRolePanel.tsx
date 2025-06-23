@@ -137,7 +137,7 @@ function GenRolePanel({ onOk, worldviewId, ...props }: GenRolePanelProps) {
   }, [props.open])
 
   // 生成角色建议
-  const handleGenerateRoleSuggestions = async () => {
+  const handleGenerateRoleSuggestions = async (createRole: boolean = true) => {
     try {
       if (!chapterPrompt?.trim()) {
         message.error('请输入章节提示词')
@@ -168,7 +168,8 @@ function GenRolePanel({ onOk, worldviewId, ...props }: GenRolePanelProps) {
                 chapter_prompt: chapterPrompt,
                 name_style: namingStyle,
                 extra_prompt: extraRequirements,
-                worldview_id: worldviewId
+                worldview_id: worldviewId,
+                is_create_character: createRole ? 1 : 0
             },
             {
                 params: {
@@ -324,9 +325,17 @@ function GenRolePanel({ onOk, worldviewId, ...props }: GenRolePanelProps) {
                         type="primary" 
                         icon={<RobotOutlined />} 
                         loading={isGenerating}
-                        onClick={handleGenerateRoleSuggestions}
+                        onClick={() => handleGenerateRoleSuggestions(true)}
                     >
-                        生成人物建议清单
+                        生成人物建议（创建角色）
+                    </Button>
+                    <Button 
+                        type="primary" 
+                        icon={<RobotOutlined />} 
+                        loading={isGenerating}
+                        onClick={() => handleGenerateRoleSuggestions(false)}
+                    >
+                        生成角色建议
                     </Button>
                 </Space>
             </Card>

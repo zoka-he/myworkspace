@@ -97,9 +97,9 @@ export function D3RoleRelationGraph({
 
     // 获取数据
     Promise.all([
-      apiCalls.getRoleList(Number(worldview_id)),
-      apiCalls.getWorldViewRoleRelationList(Number(worldview_id)),
-      apiCalls.getWorldViewRoleInfoList(Number(worldview_id), 200)
+      apiCalls.getRoleList(Number(worldview_id), 1, 2000),
+      apiCalls.getWorldViewRoleRelationList(Number(worldview_id), 1, 2000),
+      apiCalls.getWorldViewRoleInfoList(Number(worldview_id), 2000)
     ]).then(([roleRes, relationRes, roleInfoRes]) => {
       const data: RoleGraphData = {
         nodes: roleRes.data,
