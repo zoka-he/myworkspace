@@ -18,6 +18,7 @@ export default function RoleManage() {
     const [selectedRole, setSelectedRole] = useState<IRoleData | undefined>(undefined);
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [updateTimestamp, setUpdateTimestamp] = useState(0);
+    const [figUpdateTimestamp, setFigUpdateTimestamp] = useState(0);
 
     const roleInfoEditModalRef = useRef<RoleInfoEditModalRef>(null);
 
@@ -175,6 +176,7 @@ export default function RoleManage() {
 
             // 刷新角色列表
             await loadRoleDefList() as IRoleData[];
+            console.debug('handleVersionChange updateTimestamp --->> ', Date.now());
             setUpdateTimestamp(Date.now());
         } catch (error) {
             console.error('Failed to update role:', error);
@@ -200,6 +202,7 @@ export default function RoleManage() {
 
             // 刷新角色列表
             await loadRoleDefList() as IRoleData[];
+            console.debug('handleCreateOrUpdateRoleInfo updateTimestamp --->> ', Date.now());
             setUpdateTimestamp(Date.now());
 
         } catch (error) {
@@ -216,6 +219,7 @@ export default function RoleManage() {
 
             // 刷新角色列表
             await loadRoleDefList() as IRoleData[];
+            console.debug('handleDeleteRoleInfo updateTimestamp --->> ', Date.now());
             setUpdateTimestamp(Date.now());
         } catch (error) {
             message.error('删除失败');
@@ -253,7 +257,10 @@ export default function RoleManage() {
                     <Card className="f-fit-height" title={
                         <Space>
                             <span>角色关系图</span>
-                            <Button type="primary" size="small" icon={<ReloadOutlined />} onClick={() => setUpdateTimestamp(Date.now())}>刷新</Button>
+                            <Button type="primary" size="small" icon={<ReloadOutlined />} onClick={() => {
+                                console.debug('handleRelationUpdate updateTimestamp --->> ', Date.now());
+                                setUpdateTimestamp(Date.now())
+                            }}>刷新</Button>
                         </Space>
                     }>
                         <D3RoleRelationGraph 
@@ -301,7 +308,10 @@ export default function RoleManage() {
                             candidateRoles={roleList}
                             worldViews={worldViewList}
                             worldViewId={worldViewId}
-                            onUpdate={() => setUpdateTimestamp(Date.now())}
+                            onUpdate={() => {
+                                console.debug('handleRelationUpdate updateTimestamp --->> ', Date.now());
+                                setUpdateTimestamp(Date.now())
+                            }}
                           />
                         ) : (
                           <div className="f-center">
