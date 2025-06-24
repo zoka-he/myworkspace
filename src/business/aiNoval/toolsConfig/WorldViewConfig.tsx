@@ -60,6 +60,7 @@ export function WorldViewConfig() {
             ['DIFY_AUTO_WRITE_API_KEY_' + selectedWorldView]: '',
             ['DIFY_AUTO_WRITE_WITH_SKELETON_API_KEY_' + selectedWorldView]: '',
             ['DIFY_AUTO_WRITE_WITH_CHAT_API_KEY_' + selectedWorldView]: '',
+            ['DIFY_GEN_CHARACTER_API_KEY_' + selectedWorldView]: '',
         }
     }
 
@@ -143,6 +144,10 @@ export function WorldViewConfig() {
             </Form.Item>
 
             <Form.Item name={'DIFY_AUTO_WRITE_WITH_CHAT_API_KEY_' + selectedWorldView} label="写作(对话)应用url：">
+                <Input disabled={!selectedWorldView}/>
+            </Form.Item>
+
+            <Form.Item name={'DIFY_GEN_CHARACTER_API_KEY_' + selectedWorldView} label="自动生成角色API Key：">
                 <Input disabled={!selectedWorldView}/>
             </Form.Item>
 
