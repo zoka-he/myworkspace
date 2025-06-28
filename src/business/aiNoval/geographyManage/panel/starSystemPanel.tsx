@@ -2,6 +2,7 @@ import { IGeoStarSystemData } from "@/src/types/IAiNoval";
 import { Col, Row, Button, Space, Divider, Tabs } from "antd";
 import { type IGeoTreeItem } from "../geoTree";
 import GeoRecallTest from "../subPanel/geoRecallTest";
+import GeoDifyDocument from "../subPanel/geoDifyDocument";
 
 interface IStarSystemEditProps {
     worldViewId: number | null,
@@ -45,8 +46,13 @@ export default function(props: IStarSystemEditProps) {
 
     let tabItems = [
         {
-            label: `LLM召回测试`,
+            label: `Dify文档`,
             key: '1',
+            children: <GeoDifyDocument worldViewId={props.worldViewId} geoDataType="starSystem" geoData={data} />,
+        },
+        {
+            label: `LLM召回测试`,
+            key: '2',
             children: <GeoRecallTest worldViewId={props.worldViewId} recommandQuery={`太阳系 ${data?.name} 设定`} />,
         }
     ];

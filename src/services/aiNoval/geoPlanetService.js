@@ -12,7 +12,9 @@ export default class GeoPlanetService extends MysqlNovalService {
             'name',
             'code',
             'description',
-            'described_in_llm'
+            'described_in_llm',
+            'dify_document_id',
+            'dify_dataset_id'
         ]);
     }
 

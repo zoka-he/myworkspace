@@ -18,7 +18,9 @@ export interface IGeoStarSystemData {
     worldview_id?: number | null,
     name?: string | null,
     code?: string | null,
-    described_in_llm?: number | null
+    described_in_llm?: number | null,
+    dify_document_id?: string | null,
+    dify_dataset_id?: string | null,
 }
 
 export interface IGeoStarData {
@@ -30,6 +32,8 @@ export interface IGeoStarData {
     type?: string | null,
     description?: string | null,
     described_in_llm?: number | null,
+    dify_document_id?: string | null,
+    dify_dataset_id?: string | null,
 }
 
 export interface IGeoPlanetData {
@@ -40,6 +44,8 @@ export interface IGeoPlanetData {
     code?: string | null,
     description?: string | null,
     described_in_llm?: number | null,
+    dify_document_id?: string | null,
+    dify_dataset_id?: string | null,
 }
 
 export interface IGeoSatelliteData {
@@ -51,6 +57,8 @@ export interface IGeoSatelliteData {
     code?: string | null,
     description?: string | null,
     described_in_llm?: number | null,
+    dify_document_id?: string | null,
+    dify_dataset_id?: string | null,
 }
 
 export interface IGeoGeographyUnitData {
@@ -66,6 +74,8 @@ export interface IGeoGeographyUnitData {
     satellite_id?: number | null,
     description?: string | null,
     described_in_llm?: number | null,
+    dify_document_id?: string | null,
+    dify_dataset_id?: string | null,
 }
 
 export interface IGeoUnionData extends IGeoStarSystemData, IGeoStarData, IGeoPlanetData, IGeoSatelliteData, IGeoGeographyUnitData {

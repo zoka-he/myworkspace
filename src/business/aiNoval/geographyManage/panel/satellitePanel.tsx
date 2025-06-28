@@ -2,7 +2,7 @@ import { IGeoSatelliteData } from "@/src/types/IAiNoval";
 import { Col, Row, Button, Space, Divider, Tabs } from "antd";
 import { type IGeoTreeItem } from "../geoTree";
 import GeoRecallTest from "@/src/business/aiNoval/geographyManage/subPanel/geoRecallTest";
-
+import GeoDifyDocument from "@/src/business/aiNoval/geographyManage/subPanel/geoDifyDocument";
 interface IStarEditProps {
     worldViewId: number | null,
     updateTimestamp: number,
@@ -38,8 +38,13 @@ export default function(props: IStarEditProps) {
 
     let tabItems = [
         {
-            label: `LLM召回测试`,
+            label: `Dify文档`,
             key: '1',
+            children: <GeoDifyDocument worldViewId={props.worldViewId} geoDataType="satellite" geoData={data} />,
+        },
+        {
+            label: `LLM召回测试`,
+            key: '2',
             children: <GeoRecallTest worldViewId={props.worldViewId} recommandQuery={`卫星 ${data?.name} 设定`} />,
         }
     ];

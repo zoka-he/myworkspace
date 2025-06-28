@@ -13,7 +13,9 @@ export default class GeoStarService extends MysqlNovalService {
             'type',
             'code',
             'description',
-            'described_in_llm'
+            'described_in_llm',
+            'dify_document_id',
+            'dify_dataset_id'
         ]);
     }
 

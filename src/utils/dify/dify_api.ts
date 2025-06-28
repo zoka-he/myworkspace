@@ -64,30 +64,53 @@ export default class DifyApi {
         }
     }
 
-    // async getWorkflows() {
-    //     try {
-    //         const response = await fetch.get(`${this.serverUrl}/workflows`, { headers: { 'Authorization': `Bearer ${this.apiKey}` } });
-    //     }
-    // }
+    async getDocumentList(datasetId: string, page: number = 1, limit: number = 20, keyword: string = '') {
+        try {   
+            let params: any = {
+                page,
+                limit
+            };
 
-    // async runWorkflow(workflowId: string, input: any) {
-    //     try {
-    //         const response = await fetch.post(
-    //             `${this.serverUrl}/workflows/${workflowId}/info`, 
-    //             { input }, 
-    //             { headers: { 'Authorization': `Bearer ${this.apiKey}` } 
-    //         });
+            if (keyword) {
+                params.keyword = keyword;
+            }
 
-    //         if (response.status >= 400) {
-    //             throw new Error(`HTTP error! status: ${response.status}`);
-    //         }
+            const response = await fetch.get(
+                `${this.serverUrl}/datasets/${datasetId}/documents`, 
+                { 
+                    headers: { 
+                        'Authorization': `Bearer ${this.apiKey}` 
+                    },
+                    params
+                }
+            );
 
-    //         return response.data;
-    //     } catch (error) {
-    //         console.error('Error running workflow:', error);
-    //         throw error;
-    //     }
-    // }
+            if (response.status >= 400) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
 
+            return response.data;
+        } catch (error) {
+            console.error('Error getting document list:', error);
+            throw error;
+        }
+    }
 
+    async getDocumentContent(datasetId: string, documentId: string) {
+        try {
+            const response = await fetch.get(
+                `${this.serverUrl}/datasets/${datasetId}/documents/${documentId}/segments`,
+                { headers: { 'Authorization': `Bearer ${this.apiKey}` } }
+            );
+
+            if (response.status >= 400) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return response.data;
+        } catch (error) {
+            console.error('Error getting document content:', error);
+            throw error;
+        }
+    }
 }
