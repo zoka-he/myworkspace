@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { Card, Typography, Divider, Spin, Col, Row, Button, Space, Modal, Input, Radio, Pagination, message } from 'antd';
 import { ClockCircleOutlined, CopyOutlined, FileTextOutlined, IssuesCloseOutlined } from '@ant-design/icons';
-import { IGeoGeographyUnitData } from '@/src/types/IAiNoval';
+import { IGeoGeographyUnitData, GEO_UNIT_TYPES } from '@/src/types/IAiNoval';
 import DifyApi from '@/src/utils/dify/dify_api';
 import fetch from '@/src/fetch';
 import _ from 'lodash';
@@ -36,6 +36,8 @@ export default function GeoDifyDocument({ worldViewId, geoDataType, geoData, onR
 
     const [createDifyDocumentModalVisible, setCreateDifyDocumentModalVisible] = useState(false);
 
+    const [geoUnitLink, setGeoUnitLink] = useState<any[] | null>(null);
+
     // 当初始化时，更新difyDatasetId
     useEffect(() => {
         if (worldViewId) {
@@ -54,7 +56,7 @@ export default function GeoDifyDocument({ worldViewId, geoDataType, geoData, onR
         }
     }, [worldViewId]);
 
-    // 当geoData变化时，更新文档id
+    // 当geoData变化时，更新文档id, 并获取地理对象序列
     useEffect(() => {
         let difyDocumentId = null;
         let difyDatasetId = null;
@@ -79,6 +81,13 @@ export default function GeoDifyDocument({ worldViewId, geoDataType, geoData, onR
 
         setDifyDocumentId(difyDocumentId);
         // setDifyDatasetId(difyDatasetId);
+
+
+        if (geoData?.id && geoDataType) {
+            getGeoUnitLink(geoDataType, geoData.id).then((res) => {
+                setGeoUnitLink(res);
+            });
+        }
     }, [geoData]);
 
     // 当difyDatasetId或者difyDocumentId变化时，更新文档
@@ -190,8 +199,8 @@ export default function GeoDifyDocument({ worldViewId, geoDataType, geoData, onR
 
                     <Space>
                         <Button onClick={() => setBindDifyDocumentModalVisible(true)}>
-                                换绑Dify文档
-                            </Button>
+                            换绑Dify文档
+                        </Button>
                     </Space>
                 </div>
 
@@ -236,6 +245,8 @@ export default function GeoDifyDocument({ worldViewId, geoDataType, geoData, onR
             'planet': '行星',
             'satellite': '卫星',
         }
+
+        let nameByCode = false;
         
         switch (geoDataType) {
             case 'star':
@@ -244,14 +255,65 @@ export default function GeoDifyDocument({ worldViewId, geoDataType, geoData, onR
                 nameBuilder.unshift(geoTypeMap[geoDataType as keyof typeof geoTypeMap]);
                 break;
             default:
-                nameBuilder.unshift("地理位置");
+                // nameBuilder.unshift("地理位置");
+                nameByCode = true;
                 break;
+        }
+
+        if (nameByCode) {
+            if (geoData?.code) {
+                let codeCnName = GEO_UNIT_TYPES.find((item) => item.codePrefix === geoData?.code?.substring(0, 2))?.cnName;
+                if (codeCnName) {
+                    nameBuilder.unshift(codeCnName);
+                } else {
+                    nameBuilder.unshift("地理位置");
+                }
+            }
         }
 
         nameBuilder.push("设定");
 
         difyDocumentDefaultTitle = nameBuilder.join("");
     }
+
+    let difyDocumentDefaultContent = '';
+    if (geoData?.description) {
+        difyDocumentDefaultContent = geoData?.description;
+    }
+
+    if (typeof geoUnitLink?.length === "number" &&  geoUnitLink?.length > 0) {
+        let geoDesc: string[] = [];
+        geoUnitLink.forEach((item: any) => {
+            let itemDesc = [];
+
+            if (item.name) {
+                itemDesc.push(item.name);
+            }
+
+            if (item.geoUnitType) {
+                if (item.geoUnitType === "star") {
+                    itemDesc.push("恒星");
+                } else if (item.geoUnitType === "planet") {
+                    itemDesc.push("行星");
+                } else if (item.geoUnitType === "satellite") {
+                    itemDesc.push("卫星");
+                } else if (item.geoUnitType === "geographicUnit") {
+                    // if (item.type) {
+                    //     itemDesc.unshift(GEO_UNIT_TYPES.find((obj) => obj.enName === item.type)?.cnName || "");
+                    // }
+                } 
+            }
+
+            geoDesc.push(itemDesc.join(""));
+        });
+
+        if (geoDesc.length > 0) {
+            difyDocumentDefaultContent = `位置：${geoDesc.join("，")}\n${difyDocumentDefaultContent}`;
+        }
+    }
+
+    console.debug('geoData', geoData);
+    console.debug('difyDocumentDefaultContent', difyDocumentDefaultContent);
 
 
     return (
@@ -276,7 +338,7 @@ export default function GeoDifyDocument({ worldViewId, geoDataType, geoData, onR
             <CreateDifyDocumentModal
                 visible={createDifyDocumentModalVisible}
                 defaultTitle={difyDocumentDefaultTitle}
-                defaultContent={geoData?.description}
+                defaultContent={difyDocumentDefaultContent}
                 onCancel={() => setCreateDifyDocumentModalVisible(false)}
             />
         </>
@@ -711,11 +773,11 @@ interface ICreateDifyDocumentModalProps {
     defaultTitle?: string | null;
     defaultContent?: string | null;
     onCancel: () => void;
+    
 }
 
 // 创建Dify文档对话框
 function CreateDifyDocumentModal(props: ICreateDifyDocumentModalProps) {
-
     const [title, setTitle] = useState(props.defaultTitle || '');
     const [content, setContent] = useState(props.defaultContent || '');
 
@@ -811,4 +873,16 @@ async function bindDocument(geoUnitType: string, geoUnitId: number, difyDatasetI
         difyDatasetId,
         difyDocumentId
     });
+}
+
+// 获取地理对象序列
+async function getGeoUnitLink(geoUnitType: string, geoUnitId: number) {
+    let res = await fetch.get('/api/aiNoval/geo/parentLink', { 
+        params: {
+            geoUnitType,
+            geoUnitId
+        }
+    });
+
+    return res?.data;
 }

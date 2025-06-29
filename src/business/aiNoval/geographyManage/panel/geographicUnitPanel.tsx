@@ -44,7 +44,7 @@ export default function(props: IGeographyUnitPanelProps) {
         {
             label: `Dify文档`,
             key: '1',
-            children: <GeoDifyDocument worldViewId={props.worldViewId} geoDataType="geographyUnit" geoData={data} onRequestUpdate={props.onRequestUpdate} />,
+            children: <GeoDifyDocument worldViewId={props.worldViewId} geoDataType="geographicUnit" geoData={data} onRequestUpdate={props.onRequestUpdate} />,
         },
         {
             label: `LLM召回测试`,
