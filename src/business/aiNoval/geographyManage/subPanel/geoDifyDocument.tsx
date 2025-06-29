@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { Card, Typography, Divider, Spin, Col, Row, Button, Space, Modal, Input, Radio, Pagination, message } from 'antd';
-import { ClockCircleOutlined, CopyOutlined, FileTextOutlined } from '@ant-design/icons';
+import { ClockCircleOutlined, CopyOutlined, FileTextOutlined, IssuesCloseOutlined } from '@ant-design/icons';
 import { IGeoGeographyUnitData } from '@/src/types/IAiNoval';
 import DifyApi from '@/src/utils/dify/dify_api';
 import fetch from '@/src/fetch';
@@ -19,9 +19,10 @@ interface IGeoDifyDocumentProps {
     worldViewId: number | null;
     geoDataType: string | null;
     geoData?: IGeoGeographyUnitData | null;
+    onRequestUpdate?: () => void;
 }
 
-export default function GeoDifyDocument({ worldViewId, geoDataType, geoData }: IGeoDifyDocumentProps) {
+export default function GeoDifyDocument({ worldViewId, geoDataType, geoData, onRequestUpdate }: IGeoDifyDocumentProps) {
 
     const [document, setDocument] = useState<IDifyDocument | null>(null);
 
@@ -55,23 +56,36 @@ export default function GeoDifyDocument({ worldViewId, geoDataType, geoData }: I
 
     // 当geoData变化时，更新文档id
     useEffect(() => {
+        let difyDocumentId = null;
+        let difyDatasetId = null;
+
         if (geoData) {
             if (geoData.dify_document_id) {
-                setDifyDocumentId(geoData.dify_document_id);
+                difyDocumentId = geoData.dify_document_id;
             }
 
             if (geoData.dify_dataset_id) {
-                setDifyDatasetId(geoData.dify_dataset_id);
+                difyDatasetId = geoData.dify_dataset_id;
             }
-        } else {
-            setDifyDocumentId(null);
-            setDifyDatasetId(null);
+        } 
+
+        if (!difyDocumentId) {
             console.debug('geoData没有绑定dify文档', geoData);
-        }
+        } 
+
+        if ( !difyDatasetId) {
+            console.debug('geoData没有绑定知识库！', geoData);
+        } 
+
+        setDifyDocumentId(difyDocumentId);
+        // setDifyDatasetId(difyDatasetId);
     }, [geoData]);
 
     // 当difyDatasetId或者difyDocumentId变化时，更新文档
     useEffect(() => {
+        console.debug('difyDatasetId', difyDatasetId);
+        console.debug('difyDocumentId', difyDocumentId);
+
         if (difyDatasetId && difyDocumentId) {
             loadDocumentContent(difyDatasetId, difyDocumentId).then((document) => {
                 setDocument({
@@ -80,6 +94,8 @@ export default function GeoDifyDocument({ worldViewId, geoDataType, geoData }: I
                     created_at: document?.createdAt || 0,
                 });
             });
+        } else {
+            setDocument(null);
         }
     }, [difyDatasetId, difyDocumentId]);
 
@@ -249,6 +265,12 @@ export default function GeoDifyDocument({ worldViewId, geoDataType, geoData }: I
                 geoDataType={geoDataType}
                 difyDatasetId={difyDatasetId}
                 onCancel={() => setBindDifyDocumentModalVisible(false)}
+                onOk={() => {
+                    setBindDifyDocumentModalVisible(false);
+                    if (onRequestUpdate) {
+                        onRequestUpdate();
+                    }
+                }}
             />
 
             <CreateDifyDocumentModal
@@ -286,99 +308,244 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
     const [selectedDocumentId, setSelectedDocumentId] = useState<string>('');
     const [content, setContent] = useState('');
 
+    // 使用 useRef 存储当前状态，避免函数依赖
+    const stateRef = useRef({ page: 1, limit: 10, keyword: '' });
+    
+    // 在 useEffect 中更新 stateRef
     useEffect(() => {
-        if (props.visible) {
-            loadDocumentList();
-            setSelectedDocumentId(''); // 重置选择
-        }
-    }, [props.visible]);
+        stateRef.current = { page, limit, keyword };
+        // console.log('🔧 [DEBUG] stateRef updated:', stateRef.current);
+    }, [page, limit, keyword]);
 
-    useEffect(() => {
+    // 重置所有状态
+    const resetState = useCallback(() => {
+        // console.log('🔄 [DEBUG] resetState called');
+        setDocumentList([]);
+        setLoading(false);
+        setPage(1);
+        setLimit(10);
+        setTotal(0);
+        setKeyword('');
+        setSelectedDocumentId('');
         setContent('');
-        if (props.difyDatasetId && selectedDocumentId) {
-            loadDocumentContent(props.difyDatasetId, selectedDocumentId).then((document) => {
-                setContent(document?.content || '');
-            });
-        } 
-    }, [selectedDocumentId]);
+        // console.log('✅ [DEBUG] resetState completed');
+    }, []);
 
-    async function loadDocumentList(currentPage?: number, currentLimit?: number, currentKeyword?: string | null) {
+    // 加载文档列表 - 使用 useRef 避免依赖状态变量
+    const loadDocumentList = useCallback(async (currentPage?: number, currentLimit?: number, currentKeyword?: string | null) => {
+        // console.log('📥 [DEBUG] loadDocumentList called with:', { 
+        //     currentPage, 
+        //     currentLimit, 
+        //     currentKeyword, 
+        //     difyDatasetId: props.difyDatasetId,
+        //     stateRef: stateRef.current 
+        // });
+
         if (!props.difyDatasetId) {
+            // console.warn('⚠️ [DEBUG] difyDatasetId is null, skipping loadDocumentList');
             return;
         }
 
         try {
+            // console.log('🔄 [DEBUG] Setting loading to true');
             setLoading(true);
 
             const difyApi = new DifyApi();
+            // console.log('🌐 [DEBUG] Calling DifyApi.getDocumentList...');
             let res = await difyApi.getDocumentList(
                 props.difyDatasetId, 
-                currentPage || page, 
-                currentLimit || limit, 
-                currentKeyword || keyword
+                currentPage || stateRef.current.page, 
+                currentLimit || stateRef.current.limit, 
+                currentKeyword || stateRef.current.keyword
             );
+
+            // console.log('📊 [DEBUG] API response:', { 
+            //     dataLength: res?.data?.length, 
+            //     total: res?.total,
+            //     hasData: !!res?.data 
+            // });
 
             setDocumentList(res?.data || []);
             setTotal(res?.total || 0);
 
         } catch (error) {
-            console.error(error);
+            console.error('❌ [DEBUG] loadDocumentList error:', error);
         } finally {
+            // console.log('🔄 [DEBUG] Setting loading to false');
             setLoading(false);
         }
-    }
+    }, [props.difyDatasetId]);
 
+    // Modal 打开时重置状态并加载数据
+    useEffect(() => {
+        // console.log('🎯 [DEBUG] Modal visibility effect triggered:', { 
+        //     visible: props.visible, 
+        //     difyDatasetId: props.difyDatasetId 
+        // });
+        
+        if (props.visible && props.difyDatasetId) {
+            // console.log('🚀 [DEBUG] Modal is visible and has difyDatasetId, starting reset and load');
+            resetState();
+            // 延迟加载，确保状态已重置
+            setTimeout(() => {
+                // console.log('⏰ [DEBUG] Timeout callback executed, calling loadDocumentList');
+                loadDocumentList();
+            }, 0);
+        } else {
+            // console.log('⏸️ [DEBUG] Modal not visible or no difyDatasetId, skipping reset and load');
+        }
+    }, [props.visible, props.difyDatasetId]);
+
+    // 当选中文档变化时加载内容
+    useEffect(() => {
+        // console.log('📄 [DEBUG] Document selection effect triggered:', { 
+        //     selectedDocumentId, 
+        //     difyDatasetId: props.difyDatasetId 
+        // });
+        
+        if (props.difyDatasetId && selectedDocumentId) {
+            // console.log('📖 [DEBUG] Loading document content for:', selectedDocumentId);
+            setContent('');
+            loadDocumentContent(props.difyDatasetId, selectedDocumentId).then((document) => {
+                // console.log('📄 [DEBUG] Document content loaded:', { 
+                //     hasContent: !!document?.content, 
+                //     contentLength: document?.content?.length 
+                // });
+                setContent(document?.content || '');
+            });
+        } else {
+            // console.log('🗑️ [DEBUG] Clearing content - no document selected or no dataset');
+            setContent('');
+        }
+    }, [selectedDocumentId, props.difyDatasetId]);
+
+    // 搜索防抖
     const handleSearchInputChange = useMemo(
-        () => _.debounce((keyword: string) => {
+        () => _.debounce((searchKeyword: string) => {
+            // console.log('🔍 [DEBUG] Search debounced with keyword:', searchKeyword);
             setPage(1);
-            loadDocumentList(1, limit, keyword);
+            loadDocumentList(1, stateRef.current.limit, searchKeyword);
         }, 300),
-        [limit]
+        [loadDocumentList]
     );
 
-    
+    // 绑定文档
+    const handleBind = useCallback(async () => {
+        // console.log('🔗 [DEBUG] handleBind called with:', { 
+        //     selectedDocumentId, 
+        //     difyDatasetId: props.difyDatasetId,
+        //     geoDataId: props.geoData?.id,
+        //     geoDataType: props.geoDataType 
+        // });
 
-    const handleBind = async () => {
         if (!selectedDocumentId) {
+            // console.warn('⚠️ [DEBUG] No document selected');
             message.error('请选择一个文档');
             return;
         }
 
         if (!props.difyDatasetId) {
+            // console.warn('⚠️ [DEBUG] No difyDatasetId');
             message.error('知识库为空，请检查代码！');
             return;
         }
 
         if (!props.geoData?.id) {
+            // console.warn('⚠️ [DEBUG] No geoData.id');
             message.error('地理对象ID为空，请检查代码！');
             return;
         }
 
         if (!props.geoDataType) {
+            // console.warn('⚠️ [DEBUG] No geoDataType');
             message.error('地理对象类型为空，请检查代码！');
             return;
         }
         
         try {
+            // console.log('🌐 [DEBUG] Calling bindDocument API...');
             await bindDocument(props.geoDataType, props.geoData?.id, props.difyDatasetId, selectedDocumentId);
+            // console.log('✅ [DEBUG] bindDocument successful');
             message.success('绑定成功');
             props.onOk();
         } catch (error) {
-            console.error(error);
+            console.error('❌ [DEBUG] bindDocument error:', error);
             message.error('绑定失败');
         }
-    };
+    }, [selectedDocumentId, props.difyDatasetId, props.geoData?.id, props.geoDataType, props.onOk]);
 
-    const copyName = (name: string) => {
+    // 复制名称
+    const copyName = useCallback((name: string) => {
+        // console.log('📋 [DEBUG] copyName called with:', name);
         setKeyword(name);
         setPage(1);
-        loadDocumentList(1, limit, name);
-    }
+        loadDocumentList(1, stateRef.current.limit, name);
+    }, [loadDocumentList]);
+
+    // 选择文档
+    const handleDocumentSelect = useCallback((docId: string | undefined) => {
+        // console.log('📝 [DEBUG] handleDocumentSelect called with:', docId);
+        if (docId) {
+            setSelectedDocumentId(docId);
+        }
+    }, []);
+
+    // 分页变化
+    const handlePageChange = useCallback((newPage: number, newLimit: number) => {
+        // console.log('📄 [DEBUG] handlePageChange called:', { newPage, newLimit, currentKeyword: stateRef.current.keyword });
+        setPage(newPage);
+        setLimit(newLimit);
+        loadDocumentList(newPage, newLimit, stateRef.current.keyword);
+    }, [loadDocumentList]);
+
+    // 页面大小变化
+    const handlePageSizeChange = useCallback((newPage: number, newLimit: number) => {
+        // console.log('📏 [DEBUG] handlePageSizeChange called:', { newPage, newLimit, currentKeyword: stateRef.current.keyword });
+        setPage(newPage);
+        setLimit(newLimit);
+        loadDocumentList(newPage, newLimit, stateRef.current.keyword);
+    }, [loadDocumentList]);
+
+    // 搜索
+    const handleSearch = useCallback(() => {
+        // console.log('🔍 [DEBUG] handleSearch called with keyword:', stateRef.current.keyword);
+        setPage(1);
+        loadDocumentList(1, stateRef.current.limit, stateRef.current.keyword);
+    }, [loadDocumentList]);
+
+    // 清除搜索
+    const handleClearSearch = useCallback(() => {
+        // console.log('🗑️ [DEBUG] handleClearSearch called');
+        setKeyword('');
+        setPage(1);
+        loadDocumentList(1, stateRef.current.limit, null);
+    }, [loadDocumentList]);
+
+    // 输入框变化
+    const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        // console.log('⌨️ [DEBUG] Input changed to:', value);
+        setKeyword(value);
+        handleSearchInputChange(value);
+    }, [handleSearchInputChange]);
 
     let title = `绑定Dify文档`;
     if (props.geoData?.name) {
         title = `绑定Dify文档 - ${props.geoData?.name}`;
     }
+
+    // console.log('🎨 [DEBUG] Render state:', {
+    //     visible: props.visible,
+    //     loading,
+    //     documentListLength: documentList.length,
+    //     page,
+    //     limit,
+    //     total,
+    //     keyword,
+    //     selectedDocumentId,
+    //     hasContent: !!content,
+    //     stateRef: stateRef.current
+    // });
 
     return (
         <Modal
@@ -391,35 +558,32 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
                 </>
             }
             open={props.visible}
-            onCancel={props.onCancel}
-            onOk={handleBind}
+            onCancel={() => {
+                // console.log('❌ [DEBUG] Modal onCancel triggered');
+                props.onCancel();
+            }}
+            onOk={() => {
+                // console.log('✅ [DEBUG] Modal onOk triggered');
+                handleBind();
+            }}
             okText="绑定"
             cancelText="取消"
             width={'70vw'}
             okButtonProps={{ disabled: !selectedDocumentId }}
+            destroyOnClose={true}
         >
             <div style={{ marginBottom: '16px' }}>
                 {/* 搜索栏 */}
-                <Input.Search
-                    placeholder="搜索文档标题"
-                    value={keyword}
-                    onChange={(e) => {
-                        const value = e.target.value;
-                        setKeyword(value);
-                        handleSearchInputChange(value);
-                    }}
-                    onSearch={() => {
-                        setPage(1);
-                        loadDocumentList(1, limit, keyword);
-                    }}
-                    enterButton
-                    allowClear
-                    onClear={() => {
-                        setKeyword('');
-                        setPage(1);
-                        loadDocumentList(1, limit, null);
-                    }}
-                />
+                <Space.Compact style={{width: '100%'}}>
+                    <Input
+                        placeholder="搜索文档标题"
+                        value={keyword}
+                        onChange={handleInputChange}
+                        allowClear
+                        onClear={handleClearSearch}
+                    />
+                    <Button type="primary" onClick={handleSearch}>搜索</Button>
+                </Space.Compact>
             </div>
 
 
@@ -455,7 +619,10 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
                             ) : (
                                 <Radio.Group 
                                     value={selectedDocumentId} 
-                                    onChange={(e) => setSelectedDocumentId(e.target.value)}
+                                    onChange={(e) => {
+                                        // console.log('📻 [DEBUG] Radio.Group onChange:', e.target.value);
+                                        setSelectedDocumentId(e.target.value);
+                                    }}
                                     style={{ width: '100%', height: '100%' }}
                                 >
                                     {documentList.map((doc) => (
@@ -470,7 +637,10 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
                                                 backgroundColor: selectedDocumentId === doc.id ? '#f6ffed' : 'transparent',
                                                 border: selectedDocumentId === doc.id ? '1px solid #b7eb8f' : '1px solid transparent'
                                             }}
-                                            onClick={() => setSelectedDocumentId(doc.id)}
+                                            onClick={() => {
+                                                // console.log('🖱️ [DEBUG] Document item clicked:', doc.id);
+                                                handleDocumentSelect(doc.id);
+                                            }}
                                         >
                                             <Radio value={doc.id} style={{ width: '100%' }}>
                                                 <div style={{ marginLeft: '8px' }}>
@@ -508,18 +678,15 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
                             align="end"
                             showSizeChanger
                             onShowSizeChange={(page: number, limit: number) => {
-                                setPage(page);
-                                setLimit(limit);
-                                loadDocumentList(page, limit, keyword);
+                                // console.log('📏 [DEBUG] Pagination onShowSizeChange:', { page, limit });
+                                handlePageSizeChange(page, limit);
                             }}
                             current={page}
                             pageSize={limit}
                             total={total}
                             onChange={(page: number, limit: number) => {
-                                console.log('onChange', page, limit);
-                                setPage(page);
-                                setLimit(limit);
-                                loadDocumentList(page, limit, keyword);
+                                // console.log('📄 [DEBUG] Pagination onChange:', { page, limit });
+                                handlePageChange(page, limit);
                             }}
                         />
                     </div>

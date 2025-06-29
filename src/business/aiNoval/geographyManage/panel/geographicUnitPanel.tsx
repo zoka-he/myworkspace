@@ -11,6 +11,7 @@ interface IGeographyUnitPanelProps {
     raiseAddGeographicUnit: (data: IGeoGeographyUnitData) => void,
     raiseEditGeographicUnit: (data: IGeoGeographyUnitData) => void,
     raiseDeleteGeographicUnit: (data: IGeoGeographyUnitData) => void,
+    onRequestUpdate?: () => void,
 }
 
 export default function(props: IGeographyUnitPanelProps) {
@@ -43,7 +44,7 @@ export default function(props: IGeographyUnitPanelProps) {
         {
             label: `Dify文档`,
             key: '1',
-            children: <GeoDifyDocument worldViewId={props.worldViewId} geoDataType="geographyUnit" geoData={data} />,
+            children: <GeoDifyDocument worldViewId={props.worldViewId} geoDataType="geographyUnit" geoData={data} onRequestUpdate={props.onRequestUpdate} />,
         },
         {
             label: `LLM召回测试`,

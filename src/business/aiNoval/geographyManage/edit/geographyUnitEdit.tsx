@@ -2,7 +2,7 @@ import React from "react";
 import {Form, Modal, Input, Button, message, FormInstance, Radio, Select} from "antd";
 import _ from 'lodash';
 import fetch from '@/src/fetch';
-import { IGeoGeographyUnitData } from "@/src/types/IAiNoval";
+import { IGeoGeographyUnitData, GEO_UNIT_TYPES } from "@/src/types/IAiNoval";
 
 interface IGeographyUnitEditState {
     modalOpen: boolean,
@@ -165,6 +165,13 @@ class GeographyUnitEdit extends React.Component<IGeographyUnitEditProps, IGeogra
         }
     }
 
+    private getGeoUnitOptions() {
+        return GEO_UNIT_TYPES.map(item => ({
+            label: `${item.cnName} - ${item.codePrefix}`,
+            value: item.enName,
+        }));
+    }
+
     render() {
         return (
             <>
@@ -197,38 +204,7 @@ class GeographyUnitEdit extends React.Component<IGeographyUnitEditProps, IGeogra
                             <Input/>
                         </Form.Item>
                         <Form.Item label={'地理单元类型'} name={'type'} rules={[{ required: true, message: '地理单元类型为必填！' }]}>
-                            <Select>
-                                <Select.Option value={'continent'}>大陆 - CO</Select.Option>
-                                <Select.Option value={'ocean'}>海洋 - OC</Select.Option>
-                                <Select.Option value={'river'}>河流 - RV</Select.Option>
-                                <Select.Option value={'mountain'}>山脉 - MT</Select.Option>
-                                <Select.Option value={'plain'}>平原 - PN</Select.Option>
-                                <Select.Option value={'hill'}>丘陵 - HL</Select.Option>
-                                <Select.Option value={'plateau'}>高原 - PT</Select.Option>
-                                <Select.Option value={'forest'}>森林 - FR</Select.Option>
-                                <Select.Option value={'desert'}>沙漠 - DS</Select.Option>
-                                <Select.Option value={'swamp'}>沼泽 - SW</Select.Option>
-                                <Select.Option value={'valley'}>峡谷 - VL</Select.Option>
-                                <Select.Option value={'lake'}>湖泊 - LK</Select.Option>
-                                <Select.Option value={'cascade'}>瀑布 - CC</Select.Option>
-                                <Select.Option value={'beatch'}>海滩 - BH</Select.Option>
-                                <Select.Option value={'island'}>岛屿 - IL</Select.Option>
-                                <Select.Option value={'hole'}>洞穴 - HO</Select.Option>
-                                <Select.Option value={'city'}>城市 - CT</Select.Option>
-                                <Select.Option value={'town'}>镇 - TO</Select.Option>
-                                <Select.Option value={'village'}>村 - VI</Select.Option>
-                                <Select.Option value={'street'}>街道 - ST</Select.Option>
-                                <Select.Option value={'building'}>建筑 - BL</Select.Option>
-                                <Select.Option value={'fort'}>防御工事 - FT</Select.Option>
-                                <Select.Option value={'hub'}>枢纽 - HB</Select.Option>
-                                <Select.Option value={'port'}>港口 - PG</Select.Option>
-                                <Select.Option value={'airport'}>机场 - AP</Select.Option>
-                                <Select.Option value={'military_base'}>军事基地 - MB</Select.Option>
-                                <Select.Option value={'factory'}>工厂 - FA</Select.Option>
-                                <Select.Option value={'mine'}>矿山 - MI</Select.Option>
-                                <Select.Option value={'power_plant'}>发电站 - PP</Select.Option>
-                                
-                            </Select>
+                            <Select options={this.getGeoUnitOptions()}/>
                         </Form.Item>
                         <Form.Item label={'地理单元描述'} name={'description'}>
                             <Input.TextArea autoSize={{ minRows: 6 }}/>

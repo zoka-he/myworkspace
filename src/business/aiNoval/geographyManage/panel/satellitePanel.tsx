@@ -10,6 +10,7 @@ interface IStarEditProps {
     raiseAddGeographicUnit: (data: IGeoSatelliteData) => void,
     raiseEditSatellite: (data: IGeoSatelliteData) => void,
     raiseDeleteSatellite: (data: IGeoSatelliteData) => void,
+    onRequestUpdate?: () => void,
 }
 
 export default function(props: IStarEditProps) {
@@ -40,7 +41,7 @@ export default function(props: IStarEditProps) {
         {
             label: `Dify文档`,
             key: '1',
-            children: <GeoDifyDocument worldViewId={props.worldViewId} geoDataType="satellite" geoData={data} />,
+            children: <GeoDifyDocument worldViewId={props.worldViewId} geoDataType="satellite" geoData={data} onRequestUpdate={props.onRequestUpdate} />,
         },
         {
             label: `LLM召回测试`,

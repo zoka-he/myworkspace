@@ -12,6 +12,7 @@ interface IStarSystemEditProps {
     raiseAddPlanet: (data: IGeoStarSystemData) => void,
     raiseEditStarSystem: (data: IGeoStarSystemData) => void,
     raiseDeleteStarSystem: (data: IGeoStarSystemData) => void,
+    onRequestUpdate?: () => void,
 }
 
 export default function(props: IStarSystemEditProps) {
@@ -48,7 +49,7 @@ export default function(props: IStarSystemEditProps) {
         {
             label: `Dify文档`,
             key: '1',
-            children: <GeoDifyDocument worldViewId={props.worldViewId} geoDataType="starSystem" geoData={data} />,
+            children: <GeoDifyDocument worldViewId={props.worldViewId} geoDataType="starSystem" geoData={data} onRequestUpdate={props.onRequestUpdate} />,
         },
         {
             label: `LLM召回测试`,

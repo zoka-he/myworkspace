@@ -261,3 +261,35 @@ export interface IChapter {
     actual_seed_prompt?: string
     actual_skeleton_prompt?: string
 }
+
+export const GEO_UNIT_TYPES = [
+    { enName: 'continent', cnName: '大陆', codePrefix: 'CO'},
+    { enName: 'ocean', cnName: '海洋', codePrefix: 'OC'},
+    { enName: 'river', cnName: '河流', codePrefix: 'RV'},
+    { enName: 'mountain', cnName: '山脉', codePrefix: 'MT'},
+    { enName: 'plain', cnName: '平原', codePrefix: 'PN'},
+    { enName: 'hill', cnName: '丘陵', codePrefix: 'HL'},
+    { enName: 'plateau', cnName: '高原', codePrefix: 'PT'},
+    { enName: 'forest', cnName: '森林', codePrefix: 'FR'},
+    { enName: 'desert', cnName: '沙漠', codePrefix: 'DS'},
+    { enName: 'swamp', cnName: '沼泽', codePrefix: 'SW'},
+    { enName: 'valley', cnName: '峡谷', codePrefix: 'VL'},
+    { enName: 'lake', cnName: '湖泊', codePrefix: 'LK'},
+    { enName: 'cascade', cnName: '瀑布', codePrefix: 'CC'},
+    { enName: 'beatch', cnName: '海滩', codePrefix: 'BH'},
+    { enName: 'island', cnName: '岛屿', codePrefix: 'IL'},
+    { enName: 'hole', cnName: '洞穴', codePrefix: 'HO'},
+    { enName: 'city', cnName: '城市', codePrefix: 'CT'},
+    { enName: 'town', cnName: '镇', codePrefix: 'TO'},
+    { enName: 'village', cnName: '村', codePrefix: 'VI'},
+    { enName: 'street', cnName: '街道', codePrefix: 'ST'},
+    { enName: 'building', cnName: '建筑', codePrefix: 'BL'},
+    { enName: 'fort', cnName: '防御工事', codePrefix: 'FT'},
+    { enName: 'hub', cnName: '枢纽', codePrefix: 'HB'},
+    { enName: 'port', cnName: '港口', codePrefix: 'PG'},
+    { enName: 'airport', cnName: '机场', codePrefix: 'AP'},
+    { enName: 'military_base', cnName: '军事基地', codePrefix: 'MB'},
+    { enName: 'factory', cnName: '工厂', codePrefix: 'FA'},
+    { enName: 'mine', cnName: '矿山', codePrefix: 'MI'},
+    { enName: 'power_plant', cnName: '发电站', codePrefix: 'PP'},
+]
