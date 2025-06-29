@@ -339,7 +339,16 @@ export default function GeoDifyDocument({ worldViewId, geoDataType, geoData, onR
                 visible={createDifyDocumentModalVisible}
                 defaultTitle={difyDocumentDefaultTitle}
                 defaultContent={difyDocumentDefaultContent}
+                difyDatasetId={difyDatasetId}
+                geoDataType={geoDataType}
+                geoData={geoData}
                 onCancel={() => setCreateDifyDocumentModalVisible(false)}
+                onOk={() => {
+                    setCreateDifyDocumentModalVisible(false);
+                    if (onRequestUpdate) {
+                        onRequestUpdate();
+                    }
+                }}
             />
         </>
     );
@@ -772,8 +781,11 @@ interface ICreateDifyDocumentModalProps {
     visible: boolean;
     defaultTitle?: string | null;
     defaultContent?: string | null;
+    difyDatasetId: string | null;
+    geoDataType: string | null;
+    geoData: IGeoGeographyUnitData | null;
     onCancel: () => void;
-    
+    onOk: () => void;
 }
 
 // 创建Dify文档对话框
@@ -786,7 +798,52 @@ function CreateDifyDocumentModal(props: ICreateDifyDocumentModalProps) {
             setTitle(props.defaultTitle || '');
             setContent(props.defaultContent || '');
         }
-    }, [props.visible]);
+    }, [props.visible, props.defaultTitle, props.defaultContent]);
+
+    const handleOk = useCallback(async () => {
+        if (!props.difyDatasetId) {
+            message.error('知识库为空，请检查代码！');
+            return;
+        }
+
+        if (!title) {
+            message.error('文档标题为空，请检查代码！');
+            return;
+        }
+
+        if (!content) {
+            message.error('文档内容为空，请检查代码！');
+            return;
+        }
+
+        if (!props.geoDataType) {
+            message.error('地理对象类型为空，请检查代码！');
+            return;
+        }
+
+        if (!props.geoData?.id) {
+            message.error('地理对象ID为空，请检查代码！');
+            return;
+        }
+        try {   
+            const difyApi = new DifyApi();
+            let res = await difyApi.createDocument(props.difyDatasetId, title, content);
+            let documentId = res?.document?.id;
+
+            if (!documentId) {
+                message.error('获取文档id失败，请检查代码！');
+                return;
+            }
+
+            await bindDocument(props.geoDataType, props.geoData?.id, props.difyDatasetId, documentId);
+
+            message.success('创建成功');
+            props.onOk();
+        } catch (error) {
+            console.error('❌ [DEBUG] createDocument error:', error);
+            message.error('创建失败');
+        }
+    }, [title, content, props.difyDatasetId, props.geoDataType, props.geoData?.id, props.onOk]);
 
     return (
         <Modal
@@ -794,10 +851,7 @@ function CreateDifyDocumentModal(props: ICreateDifyDocumentModalProps) {
             title="创建Dify文档"
             open={props.visible}
             onCancel={props.onCancel}
-            onOk={() => {
-                // TODO: 处理创建逻辑
-                props.onCancel();
-            }}
+            onOk={handleOk}
             okText="创建"
             cancelText="取消"
         >

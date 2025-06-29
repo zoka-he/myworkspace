@@ -113,4 +113,33 @@ export default class DifyApi {
             throw error;
         }
     }
+
+    async createDocument(datasetId: string, title: string, content: string) {
+        try {
+            const response = await fetch.post(
+                `${this.serverUrl}/datasets/${datasetId}/document/create-by-text`,
+                { 
+                    name: title, 
+                    text: content,
+                    indexing_technique: 'high_quality',
+                    process_rule: {
+                        "mode": "automatic"
+                    }
+                },
+                { headers: { 
+                    'Authorization': `Bearer ${this.apiKey}`,
+                    'Content-Type': 'application/json'
+                } }   
+            );
+
+            if (response.status >= 400) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return response.data;
+        } catch (error) {
+            console.error('Error creating document:', error);
+            throw error;
+        }
+    }
 }
