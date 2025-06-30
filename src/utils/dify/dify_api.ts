@@ -142,4 +142,27 @@ export default class DifyApi {
             throw error;
         }
     }
+
+    async updateDocument(datasetId: string, documentId: string, title: string, content: string) {
+        try {
+            const response = await fetch.post(
+                `${this.serverUrl}/datasets/${datasetId}/documents/${documentId}/update-by-text`,
+                { name: title, text: content },
+                { headers: { 
+                    'Authorization': `Bearer ${this.apiKey}`,
+                    'Content-Type': 'application/json'
+                } }   
+            );
+
+            if (response.status >= 400) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return response.data;
+        } catch (error) {
+            console.error('Error updating document:', error);
+            throw error;
+        }
+    }
+
 }

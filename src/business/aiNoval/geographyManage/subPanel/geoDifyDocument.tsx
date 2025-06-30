@@ -201,6 +201,9 @@ export default function GeoDifyDocument({ worldViewId, geoDataType, geoData, onR
                         <Button onClick={() => setBindDifyDocumentModalVisible(true)}>
                             换绑Dify文档
                         </Button>
+                        <Button type="primary" onClick={() => setCreateDifyDocumentModalVisible(true)}>
+                            修改Dify文档
+                        </Button>
                     </Space>
                 </div>
 
@@ -335,11 +338,13 @@ export default function GeoDifyDocument({ worldViewId, geoDataType, geoData, onR
                 }}
             />
 
-            <CreateDifyDocumentModal
+            <CreateOrUpdateDifyDocumentModal
                 visible={createDifyDocumentModalVisible}
                 defaultTitle={difyDocumentDefaultTitle}
                 defaultContent={difyDocumentDefaultContent}
                 difyDatasetId={difyDatasetId}
+                difyDocumentId={document?.id}
+                difyContent={document?.content}
                 geoDataType={geoDataType}
                 geoData={geoData}
                 onCancel={() => setCreateDifyDocumentModalVisible(false)}
@@ -782,6 +787,8 @@ interface ICreateDifyDocumentModalProps {
     defaultTitle?: string | null;
     defaultContent?: string | null;
     difyDatasetId: string | null;
+    difyDocumentId?: string | null; 
+    difyContent?: string | null;
     geoDataType: string | null;
     geoData: IGeoGeographyUnitData | null;
     onCancel: () => void;
@@ -789,16 +796,19 @@ interface ICreateDifyDocumentModalProps {
 }
 
 // 创建Dify文档对话框
-function CreateDifyDocumentModal(props: ICreateDifyDocumentModalProps) {
+function CreateOrUpdateDifyDocumentModal(props: ICreateDifyDocumentModalProps) {
     const [title, setTitle] = useState(props.defaultTitle || '');
     const [content, setContent] = useState(props.defaultContent || '');
+
+    const modalMode = props.difyDocumentId ? 'update' : 'create';
+    const modalTitle = modalMode === 'update' ? '更新Dify文档' : '创建Dify文档';
 
     useEffect(() => {
         if (props.visible) {
             setTitle(props.defaultTitle || '');
-            setContent(props.defaultContent || '');
+            setContent(props.difyContent || props.defaultContent || '');
         }
-    }, [props.visible, props.defaultTitle, props.defaultContent]);
+    }, [props.visible, props.defaultTitle, props.defaultContent, props.difyContent]);
 
     const handleOk = useCallback(async () => {
         if (!props.difyDatasetId) {
@@ -825,34 +835,49 @@ function CreateDifyDocumentModal(props: ICreateDifyDocumentModalProps) {
             message.error('地理对象ID为空，请检查代码！');
             return;
         }
+
         try {   
             const difyApi = new DifyApi();
-            let res = await difyApi.createDocument(props.difyDatasetId, title, content);
-            let documentId = res?.document?.id;
 
-            if (!documentId) {
-                message.error('获取文档id失败，请检查代码！');
-                return;
+            if (modalMode === 'create') {
+                let res = await difyApi.createDocument(props.difyDatasetId, title, content);
+                let documentId = res?.document?.id;
+
+                if (!documentId) {
+                    message.error('获取文档id失败，请检查代码！');
+                    return;
+                }
+
+                await bindDocument(props.geoDataType, props.geoData?.id, props.difyDatasetId, documentId);
+
+                message.success('创建成功');
+            } else {
+                if (!props.difyDocumentId) {
+                    message.error('文档ID为空，请检查代码！');
+                    return;
+                }
+
+                let res = await difyApi.updateDocument(props.difyDatasetId, props.difyDocumentId, title, content);
+                message.success('更新成功');
             }
 
-            await bindDocument(props.geoDataType, props.geoData?.id, props.difyDatasetId, documentId);
-
-            message.success('创建成功');
             props.onOk();
         } catch (error) {
             console.error('❌ [DEBUG] createDocument error:', error);
             message.error('创建失败');
         }
-    }, [title, content, props.difyDatasetId, props.geoDataType, props.geoData?.id, props.onOk]);
+    }, [title, content, props.difyDatasetId, props.difyDocumentId, props.geoDataType, props.geoData?.id, props.onOk]);
+
+    
 
     return (
         <Modal
             width={'70vw'}
-            title="创建Dify文档"
+            title={modalTitle}
             open={props.visible}
             onCancel={props.onCancel}
             onOk={handleOk}
-            okText="创建"
+            okText={modalMode === 'update' ? '更新' : '创建'}
             cancelText="取消"
         >
             <div style={{ padding: '16px 0' }}>
@@ -861,7 +886,17 @@ function CreateDifyDocumentModal(props: ICreateDifyDocumentModalProps) {
                     <Input placeholder="请输入文档标题" value={title} onChange={(e) => setTitle(e.target.value)} />
                 </div>
                 <div>
-                    <div style={{ marginBottom: '8px', fontWeight: 500 }}>文档内容</div>
+                    <div className="f-flex-two-side" style={{ marginBottom: '8px' }}>
+                        <span style={{ fontWeight: 500 }}>文档内容</span>
+                        <Space>
+                            <Button type="primary" size="small" onClick={() => setContent(props.difyContent || '')}>
+                                使用Dify文档内容
+                            </Button>
+                            <Button type="default" size="small" onClick={() => setContent(props.defaultContent || '')}>
+                                使用数据库内容
+                            </Button>
+                        </Space>
+                    </div>
                     <Input.TextArea 
                         placeholder="请输入文档内容" 
                         autoSize={{ minRows: 6 }}
