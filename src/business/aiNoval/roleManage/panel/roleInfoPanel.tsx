@@ -1,3 +1,8 @@
+/**
+ * 角色信息面板组件
+ * 用于显示和管理AI小说角色的详细信息、版本管理和Dify文档集成
+ */
+
 import { Card, Select, Button, Space, Typography, Descriptions, Dropdown, Alert, MenuProps, Modal, Divider, Row, Col, Radio, Pagination, message, Input, Form } from 'antd'
 import { PlusOutlined, DownOutlined, EditOutlined, DeleteOutlined, SafetyCertificateFilled, SearchOutlined, CopyOutlined, RetweetOutlined } from '@ant-design/icons'
 import { useState, useEffect, useCallback } from 'react'
@@ -6,18 +11,26 @@ import apiCalls from '../apiCalls'
 import factionApiCalls from '@/src/business/aiNoval/factionManage/apiCalls'
 import fetch from '@/src/fetch'
 import DifyApi from '@/src/utils/dify/dify_api'
+// 导入lodash的debounce函数
+import { debounce } from 'lodash'
 
 const { Title, Text } = Typography
 
+/**
+ * 角色信息面板组件的属性接口
+ */
 interface RoleInfoPanelProps {
-  roleDef: IRoleData | null
-  updateTimestamp?: number | null
-  onVersionChange: (version: IRoleData) => void | Promise<void>
-  onOpenRoleInfoEditModal: (roleDef: IRoleData, data?: IRoleInfo) => void | Promise<void>
-  onDeleteRoleInfo: (roleDef: IRoleData, data: IRoleInfo) => void | Promise<void>
-  worldviewMap: Map<number, IWorldViewData>
+  roleDef: IRoleData | null                    // 角色定义数据
+  updateTimestamp?: number | null              // 更新时间戳
+  onVersionChange: (version: IRoleData) => void | Promise<void>  // 版本变更回调
+  onOpenRoleInfoEditModal: (roleDef: IRoleData, data?: IRoleInfo) => void | Promise<void>  // 打开编辑模态框回调
+  onDeleteRoleInfo: (roleDef: IRoleData, data: IRoleInfo) => void | Promise<void>  // 删除角色信息回调
+  worldviewMap: Map<number, IWorldViewData>    // 世界观数据映射
 }
 
+/**
+ * 描述项标签样式配置
+ */
 const labelStyle = {
   width: '100px',
   fontSize: '14px',
@@ -25,6 +38,10 @@ const labelStyle = {
   color: '#666'
 }
 
+/**
+ * 角色信息面板主组件
+ * 负责显示角色信息、版本管理、阵营信息和Dify文档集成
+ */
 export function RoleInfoPanel({
   roleDef,
   onVersionChange,
@@ -33,11 +50,19 @@ export function RoleInfoPanel({
   worldviewMap
 }: RoleInfoPanelProps) {
 
+  // 当前选中的角色版本信息
   const [role, setRole] = useState<IRoleInfo | null>(null)
+  // 加载状态
   const [isLoading, setIsLoading] = useState(true)
+  // 角色版本列表
   const [roleVersions, setRoleVersions] = useState<IRoleInfo[]>([])
+  // 阵营数据映射
   const [factionMap, setFactionMap] = useState<Map<number, IFactionDefData>>(new Map())
   
+  /**
+   * 加载角色版本列表
+   * 获取指定角色的所有版本信息
+   */
   async function loadRoleVersions() {
     if (!roleDef?.id) {
       setIsLoading(false)
@@ -70,6 +95,10 @@ export function RoleInfoPanel({
     }
   }
 
+  /**
+   * 加载阵营数据
+   * 根据世界观ID获取对应的阵营信息
+   */
   async function loadFactionData(worldviewId: number) {
     try {
       const res = await factionApiCalls.getFactionList(worldviewId)
@@ -86,11 +115,16 @@ export function RoleInfoPanel({
     }
   }
 
+  // 监听角色定义变化，重新加载版本数据
   useEffect(() => {
     console.debug('roleInfoPanel roleDef change --->> ', roleDef)
     loadRoleVersions()
   }, [roleDef])
 
+  /**
+   * 处理版本切换
+   * 当用户选择不同版本时更新当前角色信息
+   */
   const handleVersionChange = (version: IRoleInfo) => {
     if (!roleDef?.id) return
     setRole(version)
@@ -104,7 +138,10 @@ export function RoleInfoPanel({
     }
   }
 
-  // 处理创建新版本
+  /**
+   * 处理创建新版本
+   * 打开创建角色版本的编辑模态框
+   */
   const handleCreateRoleInfo = () => {
     if (!roleDef) {
       return
@@ -112,7 +149,10 @@ export function RoleInfoPanel({
     onOpenRoleInfoEditModal(roleDef)
   }
 
-  // 处理编辑版本
+  /**
+   * 处理编辑版本
+   * 打开编辑指定角色版本的模态框
+   */
   const handleEditRoleInfo = (data: IRoleInfo) => {
     if (!roleDef) {
       return
@@ -121,7 +161,10 @@ export function RoleInfoPanel({
     onOpenRoleInfoEditModal(roleDef, data)
   }
 
-  // 处理删除版本
+  /**
+   * 处理删除版本
+   * 显示确认对话框并执行删除操作
+   */
   const handleDeleteRoleInfo = (version: IRoleInfo) => {
     if (!roleDef) {
       return
@@ -187,7 +230,7 @@ export function RoleInfoPanel({
     )
   }
 
-  // 版本切换下拉菜单
+  // 版本切换下拉菜单配置
   const versionItems: MenuProps['items'] = roleVersions.map(version => ({
     key: version.id || '',
     label: version.version_name || '',
@@ -197,7 +240,7 @@ export function RoleInfoPanel({
   // 渲染主结构
   return (
     <div>
-      {/* 顶部标题栏 */}
+      {/* 顶部标题栏 - 显示角色名称、版本信息和操作按钮 */}
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Space>
           <Title level={4} style={{ margin: 0 }}>{roleDef.name}</Title>
@@ -217,7 +260,7 @@ export function RoleInfoPanel({
         </Button>
       </div>
 
-      {/* 版本详情卡片 */}
+      {/* 版本详情卡片 - 显示当前版本的详细信息 */}
       <Card>
         {!role ? (
           <Alert
@@ -238,7 +281,7 @@ export function RoleInfoPanel({
               </Space>
             </div>
             
-            {/* 版本详细信息 */}
+            {/* 版本详细信息展示 */}
             <Descriptions size='small' bordered column={1} labelStyle={labelStyle}>
               <Descriptions.Item label="版本名">
                 {role.version_name}
@@ -275,6 +318,7 @@ export function RoleInfoPanel({
 
             <Divider />
             
+            {/* Dify文档管理组件 */}
             <DifyDocumentForRole roleInfo={role} onRequestUpdate={loadRoleVersions} />
           </>
         )}
@@ -283,26 +327,40 @@ export function RoleInfoPanel({
   )
 }
 
-
+/**
+ * Dify文档管理组件的属性接口
+ */
 interface IDifyDocumentForRoleProps {
-  roleInfo: IRoleInfo
-  onRequestUpdate?: () => void
+  roleInfo: IRoleInfo                    // 角色信息
+  onRequestUpdate?: () => void           // 请求更新回调
 }
 
+/**
+ * Dify文档管理组件
+ * 负责角色的Dify文档创建、编辑、删除和绑定功能
+ */
 function DifyDocumentForRole(props: IDifyDocumentForRoleProps) {
 
+  // Dify文档内容
   let [difyDocumentContent, setDifyDocumentContent] = useState<string | null>(null)
-
+  // Dify数据集ID
   let [difyDatasetId, setDifyDatasetId] = useState<string | null>(null)
-
+  // Dify文档ID
   let [difyDocumentId, setDifyDocumentId] = useState<string | null>(null)
-
+  // 世界观ID
   let [worldViewId, setWorldViewId] = useState<number | null>(null)
-
+  // 绑定文档模态框显示状态
   let [difyDocumentModalOpen, setDifyDocumentModalOpen] = useState<boolean>(false)
-
+  // 编辑文档模态框显示状态
   let [difyDocumentEditModalOpen, setDifyDocumentEditModalOpen] = useState<boolean>(false)
+  // 召回文档模态框显示状态
+  let [difyDocumentRecallModalOpen, setDifyDocumentRecallModalOpen] = useState<boolean>(false)
 
+
+  /**
+   * 处理编辑Dify文档
+   * 支持创建新文档和更新现有文档
+   */
   const handleEditDifyDocument = useCallback(async (isCreateMode: boolean, title: string, content: string) => {
     
     if (!difyDatasetId) {
@@ -349,10 +407,18 @@ function DifyDocumentForRole(props: IDifyDocumentForRoleProps) {
     }
   }, [props.roleInfo, difyDocumentContent, difyDatasetId, difyDocumentId])
 
+  /**
+   * 处理创建Dify文档
+   * 预留接口，当前未实现具体逻辑
+   */
   const handleCreateDifyDocument = useCallback(async () => {
 
   }, [props.roleInfo])
 
+  /**
+   * 处理绑定Dify文档
+   * 将现有文档绑定到角色信息
+   */
   const handleBindDifyDocument = useCallback(async (datasetId: string, documentId: string) => {
     try {
       if (!props.roleInfo.id) {
@@ -378,6 +444,10 @@ function DifyDocumentForRole(props: IDifyDocumentForRoleProps) {
     }
   }, [props.roleInfo])
 
+  /**
+   * 处理删除Dify文档
+   * 删除文档并解除绑定关系
+   */
   const handleDeleteDifyDocument = useCallback(async () => {
     const datasetId = props.roleInfo.dify_dataset_id
     const documentId = props.roleInfo.dify_document_id
@@ -405,6 +475,7 @@ function DifyDocumentForRole(props: IDifyDocumentForRoleProps) {
     }
   }, [props.roleInfo])
 
+  // 监听角色信息变化，初始化Dify相关数据
   useEffect(() => {
     if (!props.roleInfo) {
       return
@@ -425,6 +496,7 @@ function DifyDocumentForRole(props: IDifyDocumentForRoleProps) {
     
   }, [props.roleInfo])
 
+  // 监听数据集ID和文档ID变化，加载文档内容
   useEffect(() => {
     if (!difyDatasetId || !difyDocumentId) {
       return
@@ -435,7 +507,7 @@ function DifyDocumentForRole(props: IDifyDocumentForRoleProps) {
     })
   }, [difyDatasetId, difyDocumentId])
 
-
+  // 判断是否有Dify文档
   let hasDifyDocument = false;
   if (props.roleInfo?.dify_document_id && props.roleInfo?.dify_document_id) {
     hasDifyDocument = true;
@@ -446,7 +518,7 @@ function DifyDocumentForRole(props: IDifyDocumentForRoleProps) {
       <div className='f-flex-two-side'>
         <Title level={5} style={{ margin: 0 }}>Dify文档</Title>
         <Space> 
-          <Button type="default" size="small" icon={<RetweetOutlined />} onClick={() => {}}>召回</Button>
+          <Button type="default" size="small" icon={<RetweetOutlined />} onClick={() => setDifyDocumentRecallModalOpen(true)}>召回</Button>
           {hasDifyDocument ? (
             <>
               <Button type="primary" size="small" icon={<EditOutlined />} onClick={() => setDifyDocumentEditModalOpen(true)}>编辑</Button>
@@ -460,18 +532,22 @@ function DifyDocumentForRole(props: IDifyDocumentForRoleProps) {
           )}
         </Space>
       </div>
+      {/* 调试信息区域 - 已注释 */}
       {/* <div>
         <p>debug</p>
         <p>worldViewId: {worldViewId}</p>
         <p>difyDatasetId: {difyDatasetId}</p>
         <p>difyDocumentId: {difyDocumentId}</p>
       </div> */}
+      
+      {/* Dify文档内容显示区域 */}
       <div style={{ marginTop: 16, backgroundColor: '#f5f5f5', padding: 16, borderRadius: 4, border: '1px solid #e0e0e0' }}>
         <Typography.Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
           {difyDocumentContent || '暂无内容'}
         </Typography.Paragraph>
       </div>
 
+      {/* 绑定Dify文档模态框 */}
       <BindDifyDocumentModal
         open={difyDocumentModalOpen}
         datasetId={difyDatasetId}
@@ -480,6 +556,7 @@ function DifyDocumentForRole(props: IDifyDocumentForRoleProps) {
         onCancel={() => setDifyDocumentModalOpen(false)}
       />
 
+      {/* 编辑Dify文档模态框 */}
       <DifyDocumentEditModal
         open={difyDocumentEditModalOpen}
         roleInfo={props.roleInfo}
@@ -487,37 +564,62 @@ function DifyDocumentForRole(props: IDifyDocumentForRoleProps) {
         onOk={handleEditDifyDocument}
         onCancel={() => setDifyDocumentEditModalOpen(false)}
       />
+
+      {/* 召回Dify文档模态框 */}
+      <RecallDifyDocument
+        open={difyDocumentRecallModalOpen}
+        roleInfo={props.roleInfo}
+        onOk={() => setDifyDocumentRecallModalOpen(false)}
+        onCancel={() => setDifyDocumentRecallModalOpen(false)}
+      />
     </>
   )
 }
 
+/**
+ * 绑定Dify文档模态框的属性接口
+ */
 interface IBindDifyDocumentModalProps {
-  open: boolean
-  datasetId: string | null
-  roleData: IRoleInfo | null
-  onOk: (datasetId: string, documentId: string) => void
-  onCancel: () => void
+  open: boolean                                    // 模态框显示状态
+  datasetId: string | null                         // 数据集ID
+  roleData: IRoleInfo | null                       // 角色数据
+  onOk: (datasetId: string, documentId: string) => void  // 确认绑定回调
+  onCancel: () => void                             // 取消回调
 }
 
+/**
+ * 绑定Dify文档模态框组件
+ * 用于选择并绑定现有的Dify文档到角色
+ */
 function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
+  // 选中的文件
   const [selectedFile, setSelectedFile] = useState<string>('')
+  // 文件列表
   const [fileList, setFileList] = useState<any[]>([])
+  // 当前页码
   const [page, setPage] = useState(1)
+  // 每页大小
   const [pageSize, setPageSize] = useState(10)
+  // 搜索关键词
   const [keyword, setKeyword] = useState('')
+  // 总数量
   const [total, setTotal] = useState(0)
+  // 选中的文档ID
   const [selectedDocumentId, setSelectedDocumentId] = useState<string>('')
+  // Dify文档内容
   const [difyDocumentContent, setDifyDocumentContent] = useState<string | null>(null)
 
-
+  // 组件挂载时加载文档列表
   useEffect(() => {
     loadDocumentList(props.datasetId);
   }, [])
 
+  // 数据集ID变化时重新加载文档列表
   useEffect(() => {
     loadDocumentList(props.datasetId);
   }, [props.datasetId])
 
+  // 选中的文档ID变化时加载文档内容
   useEffect(() => {
     if (!props.datasetId || !selectedDocumentId) {
       setDifyDocumentContent(null);
@@ -529,6 +631,10 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
     })
   }, [props.datasetId, selectedDocumentId])
 
+  /**
+   * 加载文档列表
+   * 从Dify API获取指定数据集的文档列表
+   */
   function loadDocumentList(datasetId?: string | null, page: number = 1, pageSize: number = 10, keyword: string = '') {
     if (!datasetId) {
       return
@@ -541,12 +647,18 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
     })
   }
 
+  /**
+   * 处理分页变化
+   */
   const handlePageChange = useCallback((page: number, pageSize: number) => {
     setPage(page)
     setPageSize(pageSize)
     loadDocumentList(props.datasetId, page, pageSize, keyword)
   }, [props.datasetId, keyword])
 
+  /**
+   * 处理确认绑定
+   */
   const handleOk = useCallback(() => {
     if (!props.datasetId || !selectedDocumentId) {
       message.error('文档ID或数据集ID为空，请检查程序');
@@ -556,13 +668,18 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
     props.onOk(props.datasetId, selectedDocumentId)
   }, [props.onOk, props.datasetId, selectedDocumentId])
 
+  /**
+   * 处理关键词搜索变化
+   * 使用防抖优化搜索性能
+   */
   const handleKeywordChange = useCallback((value: string) => {
     setKeyword(value)
-    _.debounce(() => {
+    debounce(() => {
       loadDocumentList(props.datasetId, 1, pageSize, value)
     }, 300)()
   }, [props.datasetId, pageSize])
 
+  // 构建模态框标题，包含角色名称和复制按钮
   let modalTitle = <span>绑定Dify文档</span>;
   if (props.roleData?.name_in_worldview) {
     modalTitle = <>
@@ -579,10 +696,12 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
       onCancel={props.onCancel}
       footer={null}
     >
+      {/* 搜索输入框 */}
       <div style={{ marginBottom: 16 }}>
         <Input placeholder='请输入文档名称' value={keyword} onChange={e => handleKeywordChange(e.target.value)} prefix={<SearchOutlined />}></Input>
       </div>
       <Row gutter={16}>
+        {/* 左侧文档列表 */}
         <Col span={10}>
           <div style={{ marginBottom: 16 }}>
             <Typography.Text strong>选择文档</Typography.Text>
@@ -640,6 +759,7 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
             </Radio.Group>
             
           </div>
+          {/* 分页组件 */}
           <Pagination
             size="small"
             align='center'
@@ -649,6 +769,7 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
             onChange={handlePageChange}
             />
         </Col>
+        {/* 右侧文档内容预览 */}
         <Col span={14}>
           <p>Dify文档</p>
           <div style={{
@@ -663,6 +784,7 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
               {difyDocumentContent || '暂无内容'}
             </Typography.Paragraph>
           </div>
+          {/* 操作按钮 */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 16 }}>
             <Button onClick={() => props.onCancel()}>取消</Button>
             <Button type="primary" onClick={() => handleOk()}>确定</Button>
@@ -673,22 +795,31 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
   )
 }
 
+/**
+ * Dify文档编辑模态框的属性接口
+ */
 interface IDifyDocumentEditModalProps {
-  open: boolean
-  roleInfo: IRoleInfo
-  difyContent: string
-  onOk: (isCreateMode: boolean, title: string, content: string) => void
-  onCancel: () => void
+  open: boolean                                    // 模态框显示状态
+  roleInfo: IRoleInfo                              // 角色信息
+  difyContent: string                              // Dify文档内容
+  onOk: (isCreateMode: boolean, title: string, content: string) => void  // 确认编辑回调
+  onCancel: () => void                             // 取消回调
 }
 
+/**
+ * Dify文档编辑模态框组件
+ * 用于创建新文档或编辑现有文档
+ */
 function DifyDocumentEditModal(props: IDifyDocumentEditModalProps) {
 
+  // 是否为创建模式
   const [isCreateMode, setIsCreateMode] = useState<boolean>(false)
-
+  // 模态框标题
   const [modalTitle, setModalTitle] = useState<string>(props.roleInfo.name_in_worldview || '')
-
+  // 表单实例
   const [form] = Form.useForm()
 
+  // 监听角色信息变化，设置模态框标题和模式
   useEffect(() => {
     let isCreateMode = false;
 
@@ -700,7 +831,6 @@ function DifyDocumentEditModal(props: IDifyDocumentEditModalProps) {
 
     let roleName = props.roleInfo.name_in_worldview || '';
     let modalTitle = `编辑Dify文档`;
-
 
     if (isCreateMode) {
       modalTitle = `创建Dify文档`
@@ -714,6 +844,7 @@ function DifyDocumentEditModal(props: IDifyDocumentEditModalProps) {
 
   }, [props.roleInfo])
 
+  // 监听模态框打开状态，初始化表单数据
   useEffect(() => {
     if (props.open) {
 
@@ -722,6 +853,7 @@ function DifyDocumentEditModal(props: IDifyDocumentEditModalProps) {
       let documentContent = '', documentTitle = `角色设定：${roleName}`;
 
       if (isCreateMode) {
+        // 创建模式下，根据角色信息生成默认内容
         documentContent = [
           '角色名称：' + props.roleInfo.name_in_worldview,
           '角色性别：' + (props.roleInfo.gender_in_worldview === 'male' ? '男' : '女'),
@@ -729,6 +861,7 @@ function DifyDocumentEditModal(props: IDifyDocumentEditModalProps) {
           '角色详情：' + props.roleInfo.personality,
         ].join('\n')
       } else {
+        // 编辑模式下，使用现有内容
         documentContent = props.difyContent
       }
 
@@ -741,6 +874,9 @@ function DifyDocumentEditModal(props: IDifyDocumentEditModalProps) {
     }
   }, [props.open])
 
+  /**
+   * 处理表单提交
+   */
   const handleSubmit = useCallback(async () => {
     let values = await form.validateFields()
     props.onOk(isCreateMode, values.title, values.content)
@@ -773,39 +909,149 @@ function DifyDocumentEditModal(props: IDifyDocumentEditModalProps) {
   )
 }
 
+/**
+ * 召回Dify文档组件的属性接口
+ */
 interface IRecallDifyDocumentProps {
-  open: boolean
-  roleInfo: IRoleInfo
-  onOk: () => void
-  onCancel: () => void
+  open: boolean                    // 模态框显示状态
+  roleInfo: IRoleInfo              // 角色信息
+  onOk: () => void                 // 确认回调
+  onCancel: () => void             // 取消回调
 }
 
+/**
+ * 召回Dify文档组件
+ * 用于刷新和召回Dify文档内容（当前功能未完全实现）
+ */
 function RecallDifyDocument(props: IRecallDifyDocumentProps) {
 
+  // Dify数据集ID
   const [difyDatasetId, setDifyDatasetId] = useState<string>('');
+
+  const [keyword, setKeyword] = useState<string>('');
+
+  const [loading, setLoading] = useState<boolean>(false);
+
+  const [recallResult, setRecallResult] = useState<any[]>([]);
 
   const modalTitle = `召回Dify文档 - ${props.roleInfo.name_in_worldview}`;
 
+  // 监听角色信息变化，设置数据集ID
   useEffect(() => {
     setDifyDatasetId(props.roleInfo.dify_dataset_id || '')
   }, [props.roleInfo.dify_dataset_id])
+
+  useEffect(() => {
+    if (props.open) {
+      let keyword = props.roleInfo.name_in_worldview || '';
+      setKeyword(keyword)
+      handleRefresh(keyword)
+    } else {
+      setKeyword('')
+    }
+  }, [props.open])
   
-  const handleRefresh = useCallback(() => {
-    
+  /**
+   * 处理刷新操作
+   * 当前功能未完全实现
+   */
+  const handleRefresh = useCallback(async (keyword: string) => {
+    if (!difyDatasetId || !keyword) {
+      message.error('数据集ID或召回关键词为空，请检查程序')
+      return;
+    }
+
+    try {
+      setLoading(true)
+      let res = await recallDifyDocument(difyDatasetId, keyword)
+
+      if (res.records.length > 0) {
+        setRecallResult(res.records)
+      } else {
+        setRecallResult([])
+        message.error('召回格式有误，请检查程序')
+      }
+    } catch (error) {
+      message.error('召回失败，请检查程序')
+    } finally {
+      setLoading(false)
+    }
   }, [props.roleInfo, difyDatasetId])
+
+  function getColorOfScore(score: number, startColor: string = '#ff4d4f', endColor: string = '#52c41a'): string {
+    // Convert hex to RGB
+    const start = {
+        r: parseInt(startColor.slice(1,3), 16),
+        g: parseInt(startColor.slice(3,5), 16),
+        b: parseInt(startColor.slice(5,7), 16)
+    };
+    
+    const end = {
+        r: parseInt(endColor.slice(1,3), 16),
+        g: parseInt(endColor.slice(3,5), 16),
+        b: parseInt(endColor.slice(5,7), 16)
+    };
+
+    // Interpolate between colors
+    const r = Math.round(start.r + (end.r - start.r) * score);
+    const g = Math.round(start.g + (end.g - start.g) * score);
+    const b = Math.round(start.b + (end.b - start.b) * score);
+
+    // Convert back to hex
+    return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+  }
+
+  function renderScore(score: number) {
+    return <span style={{ backgroundColor: getColorOfScore(score) }}>{score.toFixed(2)}</span>
+  }
 
   return (
     <Modal
       width={'70vw'}
-      title={<><span>{modalTitle}</span><Button type="link" icon={<RetweetOutlined />} onClick={() => props.onOk()}>刷新</Button></>}
+      title={<><span>{modalTitle}</span><Button type="link" icon={<RetweetOutlined />} onClick={() => handleRefresh(keyword)}>刷新</Button></>}
       open={props.open}
       onCancel={props.onCancel}
       footer={null}
     >
+      <div>
+        <Input placeholder='请输入召回关键词' value={keyword} onChange={e => setKeyword(e.target.value)} prefix={<SearchOutlined />}></Input>
+      </div>
+      <Divider />
+      <div style={{ minHeight: '50vh', overflow: 'auto' }}>
+        <Space direction='vertical' style={{ width: '100%' }}>
+        {
+          loading ? (
+            <Typography.Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }} align='center'>
+              正在召回...
+            </Typography.Paragraph>
+          ) : (!loading && !recallResult.length) ? (
+            <Typography.Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }} align='center'>
+              暂无召回结果
+            </Typography.Paragraph>
+          ) : (
+            recallResult.map((item: any) => (
+              
+              <Card size='small' title={<Space>
+                <span>来源：{item.segment?.document?.name}</span> 
+                {renderScore(item.score)}
+              </Space>}>
+                <Typography.Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+                  {item.segment.content}
+                </Typography.Paragraph>
+              </Card>
+            ))
+          )
+        }
+        </Space>
+      </div>
     </Modal>
   )
 }
 
+/**
+ * 加载工具配置
+ * 根据世界观ID获取相关的Dify数据集配置
+ */
 async function loadToolConfig(worldViewId: number) {
   let res = await fetch.get('/api/aiNoval/toolConfig/params');
 
@@ -816,6 +1062,10 @@ async function loadToolConfig(worldViewId: number) {
   }
 }
 
+/**
+ * 加载文档内容
+ * 从Dify API获取指定文档的内容
+ */
 async function loadDocumentContent(difyDatasetId: string, documentId: string) {
   if (!documentId || !difyDatasetId) {
     message.error('文档ID或数据集ID为空，请检查程序');
@@ -848,6 +1098,10 @@ async function loadDocumentContent(difyDatasetId: string, documentId: string) {
   };
 }
 
+/**
+ * 绑定角色信息文档
+ * 将Dify文档绑定到角色信息
+ */
 async function bindRoleInfoDocument(roleInfoId: number, datasetId: string, documentId: string) {
   await fetch.post(
     '/api/aiNoval/role/info', 
@@ -863,16 +1117,28 @@ async function bindRoleInfoDocument(roleInfoId: number, datasetId: string, docum
   )
 }
 
+/**
+ * 创建Dify文档
+ * 在指定数据集中创建新的文档
+ */
 async function createDifyDocument(datasetId: string, documentTitle: string, documentContent: string) {
   const difyApi = new DifyApi();
   return await difyApi.createDocument(datasetId, documentTitle, documentContent);
 }
 
+/**
+ * 更新Dify文档
+ * 更新指定文档的内容
+ */
 async function updateDifyDocument(datasetId: string, documentId: string, documentTitle: string, documentContent: string) {
   const difyApi = new DifyApi();
   return await difyApi.updateDocument(datasetId, documentId, documentTitle, documentContent);
 }
 
+/**
+ * 删除Dify文档
+ * 删除指定的文档
+ */
 async function deleteDifyDocument(datasetId: string, documentId: string) {
   const difyApi = new DifyApi();
   let res = await difyApi.deleteDocument(datasetId, documentId);
@@ -880,6 +1146,9 @@ async function deleteDifyDocument(datasetId: string, documentId: string) {
 }
 
 
-
+async function recallDifyDocument(datasetId: string, keyword: string) {
+  const difyApi = new DifyApi();
+  return await difyApi.queryDataset(datasetId, keyword);
+}
 
 
