@@ -569,6 +569,7 @@ function DifyDocumentForRole(props: IDifyDocumentForRoleProps) {
       <RecallDifyDocument
         open={difyDocumentRecallModalOpen}
         roleInfo={props.roleInfo}
+        datasetId={difyDatasetId}
         onOk={() => setDifyDocumentRecallModalOpen(false)}
         onCancel={() => setDifyDocumentRecallModalOpen(false)}
       />
@@ -915,6 +916,7 @@ function DifyDocumentEditModal(props: IDifyDocumentEditModalProps) {
 interface IRecallDifyDocumentProps {
   open: boolean                    // 模态框显示状态
   roleInfo: IRoleInfo              // 角色信息
+  datasetId: string | null         // 数据集ID
   onOk: () => void                 // 确认回调
   onCancel: () => void             // 取消回调
 }
@@ -938,8 +940,8 @@ function RecallDifyDocument(props: IRecallDifyDocumentProps) {
 
   // 监听角色信息变化，设置数据集ID
   useEffect(() => {
-    setDifyDatasetId(props.roleInfo.dify_dataset_id || '')
-  }, [props.roleInfo.dify_dataset_id])
+    setDifyDatasetId(props.roleInfo.dify_dataset_id || props.datasetId || '')
+  }, [props.roleInfo.dify_dataset_id, props.datasetId])
 
   useEffect(() => {
     if (props.open) {
