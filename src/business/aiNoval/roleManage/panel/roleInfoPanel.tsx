@@ -1,5 +1,5 @@
-import { Card, Select, Button, Space, Typography, Descriptions, Dropdown, Alert, MenuProps, Modal, Divider, Row, Col, Radio, Pagination, message, Input } from 'antd'
-import { PlusOutlined, DownOutlined, EditOutlined, DeleteOutlined, SafetyCertificateFilled, SearchOutlined, CopyOutlined } from '@ant-design/icons'
+import { Card, Select, Button, Space, Typography, Descriptions, Dropdown, Alert, MenuProps, Modal, Divider, Row, Col, Radio, Pagination, message, Input, Form } from 'antd'
+import { PlusOutlined, DownOutlined, EditOutlined, DeleteOutlined, SafetyCertificateFilled, SearchOutlined, CopyOutlined, RetweetOutlined } from '@ant-design/icons'
 import { useState, useEffect, useCallback } from 'react'
 import { IRoleData, IRoleInfo, IWorldViewData, IFactionDefData } from '@/src/types/IAiNoval'
 import apiCalls from '../apiCalls'
@@ -301,9 +301,53 @@ function DifyDocumentForRole(props: IDifyDocumentForRoleProps) {
 
   let [difyDocumentModalOpen, setDifyDocumentModalOpen] = useState<boolean>(false)
 
-  const handleEditDifyDocument = useCallback(async () => {
+  let [difyDocumentEditModalOpen, setDifyDocumentEditModalOpen] = useState<boolean>(false)
 
-  }, [props.roleInfo, difyDocumentContent])
+  const handleEditDifyDocument = useCallback(async (isCreateMode: boolean, title: string, content: string) => {
+    
+    if (!difyDatasetId) {
+      message.error('数据集ID为空，请检查程序');
+      return;
+    }
+
+    if (!title) {
+      message.error('标题为空，请检查程序');
+      return;
+    }
+
+    if (!content) {
+      message.error('内容为空，请检查程序');
+      return;
+    }
+
+    try {
+      if (isCreateMode) {
+        if (!props.roleInfo.id) {
+          message.error('角色ID为空，请检查程序或数据');
+          return;
+        }
+
+        let res = await createDifyDocument(difyDatasetId, title, content)
+        console.debug('createDifyDocument res: ', res)
+        if (res.document.id) {
+          await bindRoleInfoDocument(props.roleInfo.id, difyDatasetId, res.document.id)
+        }
+      } else {
+        if (!difyDocumentId) {
+          message.error('文档ID为空，请检查程序');
+          return;
+        }
+
+        await updateDifyDocument(difyDatasetId, difyDocumentId, title, content)
+      }
+
+      if (props.onRequestUpdate) {
+        props.onRequestUpdate()
+      }
+    } catch (error) {
+      message.error('编辑失败，请检查程序');
+    }
+  }, [props.roleInfo, difyDocumentContent, difyDatasetId, difyDocumentId])
 
   const handleCreateDifyDocument = useCallback(async () => {
 
@@ -335,7 +379,30 @@ function DifyDocumentForRole(props: IDifyDocumentForRoleProps) {
   }, [props.roleInfo])
 
   const handleDeleteDifyDocument = useCallback(async () => {
+    const datasetId = props.roleInfo.dify_dataset_id
+    const documentId = props.roleInfo.dify_document_id
 
+    if (!props.roleInfo.id) {
+      message.error('角色ID为空，请检查程序');
+      return;
+    }
+
+    if (!datasetId || !documentId) {
+      message.error('数据集ID或文档ID为空，请检查程序');
+      return;
+    }
+
+    try {
+      await deleteDifyDocument(datasetId, documentId)
+      await bindRoleInfoDocument(props.roleInfo.id, '', '');
+      message.success('删除成功');
+
+      if (props.onRequestUpdate) {
+        props.onRequestUpdate()
+      }
+    } catch (error) {
+      message.error('删除失败，请检查程序');
+    }
   }, [props.roleInfo])
 
   useEffect(() => {
@@ -379,15 +446,16 @@ function DifyDocumentForRole(props: IDifyDocumentForRoleProps) {
       <div className='f-flex-two-side'>
         <Title level={5} style={{ margin: 0 }}>Dify文档</Title>
         <Space> 
+          <Button type="default" size="small" icon={<RetweetOutlined />} onClick={() => {}}>召回</Button>
           {hasDifyDocument ? (
             <>
-              <Button type="primary" size="small" icon={<EditOutlined />} onClick={() => handleEditDifyDocument()}>编辑文档</Button>
-              <Button type="primary" size="small" icon={<DeleteOutlined />} onClick={() => handleDeleteDifyDocument()} danger>删除文档</Button>
+              <Button type="primary" size="small" icon={<EditOutlined />} onClick={() => setDifyDocumentEditModalOpen(true)}>编辑</Button>
+              <Button type="primary" size="small" icon={<DeleteOutlined />} onClick={() => handleDeleteDifyDocument()} danger>删除</Button>
             </>
           ) : (
             <>
-              <Button type="primary" size="small" icon={<SafetyCertificateFilled />} onClick={() => setDifyDocumentModalOpen(true)}>绑定文档</Button>
-              <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => handleCreateDifyDocument()}>创建文档</Button>
+              <Button type="default" size="small" icon={<SafetyCertificateFilled />} onClick={() => setDifyDocumentModalOpen(true)}>绑定</Button>
+              <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => setDifyDocumentEditModalOpen(true)}>创建</Button>
             </>
           )}
         </Space>
@@ -410,6 +478,14 @@ function DifyDocumentForRole(props: IDifyDocumentForRoleProps) {
         roleData={props.roleInfo}
         onOk={handleBindDifyDocument}
         onCancel={() => setDifyDocumentModalOpen(false)}
+      />
+
+      <DifyDocumentEditModal
+        open={difyDocumentEditModalOpen}
+        roleInfo={props.roleInfo}
+        difyContent={difyDocumentContent || ''}
+        onOk={handleEditDifyDocument}
+        onCancel={() => setDifyDocumentEditModalOpen(false)}
       />
     </>
   )
@@ -597,6 +673,139 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
   )
 }
 
+interface IDifyDocumentEditModalProps {
+  open: boolean
+  roleInfo: IRoleInfo
+  difyContent: string
+  onOk: (isCreateMode: boolean, title: string, content: string) => void
+  onCancel: () => void
+}
+
+function DifyDocumentEditModal(props: IDifyDocumentEditModalProps) {
+
+  const [isCreateMode, setIsCreateMode] = useState<boolean>(false)
+
+  const [modalTitle, setModalTitle] = useState<string>(props.roleInfo.name_in_worldview || '')
+
+  const [form] = Form.useForm()
+
+  useEffect(() => {
+    let isCreateMode = false;
+
+    if (!props.roleInfo.dify_document_id) {
+      isCreateMode = true;
+    }
+
+    setIsCreateMode(isCreateMode)
+
+    let roleName = props.roleInfo.name_in_worldview || '';
+    let modalTitle = `编辑Dify文档`;
+
+
+    if (isCreateMode) {
+      modalTitle = `创建Dify文档`
+    }
+
+    if (roleName) {
+      modalTitle += ` - ${roleName}`
+    }
+
+    setModalTitle(modalTitle)
+
+  }, [props.roleInfo])
+
+  useEffect(() => {
+    if (props.open) {
+
+      let roleName = props.roleInfo.name_in_worldview || '';
+
+      let documentContent = '', documentTitle = `角色设定：${roleName}`;
+
+      if (isCreateMode) {
+        documentContent = [
+          '角色名称：' + props.roleInfo.name_in_worldview,
+          '角色性别：' + (props.roleInfo.gender_in_worldview === 'male' ? '男' : '女'),
+          '角色背景：' + props.roleInfo.background,
+          '角色详情：' + props.roleInfo.personality,
+        ].join('\n')
+      } else {
+        documentContent = props.difyContent
+      }
+
+      form.setFieldsValue({
+        title: documentTitle,
+        content: documentContent
+      })
+    } else {
+      form.resetFields()
+    }
+  }, [props.open])
+
+  const handleSubmit = useCallback(async () => {
+    let values = await form.validateFields()
+    props.onOk(isCreateMode, values.title, values.content)
+  }, [isCreateMode, form, props.onOk])
+  
+
+  return (
+    <Modal
+      width={'70vw'}
+      title={<span>{modalTitle}</span>}
+      open={props.open}
+      onCancel={props.onCancel}
+      cancelText='取消'
+      okText='提交'
+      onOk={handleSubmit}
+    >
+      <Form form={form}>
+        <Form.Item label="文档标题" name="title">
+          <Input placeholder='请输入文档标题'/>
+        </Form.Item>
+        <Form.Item label="文档正文" name="content">
+          <Input.TextArea
+            placeholder='请输入文档正文'
+            autoSize={{ minRows: 10 }}
+            showCount
+          />
+        </Form.Item>
+      </Form>
+    </Modal>
+  )
+}
+
+interface IRecallDifyDocumentProps {
+  open: boolean
+  roleInfo: IRoleInfo
+  onOk: () => void
+  onCancel: () => void
+}
+
+function RecallDifyDocument(props: IRecallDifyDocumentProps) {
+
+  const [difyDatasetId, setDifyDatasetId] = useState<string>('');
+
+  const modalTitle = `召回Dify文档 - ${props.roleInfo.name_in_worldview}`;
+
+  useEffect(() => {
+    setDifyDatasetId(props.roleInfo.dify_dataset_id || '')
+  }, [props.roleInfo.dify_dataset_id])
+  
+  const handleRefresh = useCallback(() => {
+    
+  }, [props.roleInfo, difyDatasetId])
+
+  return (
+    <Modal
+      width={'70vw'}
+      title={<><span>{modalTitle}</span><Button type="link" icon={<RetweetOutlined />} onClick={() => props.onOk()}>刷新</Button></>}
+      open={props.open}
+      onCancel={props.onCancel}
+      footer={null}
+    >
+    </Modal>
+  )
+}
+
 async function loadToolConfig(worldViewId: number) {
   let res = await fetch.get('/api/aiNoval/toolConfig/params');
 
@@ -653,4 +862,24 @@ async function bindRoleInfoDocument(roleInfoId: number, datasetId: string, docum
     }
   )
 }
+
+async function createDifyDocument(datasetId: string, documentTitle: string, documentContent: string) {
+  const difyApi = new DifyApi();
+  return await difyApi.createDocument(datasetId, documentTitle, documentContent);
+}
+
+async function updateDifyDocument(datasetId: string, documentId: string, documentTitle: string, documentContent: string) {
+  const difyApi = new DifyApi();
+  return await difyApi.updateDocument(datasetId, documentId, documentTitle, documentContent);
+}
+
+async function deleteDifyDocument(datasetId: string, documentId: string) {
+  const difyApi = new DifyApi();
+  let res = await difyApi.deleteDocument(datasetId, documentId);
+  return res.data;
+}
+
+
+
+
 

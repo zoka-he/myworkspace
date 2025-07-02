@@ -165,4 +165,19 @@ export default class DifyApi {
         }
     }
 
+    async deleteDocument(datasetId: string, documentId: string) {
+        try {
+            const response = await fetch.delete(    
+                `${this.serverUrl}/datasets/${datasetId}/documents/${documentId}`,
+                { headers: { 'Authorization': `Bearer ${this.apiKey}` } }
+            );
+            
+            return response.data;            
+        } catch (error) {
+            console.error('Error deleting document:', error);
+            throw error;
+        }
+    }
+
+
 }
