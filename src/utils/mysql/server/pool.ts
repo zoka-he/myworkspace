@@ -6,7 +6,8 @@ const connPool = mysql.createPool({
     database: config.MYSQL_DATABASE,
     port: config.MYSQL_PORT,
     user: config.MYSQL_USER,
-    password: config.MYSQL_PASSWORD
+    password: config.MYSQL_PASSWORD,
+    connectionLimit: 100
 });
 
 const novalPool = mysql.createPool({
@@ -14,7 +15,8 @@ const novalPool = mysql.createPool({
     database: config.MYSQL_DATABASE_NOVEL,
     port: config.MYSQL_PORT,
     user: config.MYSQL_USER,
-    password: config.MYSQL_PASSWORD
+    password: config.MYSQL_PASSWORD,
+    connectionLimit: 100
 });
 
 

@@ -1,9 +1,11 @@
-import { Card, Select, Button, Space, Typography, Descriptions, Dropdown, Alert, MenuProps, Modal } from 'antd'
-import { PlusOutlined, DownOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
-import { useState, useEffect } from 'react'
+import { Card, Select, Button, Space, Typography, Descriptions, Dropdown, Alert, MenuProps, Modal, Divider, Row, Col, Radio, Pagination, message, Input } from 'antd'
+import { PlusOutlined, DownOutlined, EditOutlined, DeleteOutlined, SafetyCertificateFilled, SearchOutlined, CopyOutlined } from '@ant-design/icons'
+import { useState, useEffect, useCallback } from 'react'
 import { IRoleData, IRoleInfo, IWorldViewData, IFactionDefData } from '@/src/types/IAiNoval'
 import apiCalls from '../apiCalls'
 import factionApiCalls from '@/src/business/aiNoval/factionManage/apiCalls'
+import fetch from '@/src/fetch'
+import DifyApi from '@/src/utils/dify/dify_api'
 
 const { Title, Text } = Typography
 
@@ -226,13 +228,18 @@ export function RoleInfoPanel({
           />
         ) : (
           <>
-            {/* 版本操作按钮 */}
-            <Space style={{ marginBottom: 10, width: '100%'}} align='center'>
-              <Button type="primary" icon={<EditOutlined />} onClick={() => handleEditRoleInfo(role)}>编辑版本</Button>
-              <Button type="primary" icon={<DeleteOutlined />} onClick={() => handleDeleteRoleInfo(role)} danger>删除版本</Button>
-            </Space>
+            <div className='f-flex-two-side'>
+              <Title level={5} style={{ margin: 0 }}>版本信息</Title>
+
+              {/* 版本操作按钮 */}
+              <Space style={{ marginBottom: 10}} align='center'>
+                <Button type="primary" icon={<EditOutlined />} onClick={() => handleEditRoleInfo(role)}>编辑版本</Button>
+                <Button type="primary" icon={<DeleteOutlined />} onClick={() => handleDeleteRoleInfo(role)} danger>删除版本</Button>
+              </Space>
+            </div>
+            
             {/* 版本详细信息 */}
-            <Descriptions bordered column={1} labelStyle={labelStyle}>
+            <Descriptions size='small' bordered column={1} labelStyle={labelStyle}>
               <Descriptions.Item label="版本名">
                 {role.version_name}
               </Descriptions.Item>
@@ -255,15 +262,395 @@ export function RoleInfoPanel({
                 {role.faction_id ? factionMap.get(role.faction_id)?.name || '未知阵营' : '未设置阵营'}
               </Descriptions.Item>
               <Descriptions.Item label="角色背景">
-                {role.background}
+                <Typography.Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }} ellipsis={{ rows: 3 }}>
+                  {role.background}
+                </Typography.Paragraph>
               </Descriptions.Item>
               <Descriptions.Item label="角色详情">
-                {role.personality}
+                <Typography.Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }} ellipsis={{ rows: 3 }}>
+                  {role.personality}
+                </Typography.Paragraph>
               </Descriptions.Item>
             </Descriptions>
+
+            <Divider />
+            
+            <DifyDocumentForRole roleInfo={role} onRequestUpdate={loadRoleVersions} />
           </>
         )}
       </Card>
     </div>
   )
 }
+
+
+interface IDifyDocumentForRoleProps {
+  roleInfo: IRoleInfo
+  onRequestUpdate?: () => void
+}
+
+function DifyDocumentForRole(props: IDifyDocumentForRoleProps) {
+
+  let [difyDocumentContent, setDifyDocumentContent] = useState<string | null>(null)
+
+  let [difyDatasetId, setDifyDatasetId] = useState<string | null>(null)
+
+  let [difyDocumentId, setDifyDocumentId] = useState<string | null>(null)
+
+  let [worldViewId, setWorldViewId] = useState<number | null>(null)
+
+  let [difyDocumentModalOpen, setDifyDocumentModalOpen] = useState<boolean>(false)
+
+  const handleEditDifyDocument = useCallback(async () => {
+
+  }, [props.roleInfo, difyDocumentContent])
+
+  const handleCreateDifyDocument = useCallback(async () => {
+
+  }, [props.roleInfo])
+
+  const handleBindDifyDocument = useCallback(async (datasetId: string, documentId: string) => {
+    try {
+      if (!props.roleInfo.id) {
+        message.error('角色ID为空，请检查程序');
+        return;
+      }
+
+      if (!datasetId || !documentId) {
+        message.error('dify文档数据不全，请检查程序');
+        return;
+      }
+
+      await bindRoleInfoDocument(props.roleInfo.id, datasetId, documentId)
+      setDifyDocumentModalOpen(false)
+      message.success('绑定成功');
+
+      if (props.onRequestUpdate) {
+        props.onRequestUpdate()
+      }
+
+    } catch (error) {
+      message.error('绑定失败，请检查程序');
+    }
+  }, [props.roleInfo])
+
+  const handleDeleteDifyDocument = useCallback(async () => {
+
+  }, [props.roleInfo])
+
+  useEffect(() => {
+    if (!props.roleInfo) {
+      return
+    }
+
+    if (props.roleInfo.worldview_id) {
+      setWorldViewId(props.roleInfo.worldview_id)
+    }
+
+    if (props.roleInfo.dify_dataset_id && props.roleInfo.dify_document_id) {
+      setDifyDatasetId(props.roleInfo.dify_dataset_id)
+      setDifyDocumentId(props.roleInfo.dify_document_id)
+    } else if (props.roleInfo.worldview_id) {
+      loadToolConfig(props.roleInfo.worldview_id).then((res) => {
+        setDifyDatasetId(res.roleDatasetId)
+      })
+    }
+    
+  }, [props.roleInfo])
+
+  useEffect(() => {
+    if (!difyDatasetId || !difyDocumentId) {
+      return
+    }
+
+    loadDocumentContent(difyDatasetId, difyDocumentId).then((res) => {
+      setDifyDocumentContent(res!.content)
+    })
+  }, [difyDatasetId, difyDocumentId])
+
+
+  let hasDifyDocument = false;
+  if (props.roleInfo?.dify_document_id && props.roleInfo?.dify_document_id) {
+    hasDifyDocument = true;
+  }
+
+  return (
+    <>
+      <div className='f-flex-two-side'>
+        <Title level={5} style={{ margin: 0 }}>Dify文档</Title>
+        <Space> 
+          {hasDifyDocument ? (
+            <>
+              <Button type="primary" size="small" icon={<EditOutlined />} onClick={() => handleEditDifyDocument()}>编辑文档</Button>
+              <Button type="primary" size="small" icon={<DeleteOutlined />} onClick={() => handleDeleteDifyDocument()} danger>删除文档</Button>
+            </>
+          ) : (
+            <>
+              <Button type="primary" size="small" icon={<SafetyCertificateFilled />} onClick={() => setDifyDocumentModalOpen(true)}>绑定文档</Button>
+              <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => handleCreateDifyDocument()}>创建文档</Button>
+            </>
+          )}
+        </Space>
+      </div>
+      {/* <div>
+        <p>debug</p>
+        <p>worldViewId: {worldViewId}</p>
+        <p>difyDatasetId: {difyDatasetId}</p>
+        <p>difyDocumentId: {difyDocumentId}</p>
+      </div> */}
+      <div style={{ marginTop: 16, backgroundColor: '#f5f5f5', padding: 16, borderRadius: 4, border: '1px solid #e0e0e0' }}>
+        <Typography.Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+          {difyDocumentContent || '暂无内容'}
+        </Typography.Paragraph>
+      </div>
+
+      <BindDifyDocumentModal
+        open={difyDocumentModalOpen}
+        datasetId={difyDatasetId}
+        roleData={props.roleInfo}
+        onOk={handleBindDifyDocument}
+        onCancel={() => setDifyDocumentModalOpen(false)}
+      />
+    </>
+  )
+}
+
+interface IBindDifyDocumentModalProps {
+  open: boolean
+  datasetId: string | null
+  roleData: IRoleInfo | null
+  onOk: (datasetId: string, documentId: string) => void
+  onCancel: () => void
+}
+
+function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
+  const [selectedFile, setSelectedFile] = useState<string>('')
+  const [fileList, setFileList] = useState<any[]>([])
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [keyword, setKeyword] = useState('')
+  const [total, setTotal] = useState(0)
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string>('')
+  const [difyDocumentContent, setDifyDocumentContent] = useState<string | null>(null)
+
+
+  useEffect(() => {
+    loadDocumentList(props.datasetId);
+  }, [])
+
+  useEffect(() => {
+    loadDocumentList(props.datasetId);
+  }, [props.datasetId])
+
+  useEffect(() => {
+    if (!props.datasetId || !selectedDocumentId) {
+      setDifyDocumentContent(null);
+      return
+    }
+
+    loadDocumentContent(props.datasetId, selectedDocumentId).then((res) => {
+      setDifyDocumentContent(res!.content)
+    })
+  }, [props.datasetId, selectedDocumentId])
+
+  function loadDocumentList(datasetId?: string | null, page: number = 1, pageSize: number = 10, keyword: string = '') {
+    if (!datasetId) {
+      return
+    }
+
+    const difyApi = new DifyApi()
+    difyApi.getDocumentList(datasetId, page, pageSize, keyword).then((res) => {
+      setFileList(res.data)
+      setTotal(res.total)
+    })
+  }
+
+  const handlePageChange = useCallback((page: number, pageSize: number) => {
+    setPage(page)
+    setPageSize(pageSize)
+    loadDocumentList(props.datasetId, page, pageSize, keyword)
+  }, [props.datasetId, keyword])
+
+  const handleOk = useCallback(() => {
+    if (!props.datasetId || !selectedDocumentId) {
+      message.error('文档ID或数据集ID为空，请检查程序');
+      return;
+    }
+
+    props.onOk(props.datasetId, selectedDocumentId)
+  }, [props.onOk, props.datasetId, selectedDocumentId])
+
+  const handleKeywordChange = useCallback((value: string) => {
+    setKeyword(value)
+    _.debounce(() => {
+      loadDocumentList(props.datasetId, 1, pageSize, value)
+    }, 300)()
+  }, [props.datasetId, pageSize])
+
+  let modalTitle = <span>绑定Dify文档</span>;
+  if (props.roleData?.name_in_worldview) {
+    modalTitle = <>
+      <span>绑定Dify文档 - {props.roleData.name_in_worldview}</span>
+      <Button type="link" icon={<CopyOutlined />} onClick={() => handleKeywordChange(props.roleData?.name_in_worldview || '')}>复制</Button>
+    </>
+  }
+
+  return (
+    <Modal
+      width={'70vw'}
+      title={modalTitle}
+      open={props.open}
+      onCancel={props.onCancel}
+      footer={null}
+    >
+      <div style={{ marginBottom: 16 }}>
+        <Input placeholder='请输入文档名称' value={keyword} onChange={e => handleKeywordChange(e.target.value)} prefix={<SearchOutlined />}></Input>
+      </div>
+      <Row gutter={16}>
+        <Col span={10}>
+          <div style={{ marginBottom: 16 }}>
+            <Typography.Text strong>选择文档</Typography.Text>
+          </div>
+
+          <div style={{ 
+            marginBottom: 16, 
+            border: '1px solid #f0f0f0', 
+            padding: '8px 16px', 
+            height: '50vh', 
+            borderRadius: 4,
+            overflow: 'auto'
+          }}>
+            <Radio.Group 
+              value={selectedFile} 
+              onChange={(e) => setSelectedFile(e.target.value)}
+              style={{ width: '100%' }}
+            >
+              <Space direction="vertical" style={{ width: '100%' }}>
+                {fileList.map(file => (
+                  <div
+                    style={{
+                      padding: '4px 12px',
+                      borderBottom: '1px solid #f5f5f5',
+                      cursor: 'pointer',
+                      borderRadius: '4px',
+                      marginBottom: '0',
+                      backgroundColor: selectedDocumentId === file.id ? '#f6ffed' : 'transparent',
+                      border: selectedDocumentId === file.id ? '1px solid #b7eb8f' : '1px solid transparent'
+                    }}
+
+                    onClick={() => setSelectedDocumentId(file.id)}
+                  >
+                    <Radio value={file.id} style={{ width: '100%' }}>
+                        <div style={{ marginLeft: '8px' }}>
+                            <div style={{ 
+                                fontWeight: 500, 
+                                color: '#262626',
+                                marginBottom: '4px'
+                            }}>
+                                {file.name}
+                            </div>
+                            <div style={{ 
+                                fontSize: '12px', 
+                                color: '#bfbfbf',
+                                marginTop: '4px'
+                            }}>
+                                创建时间: {new Date(Number(file.created_at) * 1000).toLocaleString('zh-CN')}
+                            </div>
+                        </div>
+                    </Radio>
+                  </div>
+                ))}
+              </Space>
+            </Radio.Group>
+            
+          </div>
+          <Pagination
+            size="small"
+            align='center'
+            total={total}
+            pageSize={pageSize}
+            current={page}
+            onChange={handlePageChange}
+            />
+        </Col>
+        <Col span={14}>
+          <p>Dify文档</p>
+          <div style={{
+            marginBottom: 16, 
+            border: '1px solid #f0f0f0', 
+            padding: '8px 16px', 
+            height: '50vh', 
+            borderRadius: 4,
+            overflow: 'auto'
+          }}>
+            <Typography.Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+              {difyDocumentContent || '暂无内容'}
+            </Typography.Paragraph>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 16 }}>
+            <Button onClick={() => props.onCancel()}>取消</Button>
+            <Button type="primary" onClick={() => handleOk()}>确定</Button>
+          </div>
+        </Col>
+      </Row>
+    </Modal>
+  )
+}
+
+async function loadToolConfig(worldViewId: number) {
+  let res = await fetch.get('/api/aiNoval/toolConfig/params');
+
+  let roleDatasetId = res?.data?.find((item: any) => item.cfg_name === `DIFY_ROLE_DATASET_ID_${worldViewId}`)?.cfg_value_string;
+
+  return {
+    roleDatasetId
+  }
+}
+
+async function loadDocumentContent(difyDatasetId: string, documentId: string) {
+  if (!documentId || !difyDatasetId) {
+    message.error('文档ID或数据集ID为空，请检查程序');
+    return;
+  }
+
+  const difyApi = new DifyApi();
+  let res = await difyApi.getDocumentContent(
+      difyDatasetId, 
+      documentId
+  );
+
+  let content: string[] = [];
+  let createdAt: number = Infinity;
+  let updatedAt: number = Infinity;
+
+  let data = res?.data;
+  if (data?.length > 0) {
+      data.forEach((item: any) => {
+          content.push(item.content);
+          createdAt = Math.min(createdAt, item.created_at);
+          updatedAt = Math.min(updatedAt, item.updated_at);
+      });
+  }
+
+  return {
+      content: content.join('\n\n'),
+      createdAt: createdAt,
+      updatedAt: updatedAt
+  };
+}
+
+async function bindRoleInfoDocument(roleInfoId: number, datasetId: string, documentId: string) {
+  await fetch.post(
+    '/api/aiNoval/role/info', 
+    {
+      dify_dataset_id: datasetId,
+      dify_document_id: documentId
+    },
+    {
+      params: {
+        id: roleInfoId
+      }
+    }
+  )
+}
+

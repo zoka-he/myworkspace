@@ -88,6 +88,8 @@ export interface IFactionDefData {
     name?: string | null,
     description?: string | null,
     parent_id?: number | null,
+    dify_document_id?: string | null,
+    dify_dataset_id?: string | null,
 }
 
 export interface IRoleData {
@@ -113,6 +115,8 @@ export interface IRoleInfo {
     background?: string | null,
     personality?: string | null,
     created_at?: Date | null,
+    dify_document_id?: string | null,
+    dify_dataset_id?: string | null,
 }
 
 
