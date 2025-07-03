@@ -1,11 +1,5 @@
----
-description: 
-globs: 
-alwaysApply: true
----
+
 使用 antdesign 快速构建页面
-- 在render函数中，优先使用antd组件库
-- antd版本为5.2.1
 
 项目目录：
   ├── cypress                 # 基于cypress的e2e测试

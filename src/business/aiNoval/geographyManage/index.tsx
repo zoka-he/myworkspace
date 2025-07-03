@@ -275,6 +275,7 @@ export default function GeoManage() {
                         raiseAddPlanet={(data: IGeoStarSystemData) => panelAddPlanet({ ...data })}
                         raiseEditStarSystem={(data: IGeoStarSystemData) => panelEditStarSystem({ ...data })}
                         raiseDeleteStarSystem={(data: IGeoStarSystemData) => panelDeleteStarSystem({ ...data })}
+                        onRequestUpdate={() => updateWorldViews()}
                     />
                 );
                 break;
@@ -289,6 +290,7 @@ export default function GeoManage() {
                         node={treeRaisedObject} 
                         raiseEditStar={(data => panelEditStar({ ...data }))}
                         raiseDeleteStar={(data => panelDeleteStar({ ...data }))}
+                        onRequestUpdate={() => updateWorldViews()}
                     />
                 );
                 break;
@@ -305,6 +307,7 @@ export default function GeoManage() {
                         raiseAddGeographicUnit={(data: IGeoPlanetData) => panelAddGeographicUnit({ ...data, parent_type: 'planet' })}
                         raiseEditPlanet={(data => panelEditPlanet({ ...data }))}
                         raiseDeletePlanet={(data => panelDeletePlanet({ ...data }))}
+                        onRequestUpdate={() => updateWorldViews()}
                     />
                 );
                 break;    
@@ -320,6 +323,7 @@ export default function GeoManage() {
                         raiseAddGeographicUnit={(data: IGeoSatelliteData) => panelAddGeographicUnit({ ...data, parent_type: 'satellite' })}
                         raiseEditSatellite={(data => panelEditSatellite({ ...data }))}
                         raiseDeleteSatellite={(data => panelDeleteSatellite({ ...data }))}
+                        onRequestUpdate={() => updateWorldViews()}
                     />
                 );
                 break;    
@@ -335,6 +339,7 @@ export default function GeoManage() {
                         raiseAddGeographicUnit={(data: IGeoGeographyUnitData) => panelAddGeographicUnit({ ...data, parent_type: 'geographicUnit' })}
                         raiseEditGeographicUnit={(data => panelEditGeographicUnit({ ...data }))}
                         raiseDeleteGeographicUnit={(data => panelDeleteGeographicUnit({ ...data }))}
+                        onRequestUpdate={() => updateWorldViews()}
                     />
                 );
                 break;

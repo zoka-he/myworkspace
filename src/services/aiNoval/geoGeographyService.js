@@ -18,7 +18,9 @@ export default class GeoGeographyService extends MysqlNovalService {
             'planet_id',
             'satellite_id',
             'description',
-            'described_in_llm'
+            'described_in_llm',
+            'dify_document_id',
+            'dify_dataset_id'
         ]);
     }
 

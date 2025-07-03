@@ -2,6 +2,7 @@ import { IGeoGeographyUnitData } from "@/src/types/IAiNoval";
 import { Col, Row, Button, Space, Divider, Tabs } from "antd";
 import { type IGeoTreeItem } from "../geoTree";
 import GeoRecallTest from "../subPanel/geoRecallTest";
+import GeoDifyDocument from "../subPanel/geoDifyDocument";
 
 interface IGeographyUnitPanelProps {
     worldViewId: number | null,
@@ -10,6 +11,7 @@ interface IGeographyUnitPanelProps {
     raiseAddGeographicUnit: (data: IGeoGeographyUnitData) => void,
     raiseEditGeographicUnit: (data: IGeoGeographyUnitData) => void,
     raiseDeleteGeographicUnit: (data: IGeoGeographyUnitData) => void,
+    onRequestUpdate?: () => void,
 }
 
 export default function(props: IGeographyUnitPanelProps) {
@@ -40,8 +42,13 @@ export default function(props: IGeographyUnitPanelProps) {
 
     let tabItems = [
         {
-            label: `LLM召回测试`,
+            label: `Dify文档`,
             key: '1',
+            children: <GeoDifyDocument worldViewId={props.worldViewId} geoDataType="geographicUnit" geoData={data} onRequestUpdate={props.onRequestUpdate} />,
+        },
+        {
+            label: `LLM召回测试`,
+            key: '2',
             children: <GeoRecallTest worldViewId={props.worldViewId} recommandQuery={`${data?.name} 设定`} />,
         }
     ];
