@@ -17,7 +17,7 @@ const geographyService = new GeographyService();
 async function handleUpdateOne(req: NextApiRequest, res: NextApiResponse) {
     const { geoUnitType, geoUnitId, difyDatasetId, difyDocumentId } = req.body;
 
-    if (!geoUnitType || !geoUnitId || !difyDatasetId || !difyDocumentId) {
+    if (!geoUnitType || !geoUnitId) {
         res.status(500).json({ message: '参数错误!' });
         return;
     }

@@ -108,6 +108,47 @@ export default function GeoDifyDocument({ worldViewId, geoDataType, geoData, onR
         }
     }, [difyDatasetId, difyDocumentId]);
 
+    const deleteDifyDocument = useCallback(() => {
+        console.debug('删除Dify文档', difyDocumentId);
+
+        if (!geoData?.id || !geoDataType) {
+            message.error('地理对象ID或类型为空，请检查代码！');
+            return;
+        }
+
+        if (!difyDatasetId || !difyDocumentId) {
+            message.error('知识库或文档ID为空，请检查代码！');
+            return;
+        }
+
+        Modal.confirm({
+            title: '确认删除',
+            content: '确定要删除这个文档吗？删除后无法恢复。',
+            okText: '确认',
+            cancelText: '取消',
+            async onOk() {
+                try {
+                    let difyApi = new DifyApi();
+                    let res = await difyApi.deleteDocument(difyDatasetId, difyDocumentId);
+
+                    bindDocument(geoDataType, geoData!.id!, '', '');
+
+                    message.success('删除成功');
+                    if (onRequestUpdate) {
+                        onRequestUpdate();
+                    }
+
+
+                } catch (error) {
+                    message.error('删除失败');
+                    console.error(error);
+                }
+            }
+        });
+        return;
+
+    }, [difyDatasetId, difyDocumentId, geoData, geoDataType, onRequestUpdate]);
+
     if (loading) {
         return (
             <div style={{ 
@@ -203,6 +244,9 @@ export default function GeoDifyDocument({ worldViewId, geoDataType, geoData, onR
                         </Button>
                         <Button type="primary" onClick={() => setCreateDifyDocumentModalVisible(true)}>
                             修改Dify文档
+                        </Button>
+                        <Button type="primary" onClick={() => deleteDifyDocument()} danger>
+                            删除Dify文档
                         </Button>
                     </Space>
                 </div>

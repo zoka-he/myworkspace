@@ -175,7 +175,7 @@ class GeographyUnitEdit extends React.Component<IGeographyUnitEditProps, IGeogra
     render() {
         return (
             <>
-                <Modal title={'地理单元信息'} open={this.state.modalOpen} onCancel={e => this.onCancel()} footer={null}>
+                <Modal title={'地理单元信息'} open={this.state.modalOpen} onCancel={e => this.onCancel()} footer={null} width={'70vw'}>
                     <Form ref={comp => this.onFormRef(comp)} labelCol={{ span: 6 }} wrapperCol={{ span: 16 }} initialValues={this.getDefaultFormData}
                           onFinish={e => this.onFinish(e)}
                           onFinishFailed={e => this.onFinishedFailed(e)}
@@ -207,7 +207,7 @@ class GeographyUnitEdit extends React.Component<IGeographyUnitEditProps, IGeogra
                             <Select options={this.getGeoUnitOptions()}/>
                         </Form.Item>
                         <Form.Item label={'地理单元描述'} name={'description'}>
-                            <Input.TextArea autoSize={{ minRows: 6 }}/>
+                            <Input.TextArea autoSize={{ minRows: 10 }}/>
                         </Form.Item>
                         <Form.Item label={'是否在知识库中'} name={'described_in_llm'}>
                             <Radio.Group>

@@ -114,6 +114,36 @@ export default class DifyApi {
         }
     }
 
+    // 自定义文档策略，疑似要付费使用
+    // private documentStrategy = {
+    //     mode: 'custom',
+    //     rules: {
+    //         "pre_processing_rules": [
+    //             {
+    //                 "enabled": false,
+    //                 "id": 'remove_extra_spaces'
+    //             },
+    //             {
+    //                 "enabled": false,
+    //                 "id": 'remove_urls_emails'
+    //             }
+    //         ],
+    //         "segmentation": {
+    //             "saperator": "\n\n",
+    //             "max_tokens": 2500
+    //         },
+    //         "parent_mode": "paragraph",
+    //         "subchunk_segmentation": {
+    //             "separator": "@@@",
+    //             "max_tokens": 2500
+    //         }
+    //     }
+    // }
+
+    private documentStrategy = {
+        mode: 'automatic'
+    }
+
     async createDocument(datasetId: string, title: string, content: string) {
         try {
             const response = await fetch.post(
@@ -122,9 +152,7 @@ export default class DifyApi {
                     name: title, 
                     text: content,
                     indexing_technique: 'high_quality',
-                    process_rule: {
-                        "mode": "automatic"
-                    }
+                    process_rule: this.documentStrategy
                 },
                 { headers: { 
                     'Authorization': `Bearer ${this.apiKey}`,
