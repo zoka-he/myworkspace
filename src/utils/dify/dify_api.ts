@@ -21,11 +21,21 @@ export default class DifyApi {
      * @returns 
      */
     async getDatasets(page: number = 1, limit: number = 20) {
+
+        console.log('dify服务地址', this.serverUrl);
+        console.log('查询dataset的apikey', this.apiKey);
+        console.log('页码', page);
+        console.log('每页数量', limit);
+
         try {
-            const response = await fetch(`${this.serverUrl}/datasets?page=${page}&limit=${limit}`, {
+            const response = await fetch(`${this.serverUrl}/datasets`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${this.apiKey}`
+                },
+                params: {
+                    page,
+                    limit
                 }
             });
 

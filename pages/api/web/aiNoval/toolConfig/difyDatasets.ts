@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import Dify from '@/src/utils/dify';
+import Dify from '@/src/utils/dify/dify_api';
 import { ILlmDatasetInfo } from '@/src/utils/dify/types';
 import ToolsConfigService from "@/src/services/aiNoval/toolsConfigService";
 
@@ -20,7 +20,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         return;
     }
 
-    let datasets = await Dify.getDatasets(difyDatasetBaseUrl, difyDatasetApiKey);
+    let difyApi = new Dify(difyDatasetApiKey, difyDatasetBaseUrl);
+    let datasets = await difyApi.getDatasets(1, 100);
 
     if (!datasets || !Array.isArray(datasets)) {
         console.debug('获取知识库列表失败', datasets);
