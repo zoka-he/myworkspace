@@ -5,6 +5,7 @@ import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import type { IRootState } from '../store';
 import store from '../store';
 import { setNavMenu as setStoreNavMenu } from '../store/navigatorSlice';
+import { setDatasetsApiKey, setBaseUrl } from '../store/difySlice';
 import getPermissionTree from '../business/user/permission/getPermissionTree';
 import { IPermission } from '../business/user/permission/IPermission';
 import { ItemType } from 'antd/es/menu/hooks/useItems';
@@ -122,6 +123,18 @@ function MainFrame(props: IMainFrameProps) {
 
         if (initData.userPerms) {
             loadNavMenu(initData.userPerms);
+        }
+
+        let novelToolParams = await fetch.get('/api/aiNoval/toolConfig/params');
+
+        if (novelToolParams?.data?.length > 0) {
+            novelToolParams.data.forEach((item: any) => {
+                if (item.cfg_name === 'DIFY_DATASET_API_KEY') {
+                    store.dispatch(setDatasetsApiKey(item.cfg_value_string));
+                } else if (item.cfg_name === 'DIFY_DATASET_BASE_URL') {
+                    store.dispatch(setBaseUrl(item.cfg_value_string));
+                }
+            });
         }
     }
 

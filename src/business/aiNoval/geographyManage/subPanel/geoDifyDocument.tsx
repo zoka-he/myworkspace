@@ -5,6 +5,7 @@ import { IGeoGeographyUnitData, GEO_UNIT_TYPES } from '@/src/types/IAiNoval';
 import DifyApi from '@/src/utils/dify/dify_api';
 import fetch from '@/src/fetch';
 import _ from 'lodash';
+import store from '@/src/store';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -128,7 +129,12 @@ export default function GeoDifyDocument({ worldViewId, geoDataType, geoData, onR
             cancelText: '取消',
             async onOk() {
                 try {
-                    let difyApi = new DifyApi();
+                    if (!store.getState().difySlice.datasetsApiKey || !store.getState().difySlice.baseUrl) {
+                        message.error('Dify API Key 或 Base URL 为空，请检查代码！');
+                        return;
+                    }
+
+                    let difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, store.getState().difySlice.baseUrl!);
                     let res = await difyApi.deleteDocument(difyDatasetId, difyDocumentId);
 
                     bindDocument(geoDataType, geoData!.id!, '', '');
@@ -470,7 +476,7 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
             // console.log('🔄 [DEBUG] Setting loading to true');
             setLoading(true);
 
-            const difyApi = new DifyApi();
+            const difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, store.getState().difySlice.baseUrl!);
             // console.log('🌐 [DEBUG] Calling DifyApi.getDocumentList...');
             let res = await difyApi.getDocumentList(
                 props.difyDatasetId, 
@@ -881,7 +887,7 @@ function CreateOrUpdateDifyDocumentModal(props: ICreateDifyDocumentModalProps) {
         }
 
         try {   
-            const difyApi = new DifyApi();
+            const difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, store.getState().difySlice.baseUrl!);
 
             if (modalMode === 'create') {
                 let res = await difyApi.createDocument(props.difyDatasetId, title, content);
@@ -972,7 +978,7 @@ async function loadDocumentContent(difyDatasetId: string, documentId: string) {
         return;
     }
 
-    const difyApi = new DifyApi();
+    const difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, store.getState().difySlice.baseUrl!);
     let res = await difyApi.getDocumentContent(
         difyDatasetId, 
         documentId
