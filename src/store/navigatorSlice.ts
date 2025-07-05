@@ -5,8 +5,13 @@ interface INavigatorState {
     menuSearchKey: string
     lastPathname: string
     historyTags: any[]
+    showAll: boolean
 }
 
+let defaultShowAll = false;
+if (typeof window !== 'undefined') {
+    defaultShowAll = window.localStorage.getItem('myworksite_show_mode') === 'true';
+}
 
 const navigatorSlice = createSlice({
     name: 'navigator',
@@ -14,7 +19,8 @@ const navigatorSlice = createSlice({
         navMenu: [],
         menuSearchKey: '',
         lastPathname: '',
-        historyTags: []
+        historyTags: [],
+        showAll: defaultShowAll
     },
     reducers: {
         setNavMenu: (state, { payload }) => {
@@ -31,6 +37,13 @@ const navigatorSlice = createSlice({
 
         setHistoryTags: (state, {payload}) => {
             state.historyTags = payload;
+        },
+
+        setShowAll: (state, {payload}) => {
+            state.showAll = payload;
+            if (typeof window !== 'undefined') {
+                window.localStorage.setItem('myworksite_show_mode', payload.toString());
+            }
         }
     }
 });
@@ -39,7 +52,8 @@ const {
     setNavMenu, 
     setMenuSearchKey, 
     setLastPathname,
-    setHistoryTags
+    setHistoryTags,
+    setShowAll
 } = navigatorSlice.actions;
 
 export default navigatorSlice;
@@ -50,5 +64,6 @@ export {
     setNavMenu,
     setMenuSearchKey,
     setLastPathname,
-    setHistoryTags
+    setHistoryTags,
+    setShowAll
 };
