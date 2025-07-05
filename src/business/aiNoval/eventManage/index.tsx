@@ -343,7 +343,7 @@ function EventManager() {
   }
 
   const unifiedEventViewWrapperStyle = {
-    height: 'calc(100vh - 310px)',
+    height: 'calc(100vh - 250px)',
     width: '100%',
     overflow: 'auto'
   }
@@ -967,12 +967,12 @@ function EventManager() {
         </Header>
 
         {/* 中部面板内容 */}
-        <Content style={{ padding: '16px 16px 32px 16px', height: 'calc(100% - 64px)', overflow: 'auto' }}>
+        <Content style={{ padding: '16px 16px 0px 16px', height: 'calc(100% - 4px)', overflow: 'auto' }}>
           {selectedWorld ? (
             <Layout style={{ height: '100%' }}>
-              <Header style={{ background: '#fff0', padding: '0 16px', height: '100px', lineHeight: '40px' }}>
+              <Header style={{ background: '#fff0', padding: '0 16px', height: '40px', lineHeight: '40px' }}>
                 <div style={{ padding: '0 20px', marginBottom: '10px' }}>
-                  <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  {/* <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <Space>
                       <Typography.Text>地点筛选：</Typography.Text>
                       <TreeSelect
@@ -1018,7 +1018,7 @@ function EventManager() {
                         ))}
                       </Select>
                     </Space>
-                  </div>
+                  </div> */}
                   <div style={{ display: 'flex', alignItems: 'center' }}>
                     <label htmlFor="secondsPerPixel">时间轴缩放：</label>
                     <Slider

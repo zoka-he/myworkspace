@@ -1,4 +1,4 @@
-import { Breadcrumb, Button, Space, Tag } from "antd";
+import { Breadcrumb, Button, Space, Switch, Tag } from "antd";
 import { connect } from "react-redux";
 import store, { IRootState } from "../store";
 import { useSession, signOut } from 'next-auth/react';
@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { UserOutlined, SettingOutlined, LogoutOutlined } from '@ant-design/icons';
 import { useRef, useState } from "react";
 import { IPermission } from "@/pages/api/web/user/permission/type";
-import { setLastPathname, setHistoryTags } from "@/src/store/navigatorSlice";
+import { setLastPathname, setHistoryTags, setShowAll } from "@/src/store/navigatorSlice";
 import _ from 'lodash';
 
 const mapStateToProps = (state: IRootState) => {
@@ -14,7 +14,8 @@ const mapStateToProps = (state: IRootState) => {
         navMenu: state.navigatorSlice.navMenu,
         loginUser: state.loginSlice.user,
         lastPathname: state.navigatorSlice.lastPathname,
-        hisTags: state.navigatorSlice.historyTags
+        hisTags: state.navigatorSlice.historyTags,
+        showAll: state.navigatorSlice.showAll
     }
 }
 
@@ -25,6 +26,7 @@ interface IWorkspaceHeaderProps {
     hisTags: any[]
     permMap?: Map<number, IPermission>
     urlMap?: Map<string, IPermission>
+    showAll: boolean
 }
 
 function WorkspaceHeader(props: IWorkspaceHeaderProps) {
@@ -123,7 +125,8 @@ function WorkspaceHeader(props: IWorkspaceHeaderProps) {
                 </div>
             </div>
             <Space size={16}>
-                {userLabel}
+                <span>显示模式</span><Switch checked={props.showAll} unCheckedChildren="公共" checkedChildren="全部" onChange={e => store.dispatch(setShowAll(e))} />
+                {/* {userLabel} */}
                 {settingLabel}
                 {/* <Button type="text" icon={<FullscreenOutlined />}>全屏</Button> */}
                 <Button danger type="primary" icon={<LogoutOutlined />} style={{ width: 40 }} onClick={() => signOut()}></Button>

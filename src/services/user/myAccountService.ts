@@ -23,20 +23,20 @@ class MyAccountService {
 
     
 
-    public static getUserPermissionKey(userID: number) {
-        return `LOGINUSER_PERMISSION_${userID}`;
+    public static getUserPermissionKey() {
+        return `LOGINUSER_PERMISSION_${'admin'}`;
     }
 
-    public async getRolePermission(userID: number, roleID: number[], useCached = false) {
+    public async getRolePermission(userID: number | null, roleID: number[], useCached = false) {
         let ret: IPermission[] = [];
-        let cacheKey = MyAccountService.getUserPermissionKey(userID);
+        let cacheKey = MyAccountService.getUserPermissionKey();
         let useDb = false;
 
         if (useCached) {
             let permList = cached.get(cacheKey);
             if (permList instanceof Array && permList.length > 0) {
                 ret = permList;
-                this.logger.info(`get userID ${userID} permission from cached`);
+                this.logger.info(`get permission from cached`);
             } else {
                 useDb = true;
                 useCached = false;
@@ -46,9 +46,9 @@ class MyAccountService {
         }
 
         if (useDb) {
-            let queryRes = await this.rolePermissionService.getPermittedPageByRole(roleID);
+            let queryRes = await this.rolePermissionService.getPermittedPageByRole();
             ret = (queryRes as IPermission[] );
-            this.logger.info(`get userID ${userID} permission from mysql`);
+            this.logger.info(`get admin permission from mysql`);
         }
 
         if (!useCached) {

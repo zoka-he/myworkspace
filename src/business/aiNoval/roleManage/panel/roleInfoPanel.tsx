@@ -13,6 +13,7 @@ import fetch from '@/src/fetch'
 import DifyApi from '@/src/utils/dify/dify_api'
 // 导入lodash的debounce函数
 import { debounce } from 'lodash'
+import store from '@/src/store'
 
 const { Title, Text } = Typography
 
@@ -641,7 +642,7 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
       return
     }
 
-    const difyApi = new DifyApi()
+    const difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, store.getState().difySlice.baseUrl!);
     difyApi.getDocumentList(datasetId, page, pageSize, keyword).then((res) => {
       setFileList(res.data)
       setTotal(res.total)
@@ -1074,7 +1075,7 @@ async function loadDocumentContent(difyDatasetId: string, documentId: string) {
     return;
   }
 
-  const difyApi = new DifyApi();
+  const difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, store.getState().difySlice.baseUrl!);
   let res = await difyApi.getDocumentContent(
       difyDatasetId, 
       documentId
@@ -1124,7 +1125,7 @@ async function bindRoleInfoDocument(roleInfoId: number, datasetId: string, docum
  * 在指定数据集中创建新的文档
  */
 async function createDifyDocument(datasetId: string, documentTitle: string, documentContent: string) {
-  const difyApi = new DifyApi();
+  const difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, store.getState().difySlice.baseUrl!);
   return await difyApi.createDocument(datasetId, documentTitle, documentContent);
 }
 
@@ -1133,7 +1134,7 @@ async function createDifyDocument(datasetId: string, documentTitle: string, docu
  * 更新指定文档的内容
  */
 async function updateDifyDocument(datasetId: string, documentId: string, documentTitle: string, documentContent: string) {
-  const difyApi = new DifyApi();
+  const difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, store.getState().difySlice.baseUrl!);
   return await difyApi.updateDocument(datasetId, documentId, documentTitle, documentContent);
 }
 
@@ -1142,14 +1143,14 @@ async function updateDifyDocument(datasetId: string, documentId: string, documen
  * 删除指定的文档
  */
 async function deleteDifyDocument(datasetId: string, documentId: string) {
-  const difyApi = new DifyApi();
+  const difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, store.getState().difySlice.baseUrl!);
   let res = await difyApi.deleteDocument(datasetId, documentId);
   return res.data;
 }
 
 
 async function recallDifyDocument(datasetId: string, keyword: string) {
-  const difyApi = new DifyApi();
+  const difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, store.getState().difySlice.baseUrl!);
   return await difyApi.queryDataset(datasetId, keyword);
 }
 
