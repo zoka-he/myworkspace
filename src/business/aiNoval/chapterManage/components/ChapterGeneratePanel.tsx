@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Card, Button, Input, Space, Modal, message, Typography, Upload } from 'antd'
+import { Card, Button, Input, Space, Modal, message, Typography, Upload, InputNumber } from 'antd'
 import { EditOutlined, CopyOutlined, UploadOutlined, CompressOutlined, TagOutlined, RobotOutlined, FileTextOutlined } from '@ant-design/icons'
 import { IChapter } from '@/src/types/IAiNoval'
 import * as chapterApi from '../apiCalls'
@@ -125,9 +125,17 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
 
   // 渲染缩写功能
   const renderSummarizeFeature = () => {
+
+    const [stripLength, setStripLength] = useState(300);
+
+    const title = <>
+      <Text>章节缩写</Text>
+      
+    </>
+
     return (
       <Modal
-        title="章节缩写"
+        title={title}
         open={isSummarizeModalVisible}
         onCancel={() => setIsSummarizeModalVisible(false)}
         width={800}
@@ -149,7 +157,9 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
         ]}
       >
         <div className={styles.summarizeContent}>
-          <Space direction="vertical" style={{ width: '100%' }}>
+          <Space direction="horizontal" style={{ width: '100%' }}>
+            <span>缩写长度</span>
+            <InputNumber min={100} max={1000} defaultValue={300} onChange={(value) => setStripLength(value || 300)} />
             <Button
               type="primary"
               onClick={async () => {
@@ -157,7 +167,7 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
                 try {
                   setIsSummarizing(true)
                   setSummarizedContent('')
-                  const text = await chapterApi.stripChapterBlocking(selectedChapter?.id || 0, 300)
+                  const text = await chapterApi.stripChapterBlocking(selectedChapter?.id || 0, stripLength)
                   setSummarizedContent(text)
                 } catch (error) {
                   console.error('stripChapter error -> ', error)
@@ -171,10 +181,12 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
             >
               使用LLM缩写
             </Button>
-            <div className={styles.summarizedText}>
-              {summarizedContent || '点击上方按钮开始缩写...'}
-            </div>
+            
           </Space>
+
+          <div className={styles.summarizedText}>
+            {summarizedContent || '点击上方按钮开始缩写...'}
+          </div>
         </div>
       </Modal>
     )
