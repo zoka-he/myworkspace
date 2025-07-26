@@ -711,6 +711,7 @@ function EventPoolPanel({
       {/* <Text type="secondary" className="text-xs">
         {event.worldview_id}
       </Text> */}
+      {renderRelatedInfo([event])}
     </div>
   )
 
@@ -803,7 +804,7 @@ function EventPoolPanel({
                   </div>
                 )}
               </Droppable>
-              {renderRelatedInfo(eventPool.selected)}
+              {/* {renderRelatedInfo(eventPool.selected)} */}
             </div>
           </Col>
 
@@ -838,7 +839,7 @@ function EventPoolPanel({
                   </div>
                 )}
               </Droppable>
-              {renderRelatedInfo(eventPool.candidate)}
+              {/* {renderRelatedInfo(eventPool.candidate)} */}
             </div>
           </Col>
         </Row>
