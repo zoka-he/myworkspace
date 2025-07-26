@@ -4,6 +4,7 @@ import ToolsConfigService from "@/src/services/aiNoval/toolsConfigService";
 import { difyCfg } from "@/src/utils/dify";
 
 const keyOfApiKey = 'DIFY_PARAGRAPH_STRIPPER_API_KEY';
+const toolsConfigService = new ToolsConfigService();
 
 interface Data {
     message?: string;
@@ -30,10 +31,16 @@ async function handlePick(req: NextApiRequest, res: NextApiResponse<Data>) {
         return;
     }
 
+    let difyDatasetBaseUrl = await toolsConfigService.getConfig('DIFY_DATASET_BASE_URL');
+    if (!difyDatasetBaseUrl) {
+        res.status(500).json({ message: 'DIFY知识库API入口未设置' });
+        return;
+    }
+
     const response_mode = 'blocking';
 
     try {
-        const externalApiUrl = difyCfg.serverUrl + '/workflows/run';
+        const externalApiUrl = difyDatasetBaseUrl + '/workflows/run';
         const reqHeaders = {
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json'
