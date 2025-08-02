@@ -478,7 +478,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
       console.error('storeActualPrompt error -> ', error)
       message.error('保存失败')
     } finally {
-      reloadChapter();
+      // reloadChapter();
       setIsLoading(false)
     }
   }
@@ -602,29 +602,25 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
 
   // 复制续写内容
   const handleCopyContinued = () => {
-    navigator.clipboard.writeText(continuedContent)
+    if (!autoWriteResult) {
+      message.error('续写内容为空')
+      return;
+    }
+
+    navigator.clipboard.writeText(autoWriteResult || '')
       .then(() => message.success('续写内容已复制到剪贴板'))
       .catch(() => message.error('复制失败'))
   }
 
-  // 应用续写内容
-  const handleApplyContinued = async () => {
-    if (!selectedChapter || !continuedContent) return
-
-    try {
-      setIsLoading(true)
-      await chapterApi.updateChapter({
-        id: selectedChapter.id,
-        content: selectedChapter.content + '\n\n' + continuedContent
-      })
-      message.success('续写内容已添加')
-      onClose()
-      onChapterChange()
-    } catch (error) {
-      message.error('添加续写内容失败')
-    } finally {
-      setIsLoading(false)
+  const handleClearThinking = () => {
+    if (!autoWriteResult) {
+      message.error('续写内容为空')
+      return;
     }
+
+    let pureResult = autoWriteResult.replace(/<think>[\s\S]*<\/think>/g, '');
+    console.info('handleClearThinking -> ', pureResult);
+    setAutoWriteResult(pureResult)
   }
 
   // 显示章节原文
@@ -672,16 +668,6 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
                 <Button key="copy" icon={<CopyOutlined />} onClick={handleCopyContinued}>
                   复制续写内容
                 </Button>
-
-                <Button 
-                  key="apply" 
-                  type="primary" 
-                  onClick={handleApplyContinued}
-                  loading={isLoading}
-                  disabled={!continuedContent}
-                >
-                  应用续写
-                </Button>,
                 <Button key="close" onClick={onClose}>
                   关闭
                 </Button>
@@ -894,7 +880,8 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
                             <span>自动续写结果 - {selectedChapter?.chapter_number} {selectedChapter?.title || '未命名章节'}:v{selectedChapter?.version}</span>
                           </div>
                           <Space>
-                            <Button type="primary" size="small" disabled={isLoading || isContinuing || true}>复制</Button>
+                            <Button type="primary" size="small" disabled={isLoading || isContinuing} onClick={handleClearThinking}>清除think</Button>
+                            <Button type="primary" size="small" disabled={isLoading || isContinuing} onClick={handleCopyContinued}>复制</Button>
                             <Button danger size="small" disabled={isLoading || isContinuing} onClick={handleReContinue}>重写</Button>
                           </Space>
                         </div>
