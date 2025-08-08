@@ -12,7 +12,7 @@ const difySlice = createSlice({
     initialState: {
         datasetsApiKey: null,
         baseUrl: null,
-        frontHost: window.location.hostname,
+        frontHost: typeof window !== 'undefined' ? window.location.hostname : null,
         difyFrontHostOptions: [] as string[],
     },
     reducers: {
