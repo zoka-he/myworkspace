@@ -14,6 +14,7 @@ import { setLoginUser } from '../store/loginSlice';
 import AppHeader from './appHeader';
 import WorkspaceHeader from './workspaceHeader';
 import mysqlConfig from "@/src/config/mysql";
+import _ from 'lodash';
 
 
 const { Sider, Header, Content } = Layout;
@@ -149,11 +150,11 @@ function MainFrame(props: IMainFrameProps) {
         }
 
         let ipData = initData.serverIp;
-        store.dispatch(setDifyFrontHostOptions([
+        store.dispatch(setDifyFrontHostOptions(_.uniq([
             `${mysqlConfig.MYSQL_HOST}`,
             window.location.hostname,
             ipData
-        ]));
+        ])));
     }
 
 

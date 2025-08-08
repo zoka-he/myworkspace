@@ -12,6 +12,7 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
 
     const query = req.query.query as string;
     const datasetName = req.query.datasetName as string;
+    const difyHost = req.query.difyHost as string;
 
     let datasetId = await toolsConfigService.getConfig(datasetName);
     console.debug('datasetId', datasetId);
@@ -22,7 +23,12 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
         return;
     }
 
-    let difyDatasetBaseUrl = await toolsConfigService.getConfig('DIFY_DATASET_BASE_URL');
+    let difyDatasetBaseUrl = '';
+    if (difyHost) {
+        difyDatasetBaseUrl = `http://${difyHost}/v1`;
+    } else {
+        difyDatasetBaseUrl = await toolsConfigService.getConfig('DIFY_DATASET_BASE_URL');
+    }
     if (!difyDatasetBaseUrl) {
         res.status(500).json({ message: 'DIFY知识库API入口未设置' });
         return;
