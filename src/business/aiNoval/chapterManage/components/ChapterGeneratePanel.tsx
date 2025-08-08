@@ -8,6 +8,7 @@ import type { UploadProps } from 'antd'
 import ChapterContinueModal from './ChapterContinueModal'
 import GenChapterByDetailModal from './GenChapterByDetailModal'
 import * as apiCalls from '../apiCalls'
+import copyToClip from '@/src/utils/common/copy'
 
 const { TextArea } = Input
 const { Text } = Typography
@@ -144,9 +145,13 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
             key="copy" 
             icon={<CopyOutlined />} 
             onClick={() => {
-              navigator.clipboard.writeText(summarizedContent)
-                .then(() => message.success('缩写内容已复制到剪贴板'))
-                .catch(() => message.error('复制失败'))
+              try {
+                copyToClip(summarizedContent)
+                message.success('缩写内容已复制到剪贴板')
+              } catch (error) {
+                console.error('handleCopySummarized error -> ', error)
+                message.error('复制失败')
+              }
             }}
           >
             复制缩写内容
@@ -245,6 +250,15 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
         extra={
           <Space>
             <Button
+              icon={<RobotOutlined />}
+              onClick={() => {
+                copyToClip(content)
+                message.success('章节内容已复制到剪贴板')
+              }}
+            >
+              复制章节
+            </Button>
+            <Button
               icon={<TagOutlined />}
               onClick={() => {  setSuggestedName(''); setIsNameModalVisible(true); }}
               disabled={!content}
@@ -303,9 +317,13 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
             key="copy" 
             icon={<CopyOutlined />} 
             onClick={() => {
-              navigator.clipboard.writeText(suggestedName)
-                .then(() => message.success('章节名已复制到剪贴板'))
-                .catch(() => message.error('复制失败'))
+              try {
+                copyToClip(suggestedName)
+                message.success('章节名已复制到剪贴板')
+              } catch (error) {
+                console.error('handleCopySuggestedName error -> ', error)
+                message.error('复制失败')
+              }
             }}
           >
             复制章节名

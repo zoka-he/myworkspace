@@ -8,6 +8,7 @@ import * as apiCalls from '../apiCalls'
 import TextArea from 'antd/es/input/TextArea'
 import _ from 'lodash'
 import ChapterStripState, { type ChapterStripReport, type ChapterStripStateProps } from './ChapterStripState'
+import copyToClip from '@/src/utils/common/copy';
 
 interface ChapterContinueModalProps {
   selectedChapterId: number | undefined
@@ -94,7 +95,7 @@ function AttentionRefModal({ isVisible, onClose, content }: AttentionRefModalPro
 
   async function handleCopy(content: string) {
     try {
-      await navigator.clipboard.writeText(content)
+      copyToClip(content)
       message.success('复制成功')
     } catch (error) {
       message.error('复制失败')
@@ -607,9 +608,13 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
       return;
     }
 
-    navigator.clipboard.writeText(autoWriteResult || '')
-      .then(() => message.success('续写内容已复制到剪贴板'))
-      .catch(() => message.error('复制失败'))
+    try {
+      copyToClip(autoWriteResult || '')
+      message.success('续写内容已复制到剪贴板')
+    } catch (error) {
+      console.error('handleCopyContinued error -> ', error)
+      message.error('复制失败')
+    }
   }
 
   const handleClearThinking = () => {

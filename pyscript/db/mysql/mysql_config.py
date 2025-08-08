@@ -1,7 +1,8 @@
 import os
 
 mysql_config_dev = {
-    'MYSQL_HOST': 'localhost',
+    # 'MYSQL_HOST': 'localhost',
+    'MYSQL_HOST': '192.168.1.194',
     'MYSQL_DATABASE': 'task_manage',
     'MYSQL_PORT': 3306,
     'MYSQL_USER': 'root',

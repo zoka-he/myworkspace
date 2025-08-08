@@ -8,6 +8,7 @@ import { useRef, useState } from "react";
 import { IPermission } from "@/pages/api/web/user/permission/type";
 import { setLastPathname, setHistoryTags, setShowAll } from "@/src/store/navigatorSlice";
 import _ from 'lodash';
+import mysqlConfig from "@/src/config/mysql";
 
 const mapStateToProps = (state: IRootState) => {
     return {
@@ -125,7 +126,8 @@ function WorkspaceHeader(props: IWorkspaceHeaderProps) {
                 </div>
             </div>
             <Space size={16}>
-                <span>显示模式</span><Switch checked={props.showAll} unCheckedChildren="公共" checkedChildren="全部" onChange={e => store.dispatch(setShowAll(e))} />
+                <strong>mysql主机: </strong><Tag>{`${mysqlConfig.MYSQL_HOST}:${mysqlConfig.MYSQL_PORT}`}</Tag>
+                <strong>显示模式</strong><Switch checked={props.showAll} unCheckedChildren="公共" checkedChildren="全部" onChange={e => store.dispatch(setShowAll(e))} />
                 {/* {userLabel} */}
                 {settingLabel}
                 {/* <Button type="text" icon={<FullscreenOutlined />}>全屏</Button> */}

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Modal, Card, Input, Space, Button, message, Row, Col, Divider, Alert, Typography } from 'antd'
 import { CopyOutlined, SaveOutlined, RobotOutlined, UserOutlined, SettingOutlined } from '@ant-design/icons'
 import fetch from '@/src/fetch'
+import copyToClip from '@/src/utils/common/copy'
 
 const { TextArea } = Input
 const { Text, Title } = Typography
@@ -39,7 +40,7 @@ function ChapterPromptTemplate() {
    - 背景信息：相关的历史或背景故事`
 
   const copyTemplate = () => {
-    navigator.clipboard.writeText(templateText)
+    copyToClip(templateText)
     message.success('范式已复制到剪贴板')
   }
 
@@ -211,7 +212,7 @@ function GenRolePanel({ onOk, worldviewId, ...props }: GenRolePanelProps) {
       message.warning('没有可复制的内容')
       return
     }
-    navigator.clipboard.writeText(generationResult)
+    copyToClip(generationResult)
     message.success('角色建议已复制到剪贴板')
   }
 

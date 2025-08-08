@@ -10,6 +10,7 @@ import * as apiCalls from '../apiCalls'
 import { loadGeoTree, type IGeoTreeItem } from '../../common/geoDataUtil'
 import { ModalProvider, showGenSkeletonModal, useGenSkeletonModal } from './GenSkeletonModal'
 import GenRolePanel from './GenRolePanel'
+import copyToClip from '@/src/utils/common/copy'
 
 const { Text } = Typography
 const { TextArea } = Input
@@ -547,9 +548,13 @@ function ChapterSkeletonPanel({
                                 onClick={() => {
                                   const formattedDate = formatDate(event.date)
                                   const copyText = `${formattedDate}\n${event.title}\n${event.description}`
-                                  navigator.clipboard.writeText(copyText)
-                                    .then(() => message.success('已复制到剪贴板'))
-                                    .catch(() => message.error('复制失败'))
+                                  try {
+                                    copyToClip(copyText)
+                                    message.success('已复制到剪贴板')
+                                  } catch (error) {
+                                    console.error('handleCopyEvent error -> ', error)
+                                    message.error('复制失败')
+                                  }
                                 }}
                                 title="复制事件内容"
                               />

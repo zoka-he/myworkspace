@@ -3,6 +3,7 @@ import { createContext, useContext, useState, useCallback, useEffect } from 'rea
 import ChapterStripState, { type ChapterStripReport, type ChapterStripStateProps } from './ChapterStripState'
 import * as apiCalls from '../apiCalls';
 import TextArea from 'antd/es/input/TextArea';
+import copyToClip from '@/src/utils/common/copy';
 
 interface GenSkeletonModalProps {
   worldviewId: number
@@ -320,12 +321,12 @@ function GenSkeletonModalContent(props: GenSkeletonModalProps & { onClose: () =>
     }
 
     function handleCopySkeletonPrompt() {
-        navigator.clipboard.writeText(skeletonPrompt)
+        copyToClip(skeletonPrompt)
         message.success('章节骨架提示词已复制到剪贴板')
     }
 
     function handleCopySeedPrompt() {
-        navigator.clipboard.writeText(seedPrompt)
+        copyToClip(seedPrompt)
         message.success('根提示词已复制到剪贴板')
     }
 
