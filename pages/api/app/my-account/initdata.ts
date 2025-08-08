@@ -4,7 +4,7 @@ import MyAccountService from '@/src/services/user/myAccountService';
 import _ from 'lodash';
 import LoginLogService from '@/src/services/user/loginLogService';
 import logger from '@/src/utils/logger';
-
+import getLocalIps from '@/src/business/aiNoval/common/getLocalIps';
 type Data = Object;
 
 const myAccountService = new MyAccountService();
@@ -26,8 +26,14 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
     // }
     
     // @ts-ignore
-    let ret = await myAccountService.getMainPageInitData(null);
-    res.status(200).json(ret);
+    let accountData = await myAccountService.getMainPageInitData(null);
+    let ipData = getLocalIps.getPreferredIP();
+    console.log('------- ipData', ipData);
+
+    res.status(200).json({
+        ...accountData,
+        serverIp: ipData
+    });
 }
 
 export default function handler(

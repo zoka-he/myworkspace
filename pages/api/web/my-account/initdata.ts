@@ -5,6 +5,7 @@ import _ from 'lodash';
 // import { getServerSession } from 'next-auth';
 // import { authOptions } from '../auth/[...nextauth]';
 import LoginLogService from '@/src/services/user/loginLogService';
+import getLocalIps from '@/src/business/aiNoval/common/getLocalIps';
 // import logger from '@/src/utils/logger';
 
 type Data = Object;
@@ -30,8 +31,14 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
     // }
     
     // @ts-ignore
-    let ret = await myAccountService.getMainPageInitData();
-    res.status(200).json(ret);
+    let accountData = await myAccountService.getMainPageInitData(null);
+    let ipData = getLocalIps.getPreferredIP();
+    console.log('------- ipData', ipData);
+
+    res.status(200).json({
+        ...accountData,
+        serverIp: ipData
+    });
 }
 
 export default function handler(
