@@ -83,8 +83,7 @@ function GeoRecallTest(props: IGeoRecallTestProps) {
         <div>
             <Row>
                 <Col span={12}>
-                    <p>该功能用于验证地理资源知识库的质量。</p>
-                    <p>如要修改，需到dify重新编辑。</p>
+                    <p>该功能用于验证地理资源知识库的质量。如要修改，需到dify重新编辑。</p>
                     <p>
                         <strong>dify主机：</strong>
                         <Select options={props.difyFrontHostOptions.map(option => ({ label: option, value: option }))} value={props.difyFrontHost} onChange={e => store.dispatch(setFrontHost(e))} />
