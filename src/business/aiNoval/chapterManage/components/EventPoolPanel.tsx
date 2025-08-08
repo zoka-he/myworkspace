@@ -761,10 +761,8 @@ function EventPoolPanel({
           {/* 事件线设置 */}
           <Space>
             <Text>时间线范围：</Text>
-            <Text>{timelineStart !== null ? renderNovelDate(timelineStart) : '不限'}</Text>
-            <Button icon={<EditOutlined />} type="link" onClick={() => showTimelineModal('start', timelineStart)}>更改起点</Button> - 
-            <Text>{timelineEnd !== null ? renderNovelDate(timelineEnd) : '不限'}</Text>
-            <Button icon={<EditOutlined />} type="link" onClick={() => showTimelineModal('end', timelineEnd)}>更改终点</Button>
+            <Button icon={<EditOutlined />} type="link" onClick={() => showTimelineModal('start', timelineStart)}>{timelineStart !== null ? renderNovelDate(timelineStart) : '不限'}</Button> - 
+            <Button icon={<EditOutlined />} type="link" onClick={() => showTimelineModal('end', timelineEnd)}>{timelineEnd !== null ? renderNovelDate(timelineEnd) : '不限'}</Button>
           </Space>
           <Space>
             <Button type="primary" icon={<ReloadOutlined />} onClick={() => loadChapterEvents()} loading={loading}>加载事件</Button>
