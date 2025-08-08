@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { Card, Typography, Divider, Spin, Col, Row, Button, Space, Modal, Input, Radio, Pagination, message } from 'antd';
+import { Card, Typography, Divider, Spin, Col, Row, Button, Space, Modal, Input, Radio, Pagination, message, Select } from 'antd';
 import { ClockCircleOutlined, CopyOutlined, FileTextOutlined, IssuesCloseOutlined } from '@ant-design/icons';
 import { IGeoGeographyUnitData, GEO_UNIT_TYPES } from '@/src/types/IAiNoval';
 import DifyApi from '@/src/utils/dify/dify_api';
 import fetch from '@/src/fetch';
 import _ from 'lodash';
 import store from '@/src/store';
+import { connect } from 'react-redux';
+import { setFrontHost } from '@/src/store/difySlice';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -21,9 +23,19 @@ interface IGeoDifyDocumentProps {
     geoDataType: string | null;
     geoData?: IGeoGeographyUnitData | null;
     onRequestUpdate?: () => void;
+    difyFrontHostOptions: string[];
+    difyFrontHost: string;
 }
 
-export default function GeoDifyDocument({ worldViewId, geoDataType, geoData, onRequestUpdate }: IGeoDifyDocumentProps) {
+function mapStateToProps(state: any) {
+    return {
+        difyFrontHostOptions: state.difySlice.difyFrontHostOptions,
+        difyFrontHost: state.difySlice.frontHost
+    }
+}
+
+
+function GeoDifyDocument({ worldViewId, geoDataType, geoData, onRequestUpdate, difyFrontHostOptions, difyFrontHost }: IGeoDifyDocumentProps) {
 
     const [document, setDocument] = useState<IDifyDocument | null>(null);
 
@@ -91,13 +103,13 @@ export default function GeoDifyDocument({ worldViewId, geoDataType, geoData, onR
         }
     }, [geoData]);
 
-    // 当difyDatasetId或者difyDocumentId变化时，更新文档
+    // 当dify主机、difyDatasetId或者difyDocumentId变化时，更新文档
     useEffect(() => {
         console.debug('difyDatasetId', difyDatasetId);
         console.debug('difyDocumentId', difyDocumentId);
 
         if (difyDatasetId && difyDocumentId) {
-            loadDocumentContent(difyDatasetId, difyDocumentId).then((document) => {
+            loadDocumentContent(difyFrontHost, difyDatasetId, difyDocumentId).then((document) => {
                 setDocument({
                     id: difyDocumentId,
                     content: document?.content || '',
@@ -107,8 +119,9 @@ export default function GeoDifyDocument({ worldViewId, geoDataType, geoData, onR
         } else {
             setDocument(null);
         }
-    }, [difyDatasetId, difyDocumentId]);
+    }, [difyDatasetId, difyDocumentId, difyFrontHost]);
 
+    // 删除Dify文档
     const deleteDifyDocument = useCallback(() => {
         console.debug('删除Dify文档', difyDocumentId);
 
@@ -129,15 +142,24 @@ export default function GeoDifyDocument({ worldViewId, geoDataType, geoData, onR
             cancelText: '取消',
             async onOk() {
                 try {
-                    if (!store.getState().difySlice.datasetsApiKey || !store.getState().difySlice.baseUrl) {
+
+                    if (!difyFrontHost) {
+                        message.error('Dify主机为空，请检查代码！');
+                        return;
+                    }
+
+                    if (!store.getState().difySlice.datasetsApiKey ) {
                         message.error('Dify API Key 或 Base URL 为空，请检查代码！');
                         return;
                     }
 
-                    let difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, store.getState().difySlice.baseUrl!);
+                    const difyBaseUrl = `http://${difyFrontHost}/v1`;
+
+
+                    let difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, difyBaseUrl);
                     let res = await difyApi.deleteDocument(difyDatasetId, difyDocumentId);
 
-                    bindDocument(geoDataType, geoData!.id!, '', '');
+                    bindDocument(geoDataType, geoData!.id!, difyFrontHost, '', '');
 
                     message.success('删除成功');
                     if (onRequestUpdate) {
@@ -201,6 +223,11 @@ export default function GeoDifyDocument({ worldViewId, geoDataType, geoData, onR
     if (!documentExist) {
         content = (
             <Space>
+                <Text>
+                    Dify主机：
+                </Text>
+                <Select options={difyFrontHostOptions.map(option => ({ label: option, value: option }))} value={difyFrontHost} onChange={e => store.dispatch(setFrontHost(e))} />
+
                 <Button onClick={() => setBindDifyDocumentModalVisible(true)}>
                     绑定Dify文档
                 </Button>
@@ -419,10 +446,12 @@ interface IBindDifyDocumentModalProps {
     geoDataType: string | null;
     onCancel: () => void;
     onOk: () => void;
+    difyFrontHostOptions: string[];
+    difyFrontHost: string;
 }
 
 // 绑定Dify文档对话框
-function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
+const BindDifyDocumentModal = connect(mapStateToProps)(function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
 
     const [documentList, setDocumentList] = useState<IDifyDocument[]>([]);
     const [loading, setLoading] = useState(false);
@@ -458,7 +487,7 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
     }, []);
 
     // 加载文档列表 - 使用 useRef 避免依赖状态变量
-    const loadDocumentList = useCallback(async (currentPage?: number, currentLimit?: number, currentKeyword?: string | null) => {
+    const loadDocumentList = useCallback(async (difyFrontHost: string, currentPage?: number, currentLimit?: number, currentKeyword?: string | null) => {
         // console.log('📥 [DEBUG] loadDocumentList called with:', { 
         //     currentPage, 
         //     currentLimit, 
@@ -476,7 +505,9 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
             // console.log('🔄 [DEBUG] Setting loading to true');
             setLoading(true);
 
-            const difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, store.getState().difySlice.baseUrl!);
+            const difyBaseUrl = `http://${difyFrontHost}/v1`;
+
+            const difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, difyBaseUrl);
             // console.log('🌐 [DEBUG] Calling DifyApi.getDocumentList...');
             let res = await difyApi.getDocumentList(
                 props.difyDatasetId, 
@@ -496,11 +527,12 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
 
         } catch (error) {
             console.error('❌ [DEBUG] loadDocumentList error:', error);
+            message.error('加载文档列表失败');
         } finally {
             // console.log('🔄 [DEBUG] Setting loading to false');
             setLoading(false);
         }
-    }, [props.difyDatasetId]);
+    }, [props.difyDatasetId, props.difyFrontHost]);
 
     // Modal 打开时重置状态并加载数据
     useEffect(() => {
@@ -515,7 +547,7 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
             // 延迟加载，确保状态已重置
             setTimeout(() => {
                 // console.log('⏰ [DEBUG] Timeout callback executed, calling loadDocumentList');
-                loadDocumentList();
+                loadDocumentList(props.difyFrontHost);
             }, 0);
         } else {
             // console.log('⏸️ [DEBUG] Modal not visible or no difyDatasetId, skipping reset and load');
@@ -532,7 +564,7 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
         if (props.difyDatasetId && selectedDocumentId) {
             // console.log('📖 [DEBUG] Loading document content for:', selectedDocumentId);
             setContent('');
-            loadDocumentContent(props.difyDatasetId, selectedDocumentId).then((document) => {
+            loadDocumentContent(props.difyFrontHost, props.difyDatasetId, selectedDocumentId).then((document) => {
                 // console.log('📄 [DEBUG] Document content loaded:', { 
                 //     hasContent: !!document?.content, 
                 //     contentLength: document?.content?.length 
@@ -550,7 +582,7 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
         () => _.debounce((searchKeyword: string) => {
             // console.log('🔍 [DEBUG] Search debounced with keyword:', searchKeyword);
             setPage(1);
-            loadDocumentList(1, stateRef.current.limit, searchKeyword);
+            loadDocumentList(props.difyFrontHost, 1, stateRef.current.limit, searchKeyword);
         }, 300),
         [loadDocumentList]
     );
@@ -563,6 +595,12 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
         //     geoDataId: props.geoData?.id,
         //     geoDataType: props.geoDataType 
         // });
+
+        if (!props.difyFrontHost) {
+            // console.warn('⚠️ [DEBUG] No difyFrontHost');
+            message.error('Dify主机为空，请检查代码！');
+            return;
+        }
 
         if (!selectedDocumentId) {
             // console.warn('⚠️ [DEBUG] No document selected');
@@ -590,7 +628,7 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
         
         try {
             // console.log('🌐 [DEBUG] Calling bindDocument API...');
-            await bindDocument(props.geoDataType, props.geoData?.id, props.difyDatasetId, selectedDocumentId);
+            await bindDocument(props.geoDataType, props.geoData?.id, props.difyFrontHost, props.difyDatasetId, selectedDocumentId);
             // console.log('✅ [DEBUG] bindDocument successful');
             message.success('绑定成功');
             props.onOk();
@@ -605,7 +643,7 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
         // console.log('📋 [DEBUG] copyName called with:', name);
         setKeyword(name);
         setPage(1);
-        loadDocumentList(1, stateRef.current.limit, name);
+        loadDocumentList(props.difyFrontHost, 1, stateRef.current.limit, name);
     }, [loadDocumentList]);
 
     // 选择文档
@@ -621,7 +659,7 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
         // console.log('📄 [DEBUG] handlePageChange called:', { newPage, newLimit, currentKeyword: stateRef.current.keyword });
         setPage(newPage);
         setLimit(newLimit);
-        loadDocumentList(newPage, newLimit, stateRef.current.keyword);
+        loadDocumentList(props.difyFrontHost, newPage, newLimit, stateRef.current.keyword);
     }, [loadDocumentList]);
 
     // 页面大小变化
@@ -629,14 +667,14 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
         // console.log('📏 [DEBUG] handlePageSizeChange called:', { newPage, newLimit, currentKeyword: stateRef.current.keyword });
         setPage(newPage);
         setLimit(newLimit);
-        loadDocumentList(newPage, newLimit, stateRef.current.keyword);
+        loadDocumentList(props.difyFrontHost, newPage, newLimit, stateRef.current.keyword);
     }, [loadDocumentList]);
 
     // 搜索
     const handleSearch = useCallback(() => {
         // console.log('🔍 [DEBUG] handleSearch called with keyword:', stateRef.current.keyword);
         setPage(1);
-        loadDocumentList(1, stateRef.current.limit, stateRef.current.keyword);
+        loadDocumentList(props.difyFrontHost, 1, stateRef.current.limit, stateRef.current.keyword);
     }, [loadDocumentList]);
 
     // 清除搜索
@@ -644,7 +682,7 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
         // console.log('🗑️ [DEBUG] handleClearSearch called');
         setKeyword('');
         setPage(1);
-        loadDocumentList(1, stateRef.current.limit, null);
+        loadDocumentList(props.difyFrontHost, 1, stateRef.current.limit, null);
     }, [loadDocumentList]);
 
     // 输入框变化
@@ -701,6 +739,7 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
             <div style={{ marginBottom: '16px' }}>
                 {/* 搜索栏 */}
                 <Space.Compact style={{width: '100%'}}>
+                    <Select style={{width: '130px'}} options={props.difyFrontHostOptions.map(option => ({ label: option, value: option }))} value={props.difyFrontHost} onChange={e => store.dispatch(setFrontHost(e))} />
                     <Input
                         placeholder="搜索文档标题"
                         value={keyword}
@@ -828,7 +867,7 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
             
         </Modal>
     )
-}
+})
 
 
 // 创建Dify文档对话框props
@@ -843,10 +882,12 @@ interface ICreateDifyDocumentModalProps {
     geoData: IGeoGeographyUnitData | null;
     onCancel: () => void;
     onOk: () => void;
+    difyFrontHostOptions: string[];
+    difyFrontHost: string;
 }
 
 // 创建Dify文档对话框
-function CreateOrUpdateDifyDocumentModal(props: ICreateDifyDocumentModalProps) {
+const CreateOrUpdateDifyDocumentModal = connect(mapStateToProps)(function CreateOrUpdateDifyDocumentModal(props: ICreateDifyDocumentModalProps) {
     const [title, setTitle] = useState(props.defaultTitle || '');
     const [content, setContent] = useState(props.defaultContent || '');
 
@@ -886,8 +927,15 @@ function CreateOrUpdateDifyDocumentModal(props: ICreateDifyDocumentModalProps) {
             return;
         }
 
+        if (!props.difyFrontHost) {
+            message.error('Dify主机为空，请检查代码！');
+            return;
+        }
+
         try {   
-            const difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, store.getState().difySlice.baseUrl!);
+            const difyBaseUrl = `http://${props.difyFrontHost}/v1`;
+
+            const difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, difyBaseUrl);
 
             if (modalMode === 'create') {
                 let res = await difyApi.createDocument(props.difyDatasetId, title, content);
@@ -898,7 +946,7 @@ function CreateOrUpdateDifyDocumentModal(props: ICreateDifyDocumentModalProps) {
                     return;
                 }
 
-                await bindDocument(props.geoDataType, props.geoData?.id, props.difyDatasetId, documentId);
+                await bindDocument(props.geoDataType, props.geoData?.id, props.difyFrontHost, props.difyDatasetId, documentId);
 
                 message.success('创建成功');
             } else {
@@ -931,10 +979,17 @@ function CreateOrUpdateDifyDocumentModal(props: ICreateDifyDocumentModalProps) {
             cancelText="取消"
         >
             <div style={{ padding: '16px 0' }}>
-                <div style={{ marginBottom: '16px' }}>
-                    <div style={{ marginBottom: '8px', fontWeight: 500 }}>文档标题</div>
-                    <Input placeholder="请输入文档标题" value={title} onChange={(e) => setTitle(e.target.value)} />
+                <div className='f-flex-two-side'>
+                    <div style={{ marginBottom: '16px' }}>
+                        <div style={{ marginBottom: '8px', fontWeight: 500 }}>Dify主机</div>
+                        <Select style={{width: '140px'}} options={props.difyFrontHostOptions.map(option => ({ label: option, value: option }))} value={props.difyFrontHost} onChange={e => store.dispatch(setFrontHost(e))} />
+                    </div>
+                    <div style={{ marginBottom: '16px', flex: 1, marginLeft: '16px' }}>
+                        <div style={{ marginBottom: '8px', fontWeight: 500 }}>文档标题</div>
+                        <Input placeholder="请输入文档标题" value={title} onChange={(e) => setTitle(e.target.value)} />
+                    </div>
                 </div>
+                
                 <div>
                     <div className="f-flex-two-side" style={{ marginBottom: '8px' }}>
                         <span style={{ fontWeight: 500 }}>文档内容</span>
@@ -958,7 +1013,7 @@ function CreateOrUpdateDifyDocumentModal(props: ICreateDifyDocumentModalProps) {
             </div>
         </Modal>
     )
-}
+})
 
 
 async function loadToolConfig(worldViewId: number) {
@@ -972,13 +1027,15 @@ async function loadToolConfig(worldViewId: number) {
 }
 
 // 加载Dify文档内容
-async function loadDocumentContent(difyDatasetId: string, documentId: string) {
+async function loadDocumentContent(difyFrontHost: string, difyDatasetId: string, documentId: string) {
     if (!documentId || !difyDatasetId) {
         message.error('文档ID或数据集ID为空，请检查程序');
         return;
     }
 
-    const difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, store.getState().difySlice.baseUrl!);
+    let difyBaseUrl = `http://${difyFrontHost}/v1`;
+
+    const difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, difyBaseUrl);
     let res = await difyApi.getDocumentContent(
         difyDatasetId, 
         documentId
@@ -1005,10 +1062,11 @@ async function loadDocumentContent(difyDatasetId: string, documentId: string) {
 }
 
 // 为地理对象绑定Dify文档
-async function bindDocument(geoUnitType: string, geoUnitId: number, difyDatasetId: string, difyDocumentId: string) {
+async function bindDocument(geoUnitType: string, geoUnitId: number, difyFrontHost: string, difyDatasetId: string, difyDocumentId: string) {
     return await fetch.post('/api/aiNoval/geo/bindDocument', {
         geoUnitType,
         geoUnitId,
+        difyFrontHost,
         difyDatasetId,
         difyDocumentId
     });
@@ -1025,3 +1083,5 @@ async function getGeoUnitLink(geoUnitType: string, geoUnitId: number) {
 
     return res?.data;
 }
+
+export default connect(mapStateToProps)(GeoDifyDocument);

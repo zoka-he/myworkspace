@@ -1,4 +1,4 @@
-import { Breadcrumb, Button, Space, Switch, Tag } from "antd";
+import { Breadcrumb, Button, Select, Space, Switch, Tag } from "antd";
 import { connect } from "react-redux";
 import store, { IRootState } from "../store";
 import { useSession, signOut } from 'next-auth/react';
@@ -9,6 +9,7 @@ import { IPermission } from "@/pages/api/web/user/permission/type";
 import { setLastPathname, setHistoryTags, setShowAll } from "@/src/store/navigatorSlice";
 import _ from 'lodash';
 import mysqlConfig from "@/src/config/mysql";
+import { setFrontHost } from "@/src/store/difySlice";
 
 const mapStateToProps = (state: IRootState) => {
     return {
@@ -16,7 +17,9 @@ const mapStateToProps = (state: IRootState) => {
         loginUser: state.loginSlice.user,
         lastPathname: state.navigatorSlice.lastPathname,
         hisTags: state.navigatorSlice.historyTags,
-        showAll: state.navigatorSlice.showAll
+        showAll: state.navigatorSlice.showAll,
+        difyFrontHost: state.difySlice.frontHost,
+        difyFrontHostOptions: state.difySlice.difyFrontHostOptions
     }
 }
 
@@ -28,13 +31,13 @@ interface IWorkspaceHeaderProps {
     permMap?: Map<number, IPermission>
     urlMap?: Map<string, IPermission>
     showAll: boolean
+    difyFrontHost: string | null
+    difyFrontHostOptions: string[]
 }
 
 function WorkspaceHeader(props: IWorkspaceHeaderProps) {
     let session = useSession();
     let navigate = useNavigate();
-
-    let [modTags, setModTags] = useState(['模块一', '模块二', '模块三', '模块四']);
 
     let userLabel = null;
     if (props?.loginUser?.nickname || session?.data?.user?.name) {
@@ -126,12 +129,17 @@ function WorkspaceHeader(props: IWorkspaceHeaderProps) {
                 </div>
             </div>
             <Space size={16}>
-                <strong>mysql主机: </strong><Tag>{`${mysqlConfig.MYSQL_HOST}:${mysqlConfig.MYSQL_PORT}`}</Tag>
+                <strong>mysql主机: </strong>
+                <Tag>{`${mysqlConfig.MYSQL_HOST}:${mysqlConfig.MYSQL_PORT}`}</Tag>
+
+                <strong>dify主机: </strong>
+                <Select style={{ width: 130 }} options={props.difyFrontHostOptions.map(option => ({ label: option, value: option }))} value={props.difyFrontHost} onChange={e => store.dispatch(setFrontHost(e))} />
+                
                 <strong>显示模式</strong><Switch checked={props.showAll} unCheckedChildren="公共" checkedChildren="全部" onChange={e => store.dispatch(setShowAll(e))} />
                 {/* {userLabel} */}
                 {settingLabel}
                 {/* <Button type="text" icon={<FullscreenOutlined />}>全屏</Button> */}
-                <Button danger type="primary" icon={<LogoutOutlined />} style={{ width: 40 }} onClick={() => signOut()}></Button>
+                {/* <Button danger type="primary" icon={<LogoutOutlined />} style={{ width: 40 }} onClick={() => signOut()}></Button> */}
             </Space>
         </div>
     )

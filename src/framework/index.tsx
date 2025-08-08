@@ -5,7 +5,7 @@ import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import type { IRootState } from '../store';
 import store from '../store';
 import { setNavMenu as setStoreNavMenu } from '../store/navigatorSlice';
-import { setDatasetsApiKey, setBaseUrl } from '../store/difySlice';
+import { setDatasetsApiKey, setBaseUrl, setDifyFrontHostOptions } from '../store/difySlice';
 import getPermissionTree from '../business/user/permission/getPermissionTree';
 import { IPermission } from '../business/user/permission/IPermission';
 import { ItemType } from 'antd/es/menu/hooks/useItems';
@@ -13,6 +13,8 @@ import fetch from '@/src/fetch';
 import { setLoginUser } from '../store/loginSlice';
 import AppHeader from './appHeader';
 import WorkspaceHeader from './workspaceHeader';
+import mysqlConfig from "@/src/config/mysql";
+import _ from 'lodash';
 
 
 const { Sider, Header, Content } = Layout;
@@ -146,6 +148,13 @@ function MainFrame(props: IMainFrameProps) {
                 }
             });
         }
+
+        let ipData = initData.serverIp;
+        store.dispatch(setDifyFrontHostOptions(_.uniq([
+            `${mysqlConfig.MYSQL_HOST}`,
+            window.location.hostname,
+            ipData
+        ])));
     }
 
 

@@ -14,8 +14,17 @@ import DifyApi from '@/src/utils/dify/dify_api'
 // 导入lodash的debounce函数
 import { debounce } from 'lodash'
 import store from '@/src/store'
+import { setFrontHost } from '@/src/store/difySlice'
+import { connect } from 'react-redux'
 
 const { Title, Text } = Typography
+
+function mapStateToProps(state: any) {
+  return {
+    difyFrontHost: state.difySlice.frontHost,
+    difyFrontHostOptions: state.difySlice.difyFrontHostOptions
+  }
+}
 
 /**
  * 角色信息面板组件的属性接口
@@ -27,6 +36,8 @@ interface RoleInfoPanelProps {
   onOpenRoleInfoEditModal: (roleDef: IRoleData, data?: IRoleInfo) => void | Promise<void>  // 打开编辑模态框回调
   onDeleteRoleInfo: (roleDef: IRoleData, data: IRoleInfo) => void | Promise<void>  // 删除角色信息回调
   worldviewMap: Map<number, IWorldViewData>    // 世界观数据映射
+  difyFrontHost: string
+  difyFrontHostOptions: string[]
 }
 
 /**
@@ -43,12 +54,14 @@ const labelStyle = {
  * 角色信息面板主组件
  * 负责显示角色信息、版本管理、阵营信息和Dify文档集成
  */
-export function RoleInfoPanel({
+export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
   roleDef,
   onVersionChange,
   onOpenRoleInfoEditModal,
   onDeleteRoleInfo,
-  worldviewMap
+  worldviewMap,
+  difyFrontHost,
+  difyFrontHostOptions
 }: RoleInfoPanelProps) {
 
   // 当前选中的角色版本信息
@@ -326,7 +339,7 @@ export function RoleInfoPanel({
       </Card>
     </div>
   )
-}
+})
 
 /**
  * Dify文档管理组件的属性接口
@@ -334,13 +347,14 @@ export function RoleInfoPanel({
 interface IDifyDocumentForRoleProps {
   roleInfo: IRoleInfo                    // 角色信息
   onRequestUpdate?: () => void           // 请求更新回调
+  difyFrontHost: string
 }
 
 /**
  * Dify文档管理组件
  * 负责角色的Dify文档创建、编辑、删除和绑定功能
  */
-function DifyDocumentForRole(props: IDifyDocumentForRoleProps) {
+const DifyDocumentForRole = connect(mapStateToProps)(function (props: IDifyDocumentForRoleProps) {
 
   // Dify文档内容
   let [difyDocumentContent, setDifyDocumentContent] = useState<string | null>(null)
@@ -386,7 +400,7 @@ function DifyDocumentForRole(props: IDifyDocumentForRoleProps) {
           return;
         }
 
-        let res = await createDifyDocument(difyDatasetId, title, content)
+        let res = await createDifyDocument(props.difyFrontHost, difyDatasetId, title, content)
         console.debug('createDifyDocument res: ', res)
         if (res.document.id) {
           await bindRoleInfoDocument(props.roleInfo.id, difyDatasetId, res.document.id)
@@ -397,7 +411,7 @@ function DifyDocumentForRole(props: IDifyDocumentForRoleProps) {
           return;
         }
 
-        await updateDifyDocument(difyDatasetId, difyDocumentId, title, content)
+        await updateDifyDocument(props.difyFrontHost, difyDatasetId, difyDocumentId, title, content)
       }
 
       if (props.onRequestUpdate) {
@@ -464,7 +478,7 @@ function DifyDocumentForRole(props: IDifyDocumentForRoleProps) {
     }
 
     try {
-      await deleteDifyDocument(datasetId, documentId)
+      await deleteDifyDocument(props.difyFrontHost, datasetId, documentId)
       await bindRoleInfoDocument(props.roleInfo.id, '', '');
       message.success('删除成功');
 
@@ -503,10 +517,13 @@ function DifyDocumentForRole(props: IDifyDocumentForRoleProps) {
       return
     }
 
-    loadDocumentContent(difyDatasetId, difyDocumentId).then((res) => {
+    loadDocumentContent(props.difyFrontHost, difyDatasetId, difyDocumentId).then((res) => {
       setDifyDocumentContent(res!.content)
     })
-  }, [difyDatasetId, difyDocumentId])
+    .catch((err) => {
+      message.error('加载文档内容失败，请检查程序');
+    })
+  }, [difyDatasetId, difyDocumentId, props.difyFrontHost])
 
   // 判断是否有Dify文档
   let hasDifyDocument = false;
@@ -576,7 +593,7 @@ function DifyDocumentForRole(props: IDifyDocumentForRoleProps) {
       />
     </>
   )
-}
+})
 
 /**
  * 绑定Dify文档模态框的属性接口
@@ -587,13 +604,15 @@ interface IBindDifyDocumentModalProps {
   roleData: IRoleInfo | null                       // 角色数据
   onOk: (datasetId: string, documentId: string) => void  // 确认绑定回调
   onCancel: () => void                             // 取消回调
+  difyFrontHost: string
+  difyFrontHostOptions: string[]
 }
 
 /**
  * 绑定Dify文档模态框组件
  * 用于选择并绑定现有的Dify文档到角色
  */
-function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
+const BindDifyDocumentModal = connect(mapStateToProps)(function(props: IBindDifyDocumentModalProps) {
   // 选中的文件
   const [selectedFile, setSelectedFile] = useState<string>('')
   // 文件列表
@@ -613,12 +632,12 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
 
   // 组件挂载时加载文档列表
   useEffect(() => {
-    loadDocumentList(props.datasetId);
+    loadDocumentList(props.difyFrontHost, props.datasetId);
   }, [])
 
   // 数据集ID变化时重新加载文档列表
   useEffect(() => {
-    loadDocumentList(props.datasetId);
+    loadDocumentList(props.difyFrontHost, props.datasetId);
   }, [props.datasetId])
 
   // 选中的文档ID变化时加载文档内容
@@ -628,21 +647,23 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
       return
     }
 
-    loadDocumentContent(props.datasetId, selectedDocumentId).then((res) => {
+    console.debug('----------------- loadDocumentContent useEffect: ', props.difyFrontHost, props.datasetId, selectedDocumentId)
+    loadDocumentContent(props.difyFrontHost, props.datasetId, selectedDocumentId).then((res) => {
       setDifyDocumentContent(res!.content)
     })
-  }, [props.datasetId, selectedDocumentId])
+  }, [props.datasetId, selectedDocumentId, props.difyFrontHost])
 
   /**
    * 加载文档列表
    * 从Dify API获取指定数据集的文档列表
    */
-  function loadDocumentList(datasetId?: string | null, page: number = 1, pageSize: number = 10, keyword: string = '') {
+  function loadDocumentList(difyFrontHost: string, datasetId?: string | null, page: number = 1, pageSize: number = 10, keyword: string = '') {
     if (!datasetId) {
       return
     }
 
-    const difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, store.getState().difySlice.baseUrl!);
+    const difyBaseUrl = `http://${difyFrontHost}/v1`;
+    const difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, difyBaseUrl);
     difyApi.getDocumentList(datasetId, page, pageSize, keyword).then((res) => {
       setFileList(res.data)
       setTotal(res.total)
@@ -655,8 +676,8 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
   const handlePageChange = useCallback((page: number, pageSize: number) => {
     setPage(page)
     setPageSize(pageSize)
-    loadDocumentList(props.datasetId, page, pageSize, keyword)
-  }, [props.datasetId, keyword])
+    loadDocumentList(props.difyFrontHost, props.datasetId, page, pageSize, keyword)
+  }, [props.difyFrontHost, props.datasetId, keyword])
 
   /**
    * 处理确认绑定
@@ -677,9 +698,9 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
   const handleKeywordChange = useCallback((value: string) => {
     setKeyword(value)
     debounce(() => {
-      loadDocumentList(props.datasetId, 1, pageSize, value)
+      loadDocumentList(props.difyFrontHost, props.datasetId, 1, pageSize, value)
     }, 300)()
-  }, [props.datasetId, pageSize])
+  }, [props.difyFrontHost, props.datasetId, pageSize])
 
   // 构建模态框标题，包含角色名称和复制按钮
   let modalTitle = <span>绑定Dify文档</span>;
@@ -699,8 +720,10 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
       footer={null}
     >
       {/* 搜索输入框 */}
-      <div style={{ marginBottom: 16 }}>
-        <Input placeholder='请输入文档名称' value={keyword} onChange={e => handleKeywordChange(e.target.value)} prefix={<SearchOutlined />}></Input>
+      <div className="f-flex-row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <Text>Dify主机：</Text>
+          <Select style={{width: '140px'}} options={props.difyFrontHostOptions.map(option => ({ label: option, value: option }))} value={props.difyFrontHost} onChange={e => store.dispatch(setFrontHost(e))} />
+          <Input style={{flex: 1, marginLeft: '16px'}} placeholder='请输入文档名称' value={keyword} onChange={e => handleKeywordChange(e.target.value)} prefix={<SearchOutlined />}></Input>
       </div>
       <Row gutter={16}>
         {/* 左侧文档列表 */}
@@ -795,7 +818,7 @@ function BindDifyDocumentModal(props: IBindDifyDocumentModalProps) {
       </Row>
     </Modal>
   )
-}
+})
 
 /**
  * Dify文档编辑模态框的属性接口
@@ -920,13 +943,15 @@ interface IRecallDifyDocumentProps {
   datasetId: string | null         // 数据集ID
   onOk: () => void                 // 确认回调
   onCancel: () => void             // 取消回调
+  difyFrontHost: string
+  difyFrontHostOptions: string[]
 }
 
 /**
  * 召回Dify文档组件
  * 用于刷新和召回Dify文档内容（当前功能未完全实现）
  */
-function RecallDifyDocument(props: IRecallDifyDocumentProps) {
+const RecallDifyDocument = connect(mapStateToProps)(function(props: IRecallDifyDocumentProps) {
 
   // Dify数据集ID
   const [difyDatasetId, setDifyDatasetId] = useState<string>('');
@@ -966,7 +991,7 @@ function RecallDifyDocument(props: IRecallDifyDocumentProps) {
 
     try {
       setLoading(true)
-      let res = await recallDifyDocument(difyDatasetId, keyword)
+      let res = await recallDifyDocument(props.difyFrontHost, difyDatasetId, keyword)
 
       if (res.records.length > 0) {
         setRecallResult(res.records)
@@ -1016,8 +1041,10 @@ function RecallDifyDocument(props: IRecallDifyDocumentProps) {
       onCancel={props.onCancel}
       footer={null}
     >
-      <div>
-        <Input placeholder='请输入召回关键词' value={keyword} onChange={e => setKeyword(e.target.value)} prefix={<SearchOutlined />}></Input>
+      <div className="f-flex-row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+        <Text>Dify主机：</Text>
+        <Select options={props.difyFrontHostOptions.map(option => ({ label: option, value: option }))} value={props.difyFrontHost} onChange={e => store.dispatch(setFrontHost(e))}></Select>
+        <Input style={{flex: 1, marginLeft: '16px'}} placeholder='请输入召回关键词' value={keyword} onChange={e => setKeyword(e.target.value)} prefix={<SearchOutlined />}></Input>
       </div>
       <Divider />
       <div style={{ minHeight: '50vh', overflow: 'auto' }}>
@@ -1049,7 +1076,7 @@ function RecallDifyDocument(props: IRecallDifyDocumentProps) {
       </div>
     </Modal>
   )
-}
+})
 
 /**
  * 加载工具配置
@@ -1069,13 +1096,16 @@ async function loadToolConfig(worldViewId: number) {
  * 加载文档内容
  * 从Dify API获取指定文档的内容
  */
-async function loadDocumentContent(difyDatasetId: string, documentId: string) {
+async function loadDocumentContent(difyFrontHost: string, difyDatasetId: string, documentId: string) {
   if (!documentId || !difyDatasetId) {
     message.error('文档ID或数据集ID为空，请检查程序');
     return;
   }
 
-  const difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, store.getState().difySlice.baseUrl!);
+  console.debug('----------------- loadDocumentContent difyFrontHost: ', difyFrontHost, difyDatasetId, documentId)
+
+  const difyBaseUrl = `http://${difyFrontHost}/v1`;
+  const difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, difyBaseUrl);
   let res = await difyApi.getDocumentContent(
       difyDatasetId, 
       documentId
@@ -1124,8 +1154,9 @@ async function bindRoleInfoDocument(roleInfoId: number, datasetId: string, docum
  * 创建Dify文档
  * 在指定数据集中创建新的文档
  */
-async function createDifyDocument(datasetId: string, documentTitle: string, documentContent: string) {
-  const difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, store.getState().difySlice.baseUrl!);
+async function createDifyDocument(difyFrontHost: string, datasetId: string, documentTitle: string, documentContent: string) {
+  const difyBaseUrl = `http://${difyFrontHost}/v1`;
+  const difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, difyBaseUrl);
   return await difyApi.createDocument(datasetId, documentTitle, documentContent);
 }
 
@@ -1133,8 +1164,9 @@ async function createDifyDocument(datasetId: string, documentTitle: string, docu
  * 更新Dify文档
  * 更新指定文档的内容
  */
-async function updateDifyDocument(datasetId: string, documentId: string, documentTitle: string, documentContent: string) {
-  const difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, store.getState().difySlice.baseUrl!);
+async function updateDifyDocument(difyFrontHost: string, datasetId: string, documentId: string, documentTitle: string, documentContent: string) {
+  const difyBaseUrl = `http://${difyFrontHost}/v1`;
+  const difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, difyBaseUrl);
   return await difyApi.updateDocument(datasetId, documentId, documentTitle, documentContent);
 }
 
@@ -1142,15 +1174,17 @@ async function updateDifyDocument(datasetId: string, documentId: string, documen
  * 删除Dify文档
  * 删除指定的文档
  */
-async function deleteDifyDocument(datasetId: string, documentId: string) {
-  const difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, store.getState().difySlice.baseUrl!);
+async function deleteDifyDocument(difyFrontHost: string, datasetId: string, documentId: string) {
+  const difyBaseUrl = `http://${difyFrontHost}/v1`;
+  const difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, difyBaseUrl);
   let res = await difyApi.deleteDocument(datasetId, documentId);
   return res.data;
 }
 
 
-async function recallDifyDocument(datasetId: string, keyword: string) {
-  const difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, store.getState().difySlice.baseUrl!);
+async function recallDifyDocument(difyFrontHost: string, datasetId: string, keyword: string) {
+  const difyBaseUrl = `http://${difyFrontHost}/v1`;
+  const difyApi = new DifyApi(store.getState().difySlice.datasetsApiKey!, difyBaseUrl);
   return await difyApi.queryDataset(datasetId, keyword);
 }
 
