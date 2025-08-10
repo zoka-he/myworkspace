@@ -38,10 +38,100 @@ interface D3FactionViewProps {
 export function D3FactionView({ worldViewId, updateTimestamp }: D3FactionViewProps) {
   // SVG元素引用
   const svgRef = useRef<SVGSVGElement>(null)
+  // 容器元素引用
+  const containerRef = useRef<HTMLDivElement>(null)
   // 阵营数据状态
   const [factions, setFactions] = useState<Faction[]>([])
   // 阵营关系数据状态
   const [relations, setRelations] = useState<FactionRelation[]>([])
+  // 容器尺寸状态
+  const [containerSize, setContainerSize] = useState({ width: 800, height: 600 })
+
+  // 监听容器尺寸变化
+  useEffect(() => {
+    const updateSize = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect()
+        
+        // 如果容器还没有完全渲染，使用默认尺寸
+        if (rect.width === 0 || rect.height === 0) {
+          // 尝试从父容器获取尺寸
+          const parentRect = containerRef.current.parentElement?.getBoundingClientRect()
+          if (parentRect && parentRect.width > 0 && parentRect.height > 0) {
+            const newWidth = Math.max(Math.min(parentRect.width, 1200), 400)
+            const newHeight = Math.max(Math.min(parentRect.height, window.innerHeight * 0.8), 300)
+            setContainerSize({ width: newWidth, height: newHeight })
+            return
+          }
+          // 如果父容器也没有尺寸，使用默认值
+          setContainerSize({ width: 800, height: 600 })
+          return
+        }
+        
+        // 设置合理的尺寸范围
+        const newWidth = Math.max(Math.min(rect.width, 1200), 400) // 宽度范围：400-1200px
+        const newHeight = Math.max(Math.min(rect.height, window.innerHeight * 0.8), 300) // 高度范围：300-600px
+        
+        setContainerSize({
+          width: newWidth,
+          height: newHeight
+        })
+      }
+    }
+
+    // 延迟初始更新，确保DOM完全渲染
+    const initialTimer = setTimeout(updateSize, 100)
+
+    // 监听窗口大小变化
+    const handleWindowResize = () => {
+      clearTimeout((window as any).resizeTimer)
+      ;(window as any).resizeTimer = setTimeout(updateSize, 100)
+    }
+
+    window.addEventListener('resize', handleWindowResize)
+
+    return () => {
+      clearTimeout(initialTimer)
+      window.removeEventListener('resize', handleWindowResize)
+      clearTimeout((window as any).resizeTimer)
+    }
+  }, []) // 只在组件挂载时执行一次
+
+  // 数据刷新时重新计算容器尺寸
+  useEffect(() => {
+    const updateSizeOnDataRefresh = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect()
+        
+        // 如果容器还没有完全渲染，使用默认尺寸
+        if (rect.width === 0 || rect.height === 0) {
+          const parentRect = containerRef.current.parentElement?.getBoundingClientRect()
+          if (parentRect && parentRect.width > 0 && parentRect.height > 0) {
+            const newWidth = Math.max(Math.min(parentRect.width, 1200), 400)
+            const newHeight = Math.max(Math.min(parentRect.height, window.innerHeight * 0.8), 300)
+            setContainerSize({ width: newWidth, height: newHeight })
+            return
+          }
+          setContainerSize({ width: 800, height: 600 })
+          return
+        }
+        
+        // 设置合理的尺寸范围
+        const newWidth = Math.max(Math.min(rect.width, 1200), 400) // 宽度范围：400-1200px
+        const newHeight = Math.max(Math.min(rect.height, window.innerHeight * 0.8), 300) // 高度范围：300-600px
+        
+        setContainerSize({
+          width: newWidth,
+          height: newHeight
+        })
+      }
+    }
+
+    // 延迟执行，确保DOM更新完成
+    const timer = setTimeout(updateSizeOnDataRefresh, 50)
+    
+    return () => clearTimeout(timer)
+  }, [updateTimestamp]) // 当数据刷新时触发
 
   // 获取阵营数据和关系数据
   useEffect(() => {
@@ -80,8 +170,8 @@ export function D3FactionView({ worldViewId, updateTimestamp }: D3FactionViewPro
     d3.select(svgRef.current).selectAll('*').remove()
 
     // 设置SVG尺寸和边距
-    const width = 800
-    const height = 600
+    const width = containerSize.width
+    const height = containerSize.height
     const margin = { top: 30, right: 30, bottom: 30, left: 30 }
 
     // 创建SVG容器
@@ -543,11 +633,11 @@ export function D3FactionView({ worldViewId, updateTimestamp }: D3FactionViewPro
       }
     })
 
-  }, [factions, relations])
+  }, [factions, relations, containerSize])
 
   return (
-    <div className="w-full h-full">
-      <svg ref={svgRef} className="w-full h-full" />
+    <div ref={containerRef} className="f-fit-height" style={{ overflow: 'hidden' }}>
+      <svg ref={svgRef} className="f-fit-height" style={{ maxHeight: '100%' }} />
     </div>
   )
 }
