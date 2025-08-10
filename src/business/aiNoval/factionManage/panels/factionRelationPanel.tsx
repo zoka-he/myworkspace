@@ -87,8 +87,8 @@ export function FactionRelationPanel({ worldviewData, currentFaction, factions, 
 
   if (!currentFaction) {
     return (
-      <div className={styles.container}>
-        <div className={styles.emptyState}>
+      <div className={`${styles.container} f-fit-height f-flex-col`}>
+        <div className={`${styles.emptyState} f-flex-1`}>
           <Empty description="请先选择一个阵营" />
         </div>
       </div>
@@ -232,7 +232,7 @@ export function FactionRelationPanel({ worldviewData, currentFaction, factions, 
   }
 
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} f-fit-height f-flex-col`}>
       <List
         header={
           <Row justify="space-between" align="middle">
@@ -247,7 +247,7 @@ export function FactionRelationPanel({ worldviewData, currentFaction, factions, 
           </Row>
         }
         dataSource={relations || []}
-        className={styles.list}
+        className={`${styles.list} f-flex-1`}
         size="small"
         loading={loading}
         rowKey={(record) => record?.id?.toString() || Math.random().toString()}
