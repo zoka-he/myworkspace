@@ -3,8 +3,20 @@ import { ILlmDatasetInfo } from "@/src/utils/dify/types";
 import { Button, Form, Input, message, Select, Space } from "antd";
 import fetch from '@/src/fetch';
 import * as apiCalls from '../worldViewManage/apiCalls';
+import store from '@/src/store';
+import { connect } from 'react-redux';
 
-export function WorldViewConfig() {
+function mapStateToProps(state: any) {
+    return {
+        difyFrontHost: state.difySlice.frontHost,
+    }
+}
+
+interface IWorldViewConfigProps {
+    difyFrontHost: string;
+}
+
+export const WorldViewConfig = connect(mapStateToProps)(function({ difyFrontHost }: IWorldViewConfigProps) {
     let [llmDatasetOptions, setLlmDatasetOptions] = useState<any[]>([]);
     let [worldViewList, setWorldViewList] = useState<any[]>([]);
     let [selectedWorldView, setSelectedWorldView] = useState<any>(null);
@@ -27,14 +39,19 @@ export function WorldViewConfig() {
     }, [selectedWorldView]);
 
     async function loadLlmDatasetOptions() {
-        let res = await fetch.get('/api/aiNoval/toolConfig/difyDatasets') as ILlmDatasetInfo[];
-        let options = res.map((item: ILlmDatasetInfo) => {
-            return {
-                label: item.name,
-                value: item.id
-            }
-        });
-        setLlmDatasetOptions(options);
+        try {
+            let res = await fetch.get('/api/aiNoval/toolConfig/difyDatasets', { params: { difyFrontHost } }) as ILlmDatasetInfo[];
+            let options = res.map((item: ILlmDatasetInfo) => {
+                return {
+                    label: item.name,
+                    value: item.id
+                }
+            });
+            setLlmDatasetOptions(options);
+        } catch (error: any) {
+            console.error('Failed to load LLM dataset options:', error);
+            message.error('获取知识库列表失败，请检查Dify服务状态');
+        }
     }
 
     async function loadToolConfig() {
@@ -68,6 +85,10 @@ export function WorldViewConfig() {
         loadLlmDatasetOptions();
         loadToolConfig();
     }, []);
+
+    useEffect(() => {
+        loadLlmDatasetOptions();
+    }, [difyFrontHost]);
 
     const formLayout = {
         labelCol: { span: 8 },
@@ -158,4 +179,4 @@ export function WorldViewConfig() {
             </Form.Item>
         </Form>
     );
-} 
+})

@@ -14,11 +14,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         return;
     }
 
-    let difyDatasetBaseUrl = await toolsConfigService.getConfig('DIFY_DATASET_BASE_URL');
-    if (!difyDatasetBaseUrl) {
+    let difyFrontHost = req.query.difyFrontHost as string;
+    if (!difyFrontHost) {
         res.status(500).json({ message: 'DIFY知识库API入口未设置' });
         return;
     }
+
+    let difyDatasetBaseUrl = `http://${difyFrontHost}/v1`;
 
     let difyApi = new Dify(difyDatasetApiKey, difyDatasetBaseUrl);
     let datasets = await difyApi.getDatasets(1, 100);
