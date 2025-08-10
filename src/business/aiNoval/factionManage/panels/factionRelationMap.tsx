@@ -172,7 +172,8 @@ export function D3FactionView({ worldViewId, updateTimestamp }: D3FactionViewPro
     // 设置SVG尺寸和边距
     const width = containerSize.width
     const height = containerSize.height
-    const margin = { top: 30, right: 30, bottom: 30, left: 30 }
+    const margin = { top: 30, right: 100, bottom: 30, left: 100 }
+    const textMargin = { top: 30, right: 30, bottom: 30, left: 30 }
 
     // 创建SVG容器
     const svg = d3.select(svgRef.current)
@@ -383,7 +384,7 @@ export function D3FactionView({ worldViewId, updateTimestamp }: D3FactionViewPro
         }
         
         textGroups.set(rootChild.id, {
-          x: isLeftSide ? 100 : width - 150,
+          x: isLeftSide ? 20 : width - 200,
           y: nodeY,
           nodes: groupNodes,
           isLeft: isLeftSide
