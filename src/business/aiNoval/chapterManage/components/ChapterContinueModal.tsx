@@ -452,7 +452,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
     };
     console.info('auto write reqObj -> ', reqObj);
 
-    const res = await chapterApi.genChapterBlocking(selectedChapter.worldview_id, reqObj);
+    const res = await chapterApi.genChapterBlocking(selectedChapter.worldview_id, reqObj, store.getState().difySlice.frontHost || '');
     console.info('auto write res -> ', res);
 
     setAutoWriteResult(res || '续写已结束，未返回内容');

@@ -340,11 +340,11 @@ export const pickFromText = async (target: string, src_text: string): Promise<an
 }
 
 // 生成章节
-export const genChapterBlocking = async (worldviewId: number, inputs: any): Promise<string> => {
+export const genChapterBlocking = async (worldviewId: number, inputs: any, difyHost: string = ''): Promise<string> => {
     const response = await fetch.post(`/api/aiNoval/chapters/genChapter`, 
         inputs,
         {
-            params: {worldviewId},
+            params: {worldviewId, difyHost},
             timeout: 1000 * 60 * 10
         }
     );

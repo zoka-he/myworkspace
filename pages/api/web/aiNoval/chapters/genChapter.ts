@@ -31,7 +31,12 @@ async function handlePick(req: NextApiRequest, res: NextApiResponse<Data>) {
         return;
     }
 
-    let difyDatasetBaseUrl = await toolsConfigService.getConfig('DIFY_DATASET_BASE_URL');
+    let difyDatasetBaseUrl
+    if (req.query.difyHost) {
+        difyDatasetBaseUrl = `http://${req.query.difyHost}/v1`;
+    } else {
+        difyDatasetBaseUrl = await toolsConfigService.getConfig('DIFY_DATASET_BASE_URL');
+    }
     if (!difyDatasetBaseUrl) {
         res.status(500).json({ message: 'DIFY知识库API入口未设置' });
         return;
