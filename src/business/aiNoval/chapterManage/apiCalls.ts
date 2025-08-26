@@ -260,7 +260,7 @@ export const loadRoleList = async (worldviewId: number, page: number = 1, limit:
     return response.data || [];
 }
 
-export const stripChapterBlocking = async (chapterId: number, stripLength: number = 300): Promise<string> => {
+export const stripChapterBlocking = async (chapterId: number, stripLength: number = 300, difyHost: string = ''): Promise<string> => {
     const response = await fetch.post(`/api/aiNoval/chapters/strip`, 
         {},
         {
@@ -270,7 +270,8 @@ export const stripChapterBlocking = async (chapterId: number, stripLength: numbe
             params: {
                 chapterId,
                 stripLength,
-                mode: 'blocking'
+                mode: 'blocking',
+                difyHost
             },
             timeout: 1000 * 60 * 10
         }

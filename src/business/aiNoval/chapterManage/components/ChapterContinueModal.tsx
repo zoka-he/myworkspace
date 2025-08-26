@@ -9,6 +9,8 @@ import TextArea from 'antd/es/input/TextArea'
 import _ from 'lodash'
 import ChapterStripState, { type ChapterStripReport, type ChapterStripStateProps } from './ChapterStripState'
 import copyToClip from '@/src/utils/common/copy';
+import store from '@/src/store'
+import { connect } from 'react-redux'
 
 interface ChapterContinueModalProps {
   selectedChapterId: number | undefined
@@ -357,7 +359,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
             return newList;
           });
 
-          const text = await chapterApi.stripChapterBlocking(chapter.id || 0)
+          const text = await chapterApi.stripChapterBlocking(chapter.id || 0, 300, store.getState().difySlice.frontHost || '')
           
           // 更新状态为已完成
           setStripReportList(prevList => {
