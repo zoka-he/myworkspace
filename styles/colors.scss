@@ -53,3 +53,28 @@
 .f-bg-green18 {
   background-color: mix(green, white, 18%);
 }
+
+
+html[data-theme="light"] {
+  --m-chapter-eventpool-background: #fafafa;
+  --m-chapter-scroll-background: #d9d9d9;
+  --m-chapter-scroll-track: #f0f0f0;
+  --m-chapter-list-border: #f0f0f0;
+  --m-chapter-listitem-hover-background: #f0f0f0;
+
+  --m-chapter-eventpool-modal-background: #fafafa;
+  --m-chapter-eventpool-card-background: white;
+  --m-chapter-eventpool-card-info-background: #fafafa;
+}
+
+html[data-theme="dark"] {
+  --m-chapter-eventpool-background: #050505;
+  --m-chapter-scroll-background: #202020;
+  --m-chapter-scroll-track: #0f0f0f;
+  --m-chapter-list-border: #575757;
+  --m-chapter-listitem-hover-background: #575757;
+
+  --m-chapter-eventpool-modal-background: #303030;
+  --m-chapter-eventpool-card-background: #222;
+  --m-chapter-eventpool-card-info-background: #333;
+}

@@ -1,5 +1,5 @@
 .eventPoolContainer {
-  background: #fff;
+  // background: #fff;
   border-radius: 4px;
   padding: 16px;
   height: calc(100vh - 380px);
@@ -11,7 +11,7 @@
   flex: 1;
   overflow-y: auto;
   padding: 8px;
-  background: #fafafa;
+  background: var(--m-chapter-eventpool-modal-background);
   border-radius: 4px;
   margin: 8px 0;
 
@@ -32,7 +32,7 @@
 .eventCard {
   padding: 12px;
   margin-bottom: 8px;
-  background: white;
+  background: var(--m-chapter-eventpool-card-background);
   border-radius: 4px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   cursor: move;
@@ -71,7 +71,7 @@
 .relatedInfo {
   margin-top: 16px;
   padding: 12px;
-  background: #fafafa;
+  background: var(--m-chapter-eventpool-card-info-background);
   border-radius: 4px;
 }
 
