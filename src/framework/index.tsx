@@ -1,4 +1,4 @@
-import { Breadcrumb, Layout, Menu, FloatButton, Button, Space, Switch } from 'antd';
+import { Breadcrumb, Layout, Menu, FloatButton, Button, Space, Switch, MenuTheme } from 'antd';
 import { connect } from 'react-redux';
 import React, { useEffect, useRef, useState } from 'react';
 import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
@@ -39,6 +39,7 @@ interface IMainFrameProps {
 function MainFrame(props: IMainFrameProps) {
     const dispatch = useDispatch();
     const showAll = useSelector((state: IRootState) => state.navigatorSlice.showAll);
+    const themeMode = useSelector((state: IRootState) => state.themeSlice.themeConfig.algorithm);
 
     let location = useLocation();
     let navigate = useNavigate();
@@ -186,14 +187,14 @@ function MainFrame(props: IMainFrameProps) {
 
     return (
         <Layout className="f-fit-height">
-            <Sider width={160}>
+            <Sider width={160} theme={themeMode === 'dark' ? 'dark' : 'light'}>
                 <AppHeader/>
                 <div style={{ padding: '12px', textAlign: 'center' }}>
                     <Switch checked={showAll} unCheckedChildren="公共" checkedChildren="全部" onChange={e => dispatch(setShowAll(e))} />
                 </div>
                 <Menu
                     className="f-flex-1"
-                    theme="dark"
+                    theme={themeMode === 'dark' ? 'dark' : 'light'}
                     mode="inline"
                     inlineIndent={16}
                     items={(menu as ItemType[])}
