@@ -10,6 +10,7 @@ import { setLastPathname, setHistoryTags, setShowAll } from "@/src/store/navigat
 import _ from 'lodash';
 import mysqlConfig from "@/src/config/mysql";
 import { setFrontHost } from "@/src/store/difySlice";
+import { setTheme } from "@/src/store/themeSlice";
 
 const mapStateToProps = (state: IRootState) => {
     return {
@@ -19,7 +20,8 @@ const mapStateToProps = (state: IRootState) => {
         hisTags: state.navigatorSlice.historyTags,
         showAll: state.navigatorSlice.showAll,
         difyFrontHost: state.difySlice.frontHost,
-        difyFrontHostOptions: state.difySlice.difyFrontHostOptions
+        difyFrontHostOptions: state.difySlice.difyFrontHostOptions,
+        themeMode: state.themeSlice.themeConfig.algorithm
     }
 }
 
@@ -32,7 +34,8 @@ interface IWorkspaceHeaderProps {
     urlMap?: Map<string, IPermission>
     showAll: boolean
     difyFrontHost: string | null
-    difyFrontHostOptions: string[]
+    difyFrontHostOptions: string[],
+    themeMode: string
 }
 
 function WorkspaceHeader(props: IWorkspaceHeaderProps) {
@@ -135,7 +138,7 @@ function WorkspaceHeader(props: IWorkspaceHeaderProps) {
                 <strong>dify主机: </strong>
                 <Select style={{ width: 130 }} options={props.difyFrontHostOptions.map(option => ({ label: option, value: option }))} value={props.difyFrontHost} onChange={e => store.dispatch(setFrontHost(e))} />
                 
-                <strong>显示模式</strong><Switch checked={props.showAll} unCheckedChildren="公共" checkedChildren="全部" onChange={e => store.dispatch(setShowAll(e))} />
+                <strong>显示模式</strong><Switch checked={props.themeMode === 'dark'} unCheckedChildren="白天" checkedChildren="黑夜" onChange={e => store.dispatch(setTheme(e ? 'dark' : 'light'))} />
                 {/* {userLabel} */}
                 {settingLabel}
                 {/* <Button type="text" icon={<FullscreenOutlined />}>全屏</Button> */}

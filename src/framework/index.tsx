@@ -1,4 +1,4 @@
-import { Breadcrumb, Layout, Menu, FloatButton, Button, Space } from 'antd';
+import { Breadcrumb, Layout, Menu, FloatButton, Button, Space, Switch } from 'antd';
 import { connect } from 'react-redux';
 import React, { useEffect, useRef, useState } from 'react';
 import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
@@ -15,7 +15,8 @@ import AppHeader from './appHeader';
 import WorkspaceHeader from './workspaceHeader';
 import mysqlConfig from "@/src/config/mysql";
 import _ from 'lodash';
-
+import { setShowAll } from '@/src/store/navigatorSlice';
+import { useSelector, useDispatch } from 'react-redux';
 
 const { Sider, Header, Content } = Layout;
 
@@ -36,6 +37,8 @@ interface IMainFrameProps {
 }
 
 function MainFrame(props: IMainFrameProps) {
+    const dispatch = useDispatch();
+    const showAll = useSelector((state: IRootState) => state.navigatorSlice.showAll);
 
     let location = useLocation();
     let navigate = useNavigate();
@@ -185,6 +188,9 @@ function MainFrame(props: IMainFrameProps) {
         <Layout className="f-fit-height">
             <Sider width={160}>
                 <AppHeader/>
+                <div style={{ padding: '12px', textAlign: 'center' }}>
+                    <Switch checked={showAll} unCheckedChildren="公共" checkedChildren="全部" onChange={e => dispatch(setShowAll(e))} />
+                </div>
                 <Menu
                     className="f-flex-1"
                     theme="dark"
