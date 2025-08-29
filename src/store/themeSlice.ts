@@ -10,11 +10,16 @@ interface IStyleState {
     }
 }
 
+let defaultTheme = DEFAULT_THEME;
+if (typeof window !== 'undefined') {
+    defaultTheme = window.localStorage.getItem('myworksite_theme') || DEFAULT_THEME;
+}
+
 const styleSlice = createSlice({
     name: 'style',
     initialState: {
-        currentTheme: DEFAULT_THEME,
-        themeConfig: THEMES[DEFAULT_THEME]
+        currentTheme: defaultTheme,
+        themeConfig: THEMES[defaultTheme as keyof typeof THEMES] || THEMES.light
     },
     reducers: {
         setTheme: (state, action) => {
@@ -26,14 +31,16 @@ const styleSlice = createSlice({
 
             state.currentTheme = themeName;
             state.themeConfig = (THEMES[themeName as keyof typeof THEMES] || THEMES.light) as any;
+
+            window.localStorage.setItem('myworksite_theme', themeName);
         },
         updateThemeToken: (state, action) => {
             state.themeConfig = {
-            ...state.themeConfig,
-            token: {
-                ...state.themeConfig.token,
-                ...action.payload
-            }
+                ...state.themeConfig,
+                token: {
+                    ...state.themeConfig.token,
+                    ...action.payload
+                }
             };
         }
     }
