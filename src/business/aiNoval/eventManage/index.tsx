@@ -15,6 +15,8 @@ import { loadGeoTree, type IGeoTreeItem } from '../common/geoDataUtil'
 import EventEditPanel from './components/EventEditPanel'
 import _ from 'lodash'
 import { TimelineDateFormatter } from '../common/novelDateUtils'
+import { useSelector } from 'react-redux'
+import { IRootState } from '@/src/store'
 
 
 const { Header, Sider, Content } = Layout
@@ -73,6 +75,8 @@ function EventManager() {
   const [selectedLocations, setSelectedLocations] = useState<string[]>([])
   const [selectedFactions, setSelectedFactions] = useState<string[]>([])
   const [selectedCharacters, setSelectedCharacters] = useState<string[]>([])
+
+  const theme = useSelector((state: IRootState) => state.themeSlice.currentTheme)
 
   // Fetch world views when component mounts
   useEffect(() => {
@@ -920,7 +924,13 @@ function EventManager() {
       {/* 中部面板 */}
       <Layout style={{ height: '100%' }}>
         {/* 中部面板头部 */}
-        <Header style={{ background: '#fff', padding: '0 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Header style={{ 
+          background: theme === 'light' ? '#fff' : '#222', 
+          padding: '0 16px', 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center' 
+        }}>
           <Space>
             {renderBreadcrumb()}
             {selectedStoryLine && (
@@ -972,53 +982,7 @@ function EventManager() {
             <Layout style={{ height: '100%' }}>
               <Header style={{ background: '#fff0', padding: '0 16px', height: '40px', lineHeight: '40px' }}>
                 <div style={{ padding: '0 20px', marginBottom: '10px' }}>
-                  {/* <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <Space>
-                      <Typography.Text>地点筛选：</Typography.Text>
-                      <TreeSelect
-                        treeData={getGeoTreeData()}
-                        value={selectedLocations}
-                        onChange={setSelectedLocations}
-                        multiple
-                        treeCheckable
-                        showCheckedStrategy={TreeSelect.SHOW_PARENT}
-                        placeholder="请选择地点"
-                        style={{ width: 200 }}
-                        allowClear
-                      />
-                    </Space>
-                    <Space>
-                      <Typography.Text>阵营筛选：</Typography.Text>
-                      <TreeSelect
-                        treeData={getFactionTreeData()}
-                        value={selectedFactions}
-                        onChange={setSelectedFactions}
-                        multiple
-                        treeCheckable
-                        showCheckedStrategy={TreeSelect.SHOW_PARENT}
-                        placeholder="请选择阵营"
-                        style={{ width: 200 }}
-                        allowClear
-                      />
-                    </Space>
-                    <Space>
-                      <Typography.Text>角色筛选：</Typography.Text>
-                      <Select
-                        mode="multiple"
-                        value={selectedCharacters}
-                        onChange={setSelectedCharacters}
-                        placeholder="请选择角色"
-                        style={{ width: 200 }}
-                        allowClear
-                      >
-                        {roles.map(role => (
-                          <Select.Option key={role.id} value={role.id?.toString()}>
-                            {role.name}
-                          </Select.Option>
-                        ))}
-                      </Select>
-                    </Space>
-                  </div> */}
+                  
                   <div style={{ display: 'flex', alignItems: 'center' }}>
                     <label htmlFor="secondsPerPixel">时间轴缩放：</label>
                     <Slider
@@ -1062,7 +1026,7 @@ function EventManager() {
         </Content>
       </Layout>
 
-      <Sider width={350} theme="light" style={{ height: '100%', borderLeft: '1px solid #f0f0f0', overflow: 'auto' }}>
+      <Sider width={350} theme="light" style={{ height: '100%', borderLeft: `1px solid var(--bg-lv2)`, overflow: 'auto' }}>
         <EventEditPanel
           selectedEvent={selectedEvent}
           isAddingEvent={isAddingEvent}

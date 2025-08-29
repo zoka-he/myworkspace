@@ -9,6 +9,8 @@ import { TIMELINE_CONFIG } from './config'
 import { loadGeoTree, IGeoTreeItem } from '@/src/business/aiNoval/common/geoDataUtil'
 import fetch from '@/src/fetch'
 import { TimelineDateFormatter } from '../../common/novelDateUtils'
+import { IRootState } from '@/src/store'
+import { useSelector } from 'react-redux'
 
 export type ViewType = 'location' | 'faction' | 'character'
 
@@ -184,6 +186,7 @@ function createVisualization(
     worldviews: IWorldViewDataWithExtra[],
     containerHeight: number
     timeRange: { min: number; max: number }
+    theme: string
   }
 ) {
   // Clear any existing content
@@ -199,7 +202,7 @@ function createVisualization(
     .attr('width', '100%')
     .attr('viewBox', `0 0 ${containerElement.clientWidth} ${containerElement.clientHeight}`)
     .attr('preserveAspectRatio', 'xMidYMid meet')
-    .style('background-color', 'white')
+    .style('background-color', props.theme === 'dark' ? '#333' : 'white')
 
   // Set up dimensions
   const margin = { top: 80, right: 40, bottom: 60, left: 60 }
@@ -392,6 +395,8 @@ export function UnifiedEventView({
   // Add ref to store previous timestamps for comparison
   const prevTimestamps = useRef<{ min: number; max: number } | null>(null)
 
+  const theme = useSelector((state: IRootState) => state.themeSlice.currentTheme)
+
   // Load geo tree data
   useEffect(() => {
     const loadGeoData = async () => {
@@ -478,6 +483,7 @@ export function UnifiedEventView({
 
     // Create new visualization with current time range
     createVisualization(container, {
+      theme,
       events,
       storyLines,
       selectedEventId,
@@ -505,6 +511,7 @@ export function UnifiedEventView({
             d3.select(containerRef.current).selectAll('*').remove()
             d3.select('body').selectAll('.tooltip').remove()
             createVisualization(containerRef.current, {
+              theme,
               events,
               storyLines,
               selectedEventId,

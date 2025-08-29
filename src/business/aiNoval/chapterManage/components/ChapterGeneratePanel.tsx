@@ -219,7 +219,7 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
                   customRequest={handleFileImport}
                 >
                   <Button icon={<UploadOutlined />}>
-                    导入文件
+                    导入
                   </Button>
                 </Upload>
                 <Button
@@ -227,21 +227,21 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
                   icon={<EditOutlined />}
                   onClick={() => setIsEditing(true)}
                 >
-                  编辑内容
+                  编辑
                 </Button>
                 <Button
                   type="primary"
                   icon={<RobotOutlined />}
                   onClick={() => setIsContinueModalVisible(true)}
                 >
-                  AI续写
+                  AI生成
                 </Button>
                 <Button
                   type="primary"
                   icon={<FileTextOutlined />}
                   onClick={() => setIsGenDetailModalVisible(true)}
                 >
-                  AI扩写细纲
+                  AI扩写
                 </Button>
               </Space>
             )}
@@ -256,21 +256,21 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
                 message.success('章节内容已复制到剪贴板')
               }}
             >
-              复制章节
+              复制
             </Button>
             <Button
               icon={<TagOutlined />}
               onClick={() => {  setSuggestedName(''); setIsNameModalVisible(true); }}
               disabled={!content}
             >
-              命名章节
+              命名
             </Button>
             <Button
               icon={<CompressOutlined />}
               onClick={() => setIsSummarizeModalVisible(true)}
               disabled={!content}
             >
-              缩写章节
+              缩写
             </Button>
           </Space>
         }

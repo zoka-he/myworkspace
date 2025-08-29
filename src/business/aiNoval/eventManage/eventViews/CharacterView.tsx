@@ -72,7 +72,7 @@ export function CharacterView({
     .attr('class', 'tooltip')
     .style('position', 'absolute')
     .style('visibility', 'hidden')
-    .style('background-color', 'white')
+    .style('background-color', 'rgba(255, 255, 255, 0.8)')
     .style('border', '1px solid #ddd')
     .style('padding', '10px')
     .style('border-radius', '4px')
