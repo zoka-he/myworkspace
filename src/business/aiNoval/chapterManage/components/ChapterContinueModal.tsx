@@ -77,6 +77,21 @@ function AttentionRefModal({ isVisible, onClose, content }: AttentionRefModalPro
 
   const refList = [
     {
+      title: '抗Gemini默认文风',
+      color: 'red',
+      content: '- 对人物对话、人物心理活动、人物动作细节、场景塑造进行综合调优\n' +
+               '- 使用优秀的，具有浪漫想象力情节的表达\n' +
+               '- 输出尽可能长的内容，\n' +
+               '- 不要堆砌形容词，使用幽默的描写\n' +
+               '- 避免刻板描写、避免出现行军文风、军旅文风、命令文风、避免大幅度“讽刺”\n' +
+               '- 避免出现“不是……而是……”等对比句式'
+    },
+    {
+      title: '避免重复介绍',
+      color: 'yellow',
+      content: '- 人物均已出现过，避免重复介绍。'
+    },
+    {
       title: '基础',
       color: 'blue',
       content: '* 扩写时，请仔细分析用户提供的片段，理解其含义和作用。\n' +
@@ -165,8 +180,10 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
   // 地理名称
   const [geoNames, setGeoNames] = useState<string>('')
 
-  // 是否参考本章已有内容
-  const [isReferSelf, setIsReferSelf] = useState<boolean>(true)
+  // 是否参考本章已有内容(默认不参考)
+  const [isReferSelf, setIsReferSelf] = useState<boolean>(false)
+
+  const [llmType, setLlmType] = useState<'gemini' | 'deepseek'>('gemini')
 
   // 是否缩写本章
   const [isStripSelf, setIsStripSelf] = useState<boolean>(false)
@@ -449,6 +466,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
       role_names: roleNames,
       faction_names: factionNames,
       geo_names: geoNames,
+      llm_type: llmType,
     };
     console.info('auto write reqObj -> ', reqObj);
 
@@ -858,12 +876,19 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
                       onClick={handleContinue}
                       loading={isContinuing}
                     >
-                      使用AI续写
+                      开始续写
                     </Button>
                   )}
 
-                  <Checkbox checked={isReferSelf} onChange={(e) => setIsReferSelf(e.target.checked)}>参考本章已有内容</Checkbox>
-                  <Checkbox checked={isStripSelf} onChange={(e) => setIsStripSelf(e.target.checked)}>缩写本章</Checkbox>
+                  <Typography.Text>模型：</Typography.Text>
+                  <Select value={llmType} onChange={(value) => setLlmType(value)} disabled={isContinuing}>
+                    <Select.Option value="gemini">Gemini</Select.Option>
+                    <Select.Option value="deepseek">DeepSeek（实验）</Select.Option>
+                    <Select.Option value="gpt" disabled>GPT-4o</Select.Option>
+                  </Select>
+
+                  <Checkbox checked={isReferSelf} onChange={(e) => setIsReferSelf(e.target.checked)} disabled={isContinuing}>参考本章已有内容</Checkbox>
+                  <Checkbox checked={isStripSelf} onChange={(e) => setIsStripSelf(e.target.checked)} disabled={isContinuing}>缩写本章</Checkbox>
                 </Space>
                 <Divider orientation='left'>
                   {isContinuing ? '续写中...' : '点击上方按钮开始续写...'}
