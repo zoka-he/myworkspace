@@ -4,6 +4,7 @@ import { Provider, useSelector } from 'react-redux';
 import store, { IRootState } from '../src/store';
 import zhCN from 'antd/locale/zh_CN';
 import { ConfigProvider } from 'antd';
+import { StyleProvider } from '@ant-design/cssinjs';
 import { getAlgorithm } from '../src/config/theme';
 import dynamic from "next/dynamic";
 import Script from 'next/script';
@@ -28,7 +29,9 @@ function AntdApp() {
                 token: themeConfig.token,
             }}
         >
-            <MyRouter/>
+            <StyleProvider hashPriority="low">
+                <MyRouter/>
+            </StyleProvider>
         </ConfigProvider>
     )
 }

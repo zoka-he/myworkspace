@@ -224,46 +224,46 @@
 
 .promptTextArea {
   width: 100%;
-  resize: none;
-  font-size: 16px;
-  line-height: 1.8;
-  padding: 20px;
+  // resize: none;
+  // font-size: 16px;
+  // line-height: 1.8;
+  // padding: 20px;
   // background: #fff;
   // border: 1px solid #d9d9d9;
-  border-radius: 4px;
-  transition: all 0.3s;
+  // border-radius: 4px;
+  // transition: all 0.3s;
 
-  &:hover {
-    border-color: #40a9ff;
-  }
+  // &:hover {
+  //   border-color: #40a9ff;
+  // }
 
-  &:focus {
-    border-color: #40a9ff;
-    box-shadow: none;
-  }
+  // &:focus {
+  //   border-color: #40a9ff;
+  //   box-shadow: none;
+  // }
 
-  &::placeholder {
-    color: rgba(0, 0, 0, 0.25);
-    font-size: 15px;
-  }
+  // &::placeholder {
+  //   color: rgba(0, 0, 0, 0.25);
+  //   font-size: 15px;
+  // }
 
-  :global(.ant-input) {
-    font-size: 16px;
-    line-height: 1.8;
-    border: none;
-    padding: 0;
-    background: transparent;
-    box-shadow: none;
+  // :global(.ant-input) {
+    // font-size: 16px;
+    // line-height: 1.8;
+    // border: none;
+    // padding: 0;
+    // background: transparent;
+    // box-shadow: none;
 
-    &:hover, &:focus {
-      border: none;
-      box-shadow: none;
-    }
-  }
+    // &:hover, &:focus {
+      // border: none;
+      // box-shadow: none;
+    // }
+  // }
 
-  :global(.ant-input-textarea-show-count::after) {
-    margin-top: 8px;
-  }
+  // :global(.ant-input-textarea-show-count::after) {
+  //   margin-top: 8px;
+  // }
 }
 
 .chapterInfoItem {
