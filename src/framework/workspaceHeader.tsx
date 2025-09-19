@@ -1,4 +1,4 @@
-import { Breadcrumb, Button, Select, Space, Switch, Tag } from "antd";
+import { Breadcrumb, Button, Select, Space, Switch, Tag, Typography } from "antd";
 import { connect } from "react-redux";
 import store, { IRootState } from "../store";
 import { useSession, signOut } from 'next-auth/react';
@@ -132,13 +132,14 @@ function WorkspaceHeader(props: IWorkspaceHeaderProps) {
                 </div>
             </div>
             <Space size={16}>
-                <strong>mysql主机: </strong>
+                <Typography.Text strong>mysql主机: </Typography.Text>
                 <Tag>{`${mysqlConfig.MYSQL_HOST}:${mysqlConfig.MYSQL_PORT}`}</Tag>
 
-                <strong>dify主机: </strong>
+                <Typography.Text strong>dify主机: </Typography.Text>
                 <Select style={{ width: 130 }} options={props.difyFrontHostOptions.map(option => ({ label: option, value: option }))} value={props.difyFrontHost} onChange={e => store.dispatch(setFrontHost(e))} />
                 
-                <strong>显示模式</strong><Switch checked={props.themeMode === 'dark'} unCheckedChildren="白天" checkedChildren="黑夜" onChange={e => store.dispatch(setTheme(e ? 'dark' : 'light'))} />
+                <Typography.Text strong>显示模式</Typography.Text>
+                <Switch checked={props.themeMode === 'dark'} unCheckedChildren="白天" checkedChildren="黑夜" onChange={e => store.dispatch(setTheme(e ? 'dark' : 'light'))} />
                 {/* {userLabel} */}
                 {settingLabel}
                 {/* <Button type="text" icon={<FullscreenOutlined />}>全屏</Button> */}
