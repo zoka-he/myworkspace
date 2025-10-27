@@ -1,0 +1,137 @@
+.ethAccountManage {
+  .accountCard {
+    background: #fff;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    
+    &:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transition: box-shadow 0.3s ease;
+    }
+  }
+
+  .addressDisplay {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 12px;
+    background: #f5f5f5;
+    padding: 4px 8px;
+    border-radius: 4px;
+    word-break: break-all;
+  }
+
+  .balanceDisplay {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1890ff;
+  }
+
+  .networkTag {
+    &.mainnet {
+      background: #52c41a;
+      color: white;
+    }
+    
+    &.testnet {
+      background: #faad14;
+      color: white;
+    }
+    
+    &.ropsten {
+      background: #f5222d;
+      color: white;
+    }
+    
+    &.rinkeby {
+      background: #722ed1;
+      color: white;
+    }
+    
+    &.goerli {
+      background: #13c2c2;
+      color: white;
+    }
+  }
+
+  .actionButtons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .copyButton {
+    color: #1890ff;
+    border: none;
+    background: none;
+    padding: 0;
+    cursor: pointer;
+    font-size: 12px;
+    
+    &:hover {
+      color: #40a9ff;
+    }
+  }
+
+  .modalForm {
+    .formItem {
+      margin-bottom: 16px;
+    }
+    
+    .privateKeyInput {
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    }
+  }
+
+  .tableContainer {
+    .ant-table-thead > tr > th {
+      background: #fafafa;
+      font-weight: 600;
+    }
+    
+    .ant-table-tbody > tr:hover > td {
+      background: #f5f5f5;
+    }
+  }
+
+  .queryBar {
+    background: #fff;
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .statsCard {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    
+    .statsTitle {
+      font-size: 14px;
+      opacity: 0.9;
+      margin-bottom: 8px;
+    }
+    
+    .statsValue {
+      font-size: 24px;
+      font-weight: 600;
+    }
+  }
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+  .ethAccountManage {
+    .actionButtons {
+      flex-direction: column;
+      gap: 4px;
+    }
+    
+    .addressDisplay {
+      font-size: 10px;
+    }
+  }
+}
