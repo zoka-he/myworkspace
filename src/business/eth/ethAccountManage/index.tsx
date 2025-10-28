@@ -306,6 +306,19 @@ export default function EthAccountManage() {
         }
     }, [listData]);
 
+    // 立即刷新并重置倒计时
+    const handleImmediateRefresh = useCallback(async () => {
+        try {
+            balanceRefreshTime.current = Date.now() + balanceRefreshInterval;
+            await refreshAllBalances();
+            // 重置倒计时
+            message.success('余额刷新成功');
+        } catch (error) {
+            console.error('立即刷新失败:', error);
+            message.error('刷新失败');
+        }
+    }, [refreshAllBalances]);
+
     // 计算统计数据
     const totalAccounts = listData.length;
     const totalBalance = listData.reduce((sum, account) => sum + (_.toNumber(account.balance) || 0), 0);
@@ -350,7 +363,12 @@ export default function EthAccountManage() {
             </Row>
 
             <div className={styles.alert_container}>
-                <Alert message={`${balanceRefreshCount}秒后刷新`} type="warning" showIcon style={{ textAlign: 'center' }} />
+                <Alert 
+                    message={<span>{balanceRefreshCount}秒后<Button size="small" type="link" onClick={handleImmediateRefresh}>刷新</Button></span>} 
+                    type="warning" 
+                    showIcon 
+                    style={{ textAlign: 'center' }}
+                />
             </div>
 
             <div className="f-flex-two-side">
