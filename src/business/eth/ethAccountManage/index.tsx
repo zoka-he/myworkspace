@@ -9,6 +9,7 @@ import usePagination from '@/src/utils/hooks/usePagination';
 import copyToClip from '@/src/utils/common/copy';
 import dayjs from 'dayjs';
 import styles from './index.module.scss';
+import _ from 'lodash';
 
 const { Column } = Table;
 const { Option } = Select;
@@ -282,13 +283,15 @@ export default function EthAccountManage() {
                     ...account,
                     balance: balance || 0
                 });
+
+                updateListData(listData);
             }
         });
     }, [listData]);
 
     // 计算统计数据
     const totalAccounts = listData.length;
-    const totalBalance = listData.reduce((sum, account) => sum + (account.balance || 0), 0);
+    const totalBalance = listData.reduce((sum, account) => sum + (_.toNumber(account.balance) || 0), 0);
     const mainnetAccounts = listData.filter(account => account.network === 'mainnet').length;
 
     return (
