@@ -12,10 +12,11 @@ class EthAccountService extends MysqlService {
             'remark',
             'create_time',
             'update_time',
+            'mnemonic_phrase'
         ])
     }
 
-    async getAccountsAndBalances(name: string, address: string, network: string, chain_id: number, page: number, limit: number) {
+    async getAccountsAndBalances(name: string, address: string, chain_id: number, page: number, limit: number) {
         let sql = `
             select ea.*, en.name as network, en.chain_id, eab.balance, eab.unit, eab.update_time as balance_update_time
             from eth_accounts ea

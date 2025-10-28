@@ -10,6 +10,7 @@ export interface IEthAccount {
     remark?: string;
     create_time?: string;
     update_time?: string;
+    mnemonic_phrase?: string;
 }
 
 export interface IEthTransaction {

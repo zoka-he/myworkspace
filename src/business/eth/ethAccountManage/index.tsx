@@ -492,6 +492,13 @@ export default function EthAccountManage() {
                     </Form.Item>
 
                     <Form.Item
+                        name="mnemonic_phrase"
+                        label="助记词"
+                    >
+                        <Input.TextArea rows={4} placeholder="请输入助记词"/>
+                    </Form.Item>
+
+                    <Form.Item
                         name="remark"
                         label="备注"
                     >

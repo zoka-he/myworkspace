@@ -38,7 +38,7 @@ async function getAccounts(req: NextApiRequest, res: NextApiResponse) {
     const network = req.query.network as string;
     
     // 获取数据、总数
-    const { data, count } = await ethAccountService.getAccountsAndBalances(name, address, network, chain_id, page, limit);
+    const { data, count } = await ethAccountService.getAccountsAndBalances(name, address, chain_id, page, limit);
     
     res.status(200).json({
         data: data,
@@ -49,7 +49,9 @@ async function getAccounts(req: NextApiRequest, res: NextApiResponse) {
 }
 
 async function createAccount(req: NextApiRequest, res: NextApiResponse) {
-    const { name, address, private_key, balance, network_id, remark } = req.body;
+    const { name, address, private_key, network_id } = req.body;
+    let values: any = {...req.body};
+    delete values.id;
     
     // 验证必填字段
     if (!name || !address || !network_id) {
@@ -66,9 +68,7 @@ async function createAccount(req: NextApiRequest, res: NextApiResponse) {
         return res.status(400).json({ message: '无效的私钥格式' });
     }
     
-    const result = await ethAccountService.insertOne({
-        name, address, private_key, balance, network_id, remark
-    });
+    const result = await ethAccountService.insertOne(values);
     
     res.status(201).json({
         message: '账户创建成功',
@@ -76,7 +76,10 @@ async function createAccount(req: NextApiRequest, res: NextApiResponse) {
 }
 
 async function updateAccount(req: NextApiRequest, res: NextApiResponse) {
-    const { id, name, address, private_key, network_id, remark } = req.body;
+    const { id, address, private_key } = req.body;
+
+    let values: any = {...req.body};
+    delete values.id;
     
     if (!id) {
         return res.status(400).json({ message: '缺少账户ID' });
@@ -92,7 +95,7 @@ async function updateAccount(req: NextApiRequest, res: NextApiResponse) {
         return res.status(400).json({ message: '无效的私钥格式' });
     }
 
-    await ethAccountService.updateOne({ id }, { name, address, private_key, network_id, remark });
+    await ethAccountService.updateOne({ id }, values);
     
     res.status(200).json({ message: '账户更新成功' });
 }
