@@ -37,13 +37,13 @@ export default function EthAccountManage() {
         loadNetworks();
         balanceRefreshTime.current = Date.now() + balanceRefreshInterval;
 
-        timer.current = setInterval(() => {
+        timer.current = setInterval(async () => {
             let dt = Math.floor((balanceRefreshTime.current - Date.now()) / 1000);
             setBalanceRefreshCount(dt);
 
             if (dt <= 0) {
-                refreshAllBalances();
                 balanceRefreshTime.current = Date.now() + balanceRefreshInterval;
+                await refreshAllBalances();
             }
         }, 500);
 
@@ -275,18 +275,35 @@ export default function EthAccountManage() {
         }
     }
 
-    const refreshAllBalances = useCallback(() => {
-        listData.forEach(async (account: IEthAccount, index: number) => {
-            if (account.address && account.chain_id) {
-                let balance = await refreshBalance(account.address, account.network_id);
-                listData.splice(index, 1, {
-                    ...account,
-                    balance: balance || 0
-                });
-
-                updateListData(listData);
-            }
-        });
+    const refreshAllBalances = useCallback(async () => {
+        try {
+            // 获取当前最新的listData
+            const currentAccounts = listData;
+            if (currentAccounts.length === 0) return;
+            
+            // 使用Promise.all来并行处理所有账户的余额刷新
+            const balancePromises = currentAccounts.map(async (account: IEthAccount) => {
+                if (account.address && account.chain_id) {
+                    try {
+                        const balance = await refreshBalance(account.address, account.network_id);
+                        return {
+                            ...account,
+                            balance: balance || 0
+                        };
+                    } catch (error) {
+                        console.error(`刷新账户 ${account.address} 余额失败:`, error);
+                        return account; // 如果刷新失败，返回原账户数据
+                    }
+                }
+                return account;
+            });
+            
+            // 等待所有余额刷新完成，然后一次性更新
+            const updatedListData = await Promise.all(balancePromises);
+            updateListData(updatedListData);
+        } catch (error) {
+            console.error('刷新余额失败:', error);
+        }
     }, [listData]);
 
     // 计算统计数据
