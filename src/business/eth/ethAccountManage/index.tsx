@@ -278,34 +278,45 @@ export default function EthAccountManage() {
 
     const refreshAllBalances = useCallback(async () => {
         try {
-            // 获取当前最新的listData
-            const currentAccounts = listData;
-            if (currentAccounts.length === 0) return;
-            
-            // 使用Promise.all来并行处理所有账户的余额刷新
-            const balancePromises = currentAccounts.map(async (account: IEthAccount) => {
-                if (account.address && account.chain_id) {
+            // 使用函数式更新来获取最新的listData，避免使用过时的数据
+            updateListData(currentListData => {
+                if (currentListData.length === 0) return currentListData;
+                
+                // 异步处理余额刷新，不阻塞当前更新
+                (async () => {
                     try {
-                        const balance = await refreshBalance(account.address, account.network_id);
-                        return {
-                            ...account,
-                            balance: balance || 0
-                        };
+                        // 使用Promise.all来并行处理所有账户的余额刷新
+                        const balancePromises = currentListData.map(async (account: IEthAccount) => {
+                            if (account.address && account.chain_id) {
+                                try {
+                                    const balance = await refreshBalance(account.address, account.network_id);
+                                    return {
+                                        ...account,
+                                        balance: balance || 0
+                                    };
+                                } catch (error) {
+                                    console.error(`刷新账户 ${account.address} 余额失败:`, error);
+                                    return account; // 如果刷新失败，返回原账户数据
+                                }
+                            }
+                            return account;
+                        });
+                        
+                        // 等待所有余额刷新完成，然后更新数据
+                        const updatedListData = await Promise.all(balancePromises);
+                        updateListData(updatedListData);
                     } catch (error) {
-                        console.error(`刷新账户 ${account.address} 余额失败:`, error);
-                        return account; // 如果刷新失败，返回原账户数据
+                        console.error('刷新余额失败:', error);
                     }
-                }
-                return account;
+                })();
+                
+                // 立即返回当前数据，避免UI闪烁
+                return currentListData;
             });
-            
-            // 等待所有余额刷新完成，然后一次性更新
-            const updatedListData = await Promise.all(balancePromises);
-            updateListData(updatedListData);
         } catch (error) {
             console.error('刷新余额失败:', error);
         }
-    }, [listData]);
+    }, []);
 
     // 立即刷新并重置倒计时
     const handleImmediateRefresh = useCallback(async () => {
@@ -521,7 +532,7 @@ export default function EthAccountManage() {
                             <Form.Item name="address" noStyle>  
                                 <Input placeholder="0x..." />
                             </Form.Item>
-                            <Button icon={<KeyOutlined />} onClick={generateWallet}>生成钱包</Button>
+                            <Button icon={<KeyOutlined />} disabled={!!editingAccount} onClick={generateWallet}>生成钱包</Button>
                         </Space.Compact>
                         
                     </Form.Item>
