@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import fetch from '@/src/fetch';
-import { Button, Input, Space, Table, message, Tag, Modal, Form, InputNumber, Select, Card, Row, Col, Statistic } from 'antd';
+import { Button, Input, Space, Table, message, Tag, Modal, Form, InputNumber, Select, Card, Row, Col, Statistic, Alert } from 'antd';
 import { ExclamationCircleFilled, CopyOutlined, PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, WalletOutlined, DollarOutlined, ReloadOutlined } from '@ant-design/icons';
 import confirm from "antd/es/modal/confirm";
 import { IEthAccount, IEthNetwork } from '../../../types/IEthAccount';
@@ -13,6 +13,8 @@ import styles from './index.module.scss';
 const { Column } = Table;
 const { Option } = Select;
 
+const balanceRefreshInterval = 30 * 1000;
+
 export default function EthAccountManage() {
     let [userParams, setUserParams] = useState({});
     let [listData, updateListData] = useState<IEthAccount[]>([]);
@@ -21,12 +23,33 @@ export default function EthAccountManage() {
     let [isModalVisible, setIsModalVisible] = useState(false);
     let [editingAccount, setEditingAccount] = useState<IEthAccount | null>(null);
     let [form] = Form.useForm();
-
     let pagination = usePagination();
+
+    // let [balanceRefreshTime, setBalanceRefreshTime] = useState(0);
+    let [balanceRefreshCount, setBalanceRefreshCount] = useState(0);
+
+    let balanceRefreshTime = useRef(0);
+    let timer = useRef<NodeJS.Timeout>();
 
     useEffect(() => {
         onQuery();
         loadNetworks();
+        balanceRefreshTime.current = Date.now() + balanceRefreshInterval;
+
+        timer.current = setInterval(() => {
+            let dt = Math.floor((balanceRefreshTime.current - Date.now()) / 1000);
+            setBalanceRefreshCount(dt);
+
+            if (dt <= 0) {
+                refreshBalance();
+                balanceRefreshTime.current = Date.now() + balanceRefreshInterval;
+            }
+        }, 500);
+
+        return () => {
+            clearInterval(timer.current);
+            timer.current = undefined;
+        }
     }, []);
 
     useEffect(() => {
@@ -222,6 +245,11 @@ export default function EthAccountManage() {
         return <pre className="f-no-margin">{cell}</pre>
     }
 
+    function refreshBalance() {
+        // throw new Error('Function not implemented.');
+        console.debug('refreshBalance');
+    }
+
     // 计算统计数据
     const totalAccounts = listData.length;
     const totalBalance = listData.reduce((sum, account) => sum + (account.balance || 0), 0);
@@ -265,6 +293,10 @@ export default function EthAccountManage() {
                 </Col>
             </Row>
 
+            <div className={styles.alert_container}>
+                <Alert message={`${balanceRefreshCount}秒后刷新`} type="warning" showIcon />
+            </div>
+
             <div className="f-flex-two-side">
                 <QueryBar onChange={setUserParams} spinning={spinning} className={styles.queryBar}>
                     <QueryBar.QueryItem name="name" label="账户名称">
@@ -275,7 +307,7 @@ export default function EthAccountManage() {
                         <Input allowClear placeholder="请输入钱包地址"/>
                     </QueryBar.QueryItem>
 
-                    <QueryBar.QueryItem name="network" label="网络">
+                    <QueryBar.QueryItem name="network" label="默认网络">
                         <Select allowClear placeholder="请选择网络">
                             {networkList.map(network => (
                                 <Option key={network.id} value={network.name}>
@@ -328,7 +360,7 @@ export default function EthAccountManage() {
                         width={130}
                     />
                     <Column 
-                        title="网络" 
+                        title="默认网络" 
                         dataIndex="network" 
                         key="network" 
                         render={renderNetwork}
@@ -422,7 +454,7 @@ export default function EthAccountManage() {
 
                     <Form.Item
                         name="network"
-                        label="网络"
+                        label="默认网络"
                         rules={[{ required: true, message: '请选择网络' }]}
                     >
                         <Select placeholder="请选择网络">
@@ -445,3 +477,5 @@ export default function EthAccountManage() {
         </div>
     )
 }
+
+
