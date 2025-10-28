@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import fetch from '@/src/fetch';
 import { Button, Input, Space, Table, message, Tag, Modal, Form, InputNumber, Select, Card, Row, Col, Statistic, Alert } from 'antd';
-import { ExclamationCircleFilled, CopyOutlined, PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, WalletOutlined, DollarOutlined, ReloadOutlined } from '@ant-design/icons';
+import { ExclamationCircleFilled, CopyOutlined, PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, WalletOutlined, DollarOutlined, ReloadOutlined, KeyOutlined } from '@ant-design/icons';
+import { ethers } from 'ethers';
 import confirm from "antd/es/modal/confirm";
 import { IEthAccount, IEthNetwork } from '../../../types/IEthAccount';
 import QueryBar from '@/src/components/queryBar';
@@ -319,6 +320,26 @@ export default function EthAccountManage() {
         }
     }, [refreshAllBalances]);
 
+    // 使用ethers创建新钱包
+    const generateWallet = useCallback(() => {
+        try {
+            // 创建随机钱包
+            const wallet = ethers.Wallet.createRandom();
+            
+            // 填充表单
+            form.setFieldsValue({
+                address: wallet.address,
+                private_key: wallet.privateKey,
+                mnemonic_phrase: wallet.mnemonic?.phrase || ''
+            });
+            
+            message.success('钱包生成成功');
+        } catch (error) {
+            console.error('生成钱包失败:', error);
+            message.error('生成钱包失败');
+        }
+    }, [form]);
+
     // 计算统计数据
     const totalAccounts = listData.length;
     const totalBalance = listData.reduce((sum, account) => sum + (_.toNumber(account.balance) || 0), 0);
@@ -496,7 +517,13 @@ export default function EthAccountManage() {
                             { pattern: /^0x[a-fA-F0-9]{40}$/, message: '请输入有效的以太坊地址' }
                         ]}
                     >
-                        <Input placeholder="0x..." />
+                        <Space.Compact style={{ width: '100%' }}>
+                            <Form.Item name="address" noStyle>  
+                                <Input placeholder="0x..." />
+                            </Form.Item>
+                            <Button icon={<KeyOutlined />} onClick={generateWallet}>生成钱包</Button>
+                        </Space.Compact>
+                        
                     </Form.Item>
 
                     <Form.Item
