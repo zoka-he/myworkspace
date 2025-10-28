@@ -4,7 +4,9 @@ export interface IEthAccount {
     address: string;
     private_key?: string;
     balance: number;
-    network: 'mainnet' | 'testnet' | 'ropsten' | 'rinkeby' | 'goerli';
+    network_id: number;
+    network: string;
+    chain_id: number;
     remark?: string;
     create_time?: string;
     update_time?: string;
@@ -33,4 +35,13 @@ export interface IEthNetwork {
     is_testnet: boolean;
     create_time?: string;
     update_time?: string;
+    vendor?: string;
+}
+
+export interface IEthAccountBalance {
+    address: string;
+    chain_id: number;
+    balance: number;
+    unit: string;
+    update_time: Date;
 }

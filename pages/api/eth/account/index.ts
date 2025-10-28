@@ -33,27 +33,12 @@ async function getAccounts(req: NextApiRequest, res: NextApiResponse) {
     const page = _.toNumber(req.query.page || 1);
     const limit = _.toNumber(req.query.limit || 20);
     const name = req.query.name as string;
+    const chain_id = _.toNumber(req.query.chain_id || 0);
     const address = req.query.address as string;
     const network = req.query.network as string;
-
-    const where: ISqlCondMap = {};
-    if (name) {
-        where.name = { $like: `%${name}%` };
-    }
-    if (address) {
-        where.address = { $like: `%${address}%` };
-    }
-    if (network) {
-        where.network = network;
-    }
     
-    const offset = (page - 1) * limit;
-    
-    // 获取总数
-    const { count } = await ethAccountService.query(where, [], ['create_time desc'], page, limit);
-    
-    // 获取数据
-    const { data } = await ethAccountService.query(where, [], ['create_time desc'], page, limit);
+    // 获取数据、总数
+    const { data, count } = await ethAccountService.getAccountsAndBalances(name, address, network, chain_id, page, limit);
     
     res.status(200).json({
         data: data,
@@ -64,10 +49,10 @@ async function getAccounts(req: NextApiRequest, res: NextApiResponse) {
 }
 
 async function createAccount(req: NextApiRequest, res: NextApiResponse) {
-    const { name, address, private_key, balance, network, remark } = req.body;
+    const { name, address, private_key, balance, network_id, remark } = req.body;
     
     // 验证必填字段
-    if (!name || !address || !network) {
+    if (!name || !address || !network_id) {
         return res.status(400).json({ message: '缺少必填字段' });
     }
     
@@ -82,7 +67,7 @@ async function createAccount(req: NextApiRequest, res: NextApiResponse) {
     }
     
     const result = await ethAccountService.insertOne({
-        name, address, private_key, balance, network, remark
+        name, address, private_key, balance, network_id, remark
     });
     
     res.status(201).json({
@@ -91,37 +76,23 @@ async function createAccount(req: NextApiRequest, res: NextApiResponse) {
 }
 
 async function updateAccount(req: NextApiRequest, res: NextApiResponse) {
-    const { id, name, address, privateKey, balance, network, remark } = req.body;
+    const { id, name, address, private_key, network_id, remark } = req.body;
     
     if (!id) {
         return res.status(400).json({ message: '缺少账户ID' });
     }
     
     // 验证地址格式
-    if (address && !/^0x[a-fA-F0-9]{40}$/.test(address)) {
+    if (address && !/^(0x)?[a-fA-F0-9]{40}$/.test(address)) {
         return res.status(400).json({ message: '无效的以太坊地址格式' });
     }
     
     // 验证私钥格式（如果提供）
-    if (privateKey && !/^0x[a-fA-F0-9]{64}$/.test(privateKey)) {
+    if (private_key && !/^(0x)?[a-fA-F0-9]{64}$/.test(private_key)) {
         return res.status(400).json({ message: '无效的私钥格式' });
     }
-    
-    const query = `
-        UPDATE eth_accounts 
-        SET name = ?, address = ?, private_key = ?, balance = ?, network = ?, remark = ?, update_time = NOW()
-        WHERE id = ?
-    `;
-    
-    await mysql.execute(query, [
-        name, 
-        address, 
-        privateKey || null, 
-        balance, 
-        network, 
-        remark || null,
-        id
-    ]);
+
+    await ethAccountService.updateOne({ id }, { name, address, private_key, network_id, remark });
     
     res.status(200).json({ message: '账户更新成功' });
 }

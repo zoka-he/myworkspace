@@ -19,7 +19,6 @@ import {
     Tooltip
 } from 'antd';
 import { 
-    ExclamationCircleFilled, 
     PlusOutlined, 
     EditOutlined, 
     DeleteOutlined, 
@@ -28,7 +27,9 @@ import {
     LinkOutlined,
     CheckCircleOutlined,
     CloseCircleOutlined,
-    CopyOutlined
+    CopyOutlined,
+    WarningOutlined,
+    ExclamationCircleFilled
 } from '@ant-design/icons';
 import confirm from "antd/es/modal/confirm";
 import { IEthNetwork } from '../../../types/IEthAccount';
@@ -188,59 +189,45 @@ export default function EthNetworkManage() {
         )
     }
 
-    function renderRpcUrl(url?: string) {
+    function renderRpcUrl(url?: string, row: IEthNetwork) {
         if (!url) {
             return '-';
         }else{
             return (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                    <Tooltip title={url}>
-                        <span className={styles.urlDisplay}>
-                            {url.length > urlLimit ? `${url.substring(0, urlLimit)}...` : url}
-                        </span>
-                    </Tooltip>
-                    <Tooltip title="复制URL">
-                        <Button 
-                            type="text" 
-                            size="small" 
-                            icon={<CopyOutlined />} 
-                            onClick={() => copyToClipboard(url)}
-                            style={{ 
-                                padding: '4px', 
-                                marginLeft: '8px',
-                                color: 'inherit'
-                            }}
-                        />
-                    </Tooltip>
+                <div className={[styles.urlInfo, styles.urlDisplay, row.vendor !== 'custom' ? styles.isNotCustom : ''].join(' ')}>
+                    { row.vendor === 'custom' ? (<CopyOutlined />) : null}
+                    { row.vendor !== 'custom' ? (
+                        <Tooltip title="当前网络供应商不是自定义，不使用此URL">
+                            <span>
+                                <ExclamationCircleFilled />
+                            </span>
+                        </Tooltip>
+                    ) : null}
+                    <Button 
+                        className={[styles.urlValue].join(' ')}
+                        type="text"
+                        size="small"
+                        disabled={row.vendor !== 'custom'}
+                        onClick={() => copyToClipboard(url)}
+                    >{url.length > urlLimit ? `${url.substring(0, urlLimit)}...` : url}</Button>
                 </div>
             );
         }
     }
 
-    function renderExplorerUrl(url?: string) {
+    function renderExplorerUrl(url?: string, row: IEthNetwork) {
         if (!url) {
             return '-';
-        }else{
+        } else {
             return (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                    <Tooltip title={url}>
-                        <span className={styles.urlDisplay}>
-                            {url.length > urlLimit ? `${url.substring(0, urlLimit)}...` : url}
-                        </span>
-                    </Tooltip>
-                    <Tooltip title="复制URL">
-                        <Button 
-                            type="text" 
-                            size="small" 
-                            icon={<CopyOutlined />} 
-                            onClick={() => copyToClipboard(url)}
-                            style={{ 
-                                padding: '4px', 
-                                marginLeft: '8px',
-                                color: 'inherit'
-                            }}
-                        />
-                    </Tooltip>
+                <div className={[styles.urlInfo, styles.urlDisplay].join(' ')}>
+                    <CopyOutlined />
+                    <Button 
+                        className={[styles.urlValue].join(' ')}
+                        type="text"
+                        size="small"
+                        onClick={() => copyToClipboard(url)}
+                    >{url.length > urlLimit ? `${url.substring(0, urlLimit)}...` : url}</Button>
                 </div>
             );
         }
@@ -373,25 +360,31 @@ export default function EthNetworkManage() {
                         width={80}
                     />
                     <Column 
+                        title="供应商" 
+                        dataIndex="vendor" 
+                        key="vendor" 
+                        width={100}
+                    />
+                    <Column 
                         title="RPC URL" 
                         dataIndex="rpc_url" 
                         key="rpcUrl" 
                         render={renderRpcUrl}
-                        width={200}
+                        width={240}
                     />
                     <Column 
                         title="浏览器URL" 
                         dataIndex="explorer_url" 
                         key="explorerUrl" 
                         render={renderExplorerUrl}
-                        width={200}
+                        width={160}
                     />
                     <Column 
                         title="网络类型" 
                         dataIndex="is_testnet" 
                         key="isTestnet" 
                         render={renderTestnet}
-                        width={100}
+                        width={60}
                     />
                     {/* <Column 
                         title="状态" 
@@ -405,7 +398,7 @@ export default function EthNetworkManage() {
                         dataIndex="action" 
                         key="action" 
                         fixed="right" 
-                        width={200} 
+                        width={100} 
                         render={renderAction}
                     />
                 </Table>
@@ -447,10 +440,29 @@ export default function EthNetworkManage() {
                     </Form.Item>
 
                     <Form.Item
+                        name="vendor"
+                        label="供应商"
+                    >
+                        <Select placeholder="请输入供应商" allowClear>
+                            <Option value="etherscan">Etherscan</Option>
+                            <Option value="infura">Infura</Option>
+                            <Option value="alchemy">Alchemy</Option>
+                            <Option value="ankr">Ankr</Option>
+                            <Option value="quicknode">Quicknode</Option>
+                            <Option value="ankr">Ankr</Option>
+                            <Option value="custom">自定义</Option>
+                        </Select>
+                    </Form.Item>
+
+                    <Form.Item
                         name="rpc_url"
-                        label="RPC URL"
+                        label="RPC URL（供应商为自定义时必填，否则会自动使用供应商的默认URL）"
+                        dependencies={['vendor']}
                         rules={[
-                            { required: true, message: '请输入RPC URL' },
+                            ({ getFieldValue }) => ({
+                                required: getFieldValue('vendor') === 'custom',
+                                message: '请输入RPC URL'
+                            }),
                             { type: 'url', message: '请输入有效的URL' }
                         ]}
                     >

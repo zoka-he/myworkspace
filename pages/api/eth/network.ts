@@ -58,106 +58,99 @@ async function getNetworks(req: NextApiRequest, res: NextApiResponse) {
 }
 
 async function createNetwork(req: NextApiRequest, res: NextApiResponse) {
-    const { name, chainId, rpcUrl, explorerUrl, isTestnet } = req.body;
+    const { name, chain_id, rpc_url, explorer_url, is_testnet, vendor } = req.body;
     
     // 验证必填字段
-    if (!name || !chainId || !rpcUrl || !explorerUrl) {
+    if (!name || !chain_id || !rpc_url || !explorer_url) {
         return res.status(400).json({ message: '缺少必填字段' });
     }
     
     // 验证链ID格式
-    if (!Number.isInteger(chainId) || chainId <= 0) {
+    if (!Number.isInteger(chain_id) || chain_id <= 0) {
         return res.status(400).json({ message: '链ID必须是正整数' });
     }
     
     // 验证URL格式
     try {
-        new URL(rpcUrl);
-        new URL(explorerUrl);
+        if (rpc_url) {
+            new URL(rpc_url);
+        }
+        if (explorer_url) {
+            new URL(explorer_url);
+        }
     } catch (error) {
         return res.status(400).json({ message: '请输入有效的URL格式' });
     }
     
     // 检查链ID是否已存在
-    const checkQuery = 'SELECT id FROM eth_networks WHERE chain_id = ?';
-    const [existing] = await mysql.execute(checkQuery, [chainId]);
+    // const checkQuery = 'SELECT id FROM eth_networks WHERE chain_id = ?';
+    // const [existing] = await mysql.execute(checkQuery, [chain_id]);
+
+    const existing = await ethNetworkService.queryOne({ chain_id } as ISqlCondMap);
     
-    if ((existing as any[]).length > 0) {
+    if (existing) {
         return res.status(400).json({ message: '该链ID已存在' });
     }
-    
-    const query = `
-        INSERT INTO eth_networks (name, chain_id, rpc_url, explorer_url, is_testnet, create_time, update_time)
-        VALUES (?, ?, ?, ?, ?, NOW(), NOW())
-    `;
-    
-    const [result] = await mysql.execute(query, [
+
+    await ethNetworkService.insertOne({ 
         name, 
-        chainId, 
-        rpcUrl, 
-        explorerUrl, 
-        isTestnet ? 1 : 0
-    ]);
-    
+        chain_id, 
+        rpc_url, 
+        explorer_url, 
+        is_testnet: is_testnet ? 1 : 0,
+        vendor: vendor || 'custom'
+    } as ISqlCondMap);
+   
     res.status(201).json({
-        message: '网络创建成功',
-        id: (result as any).insertId
+        message: '网络创建成功'
     });
 }
 
 async function updateNetwork(req: NextApiRequest, res: NextApiResponse) {
-    const { id, name, chainId, rpcUrl, explorerUrl, isTestnet } = req.body;
+    const { id, name, chain_id, rpc_url, explorer_url, is_testnet, vendor } = req.body;
     
     if (!id) {
         return res.status(400).json({ message: '缺少网络ID' });
     }
     
     // 验证链ID格式
-    if (chainId && (!Number.isInteger(chainId) || chainId <= 0)) {
+    if (chain_id && (!Number.isInteger(chain_id) || chain_id <= 0)) {
         return res.status(400).json({ message: '链ID必须是正整数' });
     }
     
     // 验证URL格式
-    if (rpcUrl) {
+    if (rpc_url) {
         try {
-            new URL(rpcUrl);
+            new URL(rpc_url);
         } catch (error) {
             return res.status(400).json({ message: 'RPC URL格式无效' });
         }
     }
     
-    if (explorerUrl) {
+    if (explorer_url) {
         try {
-            new URL(explorerUrl);
+            new URL(explorer_url);
         } catch (error) {
             return res.status(400).json({ message: '浏览器URL格式无效' });
         }
     }
     
     // 检查链ID是否已被其他网络使用
-    if (chainId) {
-        const checkQuery = 'SELECT id FROM eth_networks WHERE chain_id = ? AND id != ?';
-        const [existing] = await mysql.execute(checkQuery, [chainId, id]);
-        
-        if ((existing as any[]).length > 0) {
+    if (chain_id) {
+        const existing = await ethNetworkService.queryOne({ chain_id, id: { $ne: id } } as ISqlCondMap);
+        if (existing) {
             return res.status(400).json({ message: '该链ID已被其他网络使用' });
         }
     }
     
-    const query = `
-        UPDATE eth_networks 
-        SET name = ?, chain_id = ?, rpc_url = ?, explorer_url = ?, is_testnet = ?, update_time = NOW()
-        WHERE id = ?
-    `;
-    
-    await mysql.execute(query, [
+    await ethNetworkService.updateOne({ id }, { 
         name, 
-        chainId, 
-        rpcUrl, 
-        explorerUrl, 
-        isTestnet ? 1 : 0,
-        id
-    ]);
+        chain_id, 
+        rpc_url, 
+        explorer_url, 
+        is_testnet: is_testnet ? 1 : 0, 
+        vendor: vendor || 'custom' 
+    } as ISqlCondMap);
     
     res.status(200).json({ message: '网络更新成功' });
 }

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import fetch from '@/src/fetch';
 import { Button, Input, Space, Table, message, Tag, Modal, Form, InputNumber, Select, Card, Row, Col, Statistic, Alert } from 'antd';
 import { ExclamationCircleFilled, CopyOutlined, PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, WalletOutlined, DollarOutlined, ReloadOutlined } from '@ant-design/icons';
@@ -41,7 +41,7 @@ export default function EthAccountManage() {
             setBalanceRefreshCount(dt);
 
             if (dt <= 0) {
-                refreshBalance();
+                refreshAllBalances();
                 balanceRefreshTime.current = Date.now() + balanceRefreshInterval;
             }
         }, 500);
@@ -216,19 +216,34 @@ export default function EthAccountManage() {
         );
     }
 
-    function renderBalance(balance: number) {
+    function renderBalance(balance: number, row: any) {
         return (
             <div style={{ textAlign: 'right' }}>
                 <Space align='end'>
-                    <span className={styles.balanceDisplay}>{balance} ETH</span>
+                    <span className={styles.balanceDisplay}>{row.balance || '--'} {row.unit}</span>
                     <Button
                         size="small"
                         type="link"
                         icon={<ReloadOutlined />}
                         className={styles.copyButton}
-                        onClick={() => {
+                        onClick={async () => {
+                            let account = row;
+                            let balance = await refreshBalance(account.address, account.network_id);
 
-                            message.success('待实现');
+                            if (balance === null) {
+                                message.error('获取余额失败');
+                                return;
+                            }
+
+                            listData.splice(listData.indexOf(account), 1, {
+                                ...account,
+                                balance: balance || 0
+                            });
+                            Modal.info({
+                                title: '更新余额',
+                                content: `已更新账户${account.address}的余额，当前余额是${balance}`,
+                                onOk: () => {}
+                            });
                         }}
                     >
                     </Button>
@@ -237,18 +252,39 @@ export default function EthAccountManage() {
         )
     }
 
-    function renderNetwork(network: string) {
-        return <Tag className={`${styles.networkTag} ${styles[network]}`}>{network}</Tag>;
+    function renderNetwork(network: string, row: any) {
+        return <Tag className={`${styles.networkTag} ${styles[network]}`}>{network}({row.chain_id})</Tag>;
     }
 
     function renderRemark(cell: string) {
         return <pre className="f-no-margin">{cell}</pre>
     }
 
-    function refreshBalance() {
+    async function refreshBalance(address: string, chain_id: number) {
         // throw new Error('Function not implemented.');
-        console.debug('refreshBalance');
+        try {
+            // @ts-ignore
+            let data = await fetch.get('/api/eth/account/balance', { params: { address, network_id: chain_id } });
+            console.debug(data);
+            return ((data as any)?.balance) as number || 0.0;
+        } catch (e: any) {
+            console.error(e.response?.data?.message || e.message);
+            // message.error(e.response?.data?.message || e.message || '获取余额失败');
+            return null;
+        }
     }
+
+    const refreshAllBalances = useCallback(() => {
+        listData.forEach(async (account: IEthAccount, index: number) => {
+            if (account.address && account.chain_id) {
+                let balance = await refreshBalance(account.address, account.network_id);
+                listData.splice(index, 1, {
+                    ...account,
+                    balance: balance || 0
+                });
+            }
+        });
+    }, [listData]);
 
     // 计算统计数据
     const totalAccounts = listData.length;
@@ -294,11 +330,11 @@ export default function EthAccountManage() {
             </Row>
 
             <div className={styles.alert_container}>
-                <Alert message={`${balanceRefreshCount}秒后刷新`} type="warning" showIcon />
+                <Alert message={`${balanceRefreshCount}秒后刷新`} type="warning" showIcon style={{ textAlign: 'center' }} />
             </div>
 
             <div className="f-flex-two-side">
-                <QueryBar onChange={setUserParams} spinning={spinning} className={styles.queryBar}>
+                <QueryBar onChange={onQuery} spinning={spinning} className={styles.queryBar}>
                     <QueryBar.QueryItem name="name" label="账户名称">
                         <Input allowClear placeholder="请输入账户名称"/>
                     </QueryBar.QueryItem>
@@ -375,8 +411,8 @@ export default function EthAccountManage() {
                     />
                     <Column 
                         title="创建时间" 
-                        dataIndex="createTime" 
-                        key="createTime"
+                        dataIndex="create_time" 
+                        key="create_time"
                         render={(time) => dayjs(time).format('YYYY-MM-DD HH:mm:ss')}
                         width={90}
                     />
@@ -438,28 +474,14 @@ export default function EthAccountManage() {
                         />
                     </Form.Item>
 
-                    {/* <Form.Item
-                        name="balance"
-                        label="余额 (ETH)"
-                    >
-                        <InputNumber 
-                            min={0} 
-                            step={0.001} 
-                            precision={3}
-                            style={{ width: '100%' }}
-                            placeholder="0.000"
-                            readOnly
-                        />
-                    </Form.Item> */}
-
                     <Form.Item
-                        name="network"
+                        name="network_id"
                         label="默认网络"
                         rules={[{ required: true, message: '请选择网络' }]}
                     >
                         <Select placeholder="请选择网络">
                             {networkList.map(network => (
-                                <Option key={network.id} value={network.name}>
+                                <Option key={network.id} value={network.id}>
                                     {network.name}
                                 </Option>
                             ))}
