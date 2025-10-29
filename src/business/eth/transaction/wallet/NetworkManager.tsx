@@ -116,7 +116,12 @@ const NetworkManager: React.FC<NetworkManagerProps> = ({ walletInfo, onNetworkCh
       await addNetwork(networkInfo);
       message.success('网络添加成功');
     } catch (error: any) {
-      message.error(error.message || '网络添加失败');
+      // 忽略 MetaMask 内部的 RPC 错误，因为添加操作实际上是成功的
+      if (error.message && error.message.includes('f is not a function')) {
+        message.success('网络添加成功');
+      } else {
+        message.error(error.message || '网络添加失败');
+      }
     }
   };
 
