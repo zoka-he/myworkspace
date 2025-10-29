@@ -13,6 +13,10 @@ class EthNetworkService extends MysqlService {
             'create_time',
             'update_time',
             'vendor',
+            'is_enable',
+            'unit',
+            'decimals',
+            'unit_full'
         ])
     }
 }

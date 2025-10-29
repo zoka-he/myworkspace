@@ -30,7 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 }
 
 async function getNetworks(req: NextApiRequest, res: NextApiResponse) {
-    const { name, chainId, isTestnet } = req.query;
+    const { name, chain_id, is_testnet, is_enable } = req.query;
     
     const page = _.toNumber(req.query.page || 1);
     const limit = _.toNumber(req.query.limit || 20);
@@ -40,11 +40,14 @@ async function getNetworks(req: NextApiRequest, res: NextApiResponse) {
     if (name) {
         queryObject.name = { $like: `%${name}%` };
     }
-    if (chainId) {
-        queryObject.chain_id = chainId;
+    if (chain_id) {
+        queryObject.chain_id = chain_id;
     }
-    if (isTestnet !== undefined) {
-        queryObject.is_testnet = isTestnet === 'true' ? 1 : 0;
+    if (is_testnet !== undefined) {
+        queryObject.is_testnet = is_testnet === 'true' ? 1 : 0;
+    }
+    if (is_enable !== undefined) {
+        queryObject.is_enable = is_enable === 'true' || is_enable === '1' ? 1 : 0;
     }
     
     let ret = await ethNetworkService.query(queryObject, [], ['create_time asc'], page, limit);
@@ -58,7 +61,9 @@ async function getNetworks(req: NextApiRequest, res: NextApiResponse) {
 }
 
 async function createNetwork(req: NextApiRequest, res: NextApiResponse) {
-    const { name, chain_id, rpc_url, explorer_url, is_testnet, vendor } = req.body;
+    const { name, chain_id, rpc_url, explorer_url, is_testnet, vendor, is_enable } = req.body;
+    const values: any = {...req.body};
+    delete values.id;
     
     // 验证必填字段
     if (!name || !chain_id || !rpc_url || !explorer_url) {
@@ -93,12 +98,10 @@ async function createNetwork(req: NextApiRequest, res: NextApiResponse) {
     }
 
     await ethNetworkService.insertOne({ 
-        name, 
-        chain_id, 
-        rpc_url, 
-        explorer_url, 
+        ...values,
         is_testnet: is_testnet ? 1 : 0,
-        vendor: vendor || 'custom'
+        vendor: vendor || 'custom',
+        is_enable: is_enable ? 1 : 0
     } as ISqlCondMap);
    
     res.status(201).json({
@@ -107,8 +110,10 @@ async function createNetwork(req: NextApiRequest, res: NextApiResponse) {
 }
 
 async function updateNetwork(req: NextApiRequest, res: NextApiResponse) {
-    const { id, name, chain_id, rpc_url, explorer_url, is_testnet, vendor } = req.body;
-    
+    const { id, name, chain_id, rpc_url, explorer_url, is_testnet, vendor, is_enable } = req.body;
+    const values: any = {...req.body};
+    delete values.id;
+
     if (!id) {
         return res.status(400).json({ message: '缺少网络ID' });
     }
@@ -144,12 +149,10 @@ async function updateNetwork(req: NextApiRequest, res: NextApiResponse) {
     }
     
     await ethNetworkService.updateOne({ id }, { 
-        name, 
-        chain_id, 
-        rpc_url, 
-        explorer_url, 
+        ...values,
         is_testnet: is_testnet ? 1 : 0, 
-        vendor: vendor || 'custom' 
+        vendor: vendor || 'custom',
+        is_enable: is_enable ? 1 : 0
     } as ISqlCondMap);
     
     res.status(200).json({ message: '网络更新成功' });

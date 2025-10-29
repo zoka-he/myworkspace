@@ -6,7 +6,8 @@ import {
   SettingOutlined,
   CheckOutlined,
   ExclamationCircleOutlined,
-  ReloadOutlined
+  ReloadOutlined,
+  SwitcherOutlined
 } from '@ant-design/icons';
 import { 
   switchNetwork, 
@@ -32,6 +33,8 @@ const NetworkManager: React.FC<NetworkManagerProps> = ({ walletInfo, onNetworkCh
   const [showAddNetwork, setShowAddNetwork] = useState(false);
   const [networks, setNetworks] = useState<IEthNetwork[]>([]);
   const [networksLoading, setNetworksLoading] = useState(false);
+  const [targetNetwork, setTargetNetwork] = useState<IEthNetwork | null>(null);
+
   const [form] = Form.useForm();
 
   // 获取网络配置数据
@@ -43,7 +46,7 @@ const NetworkManager: React.FC<NetworkManagerProps> = ({ walletInfo, onNetworkCh
     try {
       setNetworksLoading(true);
       const response = await fetch.get('/api/eth/network', {
-        params: { limit: 100 } // 获取所有网络配置
+        params: { is_enable: 1, page: 1, limit: 100 } // 获取所有网络配置
       });
       setNetworks(response.data || []);
     } catch (error: any) {
@@ -91,6 +94,32 @@ const NetworkManager: React.FC<NetworkManagerProps> = ({ walletInfo, onNetworkCh
     return network?.name || `Chain ${walletInfo.chainId}`;
   };
 
+  const addNetworkToMetamask = async (network: IEthNetwork) => {
+    if (!network) {
+      message.warning('请选择网络');
+      return;
+    }
+
+    const networkInfo: NetworkInfo = {
+      chainId: `0x${network.chain_id.toString(16)}`,
+      name: network.name,
+      rpcUrl: network.rpc_url,
+      blockExplorerUrl: network.explorer_url,
+      nativeCurrency: {
+        name: network.unit_full || network.unit || 'ETH',
+        symbol: network.unit || 'ETH',
+        decimals: Number(network.decimals) || 18
+      }
+    };
+
+    try {
+      await addNetwork(networkInfo);
+      message.success('网络添加成功');
+    } catch (error: any) {
+      message.error(error.message || '网络添加失败');
+    }
+  };
+
   return (
     <>
       <Card className={styles.networkCard}>
@@ -100,19 +129,13 @@ const NetworkManager: React.FC<NetworkManagerProps> = ({ walletInfo, onNetworkCh
             <Title level={5} className={styles.title}>网络管理</Title>
           </div>
           <Space>
-            <Button type="primary" size="small" icon={<ReloadOutlined />} onClick={() => fetchNetworks()}>刷新网络列表</Button>
-            <Button 
-              icon={<PlusOutlined />} 
-              size="small"
-              onClick={() => window.location.href = '/eth/network'}
-            >
-              添加网络
-            </Button>
+            <Button type="primary" size="small" icon={<ReloadOutlined />} onClick={() => fetchNetworks()}>刷新</Button>
+            
           </Space>
         </div>
 
         <div className={styles.content}>
-          <Descriptions title="网络信息" column={2} items={[
+          <Descriptions title="钱包网络信息" column={2} items={[
             {
               key: 'networkName',
               label: '网络名称',
@@ -138,15 +161,16 @@ const NetworkManager: React.FC<NetworkManagerProps> = ({ walletInfo, onNetworkCh
 
           <Divider />
 
-          <div className={styles.networkSelector}>
-            <Text type="secondary">切换网络：</Text>
+          <Space className={styles.networkSelector}>
+            <Text type="secondary">选择网络：</Text>
             <Select
-              value={walletInfo?.chainId || undefined}
-              onChange={handleNetworkChange}
+              value={targetNetwork?.chain_id.toString() || undefined}
+              onChange={(value) => setTargetNetwork(networks.find(n => n.chain_id.toString() === value) || null)}
               loading={loading || networksLoading}
               disabled={!walletInfo}
               // className={styles.selector}
               placeholder="选择网络"
+              style={{ width: 280 }}
             >
               {networks.map((network) => (
                 <Option key={network.chain_id.toString()} value={network.chain_id.toString()}>
@@ -161,6 +185,40 @@ const NetworkManager: React.FC<NetworkManagerProps> = ({ walletInfo, onNetworkCh
                 </Option>
               ))}
             </Select>
+            
+            
+          </Space>
+
+          <div style={{ marginTop: 16 }}>
+            <Descriptions column={1} items={[
+              {
+                key: 'networkName',
+                label: 'RPC地址',
+                children: <Text type="secondary">{targetNetwork?.rpc_url}</Text>
+              }, 
+              {
+                key: 'explorerUrl',
+                label: '浏览器URL',
+                children: <Text type="secondary">{targetNetwork?.explorer_url}</Text>
+              }
+            ]} />
+          </div>
+          
+          <div className={styles.networkSwitch}>
+            <Button 
+              icon={<PlusOutlined />} 
+              disabled={!targetNetwork}
+              onClick={() => addNetworkToMetamask(targetNetwork!)}
+            >
+              添加网络
+            </Button>
+
+            <Button 
+              type="primary" 
+              icon={<SwitcherOutlined />} 
+              onClick={() => handleNetworkChange(targetNetwork?.chain_id.toString() || '')}
+              disabled={!targetNetwork || targetNetwork.chain_id.toString() === walletInfo?.chainId?.toString()}
+            >切换网络</Button>
           </div>
         </div>
       </Card>

@@ -241,13 +241,25 @@ export default function EthNetworkManage() {
         );
     }
 
-    function renderStatus(network: IEthNetwork) {
+    function renderIsEnable(is_enable: boolean | 0 | 1, network: IEthNetwork) {
         // 这里可以添加网络连接状态检查逻辑
         return (
-            <Tag color="green" icon={<CheckCircleOutlined />}>
-                正常
-            </Tag>
+            <Switch checked={is_enable === true || is_enable === 1} onChange={(checked) => onToggleNetwork(network, checked)} />
         );
+    }
+
+    async function onToggleNetwork(network: IEthNetwork, checked: boolean) {
+        try {
+            await fetch.put('/api/eth/network', { 
+                ...network, 
+                is_enable: checked ? 1 : 0 
+            });
+
+            await onQuery();
+            message.success('操作成功');
+        } catch (e: any) {
+            message.error(e.message || '操作失败');
+        }
     }
 
     // 复制到剪贴板的函数
@@ -309,7 +321,7 @@ export default function EthNetworkManage() {
             </Row>
 
             <div className="f-flex-two-side">
-                <QueryBar onChange={setUserParams} spinning={spinning} className={styles.queryBar}>
+                <QueryBar onChange={onQuery} spinning={spinning} className={styles.queryBar}>
                     <QueryBar.QueryItem name="name" label="网络名称">
                         <Input allowClear placeholder="请输入网络名称"/>
                     </QueryBar.QueryItem>
@@ -366,6 +378,12 @@ export default function EthNetworkManage() {
                         width={100}
                     />
                     <Column 
+                        title="单位" 
+                        dataIndex="unit" 
+                        key="unit" 
+                        width={60}
+                    />
+                    <Column 
                         title="RPC URL" 
                         dataIndex="rpc_url" 
                         key="rpcUrl" 
@@ -386,6 +404,16 @@ export default function EthNetworkManage() {
                         render={renderTestnet}
                         width={60}
                     />
+                    <Column 
+                        title="是否启用" 
+                        dataIndex="is_enable" 
+                        key="isEnable" 
+                        render={renderIsEnable}
+                        width={60}
+                    />
+                    
+                    
+
                     {/* <Column 
                         title="状态" 
                         dataIndex="status" 
@@ -480,13 +508,55 @@ export default function EthNetworkManage() {
                         <Input placeholder="https://..." />
                     </Form.Item>
 
-                    <Form.Item
-                        name="is_testnet"
-                        label="是否为测试网"
-                        valuePropName="checked"
-                    >
-                        <Switch />
-                    </Form.Item>
+                    <Row>
+                        <Col span={12}>
+                            <Form.Item
+                                name="is_testnet"
+                                label="是否为测试网"
+                                valuePropName="checked"
+                            >
+                                <Switch />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item
+                                name="is_enable"
+                                label="是否启用"
+                                valuePropName="checked"
+                            >
+                                <Switch />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+
+                    <Row gutter={16}>
+                        <Col span={8}>
+                            <Form.Item
+                                name="unit"
+                                label="单位"
+                            >
+                                <Input placeholder="请输入单位"/>
+                            </Form.Item>
+                        </Col>
+                        
+                        <Col span={8}>
+                            <Form.Item
+                                name="unit_full"
+                                label="单位全称"
+                            >
+                                <Input placeholder="请输入单位全称"/>
+                            </Form.Item>
+                        </Col>
+
+                        <Col span={8}>
+                            <Form.Item
+                                name="decimals"
+                                label="小数位数"
+                            >
+                                <InputNumber placeholder="请输入小数位数"/>
+                            </Form.Item>
+                        </Col>
+                    </Row>
                 </Form>
             </Modal>
         </div>

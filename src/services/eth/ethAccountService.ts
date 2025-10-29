@@ -18,7 +18,7 @@ class EthAccountService extends MysqlService {
 
     async getAccountsAndBalances(name: string, address: string, chain_id: number, page: number, limit: number) {
         let sql = `
-            select ea.*, en.name as network, en.chain_id, eab.balance, eab.unit, eab.update_time as balance_update_time
+            select ea.*, en.name as network, en.chain_id, eab.balance, en.unit, eab.update_time as balance_update_time
             from eth_accounts ea
             left join eth_networks en on network_id = en.id 
             left JOIN eth_accounts_balance eab on eab.address = ea.address and eab.chain_id = en.chain_id

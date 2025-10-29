@@ -92,6 +92,13 @@
   border-top: 1px solid #f0f0f0;
 }
 
+.networkSwitch {
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+  margin-top: 16px;
+}
+
 // 响应式设计
 @media (max-width: 768px) {
   .networkCard {

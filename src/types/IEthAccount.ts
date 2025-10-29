@@ -37,6 +37,10 @@ export interface IEthNetwork {
     create_time?: string;
     update_time?: string;
     vendor?: string;
+    is_enable: boolean | 0 | 1;
+    unit?: string;
+    decimals?: number;
+    unit_full?: string;
 }
 
 export interface IEthAccountBalance {
