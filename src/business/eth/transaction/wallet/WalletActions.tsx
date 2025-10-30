@@ -1,8 +1,9 @@
 import { Card, Button, Typography, Row, Col, Tabs, Table, Descriptions, Tag, Space, Input, Spin, message, Form, InputNumber, Select, Divider, Alert } from "antd";
 import { useState, useEffect } from "react";
-import { TransactionOutlined, SearchOutlined, CopyOutlined, ArrowUpOutlined, ArrowDownOutlined, SendOutlined, WalletOutlined, SettingOutlined } from "@ant-design/icons";
+import { TransactionOutlined, SearchOutlined, CopyOutlined, ArrowUpOutlined, ArrowDownOutlined, SendOutlined, WalletOutlined, SettingOutlined, ReloadOutlined } from "@ant-design/icons";
 import { WalletInfo } from "@/src/utils/ethereum/metamask";
 import copyToClip from '@/src/utils/common/copy';
+import fetch from '@/src/fetch';
 import styles from './WalletActions.module.scss';
 import transactionHistoryStyles from './TransactionHistory.module.scss';
 
@@ -19,12 +20,12 @@ export default function WalletActions(props: WalletActionsProps) {
         {
             key: '1',
             label: '交易历史',
-            children: <TransactionHistory/>,
+            children: <TransactionHistory walletInfo={props.walletInfo}/>,
         },
         {
             key: '2',
             label: '交易发送',
-            children: <TransactionSend/>,
+            children: <TransactionSend walletInfo={props.walletInfo}/>,
         },
     ];
 
@@ -86,96 +87,131 @@ interface Transaction {
     gasPrice: string;
 }
 
-function TransactionHistory() {
+function TransactionHistory(props: WalletActionsProps) {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
     const [loading, setLoading] = useState(false);
     const [searchValue, setSearchValue] = useState('');
+    const [pagination, setPagination] = useState({
+        current: 1,
+        pageSize: 10,
+        total: 0,
+    });
+    const [networkId, setNetworkId] = useState<number | null>(null);
 
-    // 模拟数据
-    useEffect(() => {
+    // 获取交易历史
+    const fetchTransactions = async (page: number = 1, pageSize: number = 10) => {
+        if (!networkId) {
+            message.warning('请先选择网络');
+            return;
+        }
+
+        let address = props.walletInfo?.address;
+        if (!address) {
+            message.warning('请先连接钱包');
+            return;
+        }
+
         setLoading(true);
-        // 模拟异步加载
-        setTimeout(() => {
-            const mockTransactions: Transaction[] = [
-                {
-                    id: '1',
-                    hash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-                    from: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
-                    to: '0x8ba1f109551bD432803012645Hac136c22C1',
-                    value: '0.5',
-                    fee: '0.001',
-                    status: 'success',
-                    type: 'send',
-                    timestamp: Date.now() - 3600000,
-                    blockNumber: 18500000,
-                    gasUsed: '21000',
-                    gasPrice: '30000000000',
-                },
-                {
-                    id: '2',
-                    hash: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
-                    from: '0x8ba1f109551bD432803012645Hac136c22C1',
-                    to: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
-                    value: '1.2',
-                    fee: '0.0015',
-                    status: 'success',
-                    type: 'receive',
-                    timestamp: Date.now() - 7200000,
-                    blockNumber: 18499950,
-                    gasUsed: '21000',
-                    gasPrice: '35000000000',
-                },
-                {
-                    id: '3',
-                    hash: '0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba',
-                    from: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
-                    to: '0x9c8e6f7a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e',
-                    value: '0.3',
-                    fee: '0.0008',
-                    status: 'pending',
-                    type: 'send',
-                    timestamp: Date.now() - 1800000,
-                    blockNumber: 18500010,
-                    gasUsed: '18000',
-                    gasPrice: '28000000000',
-                },
-                {
-                    id: '4',
-                    hash: '0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321',
-                    from: '0x1234567890abcdef1234567890abcdef12345678',
-                    to: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
-                    value: '2.5',
-                    fee: '0.002',
-                    status: 'success',
-                    type: 'receive',
-                    timestamp: Date.now() - 10800000,
-                    blockNumber: 18499800,
-                    gasUsed: '21000',
-                    gasPrice: '40000000000',
-                },
-                {
-                    id: '5',
-                    hash: '0xa1b2c3d4e5f6789012345678901234567890123456789012345678901234abcd',
-                    from: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
-                    to: '0x567890abcdef1234567890abcdef1234567890ab',
-                    value: '0.1',
-                    fee: '0.0005',
-                    status: 'failed',
-                    type: 'send',
-                    timestamp: Date.now() - 14400000,
-                    blockNumber: 18499650,
-                    gasUsed: '0',
-                    gasPrice: '25000000000',
-                },
-            ];
-            setTransactions(mockTransactions);
-            if (mockTransactions.length > 0) {
-                setSelectedTransaction(mockTransactions[0]);
+        try {
+            const response = await fetch.get('/api/eth/account/transactions', {
+                params: {
+                    address: address,
+                    network_id: networkId,
+                    page,
+                    limit: pageSize,
+                }
+            });
+
+            if (response.data) {
+                setTransactions(response.data.data || []);
+                setPagination(prev => ({
+                    ...prev,
+                    current: page,
+                    pageSize,
+                    total: response.data.count || 0,
+                }));
+
+                // 选择第一条交易
+                if (response.data.data && response.data.data.length > 0) {
+                    setSelectedTransaction(response.data.data[0]);
+                }
             }
+        } catch (error: any) {
+            console.error('获取交易历史失败:', error);
+            message.error(error.message || '获取交易历史失败');
+            
+            // 如果 API 失败，使用模拟数据
+            loadMockData();
+        } finally {
             setLoading(false);
-        }, 500);
+        }
+    };
+
+    // 模拟数据（作为备用）
+    const loadMockData = () => {
+        const mockTransactions: Transaction[] = [
+            {
+                id: '1',
+                hash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+                from: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
+                to: '0x8ba1f109551bD432803012645Hac136c22C1',
+                value: '0.5',
+                fee: '0.001',
+                status: 'success',
+                type: 'send',
+                timestamp: Date.now() - 3600000,
+                blockNumber: 18500000,
+                gasUsed: '21000',
+                gasPrice: '30000000000',
+            },
+            {
+                id: '2',
+                hash: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
+                from: '0x8ba1f109551bD432803012645Hac136c22C1',
+                to: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
+                value: '1.2',
+                fee: '0.0015',
+                status: 'success',
+                type: 'receive',
+                timestamp: Date.now() - 7200000,
+                blockNumber: 18499950,
+                gasUsed: '21000',
+                gasPrice: '35000000000',
+            },
+            {
+                id: '3',
+                hash: '0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba',
+                from: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
+                to: '0x9c8e6f7a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e',
+                value: '0.3',
+                fee: '0.0008',
+                status: 'pending',
+                type: 'send',
+                timestamp: Date.now() - 1800000,
+                blockNumber: 18500010,
+                gasUsed: '18000',
+                gasPrice: '28000000000',
+            },
+        ];
+        setTransactions(mockTransactions);
+        setPagination(prev => ({ ...prev, total: mockTransactions.length }));
+        if (mockTransactions.length > 0) {
+            setSelectedTransaction(mockTransactions[0]);
+        }
+    };
+
+    // 初始化加载
+    useEffect(() => {
+        // 默认使用以太坊主网 ID (1)
+        setNetworkId(1);
+        fetchTransactions();
     }, []);
+
+    // 分页变化
+    const handleTableChange = (pagination: any) => {
+        fetchTransactions(pagination.current, pagination.pageSize);
+    };
 
     // 过滤交易
     const filteredTransactions = transactions.filter(tx => {
@@ -249,6 +285,13 @@ function TransactionHistory() {
                                 allowClear
                                 className={transactionHistoryStyles.searchInput}
                             />
+                            <Button
+                                icon={<ReloadOutlined />}
+                                onClick={() => fetchTransactions(pagination.current, pagination.pageSize)}
+                                loading={loading}
+                            >
+                                刷新
+                            </Button>
                         </div>
                         <Spin spinning={loading}>
                             {/* 交易历史记录表 */}
@@ -257,9 +300,13 @@ function TransactionHistory() {
                                 rowKey="id"
                                 size="small"
                                 pagination={{
-                                    pageSize: 10,
-                                    showSizeChanger: false,
-                                    showTotal: (total) => `共 ${total} 条`,
+                                    current: pagination.current,
+                                    pageSize: pagination.pageSize,
+                                    total: pagination.total,
+                                    showSizeChanger: true,
+                                    showQuickJumper: true,
+                                    showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条`,
+                                    onChange: handleTableChange,
                                 }}
                                 scroll={{ y: 500 }}
                                 onRow={(record) => ({
@@ -270,7 +317,26 @@ function TransactionHistory() {
                                     expandedRowRender: (record) => (
                                         <Descriptions size="small" column={1} bordered>
                                             <Descriptions.Item label="交易哈希">
-                                                {record.hash}
+                                                <Space>
+                                                    <span className={transactionHistoryStyles.fullHash}>
+                                                        {record.hash}
+                                                    </span>
+                                                    <Button
+                                                        type="text"
+                                                        size="small"
+                                                        icon={<CopyOutlined />}
+                                                        onClick={() => handleCopy(record.hash)}
+                                                    />
+                                                </Space>
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="发送方">
+                                                {record.from}
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="接收方">
+                                                {record.to}
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="区块号">
+                                                {record.blockNumber.toLocaleString()}
                                             </Descriptions.Item>
                                         </Descriptions>
                                     ),

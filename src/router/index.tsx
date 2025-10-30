@@ -99,6 +99,7 @@ export default function () {
                     <Route path="eth/account" element={<EthAccountManage />} />
                     <Route path="eth/network" element={<EthNetworkManage />} />
                     <Route path="eth/transaction" element={<EthTransaction />} />
+                    <Route path="eth/transactionCustom" element={<EthTransaction mode="custom" />} />
 
                     <Route path="*" element={<div><h1>此页面尚未实现！</h1></div>} />
                 </Route>

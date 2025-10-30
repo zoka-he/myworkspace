@@ -30,24 +30,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 }
 
 async function getNetworks(req: NextApiRequest, res: NextApiResponse) {
-    const { name, chain_id, is_testnet, is_enable } = req.query;
+    const { name, chain_id, is_testnet, is_enable, id } = req.query;
     
     const page = _.toNumber(req.query.page || 1);
     const limit = _.toNumber(req.query.limit || 20);
 
     let queryObject: ISqlCondMap = {};
 
-    if (name) {
-        queryObject.name = { $like: `%${name}%` };
-    }
-    if (chain_id) {
-        queryObject.chain_id = chain_id;
-    }
-    if (is_testnet !== undefined) {
-        queryObject.is_testnet = is_testnet === 'true' ? 1 : 0;
-    }
-    if (is_enable !== undefined) {
-        queryObject.is_enable = is_enable === 'true' || is_enable === '1' ? 1 : 0;
+    if (id) {
+        queryObject.id = id;
+    } else {
+        if (name) {
+            queryObject.name = { $like: `%${name}%` };
+        }
+        if (chain_id) {
+            queryObject.chain_id = chain_id;
+        }
+        if (is_testnet !== undefined) {
+            queryObject.is_testnet = is_testnet === 'true' ? 1 : 0;
+        }
+        if (is_enable !== undefined) {
+            queryObject.is_enable = is_enable === 'true' || is_enable === '1' ? 1 : 0;
+        }
     }
     
     let ret = await ethNetworkService.query(queryObject, [], ['create_time asc'], page, limit);

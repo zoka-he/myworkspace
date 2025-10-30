@@ -9,6 +9,7 @@ export interface WalletInfo {
   networkInfo?: Network;
   feeData?: FeeData;
   blockNumber?: number;
+  custom?: boolean;
 }
 
 export interface NetworkInfo {
@@ -82,7 +83,8 @@ export async function getWalletInfo(): Promise<WalletInfo | null> {
       isConnected: true,
       networkInfo: network,
       feeData: feeData,
-      blockNumber: blockNumber
+      blockNumber: blockNumber,
+      custom: false
     };
   } catch (error) {
     console.error('获取钱包信息失败:', error);
