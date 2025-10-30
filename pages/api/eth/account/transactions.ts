@@ -43,65 +43,34 @@ async function getTransactions(req: NextApiRequest, res: NextApiResponse) {
         const network = await ethNetworkService.queryOne({ id: network_id } as ISqlCondMap);
         if (!network || !network.rpc_url) {
             return res.status(400).json({ message: '网络不存在或RPC地址不存在' });
+        } else {
+            if (process.env.NODE_ENV === 'development') {
+                console.debug('网络ID:', network_id);
+                console.debug('网络配置:', network);
+            }
         }
 
         // 创建 provider
         let provider;
-        switch (network.vendor) {
+
+        // 解构赋值，如果字段不存在则给默认值
+        const { vendor, chain_id, rpc_url } = network;
+        const networkName = network.name; 
+
+        switch (vendor) {
             case 'etherscan':
-                // 根据 chain_id 确定正确的网络名称
-                let networkName;
-                switch (network.chain_id) {
-                    case 1:
-                        networkName = 'homestead'; // 主网
-                        break;
-                    case 5:
-                        networkName = 'goerli'; // Goerli 测试网
-                        break;
-                    case 11155111:
-                        networkName = 'sepolia'; // Sepolia 测试网
-                        break;
-                    case 137:
-                        networkName = 'matic'; // Polygon 主网
-                        break;
-                    case 80001:
-                        networkName = 'maticmum'; // Polygon Mumbai 测试网
-                        break;
-                    case 56:
-                        networkName = 'bsc'; // BSC 主网
-                        break;
-                    case 97:
-                        networkName = 'bsc-testnet'; // BSC 测试网
-                        break;
-                    case 42161:
-                        networkName = 'arbitrum'; // Arbitrum 主网
-                        break;
-                    case 421613:
-                        networkName = 'arbitrum-goerli'; // Arbitrum Goerli 测试网
-                        break;
-                    case 10:
-                        networkName = 'optimism'; // Optimism 主网
-                        break;
-                    case 420:
-                        networkName = 'optimism-goerli'; // Optimism Goerli 测试网
-                        break;
-                    default:
-                        networkName = 'homestead'; // 默认主网
-                        break;
-                }
-                
                 if (process.env.NODE_ENV === 'development') {
                     console.debug('创建 EtherscanProvider:', { 
-                        chain_id: network.chain_id, 
+                        chain_id, 
                         network_name: networkName,
-                        vendor: network.vendor 
+                        vendor
                     });
                 }
                 
-                provider = new ethers.EtherscanProvider(networkName, 'NHA2XREMZYNWJTA8KATB2JTSTVATTZH8Z8');
+                provider = new ethers.EtherscanProvider(chain_id, 'NHA2XREMZYNWJTA8KATB2JTSTVATTZH8Z8');
                 break;
             default:
-                provider = new ethers.JsonRpcProvider(network.rpc_url);
+                provider = new ethers.JsonRpcProvider(rpc_url);
                 break;
         }
 
@@ -126,8 +95,8 @@ async function getTransactions(req: NextApiRequest, res: NextApiResponse) {
             page: Number(page),
             limit: Number(limit),
             network: {
-                name: network.name,
-                chain_id: network.chain_id,
+                name: networkName,
+                chain_id,
                 unit: network.unit
             }
         });
@@ -151,22 +120,52 @@ async function getTransactionHistory(
     limit: number
 ) {
     try {
+        const logLabel = `[getTransactionHistory] ${address} p${page} l${limit}`;
+        console.info(`${logLabel} -> start`, { startBlock, endBlock });
+        console.time(`${logLabel} total`);
+
         // 获取当前区块号
+        console.time(`${logLabel} getBlockNumber`);
         const currentBlock = await provider.getBlockNumber();
+        console.timeEnd(`${logLabel} getBlockNumber`);
         const actualEndBlock = endBlock === 'latest' ? currentBlock : Number(endBlock);
         
         // 计算查询范围
-        const blockRange = Math.max(1000, actualEndBlock - startBlock); // 至少查询1000个区块
-        const blocksPerPage = Math.ceil(blockRange / limit);
+        const MIN_BLOCK_RANGE = 500; // 可根据需要调整
+        const MAX_BLOCKS_PER_PAGE = 20000; // 上限防止跨度过大
+        const blockRange = Math.max(MIN_BLOCK_RANGE, actualEndBlock - startBlock);
+        let blocksPerPage = Math.ceil(blockRange / limit);
+        if (blocksPerPage > MAX_BLOCKS_PER_PAGE) {
+            blocksPerPage = MAX_BLOCKS_PER_PAGE;
+        }
         const startBlockForPage = Math.max(startBlock, actualEndBlock - (page * blocksPerPage));
         const endBlockForPage = Math.min(actualEndBlock, startBlockForPage + blocksPerPage);
+        console.info(`${logLabel} -> range computed`, {
+            currentBlock,
+            actualEndBlock,
+            blockRange,
+            blocksPerPage,
+            startBlockForPage,
+            endBlockForPage
+        });
 
         // 获取交易历史（使用 Etherscan API 或自定义实现）
+        let result;
         if (provider instanceof ethers.EtherscanProvider) {
-            return await getTransactionsFromEtherscan(provider, address, page, limit);
+            console.info(`${logLabel} -> using EtherscanProvider`);
+            console.time(`${logLabel} etherscanFetch`);
+            result = await getTransactionsFromEtherscan(provider, address, startBlockForPage, endBlockForPage, page, limit);
+            console.timeEnd(`${logLabel} etherscanFetch`);
         } else {
-            return await getTransactionsFromRPC(provider, address, startBlockForPage, endBlockForPage);
+            console.info(`${logLabel} -> using JsonRpcProvider`);
+            console.time(`${logLabel} rpcScan`);
+            result = await getTransactionsFromRPC(provider, address, startBlockForPage, endBlockForPage);
+            console.timeEnd(`${logLabel} rpcScan`);
         }
+
+        console.info(`${logLabel} -> done`, { count: Array.isArray(result) ? result.length : 0 });
+        console.timeEnd(`${logLabel} total`);
+        return result;
     } catch (error) {
         console.error('获取交易历史失败:', error);
         return [];
@@ -174,24 +173,36 @@ async function getTransactionHistory(
 }
 
 // 从 Etherscan 获取交易
-async function getTransactionsFromEtherscan(provider: ethers.EtherscanProvider, address: string, page: number, limit: number) {
+async function getTransactionsFromEtherscan(
+    provider: ethers.EtherscanProvider,
+    address: string,
+    startBlock: number,
+    endBlock: number,
+    page: number,
+    limit: number
+) {
     try {
+        const logLabel = `[getTransactionsFromEtherscan] ${address} p${page} l${limit}`;
+        console.info(`${logLabel} -> start`, { startBlock, endBlock });
+        console.time(`${logLabel} total`);
         if (process.env.NODE_ENV === 'development') {
             console.debug('EtherscanProvider 网络:', provider.network);
             console.debug('EtherscanProvider API Key:', provider.apiKey);
-            console.debug('请求参数:', { address, page, limit });
+            console.debug('请求参数:', { address, startBlock, endBlock, page, limit });
         }
 
         // 使用 Etherscan API 的 txlist 端点获取交易历史
+        console.time(`${logLabel} fetch`);
         const response = await provider.fetch('account', {
             action: 'txlist',
             address: address,
-            startblock: '0',
-            endblock: '99999999',
+            startblock: startBlock.toString(),
+            endblock: endBlock.toString(),
             page: page.toString(),
             offset: limit.toString(),
             sort: 'desc'
         });
+        console.timeEnd(`${logLabel} fetch`);
 
         if (process.env.NODE_ENV === 'development') {
             console.debug('txlist response:', response);
@@ -217,7 +228,7 @@ async function getTransactionsFromEtherscan(provider: ethers.EtherscanProvider, 
         }
 
         // 转换为统一格式
-        return transactions.map((tx: any, index: number) => ({
+        const mapped = transactions.map((tx: any, index: number) => ({
             id: `${tx.hash}-${index}`,
             hash: tx.hash,
             from: tx.from,
@@ -235,6 +246,9 @@ async function getTransactionsFromEtherscan(provider: ethers.EtherscanProvider, 
             nonce: tx.nonce,
             data: tx.input
         }));
+        console.info(`${logLabel} -> done`, { count: mapped.length });
+        console.timeEnd(`${logLabel} total`);
+        return mapped;
     } catch (error: any) {
         console.error('Etherscan API 错误:', error?.code, error?.message);
         console.error('response:', error?.response);
@@ -247,13 +261,15 @@ async function getTransactionsFromRPC(provider: ethers.Provider, address: string
     try {
         const transactions = [];
         
-        // 简化实现：只获取最近的几个区块
+        // 以给定的 endBlock 为起点向后扫描，最多 100 个区块
         const currentBlock = await provider.getBlockNumber();
-        const searchBlocks = Math.min(100, currentBlock - startBlock);
+        const end = Math.min(endBlock || currentBlock, currentBlock);
+        const start = Math.max(startBlock, end - 100);
+        const searchBlocks = Math.max(0, end - start + 1);
         
         for (let i = 0; i < searchBlocks && transactions.length < 50; i++) {
             try {
-                const blockNumber = currentBlock - i;
+                const blockNumber = end - i;
                 const block = await provider.getBlock(blockNumber, true);
                 
                 if (block && block.transactions) {
@@ -284,11 +300,14 @@ async function getTransactionsFromRPC(provider: ethers.Provider, address: string
                         }
                     }
                 }
+
+                console.info(`[getTransactionsFromRPC] ${address} -> block ${end - i} -> done`, { count: block?.transactions?.length || 0 });
             } catch (blockError) {
-                console.warn(`获取区块 ${currentBlock - i} 失败:`, blockError);
+                console.warn(`获取区块 ${end - i} 失败:`, blockError);
             }
         }
         
+        console.info(`[getTransactionsFromRPC] ${address} -> done`, { count: transactions.length });
         return transactions;
     } catch (error) {
         console.error('RPC 获取交易失败:', error);

@@ -88,11 +88,11 @@ const NetworkManager: React.FC<NetworkManagerProps> = ({ walletInfo, onNetworkCh
     return network.is_testnet ? 'orange' : 'blue';
   };
 
-  const getCurrentNetworkName = () => {
-    if (!walletInfo) return '未连接';
-    const network = networks.find(n => n.chain_id.toString() === walletInfo.chainId);
-    return network?.name || `Chain ${walletInfo.chainId}`;
-  };
+  // const getCurrentNetworkName = () => {
+  //   if (!walletInfo) return '未连接';
+  //   const network = networks.find(n => n.chain_id.toString() === walletInfo.chainId);
+  //   return network?.name || `Chain ${walletInfo.chainId}`;
+  // };
 
   const addNetworkToMetamask = async (network: IEthNetwork) => {
     if (!network) {

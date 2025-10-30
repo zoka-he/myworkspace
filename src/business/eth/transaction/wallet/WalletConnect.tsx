@@ -21,15 +21,16 @@ import {
 } from '@/src/utils/ethereum/metamask';
 import copyToClip from '@/src/utils/common/copy';
 import styles from './WalletConnect.module.scss';
+import { IWalletInfo } from '../IWalletInfo';
 
 const { Title, Text, Paragraph } = Typography;
 
 interface WalletConnectProps {
-  onWalletChange?: (walletInfo: WalletInfo | null) => void;
+  onWalletChange?: (walletInfo: IWalletInfo | null) => void;
 }
 
 const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
-  const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
+  const [walletInfo, setWalletInfo] = useState<IWalletInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -133,9 +134,9 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
     }
   };
 
-  const getNetworkName = (chainId: string) => {
-    return PREDEFINED_NETWORKS[chainId]?.name || `Chain ${chainId}`;
-  };
+  // const getNetworkName = (chainId: string) => {
+  //   return PREDEFINED_NETWORKS[chainId]?.name || `Chain ${chainId}`;
+  // };
 
   if (!isMetaMaskInstalled()) {
     return (

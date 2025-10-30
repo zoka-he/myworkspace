@@ -3,9 +3,9 @@ import { Card, Select, Tag, message, Space, Divider, Descriptions, Button } from
 import { CopyOutlined, ReloadOutlined } from '@ant-design/icons';
 import { ethers } from 'ethers';
 import fetch from '@/src/fetch';
-import { WalletInfo } from '@/src/utils/ethereum/metamask';
 import styles from './CustomWallet.module.scss';
 import copyToClip from '@/src/utils/common/copy';
+import { IWalletInfo } from '../IWalletInfo';
 
 interface IEthAccountRow {
     id: number;
@@ -20,7 +20,7 @@ interface IEthAccountRow {
 }
 
 interface CustomWalletProps {
-    onWalletChange: (info: WalletInfo | null) => void;
+    onWalletChange: (info: IWalletInfo | null) => void;
 }
 
 export default function CustomWallet(props: CustomWalletProps) {
@@ -84,6 +84,42 @@ export default function CustomWallet(props: CustomWalletProps) {
         }
     }
 
+    async function updateNetworkInfo(_networkInfo?: ethers.Network) {
+        try {
+            const acc = accounts.find(a => a.id === selectedId!);
+            if (!acc || !acc.network_id) return;
+
+            // @ts-ignore
+            const netResp = await fetch.get('/api/eth/network', { params: { id: acc.network_id } });
+            const net = (netResp as any)?.data?.[0] || (netResp as any)?.data || null;
+            if (!net?.rpc_url) return;
+
+            const provider = new ethers.JsonRpcProvider(net.rpc_url);
+            const [feeData, blockNumber, netInfo] = await Promise.all([
+                provider.getFeeData(),
+                provider.getBlockNumber(),
+                provider.getNetwork(),
+            ]);
+
+            const updated: IWalletInfo = {
+                address: acc.address,
+                balance: (acc.balance ?? 0).toString(),
+                chainId: netInfo.chainId.toString(),
+                networkName: netInfo.name,
+                networkId: acc.network_id,
+                isConnected: true,
+                custom: true,
+                networkInfo: netInfo,
+                feeData,
+                blockNumber,
+            } as IWalletInfo;
+
+            props.onWalletChange(updated);
+        } catch (e) {
+            console.warn('更新网络信息失败:', e);
+        }
+    }
+
     async function handleSelect(row: IEthAccountRow) {
         setSelectedId(row.id);
 
@@ -108,19 +144,24 @@ export default function CustomWallet(props: CustomWalletProps) {
             console.warn('初始化网络信息失败，将使用本地账户网络字段:', e);
         }
 
-        const walletInfo: WalletInfo = {
+        const walletInfo: IWalletInfo = {
             address: row.address,
             balance: (row.balance ?? 0).toString(),
             chainId: chainIdStr,
             networkName: networkName,
+            networkId: row.network_id,
             isConnected: true,
             custom: true,
             ...(networkInfo ? { networkInfo } : {}),
-        } as WalletInfo;
+        } as IWalletInfo;
         props.onWalletChange(walletInfo);
         message.success(`已切换到账户 ${row.name}`);
+
         // 切换后立即刷新余额
         refreshBalance(row.address, row.network_id);
+
+        // 切换后更新网络信息
+        updateNetworkInfo(networkInfo);
     }
 
     useEffect(() => {

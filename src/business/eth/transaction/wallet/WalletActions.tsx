@@ -6,12 +6,13 @@ import copyToClip from '@/src/utils/common/copy';
 import fetch from '@/src/fetch';
 import styles from './WalletActions.module.scss';
 import transactionHistoryStyles from './TransactionHistory.module.scss';
+import { IWalletInfo } from '../IWalletInfo';
 
 const { Title, Paragraph } = Typography;
 const { Column } = Table;
 
 interface WalletActionsProps {
-    walletInfo?: WalletInfo | null;
+    walletInfo?: IWalletInfo | null;
 }
 
 export default function WalletActions(props: WalletActionsProps) {
@@ -97,22 +98,41 @@ function TransactionHistory(props: WalletActionsProps) {
         pageSize: 10,
         total: 0,
     });
-    const [networkId, setNetworkId] = useState<number | null>(null);
+    // const [networkId, setNetworkId] = useState<number | null>(null);
 
     // 获取交易历史
     const fetchTransactions = async (page: number = 1, pageSize: number = 10) => {
-        if (!networkId) {
+
+        if (!props.walletInfo) {
+            message.warning('请先连接钱包');
+            return;
+        }
+
+        const chainId = props.walletInfo?.networkInfo?.chainId;
+        const networkId = props.walletInfo?.networkId;
+        const address = props.walletInfo?.address;
+
+        if (!chainId) {
             message.warning('请先选择网络');
             return;
         }
 
-        let address = props.walletInfo?.address;
         if (!address) {
             message.warning('请先连接钱包');
             return;
         }
 
         setLoading(true);
+        
+        // 清空
+        setTransactions([]);
+        setPagination(prev => ({
+            ...prev,
+            current: page,
+            pageSize,
+            total: 0,
+        }));
+
         try {
             const response = await fetch.get('/api/eth/account/transactions', {
                 params: {
@@ -120,7 +140,8 @@ function TransactionHistory(props: WalletActionsProps) {
                     network_id: networkId,
                     page,
                     limit: pageSize,
-                }
+                },
+                timeout: 120 * 10000,
             });
 
             if (response.data) {
@@ -142,75 +163,75 @@ function TransactionHistory(props: WalletActionsProps) {
             message.error(error.message || '获取交易历史失败');
             
             // 如果 API 失败，使用模拟数据
-            loadMockData();
+            // loadMockData();
         } finally {
             setLoading(false);
         }
     };
 
     // 模拟数据（作为备用）
-    const loadMockData = () => {
-        const mockTransactions: Transaction[] = [
-            {
-                id: '1',
-                hash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-                from: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
-                to: '0x8ba1f109551bD432803012645Hac136c22C1',
-                value: '0.5',
-                fee: '0.001',
-                status: 'success',
-                type: 'send',
-                timestamp: Date.now() - 3600000,
-                blockNumber: 18500000,
-                gasUsed: '21000',
-                gasPrice: '30000000000',
-            },
-            {
-                id: '2',
-                hash: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
-                from: '0x8ba1f109551bD432803012645Hac136c22C1',
-                to: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
-                value: '1.2',
-                fee: '0.0015',
-                status: 'success',
-                type: 'receive',
-                timestamp: Date.now() - 7200000,
-                blockNumber: 18499950,
-                gasUsed: '21000',
-                gasPrice: '35000000000',
-            },
-            {
-                id: '3',
-                hash: '0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba',
-                from: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
-                to: '0x9c8e6f7a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e',
-                value: '0.3',
-                fee: '0.0008',
-                status: 'pending',
-                type: 'send',
-                timestamp: Date.now() - 1800000,
-                blockNumber: 18500010,
-                gasUsed: '18000',
-                gasPrice: '28000000000',
-            },
-        ];
-        setTransactions(mockTransactions);
-        setPagination(prev => ({ ...prev, total: mockTransactions.length }));
-        if (mockTransactions.length > 0) {
-            setSelectedTransaction(mockTransactions[0]);
-        }
-    };
+    // const loadMockData = () => {
+    //     const mockTransactions: Transaction[] = [
+    //         {
+    //             id: '1',
+    //             hash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+    //             from: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
+    //             to: '0x8ba1f109551bD432803012645Hac136c22C1',
+    //             value: '0.5',
+    //             fee: '0.001',
+    //             status: 'success',
+    //             type: 'send',
+    //             timestamp: Date.now() - 3600000,
+    //             blockNumber: 18500000,
+    //             gasUsed: '21000',
+    //             gasPrice: '30000000000',
+    //         },
+    //         {
+    //             id: '2',
+    //             hash: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
+    //             from: '0x8ba1f109551bD432803012645Hac136c22C1',
+    //             to: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
+    //             value: '1.2',
+    //             fee: '0.0015',
+    //             status: 'success',
+    //             type: 'receive',
+    //             timestamp: Date.now() - 7200000,
+    //             blockNumber: 18499950,
+    //             gasUsed: '21000',
+    //             gasPrice: '35000000000',
+    //         },
+    //         {
+    //             id: '3',
+    //             hash: '0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba',
+    //             from: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
+    //             to: '0x9c8e6f7a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e',
+    //             value: '0.3',
+    //             fee: '0.0008',
+    //             status: 'pending',
+    //             type: 'send',
+    //             timestamp: Date.now() - 1800000,
+    //             blockNumber: 18500010,
+    //             gasUsed: '18000',
+    //             gasPrice: '28000000000',
+    //         },
+    //     ];
+    //     setTransactions(mockTransactions);
+    //     setPagination(prev => ({ ...prev, total: mockTransactions.length }));
+    //     if (mockTransactions.length > 0) {
+    //         setSelectedTransaction(mockTransactions[0]);
+    //     }
+    // };
 
     // 初始化加载
     useEffect(() => {
         // 默认使用以太坊主网 ID (1)
-        setNetworkId(1);
-        fetchTransactions();
+        // setNetworkId(1);
+        // fetchTransactions();
     }, []);
 
     // 分页变化
     const handleTableChange = (pagination: any) => {
-        fetchTransactions(pagination.current, pagination.pageSize);
+        // fetchTransactions(pagination.current, pagination.pageSize);
     };
 
     // 过滤交易
@@ -496,7 +517,7 @@ interface SendFormData {
 function TransactionSend() {
     const [form] = Form.useForm<SendFormData>();
     const [loading, setLoading] = useState(false);
-    const [estimatedGas, setEstimatedGas] = useState<string>('21000');
+    // const [estimatedGas, setEstimatedGas] = useState<string>('21000');
     const [estimatedFee, setEstimatedFee] = useState<string>('0.001');
     const [gasPriceOptions] = useState([
         { label: '慢速 (20 Gwei)', value: 20000000000 },

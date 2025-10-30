@@ -6,9 +6,11 @@ import NetworkManager from '@/src/business/eth/transaction/wallet/NetworkManager
 import { WalletInfo } from '@/src/utils/ethereum/metamask';
 import styles from './index.module.scss';
 import WalletActions from './wallet/WalletActions';
+import { IWalletInfo } from './IWalletInfo';
 
 interface EthTransactionProps {
   mode?: 'wallet' | 'custom';
+  walletInfo?: IWalletInfo;
 }
 
 export default function EthTransaction(props: EthTransactionProps) {
@@ -17,9 +19,9 @@ export default function EthTransaction(props: EthTransactionProps) {
     mode = 'wallet';
   }
 
-  const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
+  const [walletInfo, setWalletInfo] = useState<IWalletInfo | null>(null);
 
-  const handleWalletChange = (info: WalletInfo | null) => {
+  const handleWalletChange = (info: IWalletInfo | null) => {
     setWalletInfo(info);
   };
 
