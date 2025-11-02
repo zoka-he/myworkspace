@@ -1,12 +1,13 @@
-import { Card, Button, Typography, Row, Col, Tabs, Table, Descriptions, Tag, Space, Input, Spin, message, Form, InputNumber, Select, Divider, Alert } from "antd";
+import { Card, Button, Typography, Row, Col, Tabs, Table, Descriptions, Tag, Space, Input, Spin, message, Form, InputNumber, Select, Divider, Alert, Modal, Segmented } from "antd";
 import { useState, useEffect } from "react";
-import { TransactionOutlined, SearchOutlined, CopyOutlined, ArrowUpOutlined, ArrowDownOutlined, SendOutlined, WalletOutlined, SettingOutlined, ReloadOutlined } from "@ant-design/icons";
+import { TransactionOutlined, SearchOutlined, CopyOutlined, ArrowUpOutlined, ArrowDownOutlined, SendOutlined, WalletOutlined, SettingOutlined, ReloadOutlined, ExclamationCircleOutlined, EditOutlined, UnorderedListOutlined } from "@ant-design/icons";
 import { WalletInfo } from "@/src/utils/ethereum/metamask";
 import copyToClip from '@/src/utils/common/copy';
 import fetch from '@/src/fetch';
 import styles from './WalletActions.module.scss';
 import transactionHistoryStyles from './TransactionHistory.module.scss';
 import { IWalletInfo } from '../IWalletInfo';
+import { ethers } from 'ethers';
 
 const { Title, Paragraph } = Typography;
 const { Column } = Table;
@@ -514,7 +515,18 @@ interface SendFormData {
     data?: string;
 }
 
-function TransactionSend() {
+// 账户列表项类型
+interface IEthAccountItem {
+    id: number;
+    name: string;
+    address: string;
+    balance?: number;
+    network?: string;
+    chain_id?: number;
+    unit?: string;
+}
+
+function TransactionSend(props: WalletActionsProps) {
     const [form] = Form.useForm<SendFormData>();
     const [loading, setLoading] = useState(false);
     // const [estimatedGas, setEstimatedGas] = useState<string>('21000');
@@ -525,6 +537,49 @@ function TransactionSend() {
         { label: '快速 (50 Gwei)', value: 50000000000 },
         { label: '极速 (100 Gwei)', value: 100000000000 },
     ]);
+    
+    // 接收地址输入模式：manual-手动输入, select-选择账户
+    const [addressInputMode, setAddressInputMode] = useState<'manual' | 'select'>('manual');
+    const [accountList, setAccountList] = useState<IEthAccountItem[]>([]);
+    const [accountsLoading, setAccountsLoading] = useState(false);
+
+    // 加载账户列表
+    const loadAccounts = async () => {
+        setAccountsLoading(true);
+        try {
+            let params: any = {
+                page: 1,
+                limit: 100
+            };
+
+            if (props.walletInfo?.networkId) {
+                params.network_id = props.walletInfo.networkId;
+            }
+
+            // @ts-ignore
+            const { data } = await fetch.get('/api/eth/account', { params: params });
+            let validReceivers = data.filter((item: any) => {
+                return (item.address.toLowerCase() !== props.walletInfo?.address.toLowerCase())
+                && (item.network_id === props.walletInfo?.networkId)
+                && (item.private_key !== null && item.private_key !== '');
+            });
+            
+            setAccountList(validReceivers || []);
+        } catch (e: any) {
+            console.error('加载账户列表失败:', e);
+            message.error(e?.message || '加载账户列表失败');
+        } finally {
+            setAccountsLoading(false);
+        }
+    };
+
+    // 当切换到选择模式时加载账户列表
+    useEffect(() => {
+        if (addressInputMode === 'select' && accountList.length === 0) {
+            loadAccounts();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [addressInputMode]);
 
     // 计算交易费用
     const calculateFee = (gasPrice: number, gasLimit: number) => {
@@ -541,22 +596,202 @@ function TransactionSend() {
         }
     };
 
+    // 缩短地址显示
+    const shortenAddress = (address: string) => {
+        if (!address) return '';
+        return `${address.slice(0, 6)}...${address.slice(-4)}`;
+    };
+
+    // 显示二次确认对话框
+    const showConfirmModal = (values: SendFormData) => {
+        const totalAmount = parseFloat(values.amount.toString()) + parseFloat(estimatedFee);
+        
+        Modal.confirm({
+            title: '确认发送交易',
+            icon: <ExclamationCircleOutlined />,
+            content: (
+                <div style={{ marginTop: 16 }}>
+                    <Descriptions column={1} size="small" bordered>
+                        <Descriptions.Item label="接收地址">
+                            <div style={{ wordBreak: 'break-all' }}>{values.to}</div>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="发送金额">
+                            <span style={{ fontSize: 16, fontWeight: 'bold', color: '#ff4d4f' }}>
+                                {values.amount} ETH
+                            </span>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Gas Price">
+                            {(values.gasPrice / 1e9).toFixed(0)} Gwei
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Gas Limit">
+                            {values.gasLimit}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="预估费用">
+                            {estimatedFee} ETH
+                        </Descriptions.Item>
+                        <Descriptions.Item label="总计">
+                            <span style={{ fontSize: 16, fontWeight: 'bold', color: '#1890ff' }}>
+                                {totalAmount.toFixed(6)} ETH
+                            </span>
+                        </Descriptions.Item>
+                    </Descriptions>
+                    <Alert
+                        message="重要提示"
+                        description="交易一旦发送将无法撤销，请仔细核对接收地址和金额！"
+                        type="warning"
+                        showIcon
+                        style={{ marginTop: 16 }}
+                    />
+                </div>
+            ),
+            okText: '确认发送',
+            cancelText: '取消',
+            width: 600,
+            okButtonProps: {
+                danger: true,
+            },
+            onOk: async () => {
+                await sendTransaction(values);
+            },
+        });
+    };
+
     // 发送交易
-    const handleSend = async (values: SendFormData) => {
+    const sendTransaction = async (values: SendFormData) => {
         try {
             setLoading(true);
             
-            // 模拟发送交易
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            // 检查是否有钱包连接
+            if (!props.walletInfo) {
+                message.error('请先连接钱包');
+                return;
+            }
+
+            let provider: ethers.JsonRpcProvider | ethers.BrowserProvider;
+            let signer: ethers.Wallet | ethers.JsonRpcSigner;
+
+            // 判断是否为自定义钱包
+            if (props.walletInfo.custom) {
+                // 使用自定义钱包（privateKey + rpcUrl）
+                if (!props.walletInfo.rpcUrl) {
+                    message.error('缺少 RPC URL 配置');
+                    return;
+                }
+                
+                if (!props.walletInfo.privateKey) {
+                    message.error('缺少私钥信息');
+                    return;
+                }
+
+                // 创建 provider 和 wallet
+                provider = new ethers.JsonRpcProvider(props.walletInfo.rpcUrl);
+                signer = new ethers.Wallet(props.walletInfo.privateKey, provider);
+                
+                // 验证地址匹配
+                const walletAddress = await signer.getAddress();
+                if (walletAddress.toLowerCase() !== props.walletInfo.address.toLowerCase()) {
+                    message.error('私钥与地址不匹配');
+                    return;
+                }
+            } else {
+                // 使用 MetaMask 钱包
+                if (typeof window === 'undefined' || !window.ethereum) {
+                    message.error('未检测到钱包，请安装 MetaMask');
+                    return;
+                }
+
+                provider = new ethers.BrowserProvider(window.ethereum);
+                signer = await provider.getSigner();
+                
+                // 验证当前账户
+                const currentAddress = await signer.getAddress();
+                if (currentAddress.toLowerCase() !== props.walletInfo.address.toLowerCase()) {
+                    message.error('钱包地址不匹配，请检查连接状态');
+                    return;
+                }
+            }
+
+            // 获取当前地址
+            const currentAddress = await signer.getAddress();
+
+            // 检查余额是否充足
+            const balance = await provider.getBalance(currentAddress);
+            const totalAmount = ethers.parseEther(values.amount.toString()) + 
+                               BigInt(values.gasPrice) * BigInt(values.gasLimit);
             
-            message.success('交易已提交，等待确认');
-            form.resetFields();
-            setEstimatedFee('0.001');
-        } catch (error) {
-            message.error('交易发送失败');
+            if (balance < totalAmount) {
+                message.error('余额不足，无法完成交易');
+                return;
+            }
+
+            // 构建交易
+            const transaction: ethers.TransactionRequest = {
+                to: values.to,
+                value: ethers.parseEther(values.amount.toString()),
+                gasLimit: values.gasLimit,
+                gasPrice: values.gasPrice,
+            };
+
+            // 如果有附加数据
+            if (values.data && values.data.trim() !== '') {
+                transaction.data = values.data.trim();
+            }
+
+            message.loading({ content: '正在发送交易...', key: 'sendTx', duration: 0 });
+
+            // 发送交易
+            const txResponse = await signer.sendTransaction(transaction);
+            
+            message.loading({ 
+                content: `交易已发送，等待确认... (Hash: ${txResponse.hash.slice(0, 10)}...)`, 
+                key: 'sendTx',
+                duration: 0 
+            });
+
+            // 等待交易确认
+            const receipt = await txResponse.wait();
+            
+            if (receipt?.status === 1) {
+                message.success({ 
+                    content: `交易成功! Hash: ${txResponse.hash}`,
+                    key: 'sendTx',
+                    duration: 5,
+                });
+                
+                // 复制交易哈希到剪贴板
+                copyToClip(txResponse.hash);
+                message.info('交易哈希已复制到剪贴板');
+                
+                // 重置表单
+                form.resetFields();
+                setEstimatedFee('0.001');
+            } else {
+                throw new Error('交易失败');
+            }
+            
+        } catch (error: any) {
+            console.error('交易发送失败:', error);
+            
+            // 处理用户拒绝交易
+            if (error.code === 'ACTION_REJECTED' || error.code === 4001) {
+                message.warning({ content: '您已取消交易', key: 'sendTx' });
+            } else if (error.code === 'INSUFFICIENT_FUNDS') {
+                message.error({ content: '余额不足', key: 'sendTx' });
+            } else {
+                message.error({ 
+                    content: `交易失败: ${error.message || '未知错误'}`,
+                    key: 'sendTx',
+                    duration: 5,
+                });
+            }
         } finally {
             setLoading(false);
         }
+    };
+
+    // 处理表单提交（显示确认对话框）
+    const handleSend = async (values: SendFormData) => {
+        showConfirmModal(values);
     };
 
     // 设置最大 Gas
@@ -602,16 +837,80 @@ function TransactionSend() {
                                 gasLimit: 21000,
                             }}
                         >
-                            <Form.Item
-                                label="接收地址"
-                                name="to"
-                                rules={[{ validator: validateAddress }]}
-                            >
-                                <Input
-                                    placeholder="0x..."
-                                    prefix={<WalletOutlined />}
-                                    className={transactionHistoryStyles.addressInput}
-                                />
+                            <Form.Item label="接收地址">
+                                <Space direction="vertical" style={{ width: '100%' }}>
+                                    <Segmented
+                                        value={addressInputMode}
+                                        onChange={(value) => {
+                                            setAddressInputMode(value as 'manual' | 'select');
+                                            // 切换模式时清空地址
+                                            form.setFieldsValue({ to: '' });
+                                        }}
+                                        options={[
+                                            {
+                                                label: '手动输入',
+                                                value: 'manual',
+                                                icon: <EditOutlined />,
+                                            },
+                                            {
+                                                label: '选择账户',
+                                                value: 'select',
+                                                icon: <UnorderedListOutlined />,
+                                            },
+                                        ]}
+                                        block
+                                    />
+                                    
+                                    <Form.Item
+                                        name="to"
+                                        rules={[{ validator: validateAddress }]}
+                                        noStyle
+                                    >
+                                        {addressInputMode === 'manual' ? (
+                                            <Input
+                                                placeholder="请输入接收地址 (0x...)"
+                                                prefix={<WalletOutlined />}
+                                                className={transactionHistoryStyles.addressInput}
+                                            />
+                                        ) : (
+                                            <Select
+                                                placeholder="请选择接收账户"
+                                                loading={accountsLoading}
+                                                showSearch
+                                                optionFilterProp="label"
+                                                style={{ width: '100%' }}
+                                                options={accountList.map(acc => ({
+                                                    value: acc.address,
+                                                    label: (
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <Space>
+                                                                <span>{acc.name}</span>
+                                                                {acc.network && (
+                                                                    <Tag color="blue" style={{ margin: 0 }}>
+                                                                        {acc.network}{acc.chain_id ? `(${acc.chain_id})` : ''}
+                                                                    </Tag>
+                                                                )}
+                                                            </Space>
+                                                            <span style={{ color: '#999', fontSize: '12px' }}>
+                                                                {shortenAddress(acc.address)}
+                                                            </span>
+                                                        </div>
+                                                    ),
+                                                    // 用于搜索的文本
+                                                    searchLabel: `${acc.name} ${acc.address} ${acc.network || ''}`,
+                                                }))}
+                                                filterOption={(input, option) => {
+                                                    const searchLabel = (option as any)?.searchLabel || '';
+                                                    return searchLabel.toLowerCase().includes(input.toLowerCase());
+                                                }}
+                                                notFoundContent={
+                                                    accountsLoading ? <Spin size="small" /> : '暂无账户'
+                                                }
+                                                suffixIcon={<WalletOutlined />}
+                                            />
+                                        )}
+                                    </Form.Item>
+                                </Space>
                             </Form.Item>
 
                             <Form.Item

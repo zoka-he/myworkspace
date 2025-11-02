@@ -126,6 +126,7 @@ export default function CustomWallet(props: CustomWalletProps) {
         let networkName = row.network || '';
         let chainIdStr = (row.chain_id ?? '').toString();
         let networkInfo: any = undefined;
+        let rpcUrl: string | undefined = undefined;
 
         try {
             if (row.network_id) {
@@ -133,7 +134,8 @@ export default function CustomWallet(props: CustomWalletProps) {
                 const netResp = await fetch.get('/api/eth/network', { params: { id: row.network_id } });
                 const net = (netResp as any)?.data?.[0] || (netResp as any)?.data || null;
                 if (net?.rpc_url) {
-                    const provider = new ethers.JsonRpcProvider(net.rpc_url);
+                    rpcUrl = net.rpc_url;
+                    const provider = new ethers.JsonRpcProvider(rpcUrl);
                     const netInfo = await provider.getNetwork();
                     networkInfo = netInfo;
                     networkName = netInfo.name;
@@ -152,6 +154,8 @@ export default function CustomWallet(props: CustomWalletProps) {
             networkId: row.network_id,
             isConnected: true,
             custom: true,
+            privateKey: row.private_key,
+            rpcUrl: rpcUrl,
             ...(networkInfo ? { networkInfo } : {}),
         } as IWalletInfo;
         props.onWalletChange(walletInfo);
