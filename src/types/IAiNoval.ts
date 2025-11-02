@@ -18,7 +18,9 @@ export interface IGeoStarSystemData {
     worldview_id?: number | null,
     name?: string | null,
     code?: string | null,
-    described_in_llm?: number | null
+    described_in_llm?: number | null,
+    dify_document_id?: string | null,
+    dify_dataset_id?: string | null,
 }
 
 export interface IGeoStarData {
@@ -30,6 +32,8 @@ export interface IGeoStarData {
     type?: string | null,
     description?: string | null,
     described_in_llm?: number | null,
+    dify_document_id?: string | null,
+    dify_dataset_id?: string | null,
 }
 
 export interface IGeoPlanetData {
@@ -40,6 +44,8 @@ export interface IGeoPlanetData {
     code?: string | null,
     description?: string | null,
     described_in_llm?: number | null,
+    dify_document_id?: string | null,
+    dify_dataset_id?: string | null,
 }
 
 export interface IGeoSatelliteData {
@@ -51,6 +57,8 @@ export interface IGeoSatelliteData {
     code?: string | null,
     description?: string | null,
     described_in_llm?: number | null,
+    dify_document_id?: string | null,
+    dify_dataset_id?: string | null,
 }
 
 export interface IGeoGeographyUnitData {
@@ -66,6 +74,8 @@ export interface IGeoGeographyUnitData {
     satellite_id?: number | null,
     description?: string | null,
     described_in_llm?: number | null,
+    dify_document_id?: string | null,
+    dify_dataset_id?: string | null,
 }
 
 export interface IGeoUnionData extends IGeoStarSystemData, IGeoStarData, IGeoPlanetData, IGeoSatelliteData, IGeoGeographyUnitData {
@@ -78,6 +88,8 @@ export interface IFactionDefData {
     name?: string | null,
     description?: string | null,
     parent_id?: number | null,
+    dify_document_id?: string | null,
+    dify_dataset_id?: string | null,
 }
 
 export interface IRoleData {
@@ -103,6 +115,8 @@ export interface IRoleInfo {
     background?: string | null,
     personality?: string | null,
     created_at?: Date | null,
+    dify_document_id?: string | null,
+    dify_dataset_id?: string | null,
 }
 
 
@@ -121,36 +135,36 @@ export interface IRoleRelation {
 
   export const RELATION_TYPES = [
     { value: 'friend', label: '朋友', color: 'blue', presetStrength: 80 },
+    { value: 'confidant', label: '知己', color: 'blue', presetStrength: 85 },
     { value: 'enemy', label: '敌人', color: 'red', presetStrength: 20 },
+    { value: 'frenemy', label: '亦敌亦友', color: 'orange', presetStrength: 45 },
+    { value: 'nemesis', label: '宿敌', color: 'red', presetStrength: 15 },
+    { value: 'acquaintance', label: '熟人', color: 'blue', presetStrength: 50 },
+    { value: 'stranger', label: '陌生人', color: 'default', presetStrength: 30 },
     { value: 'family', label: '家人', color: 'green', presetStrength: 90 },
-    { value: 'lover', label: '恋人', color: 'pink', presetStrength: 95 },
-    { value: 'master', label: '师徒', color: 'purple', presetStrength: 85 },
-    { value: 'rival', label: '对手', color: 'orange', presetStrength: 40 },
-    { value: 'mentor', label: '导师', color: 'cyan', presetStrength: 75 },
-    { value: 'leader', label: '领导', color: 'cyan', presetStrength: 75 },
-    { value: 'subordinate', label: '下属', color: 'geekblue', presetStrength: 60 },
-    { value: 'ally', label: '盟友', color: 'lime', presetStrength: 70 },
-    { value: 'betrayer', label: '背叛者', color: 'volcano', presetStrength: 10 },
     { value: 'sibling', label: '兄弟姐妹', color: 'green', presetStrength: 85 },
     { value: 'parent', label: '父母', color: 'green', presetStrength: 90 },
     { value: 'child', label: '子女', color: 'green', presetStrength: 90 },
     { value: 'cousin', label: '表亲', color: 'green', presetStrength: 75 },
+    { value: 'lover', label: '恋人', color: 'pink', presetStrength: 95 },
+    { value: 'rival', label: '对手', color: 'orange', presetStrength: 40 },
+    { value: 'mentor', label: '导师', color: 'cyan', presetStrength: 75 },
+    { value: 'mentee', label: '学生', color: 'purple', presetStrength: 70 },
+    { value: 'apprentice', label: '学徒', color: 'purple', presetStrength: 70 },
+    { value: 'classmate', label: '同学', color: 'purple', presetStrength: 70 },
+    { value: 'leader', label: '领导', color: 'cyan', presetStrength: 75 },
+    { value: 'subordinate', label: '下属', color: 'geekblue', presetStrength: 60 },
+    { value: 'colleague', label: '同事', color: 'geekblue', presetStrength: 60 },
+    { value: 'ally', label: '盟友', color: 'lime', presetStrength: 70 },
+    { value: 'betrayer', label: '背叛者', color: 'volcano', presetStrength: 10 },
     { value: 'guardian', label: '监护人', color: 'purple', presetStrength: 80 },
     { value: 'protector', label: '保护者', color: 'blue', presetStrength: 85 },
     { value: 'benefactor', label: '恩人', color: 'cyan', presetStrength: 80 },
+    { value: 'business_partner', label: '商业伙伴', color: 'geekblue', presetStrength: 65 },
     { value: 'debtor', label: '欠债人', color: 'orange', presetStrength: 30 },
     { value: 'creditor', label: '债主', color: 'orange', presetStrength: 30 },
-    { value: 'business_partner', label: '商业伙伴', color: 'geekblue', presetStrength: 65 },
     { value: 'competitor', label: '竞争者', color: 'orange', presetStrength: 35 },
-    { value: 'nemesis', label: '宿敌', color: 'red', presetStrength: 15 },
-    { value: 'frenemy', label: '亦敌亦友', color: 'orange', presetStrength: 45 },
-    { value: 'confidant', label: '知己', color: 'blue', presetStrength: 85 },
-    { value: 'mentee', label: '学生', color: 'purple', presetStrength: 70 },
-    { value: 'apprentice', label: '学徒', color: 'purple', presetStrength: 70 },
-    { value: 'colleague', label: '同事', color: 'geekblue', presetStrength: 60 },
     { value: 'neighbor', label: '邻居', color: 'blue', presetStrength: 55 },
-    { value: 'acquaintance', label: '熟人', color: 'blue', presetStrength: 50 },
-    { value: 'stranger', label: '陌生人', color: 'default', presetStrength: 30 },
     { value: 'believer', label: '信徒', color: 'gold', presetStrength: 75 },
     { value: 'priest', label: '神职人员', color: 'gold', presetStrength: 80 },
     { value: 'deity', label: '神明', color: 'gold', presetStrength: 95 },
@@ -251,3 +265,35 @@ export interface IChapter {
     actual_seed_prompt?: string
     actual_skeleton_prompt?: string
 }
+
+export const GEO_UNIT_TYPES = [
+    { enName: 'continent', cnName: '大陆', codePrefix: 'CO'},
+    { enName: 'ocean', cnName: '海洋', codePrefix: 'OC'},
+    { enName: 'river', cnName: '河流', codePrefix: 'RV'},
+    { enName: 'mountain', cnName: '山脉', codePrefix: 'MT'},
+    { enName: 'plain', cnName: '平原', codePrefix: 'PN'},
+    { enName: 'hill', cnName: '丘陵', codePrefix: 'HL'},
+    { enName: 'plateau', cnName: '高原', codePrefix: 'PT'},
+    { enName: 'forest', cnName: '森林', codePrefix: 'FR'},
+    { enName: 'desert', cnName: '沙漠', codePrefix: 'DS'},
+    { enName: 'swamp', cnName: '沼泽', codePrefix: 'SW'},
+    { enName: 'valley', cnName: '峡谷', codePrefix: 'VL'},
+    { enName: 'lake', cnName: '湖泊', codePrefix: 'LK'},
+    { enName: 'cascade', cnName: '瀑布', codePrefix: 'CC'},
+    { enName: 'beatch', cnName: '海滩', codePrefix: 'BH'},
+    { enName: 'island', cnName: '岛屿', codePrefix: 'IL'},
+    { enName: 'hole', cnName: '洞穴', codePrefix: 'HO'},
+    { enName: 'city', cnName: '城市', codePrefix: 'CT'},
+    { enName: 'town', cnName: '镇', codePrefix: 'TO'},
+    { enName: 'village', cnName: '村', codePrefix: 'VI'},
+    { enName: 'street', cnName: '街道', codePrefix: 'ST'},
+    { enName: 'building', cnName: '建筑', codePrefix: 'BL'},
+    { enName: 'fort', cnName: '防御工事', codePrefix: 'FT'},
+    { enName: 'hub', cnName: '枢纽', codePrefix: 'HB'},
+    { enName: 'port', cnName: '港口', codePrefix: 'PG'},
+    { enName: 'airport', cnName: '机场', codePrefix: 'AP'},
+    { enName: 'military_base', cnName: '军事基地', codePrefix: 'MB'},
+    { enName: 'factory', cnName: '工厂', codePrefix: 'FA'},
+    { enName: 'mine', cnName: '矿山', codePrefix: 'MI'},
+    { enName: 'power_plant', cnName: '发电站', codePrefix: 'PP'},
+]

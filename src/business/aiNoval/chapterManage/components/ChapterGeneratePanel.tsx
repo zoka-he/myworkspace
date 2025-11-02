@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Card, Button, Input, Space, Modal, message, Typography, Upload } from 'antd'
+import { Card, Button, Input, Space, Modal, message, Typography, Upload, InputNumber } from 'antd'
 import { EditOutlined, CopyOutlined, UploadOutlined, CompressOutlined, TagOutlined, RobotOutlined, FileTextOutlined } from '@ant-design/icons'
 import { IChapter } from '@/src/types/IAiNoval'
 import * as chapterApi from '../apiCalls'
@@ -8,6 +8,7 @@ import type { UploadProps } from 'antd'
 import ChapterContinueModal from './ChapterContinueModal'
 import GenChapterByDetailModal from './GenChapterByDetailModal'
 import * as apiCalls from '../apiCalls'
+import copyToClip from '@/src/utils/common/copy'
 
 const { TextArea } = Input
 const { Text } = Typography
@@ -125,9 +126,17 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
 
   // 渲染缩写功能
   const renderSummarizeFeature = () => {
+
+    const [stripLength, setStripLength] = useState(300);
+
+    const title = <>
+      <Text>章节缩写</Text>
+      
+    </>
+
     return (
       <Modal
-        title="章节缩写"
+        title={title}
         open={isSummarizeModalVisible}
         onCancel={() => setIsSummarizeModalVisible(false)}
         width={800}
@@ -136,9 +145,13 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
             key="copy" 
             icon={<CopyOutlined />} 
             onClick={() => {
-              navigator.clipboard.writeText(summarizedContent)
-                .then(() => message.success('缩写内容已复制到剪贴板'))
-                .catch(() => message.error('复制失败'))
+              try {
+                copyToClip(summarizedContent)
+                message.success('缩写内容已复制到剪贴板')
+              } catch (error) {
+                console.error('handleCopySummarized error -> ', error)
+                message.error('复制失败')
+              }
             }}
           >
             复制缩写内容
@@ -149,7 +162,9 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
         ]}
       >
         <div className={styles.summarizeContent}>
-          <Space direction="vertical" style={{ width: '100%' }}>
+          <Space direction="horizontal" style={{ width: '100%' }}>
+            <span>缩写长度</span>
+            <InputNumber min={100} max={1000} defaultValue={300} onChange={(value) => setStripLength(value || 300)} />
             <Button
               type="primary"
               onClick={async () => {
@@ -157,7 +172,7 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
                 try {
                   setIsSummarizing(true)
                   setSummarizedContent('')
-                  const text = await chapterApi.stripChapterBlocking(selectedChapter?.id || 0, 300)
+                  const text = await chapterApi.stripChapterBlocking(selectedChapter?.id || 0, stripLength)
                   setSummarizedContent(text)
                 } catch (error) {
                   console.error('stripChapter error -> ', error)
@@ -171,10 +186,12 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
             >
               使用LLM缩写
             </Button>
-            <div className={styles.summarizedText}>
-              {summarizedContent || '点击上方按钮开始缩写...'}
-            </div>
+            
           </Space>
+
+          <div className={styles.summarizedText}>
+            {summarizedContent || '点击上方按钮开始缩写...'}
+          </div>
         </div>
       </Modal>
     )
@@ -202,7 +219,7 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
                   customRequest={handleFileImport}
                 >
                   <Button icon={<UploadOutlined />}>
-                    导入文件
+                    导入
                   </Button>
                 </Upload>
                 <Button
@@ -210,21 +227,21 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
                   icon={<EditOutlined />}
                   onClick={() => setIsEditing(true)}
                 >
-                  编辑内容
+                  编辑
                 </Button>
                 <Button
                   type="primary"
                   icon={<RobotOutlined />}
                   onClick={() => setIsContinueModalVisible(true)}
                 >
-                  AI续写
+                  AI生成
                 </Button>
                 <Button
                   type="primary"
                   icon={<FileTextOutlined />}
                   onClick={() => setIsGenDetailModalVisible(true)}
                 >
-                  AI扩写细纲
+                  AI扩写
                 </Button>
               </Space>
             )}
@@ -233,18 +250,27 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
         extra={
           <Space>
             <Button
+              icon={<RobotOutlined />}
+              onClick={() => {
+                copyToClip(content)
+                message.success('章节内容已复制到剪贴板')
+              }}
+            >
+              复制
+            </Button>
+            <Button
               icon={<TagOutlined />}
               onClick={() => {  setSuggestedName(''); setIsNameModalVisible(true); }}
               disabled={!content}
             >
-              命名章节
+              命名
             </Button>
             <Button
               icon={<CompressOutlined />}
               onClick={() => setIsSummarizeModalVisible(true)}
               disabled={!content}
             >
-              缩写章节
+              缩写
             </Button>
           </Space>
         }
@@ -291,9 +317,13 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
             key="copy" 
             icon={<CopyOutlined />} 
             onClick={() => {
-              navigator.clipboard.writeText(suggestedName)
-                .then(() => message.success('章节名已复制到剪贴板'))
-                .catch(() => message.error('复制失败'))
+              try {
+                copyToClip(suggestedName)
+                message.success('章节名已复制到剪贴板')
+              } catch (error) {
+                console.error('handleCopySuggestedName error -> ', error)
+                message.error('复制失败')
+              }
             }}
           >
             复制章节名

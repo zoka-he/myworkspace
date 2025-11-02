@@ -1,4 +1,4 @@
-import { Button, Input, Space, Table, message, Modal } from "antd";
+import { Button, Input, Space, Table, message, Modal, Switch } from "antd";
 import { useEffect, useRef, useState } from "react";
 import AppendNodeModal from "./appendNodeModal";
 import fetch from '@/src/fetch';
@@ -198,6 +198,27 @@ export default function() {
         }
     }
 
+    async function toggleRowSecret(row: IPermission) {
+        let { ID, is_secret } = row;
+
+        if ( !ID ) {
+            message.error('ID为空，请检查程序');
+            console.debug('当前行是：', row);
+            return;
+        }
+
+        let newIsSecret = is_secret === 'Y' ? 'N' : 'Y';
+        try {
+            await fetch.post('/api/user/permission', { ID, is_secret: newIsSecret }, { params: { ID } });
+            message.success('已更新显示级别“' + row.label + '”');
+        } catch(e: any) {
+            console.error(e);
+            message.error(e.message);
+        } finally {
+            onQuery();
+        }
+    }
+
     return (
         <div className="f-fit-content">
             <div className="f-flex-two-side">
@@ -218,6 +239,12 @@ export default function() {
                 <Table.Column title="类型" dataIndex="type"></Table.Column>
                 <Table.Column title="URI" dataIndex="uri"></Table.Column>
                 <Table.Column title="URL" dataIndex="url"></Table.Column>
+                <Table.Column title="是否私密" dataIndex="is_secret" render={(is_secret: string, row: IPermission) => {
+                        return (
+                            <Switch checked={is_secret === 'Y'} onChange={() => toggleRowSecret(row)}/>
+                        )
+                    }}
+                />
                 <Table.Column title="操作" render={renderAction}></Table.Column>
             </Table>
             <AppendNodeModal helper={appendNodeModalHelper} onFinish={onQuery}/>

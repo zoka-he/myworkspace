@@ -46,6 +46,8 @@ export function D3RoleRelationGraph({
   useEffect(() => {
     if (!containerRef.current) return
 
+    console.debug('D3RoleRelationGraph useEffect onInit --->> ', containerRef.current);
+
     const resizeObserver = new ResizeObserver(entries => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect
@@ -63,6 +65,7 @@ export function D3RoleRelationGraph({
   // Handle graph rendering
   useEffect(() => {
     if (!svgRef.current || dimensions.width === 0 || dimensions.height === 0) return
+    console.debug('D3RoleRelationGraph useEffect --->> ', [worldview_id, dimensions.width, dimensions.height, updateTimestamp]);
 
     // Clear previous graph
     d3.select(svgRef.current).selectAll('*').remove()
@@ -94,9 +97,9 @@ export function D3RoleRelationGraph({
 
     // 获取数据
     Promise.all([
-      apiCalls.getRoleList(Number(worldview_id)),
-      apiCalls.getWorldViewRoleRelationList(Number(worldview_id)),
-      apiCalls.getWorldViewRoleInfoList(Number(worldview_id), 200)
+      apiCalls.getRoleList(Number(worldview_id), 1, 2000),
+      apiCalls.getWorldViewRoleRelationList(Number(worldview_id), 1, 2000),
+      apiCalls.getWorldViewRoleInfoList(Number(worldview_id), 2000)
     ]).then(([roleRes, relationRes, roleInfoRes]) => {
       const data: RoleGraphData = {
         nodes: roleRes.data,
@@ -419,7 +422,7 @@ export function D3RoleRelationGraph({
     return () => {
       simulation.stop()
     }
-  }, [worldview_id, dimensions, updateTimestamp, onNodeClick])
+  }, [worldview_id, dimensions, updateTimestamp])
 
   return (
     <div ref={containerRef} style={{ width: '100%', height: '100%' }}>

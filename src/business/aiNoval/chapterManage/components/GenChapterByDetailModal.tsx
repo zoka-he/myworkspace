@@ -5,8 +5,14 @@ import type { ModalProps } from 'antd'
 import type { IChapter } from '@/src/types/IAiNoval'
 import { getChapterById, genParagraphs, combineParagraphs, getWriteWithChatUrl } from '../apiCalls'
 import _ from 'lodash'
+import copyToClip from '@/src/utils/common/copy'
 
 const { TextArea } = Input
+
+const copyAndMessage = (text: string) => {
+  copyToClip(text)
+  message.success('复制成功')
+}
 
 interface GenChapterByDetailModalProps extends Omit<ModalProps, 'onOk'> {
   onOk?: (content: string) => void
@@ -25,13 +31,17 @@ function JsonEditor({
   onChange: (value: string) => void
   onValidate: (value: string) => void
 }) {
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-    message.success('复制成功')
-  }
+
 
   const removeJsonFlag = () => {
     onChange(value.replace('```json', '').replace('```', ''))
+  }
+
+  const copyPureText = () => {
+    const pureJsonString = value.replace('```json', '').replace('```', '')
+    const pureText = pureJsonString.replace(/\\n/g, '\n').replace(/","/g, '\n\n').replace(/\["/g, '').replace(/"\]/g, '')
+
+    copyAndMessage(pureText)
   }
 
   const titleJsx = (  
@@ -42,9 +52,10 @@ function JsonEditor({
       <Space>
         <Button size="small" onClick={removeJsonFlag}>去除JSON标识</Button>
         <Button size="small" onClick={() => onValidate(value)}>校验JSON</Button>
-        <Button size="small" icon={<CopyOutlined />} onClick={() => copyToClipboard(value)}>
+        <Button size="small" icon={<CopyOutlined />} onClick={() => copyAndMessage(value)}>
           复制
         </Button>
+        <Button size="small" type="primary" icon={<CopyOutlined />} onClick={copyPureText}>复制纯文本</Button>
       </Space>
     </div>
   )
@@ -70,10 +81,7 @@ function ContentEditor({
   onChange: (value: string) => void
   onTextSelect?: (selectedText: string) => void
 }) {
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-    message.success('复制成功')
-  }
+  
 
   const handleTextSelect = (e: React.SyntheticEvent<HTMLTextAreaElement>) => {
     const textarea = e.target as HTMLTextAreaElement
@@ -92,7 +100,7 @@ function ContentEditor({
         <span>正文内容</span>
       </Space>
       <Space>
-        <Button size="small" icon={<CopyOutlined />} onClick={() => copyToClipboard(value)}>
+        <Button size="small" icon={<CopyOutlined />} onClick={() => copyAndMessage(value)}>
           复制
         </Button>
       </Space>
@@ -140,11 +148,6 @@ function RefinementEditor({
   function fullPrompt() {
     return `请根据以下提示词优化段落：\n\n${prompt}\n\n待优化段落：\n${paragraph}`
   }
-  
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(fullPrompt())
-    message.success('复制成功')
-  }
 
   const openRefinementDialog = () => {
     window.open(writeWithChatUrl, '_blank')
@@ -178,7 +181,7 @@ function RefinementEditor({
           <div className="f-flex-two-side">
             <Space>
               <span>精修提示词</span>
-              <Button size="small" icon={<CopyOutlined />} onClick={copyToClipboard}>
+              <Button size="small" icon={<CopyOutlined />} onClick={() => copyAndMessage(fullPrompt())}>
                 复制
               </Button>
             </Space>

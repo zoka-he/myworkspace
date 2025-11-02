@@ -2,6 +2,7 @@ import { IGeoStarData } from "@/src/types/IAiNoval";
 import { Col, Row, Button, Space, Divider, Tabs } from "antd";
 import { type IGeoTreeItem } from "../geoTree";
 import GeoRecallTest from "../subPanel/geoRecallTest";
+import GeoDifyDocument from "../subPanel/geoDifyDocument";
 
 interface IStarEditProps {
     worldViewId: number | null,
@@ -11,6 +12,7 @@ interface IStarEditProps {
     // raiseAddPlanet: () => void,
     raiseEditStar: (data: IGeoStarData) => void,
     raiseDeleteStar: (data: IGeoStarData) => void,
+    onRequestUpdate?: () => void,
 }
 
 export default function(props: IStarEditProps) {
@@ -44,8 +46,13 @@ export default function(props: IStarEditProps) {
 
     let tabItems = [
         {
-            label: `LLM召回测试`,
+            label: `Dify文档`,
             key: '1',
+            children: <GeoDifyDocument worldViewId={props.worldViewId} geoDataType="star" geoData={data} onRequestUpdate={props.onRequestUpdate} />,
+        },
+        {
+            label: `LLM召回测试`,
+            key: '2',
             children: <GeoRecallTest worldViewId={props.worldViewId} recommandQuery={`恒星 ${data?.name} 设定`} />,
         }
     ];

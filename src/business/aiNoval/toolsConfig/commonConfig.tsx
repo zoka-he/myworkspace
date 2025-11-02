@@ -22,6 +22,8 @@ export function CommonConfig() {
 
     function getDefaultToolConfig(): { [key: string]: string } {
         return {
+            ['DIFY_DATASET_BASE_URL']: '',
+            ['DIFY_DATASET_API_KEY']: '',
             ['DIFY_PARAGRAPH_STRIPPER_API_KEY']: '',
             ['DIFY_PARAGRAPH_TITLE_API_KEY']: '',
             ['DIFY_PARAGRAPH_ROLES_API_KEY']: '',
@@ -57,6 +59,14 @@ export function CommonConfig() {
 
     return (
         <Form form={formForCommon} {...formLayout} style={{ maxWidth: 600 }}>
+            <Form.Item name={'DIFY_DATASET_BASE_URL'} label="DIFY知识库API入口：">
+                <Input/>
+            </Form.Item>
+
+            <Form.Item name={'DIFY_DATASET_API_KEY'} label="DIFY知识库API Key：">
+                <Input/>
+            </Form.Item>
+
             <Form.Item name={'DIFY_PARAGRAPH_STRIPPER_API_KEY'} label="段落缩写工作流API Key：">
                 <Input/>
             </Form.Item>

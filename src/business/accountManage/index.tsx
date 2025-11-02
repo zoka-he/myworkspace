@@ -1,13 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import fetch from '@/src/fetch';
 import { Button, Input, Space, Table, message } from 'antd';
-import { ExclamationCircleFilled } from '@ant-design/icons';
+import { ExclamationCircleFilled, CopyOutlined } from '@ant-design/icons';
 import confirm from "antd/es/modal/confirm";
 import AccountEditor from './accountEditor';
 import HistroyViewer from './historyViewer';
 import { IAccount } from '@/src/types/IAccount';
 import QueryBar from '@/src/components/queryBar';
 import usePagination from '@/src/utils/hooks/usePagination';
+import copyToClip from '@/src/utils/common/copy';
 
 const { Column } = Table;
 
@@ -109,6 +110,23 @@ export default function AccountManage() {
         </Space>
     }
 
+    function renderCopyableCell(cell: string) {
+        return (
+            <Space>
+                <span>{cell}</span>
+                <Button
+                    size="small"
+                    type="link"
+                    icon={<CopyOutlined />}
+                    onClick={() => {
+                        copyToClip(cell);
+                        message.success('已复制');
+                    }}
+                >复制</Button>
+            </Space>
+        );
+    }
+
     function renderTotal(total: number) {
         return `共 ${total} 个记录`;
     }
@@ -140,8 +158,8 @@ export default function AccountManage() {
                 { /** @ts-ignore */ }
                 <Table dataSource={listData} size={'small'} pagination={pagination}>
                     <Column title="平台" dataIndex="sys_name" key="task_name"/>
-                    <Column title="账户" dataIndex="username" key="employee"/>
-                    <Column title="密码" dataIndex="passwd" key="message"/>
+                    <Column title="账户" dataIndex="username" key="employee" render={renderCopyableCell}/>
+                    <Column title="密码" dataIndex="passwd" key="message" render={renderCopyableCell}/>
                     <Column title="备注" dataIndex="remark" key="source" render={renderRemark}/>
                     <Column title="操作" dataIndex="action" key="action" fixed="right" width={260} render={renderAction}/>
                 </Table>

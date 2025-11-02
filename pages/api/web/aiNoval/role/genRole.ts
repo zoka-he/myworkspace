@@ -3,17 +3,14 @@ import fetch from "node-fetch";
 import ToolsConfigService from "@/src/services/aiNoval/toolsConfigService";
 import { difyCfg } from "@/src/utils/dify";
 
-const keyOfApiKey = 'DIFY_PARAGRAPH_STRIPPER_API_KEY';
-const toolsConfigService = new ToolsConfigService();
-
 interface Data {
     message?: string;
     data?: any;
 }
 
-
+// 获取写作(细纲)API Key
 function getApiKeyOfWorldview(worldviewId: string | number) {
-    return 'DIFY_AUTO_WRITE_API_KEY_' + worldviewId;
+    return 'DIFY_GEN_CHARACTER_API_KEY_' + worldviewId;
 }
 
 async function handlePick(req: NextApiRequest, res: NextApiResponse<Data>) {
@@ -25,27 +22,17 @@ async function handlePick(req: NextApiRequest, res: NextApiResponse<Data>) {
 
     let inputs = { ...req.body };
 
-    let apiKey = await new ToolsConfigService().getConfig(getApiKeyOfWorldview(worldviewId));
+    const keyOfApiKey = getApiKeyOfWorldview(worldviewId);
+    let apiKey = await new ToolsConfigService().getConfig(keyOfApiKey);
     if (!apiKey?.length) {
         res.status(500).json({ message: `${keyOfApiKey} is not set` });
-        return;
-    }
-
-    let difyDatasetBaseUrl
-    if (req.query.difyHost) {
-        difyDatasetBaseUrl = `http://${req.query.difyHost}/v1`;
-    } else {
-        difyDatasetBaseUrl = await toolsConfigService.getConfig('DIFY_DATASET_BASE_URL');
-    }
-    if (!difyDatasetBaseUrl) {
-        res.status(500).json({ message: 'DIFY知识库API入口未设置' });
         return;
     }
 
     const response_mode = 'blocking';
 
     try {
-        const externalApiUrl = difyDatasetBaseUrl + '/workflows/run';
+        const externalApiUrl = difyCfg.serverUrl + '/workflows/run';
         const reqHeaders = {
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json'

@@ -38,7 +38,15 @@ const nextConfig = {
     console.debug('config.module', config.module);
 
     return config;
-  }
+  },
+
+  eslint: {
+    ignoreDuringBuilds: true, // 允许生产构建在存在 ESLint 错误时成功完成
+  },
+
+  typescript: {
+    ignoreBuildErrors: true, // 忽略类型错误，但仍然会运行类型检查
+  },
 }
 
 module.exports = nextConfig

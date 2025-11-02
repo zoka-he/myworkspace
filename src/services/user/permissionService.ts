@@ -12,7 +12,8 @@ export default class PermissionService extends service {
             'type',
             'uri',
             'url',
-            'dispOrder'
+            'dispOrder',
+            'is_secret'
         ]);
     }
 

@@ -1,13 +1,25 @@
-import { Button, Divider, Input, Radio, List, Tag, Col, Row, Alert, message } from "antd";
+import { Button, Select, Input, Radio, List, Tag, Col, Row, Alert, message } from "antd";
 import { useEffect, useState } from "react";
 import fetch from "@/src/fetch";
+import store from "@/src/store";
+import { setFrontHost } from "@/src/store/difySlice";
+import { connect } from "react-redux";
 
 export interface IGeoRecallTestProps {
     recommandQuery: string;
     worldViewId?: number | null;
+    difyFrontHostOptions: string[];
+    difyFrontHost: string;
 }
 
-export default function(props: IGeoRecallTestProps) {
+function mapStateToProps(state: any) {
+    return {
+        difyFrontHostOptions: state.difySlice.difyFrontHostOptions,
+        difyFrontHost: state.difySlice.frontHost
+    }
+}
+
+function GeoRecallTest(props: IGeoRecallTestProps) {
 
     let [isManualQuery, setIsManualQuery] = useState(false);
     let [queryText, setQueryText] = useState('');
@@ -23,7 +35,7 @@ export default function(props: IGeoRecallTestProps) {
         const query = isManualQuery ? queryText : props.recommandQuery;
         try {
             const response = await fetch.get('/api/aiNoval/toolConfig/testRecall', {
-                params: { datasetName: 'DIFY_GEO_DATASET_ID_' + props.worldViewId, query }
+                params: { datasetName: 'DIFY_GEO_DATASET_ID_' + props.worldViewId, query, difyHost: props.difyFrontHost }
             });
             const results = (response as any)?.records;
             console.debug('results', response);
@@ -71,9 +83,11 @@ export default function(props: IGeoRecallTestProps) {
         <div>
             <Row>
                 <Col span={12}>
-                    <p>该功能用于验证地理资源知识库的质量。</p>
-                    <p>如要修改，需到dify重新编辑。</p>
-                    
+                    <p>该功能用于验证地理资源知识库的质量。如要修改，需到dify重新编辑。</p>
+                    <p>
+                        <strong>dify主机：</strong>
+                        <Select options={props.difyFrontHostOptions.map(option => ({ label: option, value: option }))} value={props.difyFrontHost} onChange={e => store.dispatch(setFrontHost(e))} />
+                    </p>
                     <dl>
                         <dt>关键词：</dt>
                         <dd>
@@ -109,3 +123,5 @@ export default function(props: IGeoRecallTestProps) {
         </div>
     )
 }
+
+export default connect(mapStateToProps)(GeoRecallTest);

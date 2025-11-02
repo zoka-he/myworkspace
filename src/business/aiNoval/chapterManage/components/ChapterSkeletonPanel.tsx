@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Space, Typography, Button, Input, message, Form, Tag, Select, TreeSelect } from 'antd'
-import { ReloadOutlined, EditOutlined, CopyOutlined, SortAscendingOutlined } from '@ant-design/icons'
+import { ReloadOutlined, EditOutlined, CopyOutlined, SortAscendingOutlined, RobotOutlined } from '@ant-design/icons'
 import { IChapter, IWorldViewDataWithExtra, IGeoUnionData, IFactionDefData, IRoleData, ITimelineEvent, IGeoStarSystemData, IGeoGeographyUnitData, IGeoPlanetData, IGeoSatelliteData, IGeoStarData } from '@/src/types/IAiNoval'
 import styles from './ChapterSkeletonPanel.module.scss'
 import { getTimelineEventByIds, updateChapter, getChapterById, getChapterList } from '../apiCalls'
@@ -9,6 +9,8 @@ import { TimelineDateFormatter } from '@/src/business/aiNoval/common/novelDateUt
 import * as apiCalls from '../apiCalls'
 import { loadGeoTree, type IGeoTreeItem } from '../../common/geoDataUtil'
 import { ModalProvider, showGenSkeletonModal, useGenSkeletonModal } from './GenSkeletonModal'
+import GenRolePanel from './GenRolePanel'
+import copyToClip from '@/src/utils/common/copy'
 
 const { Text } = Typography
 const { TextArea } = Input
@@ -58,6 +60,8 @@ function ChapterSkeletonPanel({
   const [roleList, setRoleList] = useState<IRoleData[]>([])
 
   const [chapterList, setChapterList] = useState<IChapter[]>([])
+
+  const [isGenRoleModalVisible, setIsGenRoleModalVisible] = useState(false)
 
   // 初始化数据
   useEffect(() => {
@@ -544,9 +548,13 @@ function ChapterSkeletonPanel({
                                 onClick={() => {
                                   const formattedDate = formatDate(event.date)
                                   const copyText = `${formattedDate}\n${event.title}\n${event.description}`
-                                  navigator.clipboard.writeText(copyText)
-                                    .then(() => message.success('已复制到剪贴板'))
-                                    .catch(() => message.error('复制失败'))
+                                  try {
+                                    copyToClip(copyText)
+                                    message.success('已复制到剪贴板')
+                                  } catch (error) {
+                                    console.error('handleCopyEvent error -> ', error)
+                                    message.error('复制失败')
+                                  }
                                 }}
                                 title="复制事件内容"
                               />
@@ -707,6 +715,13 @@ function ChapterSkeletonPanel({
                 >
                   从关联信息复制
                 </Button>
+                <Button
+                  type="link"
+                  icon={<RobotOutlined />}
+                  onClick={() => setIsGenRoleModalVisible(true)}
+                >
+                  获取人设灵感
+                </Button>
               </div>
             }
             name="role_ids"
@@ -752,13 +767,13 @@ function ChapterSkeletonPanel({
                 onClick={() => {
                   const formValues = form.getFieldsValue();
                   
-                  const locations = findGeoTree(relatedEventLocationIds);
+                  const locations = findGeoTree(formValues.geo_ids);
 
-                  const factions = relatedEventFactionIds.map(id => 
+                  const factions = formValues.faction_ids.map((id: number) => 
                     factionList.find(faction => faction.id === id)?.name
                   ).filter(Boolean) || []
 
-                  const characters = relatedEventCharacterIds.map(id => 
+                  const characters = formValues.role_ids.map((id: number) => 
                     roleList.find(role => role.id === id)?.name
                   ).filter(Boolean) || []
                   
@@ -799,6 +814,16 @@ function ChapterSkeletonPanel({
         </Form>
 
       </ModalProvider>
+
+      <GenRolePanel
+          open={isGenRoleModalVisible}
+          onCancel={() => setIsGenRoleModalVisible(false)}
+          onOk={() => {}}
+          worldviewId={worldViewId}
+          title="生成角色人设建议"
+          width="80vw"
+          rootPrompt={() => form.getFieldsValue()['seed_prompt']}
+        />
 
     </div>
   )

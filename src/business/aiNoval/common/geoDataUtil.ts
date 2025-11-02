@@ -73,7 +73,7 @@ async function loadSatelliteData(worldview_id: number): Promise<IGeoTreeItem<IGe
 }
 
 async function loadGeographyUnitData(worldview_id: number): Promise<IGeoTreeItem<IGeoGeographyUnitData>[]> {
-    const resp = await fetch.get('/api/aiNoval/geo/geoUnit/list', { params: { worldview_id } });
+    const resp = await fetch.get('/api/aiNoval/geo/geoUnit/list', { params: { worldview_id, limit: 1000 } });
     const data = (resp.data as IGeoSatelliteData[]) || [];
 
     return data.map(item => wrapDataToTreeData(item, 'geographicUnit'));  

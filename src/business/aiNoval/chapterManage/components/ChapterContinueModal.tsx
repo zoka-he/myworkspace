@@ -8,6 +8,9 @@ import * as apiCalls from '../apiCalls'
 import TextArea from 'antd/es/input/TextArea'
 import _ from 'lodash'
 import ChapterStripState, { type ChapterStripReport, type ChapterStripStateProps } from './ChapterStripState'
+import copyToClip from '@/src/utils/common/copy';
+import store from '@/src/store'
+import { connect } from 'react-redux'
 
 interface ChapterContinueModalProps {
   selectedChapterId: number | undefined
@@ -74,6 +77,21 @@ function AttentionRefModal({ isVisible, onClose, content }: AttentionRefModalPro
 
   const refList = [
     {
+      title: '抗Gemini默认文风',
+      color: 'red',
+      content: '- 对人物对话、人物心理活动、人物动作细节、场景塑造进行综合调优\n' +
+               '- 使用优秀的，具有浪漫想象力情节的表达\n' +
+               '- 输出尽可能长的内容，\n' +
+               '- 不要堆砌形容词，使用幽默的描写\n' +
+               '- 避免刻板描写、避免出现行军文风、军旅文风、命令文风、避免大幅度“讽刺”\n' +
+               '- 避免出现“不是……而是……”等对比句式'
+    },
+    {
+      title: '避免重复介绍',
+      color: 'yellow',
+      content: '- 人物均已出现过，避免重复介绍。'
+    },
+    {
       title: '基础',
       color: 'blue',
       content: '* 扩写时，请仔细分析用户提供的片段，理解其含义和作用。\n' +
@@ -94,7 +112,7 @@ function AttentionRefModal({ isVisible, onClose, content }: AttentionRefModalPro
 
   async function handleCopy(content: string) {
     try {
-      await navigator.clipboard.writeText(content)
+      copyToClip(content)
       message.success('复制成功')
     } catch (error) {
       message.error('复制失败')
@@ -162,8 +180,10 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
   // 地理名称
   const [geoNames, setGeoNames] = useState<string>('')
 
-  // 是否参考本章已有内容
-  const [isReferSelf, setIsReferSelf] = useState<boolean>(true)
+  // 是否参考本章已有内容(默认不参考)
+  const [isReferSelf, setIsReferSelf] = useState<boolean>(false)
+
+  const [llmType, setLlmType] = useState<'gemini' | 'deepseek'>('gemini')
 
   // 是否缩写本章
   const [isStripSelf, setIsStripSelf] = useState<boolean>(false)
@@ -356,7 +376,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
             return newList;
           });
 
-          const text = await chapterApi.stripChapterBlocking(chapter.id || 0)
+          const text = await chapterApi.stripChapterBlocking(chapter.id || 0, 300, store.getState().difySlice.frontHost || '')
           
           // 更新状态为已完成
           setStripReportList(prevList => {
@@ -446,10 +466,11 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
       role_names: roleNames,
       faction_names: factionNames,
       geo_names: geoNames,
+      llm_type: llmType,
     };
     console.info('auto write reqObj -> ', reqObj);
 
-    const res = await chapterApi.genChapterBlocking(selectedChapter.worldview_id, reqObj);
+    const res = await chapterApi.genChapterBlocking(selectedChapter.worldview_id, reqObj, store.getState().difySlice.frontHost || '');
     console.info('auto write res -> ', res);
 
     setAutoWriteResult(res || '续写已结束，未返回内容');
@@ -478,7 +499,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
       console.error('storeActualPrompt error -> ', error)
       message.error('保存失败')
     } finally {
-      reloadChapter();
+      // reloadChapter();
       setIsLoading(false)
     }
   }
@@ -602,29 +623,29 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
 
   // 复制续写内容
   const handleCopyContinued = () => {
-    navigator.clipboard.writeText(continuedContent)
-      .then(() => message.success('续写内容已复制到剪贴板'))
-      .catch(() => message.error('复制失败'))
-  }
-
-  // 应用续写内容
-  const handleApplyContinued = async () => {
-    if (!selectedChapter || !continuedContent) return
+    if (!autoWriteResult) {
+      message.error('续写内容为空')
+      return;
+    }
 
     try {
-      setIsLoading(true)
-      await chapterApi.updateChapter({
-        id: selectedChapter.id,
-        content: selectedChapter.content + '\n\n' + continuedContent
-      })
-      message.success('续写内容已添加')
-      onClose()
-      onChapterChange()
+      copyToClip(autoWriteResult || '')
+      message.success('续写内容已复制到剪贴板')
     } catch (error) {
-      message.error('添加续写内容失败')
-    } finally {
-      setIsLoading(false)
+      console.error('handleCopyContinued error -> ', error)
+      message.error('复制失败')
     }
+  }
+
+  const handleClearThinking = () => {
+    if (!autoWriteResult) {
+      message.error('续写内容为空')
+      return;
+    }
+
+    let pureResult = autoWriteResult.replace(/<think>[\s\S]*<\/think>/g, '');
+    console.info('handleClearThinking -> ', pureResult);
+    setAutoWriteResult(pureResult)
   }
 
   // 显示章节原文
@@ -672,16 +693,6 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
                 <Button key="copy" icon={<CopyOutlined />} onClick={handleCopyContinued}>
                   复制续写内容
                 </Button>
-
-                <Button 
-                  key="apply" 
-                  type="primary" 
-                  onClick={handleApplyContinued}
-                  loading={isLoading}
-                  disabled={!continuedContent}
-                >
-                  应用续写
-                </Button>,
                 <Button key="close" onClick={onClose}>
                   关闭
                 </Button>
@@ -865,12 +876,19 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
                       onClick={handleContinue}
                       loading={isContinuing}
                     >
-                      使用AI续写
+                      开始续写
                     </Button>
                   )}
 
-                  <Checkbox checked={isReferSelf} onChange={(e) => setIsReferSelf(e.target.checked)}>参考本章已有内容</Checkbox>
-                  <Checkbox checked={isStripSelf} onChange={(e) => setIsStripSelf(e.target.checked)}>缩写本章</Checkbox>
+                  <Typography.Text>模型：</Typography.Text>
+                  <Select value={llmType} onChange={(value) => setLlmType(value)} disabled={isContinuing}>
+                    <Select.Option value="gemini">Gemini</Select.Option>
+                    <Select.Option value="deepseek">DeepSeek（实验）</Select.Option>
+                    <Select.Option value="gpt" disabled>GPT-4o</Select.Option>
+                  </Select>
+
+                  <Checkbox checked={isReferSelf} onChange={(e) => setIsReferSelf(e.target.checked)} disabled={isContinuing}>参考本章已有内容</Checkbox>
+                  <Checkbox checked={isStripSelf} onChange={(e) => setIsStripSelf(e.target.checked)} disabled={isContinuing}>缩写本章</Checkbox>
                 </Space>
                 <Divider orientation='left'>
                   {isContinuing ? '续写中...' : '点击上方按钮开始续写...'}
@@ -894,7 +912,8 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
                             <span>自动续写结果 - {selectedChapter?.chapter_number} {selectedChapter?.title || '未命名章节'}:v{selectedChapter?.version}</span>
                           </div>
                           <Space>
-                            <Button type="primary" size="small" disabled={isLoading || isContinuing || true}>复制</Button>
+                            <Button type="primary" size="small" disabled={isLoading || isContinuing} onClick={handleClearThinking}>清除think</Button>
+                            <Button type="primary" size="small" disabled={isLoading || isContinuing} onClick={handleCopyContinued}>复制</Button>
                             <Button danger size="small" disabled={isLoading || isContinuing} onClick={handleReContinue}>重写</Button>
                           </Space>
                         </div>

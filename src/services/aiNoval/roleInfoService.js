@@ -19,7 +19,9 @@ export default class RoleDefService extends MysqlNovalService {
             'background',
             'personality',
             'created_at',
-            'updated_at'
+            'updated_at',
+            'dify_dataset_id',
+            'dify_document_id'
         ]);
     }
 

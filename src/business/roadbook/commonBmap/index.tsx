@@ -79,7 +79,7 @@ function CommonBmap(props: ICommonBmap) {
         if (props.mapType) {
             return props.mapType;
         } else {
-            return 'baidu'; // 缺省为百度地图
+            return 'gaode'; // 缺省为高德地图
         }
     }
 

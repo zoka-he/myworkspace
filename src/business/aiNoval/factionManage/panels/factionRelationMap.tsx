@@ -38,10 +38,102 @@ interface D3FactionViewProps {
 export function D3FactionView({ worldViewId, updateTimestamp }: D3FactionViewProps) {
   // SVG元素引用
   const svgRef = useRef<SVGSVGElement>(null)
+  // 容器元素引用
+  const containerRef = useRef<HTMLDivElement>(null)
   // 阵营数据状态
   const [factions, setFactions] = useState<Faction[]>([])
   // 阵营关系数据状态
   const [relations, setRelations] = useState<FactionRelation[]>([])
+  // 容器尺寸状态
+  const [containerSize, setContainerSize] = useState({ width: 800, height: 600 })
+  // 缩放状态
+  const [zoomState, setZoomState] = useState({ k: 1, x: 0, y: 0 })
+
+  // 监听容器尺寸变化
+  useEffect(() => {
+    const updateSize = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect()
+        
+        // 如果容器还没有完全渲染，使用默认尺寸
+        if (rect.width === 0 || rect.height === 0) {
+          // 尝试从父容器获取尺寸
+          const parentRect = containerRef.current.parentElement?.getBoundingClientRect()
+          if (parentRect && parentRect.width > 0 && parentRect.height > 0) {
+            const newWidth = Math.max(Math.min(parentRect.width, 1200), 400)
+            const newHeight = Math.max(Math.min(parentRect.height, window.innerHeight * 0.8), 300)
+            setContainerSize({ width: newWidth, height: newHeight })
+            return
+          }
+          // 如果父容器也没有尺寸，使用默认值
+          setContainerSize({ width: 800, height: 600 })
+          return
+        }
+        
+        // 设置合理的尺寸范围
+        const newWidth = Math.max(Math.min(rect.width, 1200), 400) // 宽度范围：400-1200px
+        const newHeight = Math.max(Math.min(rect.height, window.innerHeight * 0.8), 300) // 高度范围：300-600px
+        
+        setContainerSize({
+          width: newWidth,
+          height: newHeight
+        })
+      }
+    }
+
+    // 延迟初始更新，确保DOM完全渲染
+    const initialTimer = setTimeout(updateSize, 100)
+
+    // 监听窗口大小变化
+    const handleWindowResize = () => {
+      clearTimeout((window as any).resizeTimer)
+      ;(window as any).resizeTimer = setTimeout(updateSize, 100)
+    }
+
+    window.addEventListener('resize', handleWindowResize)
+
+    return () => {
+      clearTimeout(initialTimer)
+      window.removeEventListener('resize', handleWindowResize)
+      clearTimeout((window as any).resizeTimer)
+    }
+  }, []) // 只在组件挂载时执行一次
+
+  // 数据刷新时重新计算容器尺寸
+  useEffect(() => {
+    const updateSizeOnDataRefresh = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect()
+        
+        // 如果容器还没有完全渲染，使用默认尺寸
+        if (rect.width === 0 || rect.height === 0) {
+          const parentRect = containerRef.current.parentElement?.getBoundingClientRect()
+          if (parentRect && parentRect.width > 0 && parentRect.height > 0) {
+            const newWidth = Math.max(Math.min(parentRect.width, 1200), 400)
+            const newHeight = Math.max(Math.min(parentRect.height, window.innerHeight * 0.8), 300)
+            setContainerSize({ width: newWidth, height: newHeight })
+            return
+          }
+          setContainerSize({ width: 800, height: 600 })
+          return
+        }
+        
+        // 设置合理的尺寸范围
+        const newWidth = Math.max(Math.min(rect.width, 1200), 400) // 宽度范围：400-1200px
+        const newHeight = Math.max(Math.min(rect.height, window.innerHeight * 0.8), 300) // 高度范围：300-600px
+        
+        setContainerSize({
+          width: newWidth,
+          height: newHeight
+        })
+      }
+    }
+
+    // 延迟执行，确保DOM更新完成
+    const timer = setTimeout(updateSizeOnDataRefresh, 50)
+    
+    return () => clearTimeout(timer)
+  }, [updateTimestamp]) // 当数据刷新时触发
 
   // 获取阵营数据和关系数据
   useEffect(() => {
@@ -80,15 +172,48 @@ export function D3FactionView({ worldViewId, updateTimestamp }: D3FactionViewPro
     d3.select(svgRef.current).selectAll('*').remove()
 
     // 设置SVG尺寸和边距
-    const width = 800
-    const height = 600
-    const margin = { top: 30, right: 30, bottom: 30, left: 30 }
+    const width = containerSize.width
+    const height = containerSize.height
+    const margin = { top: 30, right: 100, bottom: 30, left: 100 }
+    const textMargin = { top: 30, right: 30, bottom: 30, left: 30 }
 
     // 创建SVG容器
     const svg = d3.select(svgRef.current)
       .attr('width', width)
       .attr('height', height)
-      .append('g')
+
+    // 创建缩放行为
+    const zoom = d3.zoom()
+      .scaleExtent([0.5, 3]) // 缩放范围：0.5x 到 3x
+      .on('zoom', (event) => {
+        // 更新缩放状态
+        setZoomState({
+          k: event.transform.k,
+          x: event.transform.x,
+          y: event.transform.y
+        })
+        
+        // 应用变换到主容器
+        svg.select('.zoom-container')
+          .attr('transform', event.transform)
+      })
+
+    // 应用缩放行为到SVG
+    svg.call(zoom as any)
+
+    // 添加双击重置缩放功能
+    svg.on('dblclick', () => {
+      svg.transition()
+        .duration(750)
+        .call(zoom.transform as any, d3.zoomIdentity)
+    })
+
+    // 创建可缩放的主容器
+    const zoomContainer = svg.append('g')
+      .attr('class', 'zoom-container')
+
+    // 创建内容容器
+    const contentContainer = zoomContainer.append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`)
 
     // 创建根阵营节点
@@ -206,7 +331,7 @@ export function D3FactionView({ worldViewId, updateTimestamp }: D3FactionViewPro
     const nodeOffsets = new Map<string, { x: number; y: number }>()
 
     // 创建阵营节点组
-    const node = svg.append('g')
+    const node = contentContainer.append('g')
       .selectAll('g')
       .data(sortedNodes)
       .enter()
@@ -293,7 +418,7 @@ export function D3FactionView({ worldViewId, updateTimestamp }: D3FactionViewPro
         }
         
         textGroups.set(rootChild.id, {
-          x: isLeftSide ? 100 : width - 150,
+          x: isLeftSide ? 20 : width - 200,
           y: nodeY,
           nodes: groupNodes,
           isLeft: isLeftSide
@@ -364,7 +489,7 @@ export function D3FactionView({ worldViewId, updateTimestamp }: D3FactionViewPro
         path.moveTo(startX, startY)
         path.lineTo(endX, endY)
         
-        svg.append('path')
+        contentContainer.append('path')
           .attr('d', path.toString())
           .attr('stroke', '#aaaaaa')
           .attr('stroke-width', 0.5)
@@ -380,7 +505,7 @@ export function D3FactionView({ worldViewId, updateTimestamp }: D3FactionViewPro
         
         const textY = group.y + index * 20 // 垂直排列，每个文本间隔20像素
         
-        svg.append('text')
+        contentContainer.append('text')
           .attr('x', group.x)
           .attr('y', textY)
           .style('text-anchor', group.isLeft ? 'end' : 'start')
@@ -396,7 +521,7 @@ export function D3FactionView({ worldViewId, updateTimestamp }: D3FactionViewPro
 
     // 第五步：绘制阵营关系
     // 添加箭头标记定义
-    svg.append('defs').append('marker')
+    contentContainer.append('defs').append('marker')
       .attr('id', 'arrowhead')
       .attr('viewBox', '0 -5 10 10')
       .attr('refX', 8)
@@ -495,20 +620,20 @@ export function D3FactionView({ worldViewId, updateTimestamp }: D3FactionViewPro
         // 绘制关系线
         if (reverseRelation) {
           // 双边关系：绘制双线
-          const line1 = svg.append('path')
+          const line1 = contentContainer.append('path')
             .attr('d', `M${startX + offsetX},${startY + offsetY} ${pathCommand}${endX + offsetX},${endY + offsetY}`)
             .attr('stroke', relationColors[relation.relation_type])
             .attr('stroke-width', lineWidth)
             .attr('fill', 'none')
             
-          const line2 = svg.append('path')
+          const line2 = contentContainer.append('path')
             .attr('d', `M${startX - offsetX},${startY - offsetY} ${pathCommand}${endX - offsetX},${endY - offsetY}`)
             .attr('stroke', relationColors[relation.relation_type])
               .attr('stroke-width', lineWidth)
             .attr('fill', 'none')
         } else {
           // 单边关系：绘制单线
-          const line = svg.append('path')
+          const line = contentContainer.append('path')
             .attr('d', `M${startX},${startY} ${pathCommand}${endX},${endY}`)
             .attr('stroke', relationColors[relation.relation_type])
             .attr('stroke-width', lineWidth)
@@ -531,7 +656,7 @@ export function D3FactionView({ worldViewId, updateTimestamp }: D3FactionViewPro
         
         if (shouldShowLabel) {
           // 添加关系类型文本
-          svg.append('text')
+          contentContainer.append('text')
             .attr('x', labelX)
             .attr('y', labelY)
             .attr('dy', '-0.5em')
@@ -543,11 +668,33 @@ export function D3FactionView({ worldViewId, updateTimestamp }: D3FactionViewPro
       }
     })
 
-  }, [factions, relations])
+  }, [factions, relations, containerSize])
 
   return (
-    <div className="w-full h-full">
-      <svg ref={svgRef} className="w-full h-full" />
+    <div ref={containerRef} className="f-fit-height" style={{ overflow: 'hidden', cursor: 'grab' }}>
+      <svg 
+        ref={svgRef} 
+        className="f-fit-height" 
+        style={{ 
+          maxHeight: '100%',
+          cursor: 'grab'
+        }}
+        onMouseDown={() => {
+          if (containerRef.current) {
+            containerRef.current.style.cursor = 'grabbing'
+          }
+        }}
+        onMouseUp={() => {
+          if (containerRef.current) {
+            containerRef.current.style.cursor = 'grab'
+          }
+        }}
+        onMouseLeave={() => {
+          if (containerRef.current) {
+            containerRef.current.style.cursor = 'grab'
+          }
+        }}
+      />
     </div>
   )
 }

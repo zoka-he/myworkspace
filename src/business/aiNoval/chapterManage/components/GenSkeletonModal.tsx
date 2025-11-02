@@ -3,6 +3,7 @@ import { createContext, useContext, useState, useCallback, useEffect } from 'rea
 import ChapterStripState, { type ChapterStripReport, type ChapterStripStateProps } from './ChapterStripState'
 import * as apiCalls from '../apiCalls';
 import TextArea from 'antd/es/input/TextArea';
+import copyToClip from '@/src/utils/common/copy';
 
 interface GenSkeletonModalProps {
   worldviewId: number
@@ -320,12 +321,12 @@ function GenSkeletonModalContent(props: GenSkeletonModalProps & { onClose: () =>
     }
 
     function handleCopySkeletonPrompt() {
-        navigator.clipboard.writeText(skeletonPrompt)
+        copyToClip(skeletonPrompt)
         message.success('章节骨架提示词已复制到剪贴板')
     }
 
     function handleCopySeedPrompt() {
-        navigator.clipboard.writeText(seedPrompt)
+        copyToClip(seedPrompt)
         message.success('根提示词已复制到剪贴板')
     }
 
@@ -391,7 +392,7 @@ function GenSkeletonModalContent(props: GenSkeletonModalProps & { onClose: () =>
             <Row gutter={16}>
                 {/* 左侧是编辑区 */}
                 <Col span={12}>
-                    <Space direction="vertical" size={16}>
+                    <Space direction="vertical" size={16} style={{ width: '100%' }}>
                         <Card title="角色" size="small">
                         {props.characters.split(',').map((character: string, index: number) => (
                             <Tag key={index}>{character}</Tag>
@@ -433,7 +434,7 @@ function GenSkeletonModalContent(props: GenSkeletonModalProps & { onClose: () =>
                 </Col>
                 {/* 右侧是预览区 */}
                 <Col span={12}>
-                    <Space direction="vertical" size={16}>
+                    <Space direction="vertical" size={16} style={{ width: '100%' }}>
                         <Card title={
                             <div className="f-flex-two-side">
                                 <Space>

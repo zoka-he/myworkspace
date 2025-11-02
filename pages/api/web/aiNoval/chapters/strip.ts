@@ -6,6 +6,7 @@ import { difyCfg } from "@/src/utils/dify";
 import _ from "lodash";
 
 const keyOfApiKey = 'DIFY_PARAGRAPH_STRIPPER_API_KEY';
+const toolsConfigService = new ToolsConfigService();
 
 interface Data {
     message?: string;
@@ -37,7 +38,19 @@ async function handleStrip(req: NextApiRequest, res: NextApiResponse<Data>) {
         return;
     }
 
-    let apiKey = await new ToolsConfigService().getConfig(keyOfApiKey);
+    let difyDatasetBaseUrl
+    if (req.query.difyHost) {
+        difyDatasetBaseUrl = `http://${req.query.difyHost}/v1`;
+    } else {
+        difyDatasetBaseUrl = await toolsConfigService.getConfig('DIFY_DATASET_BASE_URL');
+    }
+    if (!difyDatasetBaseUrl) {
+        res.status(500).json({ message: 'DIFY知识库API入口未设置' });
+        return;
+    }
+
+
+    let apiKey = await toolsConfigService.getConfig(keyOfApiKey);
     if (!apiKey?.length) {
         res.status(500).json({ message: `${keyOfApiKey} is not set` });
         return;
@@ -46,7 +59,7 @@ async function handleStrip(req: NextApiRequest, res: NextApiResponse<Data>) {
     const response_mode = req.query.response_mode === 'streaming' ? 'streaming' : 'blocking';
 
     try {
-        const externalApiUrl = difyCfg.serverUrl + '/workflows/run';
+        const externalApiUrl = difyDatasetBaseUrl + '/workflows/run';
         const reqHeaders = {
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json'
@@ -112,7 +125,7 @@ async function handleStrip(req: NextApiRequest, res: NextApiResponse<Data>) {
         }
     } catch (error) {
         console.error('API error:', error);
-        res.status(500).json({ message: 'Request failed' });
+        res.status(500).json({ message: 'Request failed: ' + (error as Error).message });
     }
 }
 

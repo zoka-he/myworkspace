@@ -1,10 +1,11 @@
-import { Breadcrumb, Layout, Menu, FloatButton, Button, Space } from 'antd';
+import { Breadcrumb, Layout, Menu, FloatButton, Button, Space, Switch, MenuTheme } from 'antd';
 import { connect } from 'react-redux';
 import React, { useEffect, useRef, useState } from 'react';
 import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import type { IRootState } from '../store';
 import store from '../store';
 import { setNavMenu as setStoreNavMenu } from '../store/navigatorSlice';
+import { setDatasetsApiKey, setBaseUrl, setDifyFrontHostOptions } from '../store/difySlice';
 import getPermissionTree from '../business/user/permission/getPermissionTree';
 import { IPermission } from '../business/user/permission/IPermission';
 import { ItemType } from 'antd/es/menu/hooks/useItems';
@@ -12,7 +13,10 @@ import fetch from '@/src/fetch';
 import { setLoginUser } from '../store/loginSlice';
 import AppHeader from './appHeader';
 import WorkspaceHeader from './workspaceHeader';
-
+import mysqlConfig from "@/src/config/mysql";
+import _ from 'lodash';
+import { setShowAll } from '@/src/store/navigatorSlice';
+import { useSelector, useDispatch } from 'react-redux';
 
 const { Sider, Header, Content } = Layout;
 
@@ -21,16 +25,21 @@ const mapStateToProps = (state: IRootState) => {
         navMenu: state.navigatorSlice.navMenu,
         loginUser: state.loginSlice.user,
         menuSearchKey: state.navigatorSlice.menuSearchKey,
+        showAll: state.navigatorSlice.showAll
     }
 }
 
 interface IMainFrameProps {
     navMenu: any[],
     loginUser: any,
-    menuSearchKey: string
+    menuSearchKey: string,
+    showAll: boolean
 }
 
 function MainFrame(props: IMainFrameProps) {
+    const dispatch = useDispatch();
+    const showAll = useSelector((state: IRootState) => state.navigatorSlice.showAll);
+    const themeMode = useSelector((state: IRootState) => state.themeSlice.themeConfig.algorithm);
 
     let location = useLocation();
     let navigate = useNavigate();
@@ -64,17 +73,28 @@ function MainFrame(props: IMainFrameProps) {
     }, [normalOpenKeys, props.menuSearchKey]);
 
     useEffect(() => {
+        console.debug('showAll -->', props.showAll);
+
         function filterMenu(menu: any[], key: string): any[] {
             let menu2:any[] = [];
 
             menu.forEach(item => {
+                if (item.is_secret === 'Y' && !props.showAll) {
+                    return;
+                }
+
+                console.debug('item -->', item);
+                console.debug('showAll -->', props.showAll);
+
                 if (item.children instanceof Array) {
                     let children2 = filterMenu(item.children, key);
                     if (children2.length) {
                         menu2.push({ ...item, children: children2 });
                     }
                 } else if (typeof item.label === 'string') {
-                    if (item.label.indexOf(key) > -1) {
+                    if (!key) {
+                        menu2.push({ ...item });
+                    } else if (item.label.indexOf(key) > -1) {
                         menu2.push({ ...item });
                     }
                 }
@@ -85,12 +105,9 @@ function MainFrame(props: IMainFrameProps) {
             return menu2;
         }
 
-        if (!props.menuSearchKey) {
-            setMenu(props.navMenu);
-        } else {
-            setMenu(filterMenu(props.navMenu, props.menuSearchKey));
-        }
-    }, [props.navMenu, props.menuSearchKey]);
+
+        setMenu(filterMenu(props.navMenu, props.menuSearchKey));
+    }, [props.navMenu, props.menuSearchKey, props.showAll]);
 
     async function loadNavMenu(userPerms: IPermission[]) {
         let { tree, map, data } = await getPermissionTree.getNavMenu(userPerms);
@@ -123,6 +140,25 @@ function MainFrame(props: IMainFrameProps) {
         if (initData.userPerms) {
             loadNavMenu(initData.userPerms);
         }
+
+        let novelToolParams = await fetch.get('/api/aiNoval/toolConfig/params');
+
+        if (novelToolParams?.data?.length > 0) {
+            novelToolParams.data.forEach((item: any) => {
+                if (item.cfg_name === 'DIFY_DATASET_API_KEY') {
+                    store.dispatch(setDatasetsApiKey(item.cfg_value_string));
+                } else if (item.cfg_name === 'DIFY_DATASET_BASE_URL') {
+                    store.dispatch(setBaseUrl(item.cfg_value_string));
+                }
+            });
+        }
+
+        let ipData = initData.serverIp;
+        store.dispatch(setDifyFrontHostOptions(_.uniq([
+            `${mysqlConfig.MYSQL_HOST}`,
+            window.location.hostname,
+            ipData
+        ])));
     }
 
 
@@ -151,11 +187,14 @@ function MainFrame(props: IMainFrameProps) {
 
     return (
         <Layout className="f-fit-height">
-            <Sider width={160}>
+            <Sider width={160} theme={themeMode === 'dark' ? 'dark' : 'light'}>
                 <AppHeader/>
+                <div style={{ padding: '12px', textAlign: 'center' }}>
+                    <Switch checked={showAll} unCheckedChildren="公共" checkedChildren="全部" onChange={e => dispatch(setShowAll(e))} />
+                </div>
                 <Menu
                     className="f-flex-1"
-                    theme="dark"
+                    theme={themeMode === 'dark' ? 'dark' : 'light'}
                     mode="inline"
                     inlineIndent={16}
                     items={(menu as ItemType[])}

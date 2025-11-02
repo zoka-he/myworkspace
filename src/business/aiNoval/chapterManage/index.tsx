@@ -400,9 +400,10 @@ function ChapterManage() {
                       pageSize={pageSize}
                       total={totalChapters}
                       onChange={handlePageChange}
-                      showSizeChanger
-                      showQuickJumper
-                      showTotal={(total) => `共 ${total} 章`}
+                      showSizeChanger={false}
+                      align='center'
+                      // showQuickJumper
+                      // showTotal={(total) => `共 ${total} 章`}
                     />
                   </div>
                 </div>

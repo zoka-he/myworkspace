@@ -4,30 +4,36 @@ import MyAccountService from '@/src/services/user/myAccountService';
 import _ from 'lodash';
 import LoginLogService from '@/src/services/user/loginLogService';
 import logger from '@/src/utils/logger';
-
+import getLocalIps from '@/src/business/aiNoval/common/getLocalIps';
 type Data = Object;
 
 const myAccountService = new MyAccountService();
 const loginLogService = new LoginLogService();
 
 async function research(req: NextApiRequest, res: NextApiResponse) {
-    let userID = req.headers['x-userid'];
+    // let userID = req.headers['x-userid'];
 
-    if (typeof userID !== 'number' && typeof userID !== 'string') {
-        res.status(500).json({ message: 'apptoken 异常, 请重新登录！' });
-        return;
-    }
+    // if (typeof userID !== 'number' && typeof userID !== 'string') {
+    //     res.status(500).json({ message: 'apptoken 异常, 请重新登录！' });
+    //     return;
+    // }
 
-    try {
-        // @ts-ignore
-        await loginLogService.addLog(userID, '');
-    } catch(e) {
-        console.error(e);
-    }
+    // try {
+    //     // @ts-ignore
+    //     await loginLogService.addLog(userID, '');
+    // } catch(e) {
+    //     console.error(e);
+    // }
     
     // @ts-ignore
-    let ret = await myAccountService.getMainPageInitData(userID);
-    res.status(200).json(ret);
+    let accountData = await myAccountService.getMainPageInitData(null);
+    let ipData = getLocalIps.getPreferredIP();
+    console.log('------- ipData', ipData);
+
+    res.status(200).json({
+        ...accountData,
+        serverIp: ipData
+    });
 }
 
 export default function handler(

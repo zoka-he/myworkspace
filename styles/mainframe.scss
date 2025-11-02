@@ -1,3 +1,15 @@
+html[data-theme="dark"] {
+    --m-app-header-background: rgb(19, 43, 85);
+    --m-main-header-background: rgb(30, 30, 30);
+    --m-main-context-outlet-background: rgb(54, 54, 54);
+}
+
+html[data-theme="light"] {
+    --m-app-header-background: rgb(112 162 245);;
+    --m-main-header-background: white;
+    --m-main-context-outlet-background: rgb(238, 238, 238);
+}
+
 .m-mainframe_context {
 
     &-mainheader {
@@ -9,6 +21,8 @@
         flex-direction: row;
         justify-content: space-between;
         align-items: center;
+
+        background-color: var(--m-main-header-background);
 
         &-tabs {
             height: 46px;
@@ -57,7 +71,7 @@
     
 
     &-outlet {
-        background-color: #f7f7f7;
+        background-color: var(--m-main-context-outlet-background);
 
         padding: 10px 24px 0;
         overflow: auto;
@@ -68,7 +82,7 @@
     height: 46px;
     overflow: hidden;
 
-    background-color: rgb(40 83 155);
+    background-color: var(--m-app-header-background);
 
     &_logo {
         color: white;
