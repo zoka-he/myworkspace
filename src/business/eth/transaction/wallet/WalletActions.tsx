@@ -559,9 +559,16 @@ function TransactionSend(props: WalletActionsProps) {
             // @ts-ignore
             const { data } = await fetch.get('/api/eth/account', { params: params });
             let validReceivers = data.filter((item: any) => {
-                return (item.address.toLowerCase() !== props.walletInfo?.address.toLowerCase())
-                && (item.network_id === props.walletInfo?.networkId)
-                && (item.private_key !== null && item.private_key !== '');
+                if (props.walletInfo?.custom) {
+                    return (item.address.toLowerCase() !== props.walletInfo?.address.toLowerCase())
+                    && (item.network_id === props.walletInfo?.networkId)
+                    && (item.private_key !== null && item.private_key !== '');
+                } else {
+                    // console.debug(props.walletInfo);
+                    return (item.address.toLowerCase() !== props.walletInfo?.address.toLowerCase())
+                    && (item.chain_id === Number(props.walletInfo?.networkInfo?.chainId))
+                    && (item.private_key !== null && item.private_key !== '');
+                }
             });
             
             setAccountList(validReceivers || []);
@@ -573,13 +580,13 @@ function TransactionSend(props: WalletActionsProps) {
         }
     };
 
-    // 当切换到选择模式时加载账户列表
+    // 当切换到选择模式时，或钱包变动时，加载账户列表
     useEffect(() => {
         if (addressInputMode === 'select' && accountList.length === 0) {
             loadAccounts();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [addressInputMode]);
+    }, [addressInputMode, props.walletInfo]);
 
     // 计算交易费用
     const calculateFee = (gasPrice: number, gasLimit: number) => {
