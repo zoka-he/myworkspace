@@ -1,4 +1,4 @@
-import { Card, Button, Typography, Row, Col, Tabs, Table, Descriptions, Tag, Space, Input, Spin, message, Form, InputNumber, Select, Divider, Alert, Modal, Segmented } from "antd";
+import { Card, Button, Typography, Row, Col, Tabs, Table, Descriptions, Tag, Space, Input, Spin, message, Form, InputNumber, Select, Divider, Alert, Modal, Segmented, Checkbox } from "antd";
 import { useState, useEffect } from "react";
 import { TransactionOutlined, SearchOutlined, CopyOutlined, ArrowUpOutlined, ArrowDownOutlined, SendOutlined, WalletOutlined, SettingOutlined, ReloadOutlined, ExclamationCircleOutlined, EditOutlined, UnorderedListOutlined } from "@ant-design/icons";
 import { WalletInfo } from "@/src/utils/ethereum/metamask";
@@ -17,17 +17,17 @@ interface WalletActionsProps {
 }
 
 export default function WalletActions(props: WalletActionsProps) {
-
     let tabs = [
+        
         {
             key: '1',
-            label: '交易历史',
-            children: <TransactionHistory walletInfo={props.walletInfo}/>,
+            label: '交易发送',
+            children: <TransactionSend walletInfo={props.walletInfo}/>,
         },
         {
             key: '2',
-            label: '交易发送',
-            children: <TransactionSend walletInfo={props.walletInfo}/>,
+            label: '交易历史',
+            children: <TransactionHistory walletInfo={props.walletInfo}/>,
         },
     ];
 
@@ -539,9 +539,10 @@ function TransactionSend(props: WalletActionsProps) {
     ]);
     
     // 接收地址输入模式：manual-手动输入, select-选择账户
-    const [addressInputMode, setAddressInputMode] = useState<'manual' | 'select'>('manual');
+    const [addressInputMode, setAddressInputMode] = useState<'manual' | 'select'>('select');
     const [accountList, setAccountList] = useState<IEthAccountItem[]>([]);
     const [accountsLoading, setAccountsLoading] = useState(false);
+    const [onlyMyAccounts, setOnlyMyAccounts] = useState(true); // 是否仅显示我的账户
 
     // 加载账户列表
     const loadAccounts = async () => {
@@ -559,16 +560,25 @@ function TransactionSend(props: WalletActionsProps) {
             // @ts-ignore
             const { data } = await fetch.get('/api/eth/account', { params: params });
             let validReceivers = data.filter((item: any) => {
+                // 基础过滤：排除当前地址
+                const isNotCurrentAddress = item.address.toLowerCase() !== props.walletInfo?.address.toLowerCase();
+                const hasPrivateKey = item.private_key !== null && item.private_key !== '';
+                
+                // 网络匹配
+                let networkMatch = false;
                 if (props.walletInfo?.custom) {
-                    return (item.address.toLowerCase() !== props.walletInfo?.address.toLowerCase())
-                    && (item.network_id === props.walletInfo?.networkId)
-                    && (item.private_key !== null && item.private_key !== '');
+                    networkMatch = item.network_id === props.walletInfo?.networkId;
                 } else {
-                    // console.debug(props.walletInfo);
-                    return (item.address.toLowerCase() !== props.walletInfo?.address.toLowerCase())
-                    && (item.chain_id === Number(props.walletInfo?.networkInfo?.chainId))
-                    && (item.private_key !== null && item.private_key !== '');
+                    networkMatch = item.chain_id === Number(props.walletInfo?.networkInfo?.chainId);
                 }
+                
+                // 如果勾选了"仅限我的账户"，只显示有私钥的账户
+                if (onlyMyAccounts) {
+                    return isNotCurrentAddress && networkMatch && hasPrivateKey;
+                }
+                
+                // 未勾选时，显示所有符合网络条件的账户
+                return isNotCurrentAddress && networkMatch;
             });
             
             setAccountList(validReceivers || []);
@@ -580,13 +590,13 @@ function TransactionSend(props: WalletActionsProps) {
         }
     };
 
-    // 当切换到选择模式时，或钱包变动时，加载账户列表
+    // 当切换到选择模式时，或钱包变动时，或过滤条件变化时，加载账户列表
     useEffect(() => {
-        if (addressInputMode === 'select' && accountList.length === 0) {
+        if (addressInputMode === 'select') {
             loadAccounts();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [addressInputMode, props.walletInfo]);
+    }, [addressInputMode, props.walletInfo, onlyMyAccounts]);
 
     // 计算交易费用
     const calculateFee = (gasPrice: number, gasLimit: number) => {
@@ -868,55 +878,84 @@ function TransactionSend(props: WalletActionsProps) {
                                         block
                                     />
                                     
-                                    <Form.Item
-                                        name="to"
-                                        rules={[{ validator: validateAddress }]}
-                                        noStyle
-                                    >
-                                        {addressInputMode === 'manual' ? (
+                                    {addressInputMode === 'manual' ? (
+                                        <Form.Item
+                                            name="to"
+                                            rules={[{ validator: validateAddress }]}
+                                            noStyle
+                                        >
                                             <Input
                                                 placeholder="请输入接收地址 (0x...)"
                                                 prefix={<WalletOutlined />}
                                                 className={transactionHistoryStyles.addressInput}
                                             />
-                                        ) : (
-                                            <Select
-                                                placeholder="请选择接收账户"
-                                                loading={accountsLoading}
-                                                showSearch
-                                                optionFilterProp="label"
-                                                style={{ width: '100%' }}
-                                                options={accountList.map(acc => ({
-                                                    value: acc.address,
-                                                    label: (
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                            <Space>
-                                                                <span>{acc.name}</span>
-                                                                {acc.network && (
-                                                                    <Tag color="blue" style={{ margin: 0 }}>
-                                                                        {acc.network}{acc.chain_id ? `(${acc.chain_id})` : ''}
-                                                                    </Tag>
-                                                                )}
-                                                            </Space>
-                                                            <span style={{ color: '#999', fontSize: '12px' }}>
-                                                                {shortenAddress(acc.address)}
-                                                            </span>
-                                                        </div>
-                                                    ),
-                                                    // 用于搜索的文本
-                                                    searchLabel: `${acc.name} ${acc.address} ${acc.network || ''}`,
-                                                }))}
-                                                filterOption={(input, option) => {
-                                                    const searchLabel = (option as any)?.searchLabel || '';
-                                                    return searchLabel.toLowerCase().includes(input.toLowerCase());
+                                        </Form.Item>
+                                    ) : (
+                                        <Space.Compact style={{ width: '100%' }}>
+                                            <Form.Item
+                                                name="to"
+                                                rules={[{ validator: validateAddress }]}
+                                                noStyle
+                                            >
+                                                <Select
+                                                    placeholder="请选择接收账户"
+                                                    loading={accountsLoading}
+                                                    showSearch
+                                                    optionFilterProp="label"
+                                                    style={{ width: '100%' }}
+                                                    options={accountList.map(acc => ({
+                                                        value: acc.address,
+                                                        label: (
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                <Space>
+                                                                    <span>{acc.name}</span>
+                                                                    {acc.network && (
+                                                                        <Tag color="blue" style={{ margin: 0 }}>
+                                                                            {acc.network}{acc.chain_id ? `(${acc.chain_id})` : ''}
+                                                                        </Tag>
+                                                                    )}
+                                                                </Space>
+                                                                <span style={{ color: '#999', fontSize: '12px' }}>
+                                                                    {shortenAddress(acc.address)}
+                                                                </span>
+                                                            </div>
+                                                        ),
+                                                        // 用于搜索的文本
+                                                        searchLabel: `${acc.name} ${acc.address} ${acc.network || ''}`,
+                                                    }))}
+                                                    filterOption={(input, option) => {
+                                                        const searchLabel = (option as any)?.searchLabel || '';
+                                                        return searchLabel.toLowerCase().includes(input.toLowerCase());
+                                                    }}
+                                                    notFoundContent={
+                                                        accountsLoading ? <Spin size="small" /> : '暂无账户'
+                                                    }
+                                                    suffixIcon={<WalletOutlined />}
+                                                />
+                                            </Form.Item>
+                                            <Checkbox
+                                                checked={onlyMyAccounts}
+                                                onChange={(e) => setOnlyMyAccounts(e.target.checked)}
+                                                style={{ 
+                                                    padding: '0 11px',
+                                                    border: '1px solid #d9d9d9',
+                                                    borderLeft: 'none',
+                                                    height: '32px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    whiteSpace: 'nowrap'
                                                 }}
-                                                notFoundContent={
-                                                    accountsLoading ? <Spin size="small" /> : '暂无账户'
-                                                }
-                                                suffixIcon={<WalletOutlined />}
+                                            >
+                                                仅我的
+                                            </Checkbox>
+                                            <Button
+                                                icon={<ReloadOutlined />}
+                                                onClick={() => loadAccounts()}
+                                                loading={accountsLoading}
+                                                style={{ borderLeft: 'none' }}
                                             />
-                                        )}
-                                    </Form.Item>
+                                        </Space.Compact>
+                                    )}
                                 </Space>
                             </Form.Item>
 
