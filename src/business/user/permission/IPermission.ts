@@ -8,6 +8,7 @@ interface IPermission {
     dispOrder?: number;
     children?: IPermission[];
     is_secret?: string;
+    is_testing?: 0 | 1;
 }
 
 export type {
