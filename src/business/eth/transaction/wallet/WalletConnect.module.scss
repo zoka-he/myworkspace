@@ -1,0 +1,135 @@
+.walletCard {
+  margin-bottom: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+  .connectSection {
+    text-align: center;
+    padding: 24px;
+
+    .walletIcon {
+      font-size: 48px;
+      color: #1890ff;
+      margin-bottom: 16px;
+    }
+
+    .connectButton {
+      margin-top: 16px;
+      height: 40px;
+      padding: 0 24px;
+    }
+  }
+
+  .walletInfo {
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+
+      .titleSection {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .walletIcon {
+          font-size: 20px;
+          color: #52c41a;
+        }
+
+        .title {
+          margin: 0;
+          color: #52c41a;
+        }
+      }
+    }
+
+    .infoSection {
+      .infoItem {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        padding: 8px 0;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        .infoLabel {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-weight: 500;
+          color: #666;
+          min-width: 100px;
+
+          span {
+            font-size: 14px;
+          }
+        }
+
+        .infoValue {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex: 1;
+          justify-content: flex-end;
+
+          .address {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+
+          .balance {
+            font-size: 16px;
+            color: #52c41a;
+          }
+
+          .chainId {
+            font-size: 12px;
+            margin-left: 8px;
+          }
+        }
+      }
+    }
+  }
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+  .walletCard {
+    .walletInfo {
+      .header {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+
+        .titleSection {
+          width: 100%;
+        }
+      }
+
+      .infoSection {
+        .infoItem {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 8px;
+
+          .infoValue {
+            justify-content: flex-start;
+            width: 100%;
+
+            .address {
+              max-width: 100%;
+            }
+          }
+        }
+      }
+    }
+  }
+}

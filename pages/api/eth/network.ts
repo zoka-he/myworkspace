@@ -1,0 +1,187 @@
+import { NextApiRequest, NextApiResponse } from 'next';
+import mysql from '@/src/utils/mysql/server';
+import EthNetworkService from '@/src/services/eth/ethNetworkService';
+import _ from 'lodash';
+import { ISqlCondMap } from '@/src/types/IMysqlActions';
+
+const ethNetworkService = new EthNetworkService();
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+    const { method } = req;
+
+    try {
+        switch (method) {
+            case 'GET':
+                return await getNetworks(req, res);
+            case 'POST':
+                return await createNetwork(req, res);
+            case 'PUT':
+                return await updateNetwork(req, res);
+            case 'DELETE':
+                return await deleteNetwork(req, res);
+            default:
+                res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
+                res.status(405).end(`Method ${method} Not Allowed`);
+        }
+    } catch (error: any) {
+        console.error('API Error:', error);
+        res.status(500).json({ message: error.message || 'Internal Server Error' });
+    }
+}
+
+async function getNetworks(req: NextApiRequest, res: NextApiResponse) {
+    const { name, chain_id, is_testnet, is_enable, id } = req.query;
+    
+    const page = _.toNumber(req.query.page || 1);
+    const limit = _.toNumber(req.query.limit || 20);
+
+    let queryObject: ISqlCondMap = {};
+
+    if (id) {
+        queryObject.id = id;
+    } else {
+        if (name) {
+            queryObject.name = { $like: `%${name}%` };
+        }
+        if (chain_id) {
+            queryObject.chain_id = chain_id;
+        }
+        if (is_testnet !== undefined) {
+            queryObject.is_testnet = is_testnet === 'true' ? 1 : 0;
+        }
+        if (is_enable !== undefined) {
+            queryObject.is_enable = is_enable === 'true' || is_enable === '1' ? 1 : 0;
+        }
+    }
+    
+    let ret = await ethNetworkService.query(queryObject, [], ['create_time asc'], page, limit);
+    
+    res.status(200).json({
+        data: ret.data,
+        count: ret.count,
+        page: Number(page),
+        limit: Number(limit)
+    });
+}
+
+async function createNetwork(req: NextApiRequest, res: NextApiResponse) {
+    const { name, chain_id, rpc_url, explorer_url, is_testnet, vendor, is_enable } = req.body;
+    const values: any = {...req.body};
+    delete values.id;
+    
+    // 验证必填字段
+    if (!name || !chain_id || !rpc_url || !explorer_url) {
+        return res.status(400).json({ message: '缺少必填字段' });
+    }
+    
+    // 验证链ID格式
+    if (!Number.isInteger(chain_id) || chain_id <= 0) {
+        return res.status(400).json({ message: '链ID必须是正整数' });
+    }
+    
+    // 验证URL格式
+    try {
+        if (rpc_url) {
+            new URL(rpc_url);
+        }
+        if (explorer_url) {
+            new URL(explorer_url);
+        }
+    } catch (error) {
+        return res.status(400).json({ message: '请输入有效的URL格式' });
+    }
+    
+    // 检查链ID是否已存在
+    // const checkQuery = 'SELECT id FROM eth_networks WHERE chain_id = ?';
+    // const [existing] = await mysql.execute(checkQuery, [chain_id]);
+
+    const existing = await ethNetworkService.queryOne({ chain_id } as ISqlCondMap);
+    
+    if (existing) {
+        return res.status(400).json({ message: '该链ID已存在' });
+    }
+
+    await ethNetworkService.insertOne({ 
+        ...values,
+        is_testnet: is_testnet ? 1 : 0,
+        vendor: vendor || 'custom',
+        is_enable: is_enable ? 1 : 0
+    } as ISqlCondMap);
+   
+    res.status(201).json({
+        message: '网络创建成功'
+    });
+}
+
+async function updateNetwork(req: NextApiRequest, res: NextApiResponse) {
+    const { id, name, chain_id, rpc_url, explorer_url, is_testnet, vendor, is_enable } = req.body;
+    const values: any = {...req.body};
+    delete values.id;
+
+    if (!id) {
+        return res.status(400).json({ message: '缺少网络ID' });
+    }
+    
+    // 验证链ID格式
+    if (chain_id && (!Number.isInteger(chain_id) || chain_id <= 0)) {
+        return res.status(400).json({ message: '链ID必须是正整数' });
+    }
+    
+    // 验证URL格式
+    if (rpc_url) {
+        try {
+            new URL(rpc_url);
+        } catch (error) {
+            return res.status(400).json({ message: 'RPC URL格式无效' });
+        }
+    }
+    
+    if (explorer_url) {
+        try {
+            new URL(explorer_url);
+        } catch (error) {
+            return res.status(400).json({ message: '浏览器URL格式无效' });
+        }
+    }
+    
+    // 检查链ID是否已被其他网络使用
+    if (chain_id) {
+        const existing = await ethNetworkService.queryOne({ chain_id, id: { $ne: id } } as ISqlCondMap);
+        if (existing) {
+            return res.status(400).json({ message: '该链ID已被其他网络使用' });
+        }
+    }
+    
+    await ethNetworkService.updateOne({ id }, { 
+        ...values,
+        is_testnet: is_testnet ? 1 : 0, 
+        vendor: vendor || 'custom',
+        is_enable: is_enable ? 1 : 0
+    } as ISqlCondMap);
+    
+    res.status(200).json({ message: '网络更新成功' });
+}
+
+async function deleteNetwork(req: NextApiRequest, res: NextApiResponse) {
+    const { id } = req.query;
+    
+    if (!id) {
+        return res.status(400).json({ message: '缺少网络ID' });
+    }
+    
+    // 检查是否有账户使用此网络
+    const checkQuery = 'SELECT COUNT(*) as count FROM eth_accounts WHERE network = (SELECT name FROM eth_networks WHERE id = ?)';
+    const [checkResult] = await mysql.execute(checkQuery, [id]);
+    const accountCount = (checkResult as any[])[0].count;
+    
+    if (accountCount > 0) {
+        return res.status(400).json({ 
+            message: `无法删除此网络，还有 ${accountCount} 个账户正在使用此网络` 
+        });
+    }
+    
+    const query = 'DELETE FROM eth_networks WHERE id = ?';
+    await mysql.execute(query, [id]);
+    
+    res.status(200).json({ message: '网络删除成功' });
+}

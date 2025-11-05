@@ -210,7 +210,28 @@ export default function() {
         let newIsSecret = is_secret === 'Y' ? 'N' : 'Y';
         try {
             await fetch.post('/api/user/permission', { ID, is_secret: newIsSecret }, { params: { ID } });
-            message.success('已更新显示级别“' + row.label + '”');
+            message.success('已更新显示级别"' + row.label + '"');
+        } catch(e: any) {
+            console.error(e);
+            message.error(e.message);
+        } finally {
+            onQuery();
+        }
+    }
+
+    async function toggleRowTesting(row: IPermission) {
+        let { ID, is_testing } = row;
+
+        if ( !ID ) {
+            message.error('ID为空，请检查程序');
+            console.debug('当前行是：', row);
+            return;
+        }
+
+        let newIsTesting = is_testing === 1 ? 0 : 1;
+        try {
+            await fetch.post('/api/user/permission', { ID, is_testing: newIsTesting }, { params: { ID } });
+            message.success('已更新测试状态"' + row.label + '"');
         } catch(e: any) {
             console.error(e);
             message.error(e.message);
@@ -242,6 +263,12 @@ export default function() {
                 <Table.Column title="是否私密" dataIndex="is_secret" render={(is_secret: string, row: IPermission) => {
                         return (
                             <Switch checked={is_secret === 'Y'} onChange={() => toggleRowSecret(row)}/>
+                        )
+                    }}
+                />
+                <Table.Column title="测试模式" dataIndex="is_testing" render={(is_testing: 0 | 1, row: IPermission) => {
+                        return (
+                            <Switch checked={is_testing === 1} onChange={() => toggleRowTesting(row)}/>
                         )
                     }}
                 />
