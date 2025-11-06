@@ -340,7 +340,7 @@ export const pickFromText = async (target: string, src_text: string): Promise<an
 }
 
 // 生成章节
-export const genChapterBlocking = async (worldviewId: number, inputs: any, difyHost: string = ''): Promise<string> => {
+export const genChapterBlocking = async (worldviewId: number, inputs: any, difyHost: string = ''): Promise<{ content: string, status: string, error: string, elapsed_time: number }> => {
     const response = await fetch.post(`/api/aiNoval/chapters/genChapter`, 
         inputs,
         {
@@ -348,7 +348,12 @@ export const genChapterBlocking = async (worldviewId: number, inputs: any, difyH
             timeout: 1000 * 60 * 10
         }
     );
-    return response.data?.outputs?.output || '';
+    return {
+        content: response.data?.outputs?.output || '',
+        status: response.data?.status || '',
+        error: response.data?.error || '',
+        elapsed_time: response.data?.elapsed_time || 0
+    };
 }
 
 // 生成章节骨架提示词

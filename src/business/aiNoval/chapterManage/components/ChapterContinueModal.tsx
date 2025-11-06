@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
-import { Modal, Button, Space, message, Row, Col, Form, Select, Checkbox, Divider, Input, Tag, Typography, Card } from 'antd'
-import { CopyOutlined, EditOutlined, RedoOutlined, RobotOutlined } from '@ant-design/icons'
+import { Modal, Button, Space, message, Row, Col, Form, Select, Checkbox, Divider, Input, Tag, Typography, Card, Alert } from 'antd'
+import { CloseCircleOutlined, CloseOutlined, CopyOutlined, EditOutlined, ExpandAltOutlined, RedoOutlined, RobotOutlined } from '@ant-design/icons'
 import { IChapter } from '@/src/types/IAiNoval'
 import * as chapterApi from '../apiCalls'
 import styles from './ChapterContinuePanel.module.scss'
@@ -196,7 +196,13 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
   const [autoWriteResult, setAutoWriteResult] = useState<string>('');
 
   // 自动续写耗时
-  const [autoWriteElapsed, setAutoWriteElapsed] = useState<number>(0)
+  const [autoWriteElapsed, setAutoWriteElapsed] = useState<number>(0);
+
+  // 自动续写状态
+  const [autoWriteStatus, setAutoWriteStatus] = useState<string>('idle');
+
+  // 自动续写错误
+  const [autoWriteError, setAutoWriteError] = useState<string>('');
 
   // 更新 keepGoing 时同步更新 ref
   useEffect(() => {
@@ -292,6 +298,12 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
 
       // 自动续写结果
       setAutoWriteResult(selectedChapter?.content || '')
+
+      setAutoWriteStatus('idle')
+
+      setAutoWriteError('')
+
+      setAutoWriteElapsed(0)
     }
   }, [selectedChapter])
 
@@ -441,6 +453,9 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
     // if (relatedChapterIds.length === 0 && !isReferSelf) return
 
     setAutoWriteResult('正在续写...')
+    setAutoWriteStatus('processing')
+    setAutoWriteError('')
+    setAutoWriteElapsed(0)
 
     // 使用函数式更新获取最新的stripReportList状态
     const latestStripReportList = await new Promise<ChapterStripReport[]>(resolve => {
@@ -473,7 +488,10 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
     const res = await chapterApi.genChapterBlocking(selectedChapter.worldview_id, reqObj, store.getState().difySlice.frontHost || '');
     console.info('auto write res -> ', res);
 
-    setAutoWriteResult(res || '续写已结束，未返回内容');
+    setAutoWriteResult(res.content || '续写已结束，未返回内容');
+    setAutoWriteStatus(res.status || 'idle')
+    setAutoWriteError(res.error || '')
+    setAutoWriteElapsed(res.elapsed_time || 0)
   }
 
   // 保存实际提示词
@@ -628,8 +646,14 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
       return;
     }
 
+    let pureResult = autoWriteResult.replace(/<think>[\s\S]*<\/think>/g, '');
+    if (!pureResult) {
+      message.error('续写内容为空')
+      return;
+    }
+
     try {
-      copyToClip(autoWriteResult || '')
+      copyToClip(pureResult || '')
       message.success('续写内容已复制到剪贴板')
     } catch (error) {
       console.error('handleCopyContinued error -> ', error)
@@ -894,32 +918,31 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
                   {isContinuing ? '续写中...' : '点击上方按钮开始续写...'}
                 </Divider>
 
-                {
-                  stripReportList.length > 0 && [
-                    <Card size="small" title="章节缩写">
-                      { stripReportList.map((item, index) => (
-                        <ChapterStripState key={index} {...item} onViewOriginal={handleViewOriginal} onViewStripped={handleViewStripped} />
-                      ))}
-                    </Card>
-                  ]
-                }
+                <Card size="small" title="章节缩写">
+                  { stripReportList.length > 0 ? stripReportList.map((item, index) => (
+                    <ChapterStripState key={index} {...item} onViewOriginal={handleViewOriginal} onViewStripped={handleViewStripped} />
+                  )) : <div>暂无待缩写内容</div>}
+                </Card>
 
                 {
-                  autoWriteResult && (
+                  (
                     <Card size="small" style={{ marginTop: 16 }} title={
                         <div className='f-flex-two-side' style={{ alignItems: 'center' }}>
                           <div>
-                            <span>自动续写结果 - {selectedChapter?.chapter_number} {selectedChapter?.title || '未命名章节'}:v{selectedChapter?.version}</span>
+                            <span>自动续写结果 - {selectedChapter?.chapter_number} {selectedChapter?.title || '未命名章节'}:v{selectedChapter?.version}&nbsp;</span>
+                            <Tag>{autoWriteStatus}</Tag>
+                            { autoWriteElapsed > 0 ? <Tag color="orange">{autoWriteElapsed}秒</Tag> : null }
                           </div>
                           <Space>
-                            <Button type="primary" size="small" disabled={isLoading || isContinuing} onClick={handleClearThinking}>清除think</Button>
-                            <Button type="primary" size="small" disabled={isLoading || isContinuing} onClick={handleCopyContinued}>复制</Button>
+                            {/* <Button type="primary" size="small" disabled={isLoading || isContinuing || !autoWriteResult} onClick={handleClearThinking}>清除think</Button> */}
+                            <Button type="primary" size="small" disabled={isLoading || isContinuing || !autoWriteResult} onClick={handleCopyContinued}>复制</Button>
                             <Button danger size="small" disabled={isLoading || isContinuing} onClick={handleReContinue}>重写</Button>
                           </Space>
                         </div>
                         
                       }>
-                      <Typography.Paragraph style={{ whiteSpace: 'pre-wrap' }}>{autoWriteResult} </Typography.Paragraph>
+                        { autoWriteError.length > 0 && <Alert message={autoWriteError} type="error" /> }
+                        <ShowThinkingResult thinkingResult={autoWriteResult} />
                     </Card>
                   )
                 }
@@ -952,6 +975,42 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
       />
     </>
   )
+}
+
+function ShowThinkingResult(props: { thinkingResult: string }) {
+  const [thinkingPart, setThinkingPart] = useState<string>('')
+  const [resultPart, setResultPart] = useState<string>('')
+  const [showThinking, setShowThinking] = useState<boolean>(false)
+
+  useEffect(() => {
+    let regex = /<think>([\s\S]*?)<\/think>/g;
+    let match = regex.exec(props.thinkingResult);
+    if (match) {
+      setThinkingPart(match[1]);
+    } else {
+      setThinkingPart('');
+    }
+    setResultPart(props.thinkingResult.replace(regex, ''));
+  }, [props.thinkingResult])
+
+  let retDoms = [];
+  if (thinkingPart.length > 0) {
+    if (showThinking) {
+      retDoms.push(<Button type="primary" size="small" icon={<CloseCircleOutlined />} onClick={() => setShowThinking(false)}>隐藏思考过程</Button>);
+      retDoms.push(<Typography.Paragraph style={{ whiteSpace: 'pre-wrap' }}>{thinkingPart} </Typography.Paragraph>);
+      retDoms.push(<Button type="primary" size="small" icon={<CloseCircleOutlined />} onClick={() => setShowThinking(false)}>隐藏思考过程</Button>);
+    } else {
+      retDoms.push(<Button type="primary" size="small" icon={<ExpandAltOutlined />} onClick={() => setShowThinking(true)}>显示思考过程</Button>);
+    }
+    retDoms.push(<Divider />);
+  }
+
+  if (resultPart.length > 0) {
+    retDoms.push(<Typography.Paragraph style={{ whiteSpace: 'pre-wrap' }}>{resultPart} </Typography.Paragraph>);
+  } else {
+    retDoms.push(<div style={{ minHeight: '10em'}}>暂无生成结果</div>);
+  }
+  return <>{retDoms}</>; 
 }
 
 
