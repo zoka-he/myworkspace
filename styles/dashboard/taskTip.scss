@@ -110,3 +110,64 @@
     background-color: #fee;
   }
 }
+
+html[data-theme="dark"] {
+  .m-dashboard_main-list {
+    .m_tasktip {
+      border: 1px solid #355a6a;
+      background-color: var(--bg-lv1);
+      color: var(--text-lv2);
+
+      &:hover {
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+      }
+
+      &-title {
+        background-color: #1f333d;
+        color: var(--text-lv1);
+      }
+
+      &-context {
+        color: var(--text-lv2);
+      }
+
+      &-props {
+        dl, dd, dt {
+          color: var(--text-lv4);
+        }
+      }
+
+      &-detail {
+        color: var(--text-lv4);
+      }
+
+      &-problems {
+        pre, h5 {
+          color: var(--text-lv4);
+        }
+      }
+
+      &-txtbtn {
+        color: var(--text-lv2);
+      }
+    }
+  }
+
+  .m_tasktip.pause {
+    border: 1px solid #303030;
+
+    .m_tasktip-title {
+      background-color: #262626;
+      color: var(--text-lv5);
+    }
+  }
+
+  .m_tasktip.emerg {
+    border: 1px solid #6a3a3a;
+
+    .m_tasktip-title {
+      background-color: #4d2323;
+      color: var(--text-lv1);
+    }
+  }
+}

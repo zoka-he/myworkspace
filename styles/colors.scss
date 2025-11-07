@@ -113,4 +113,20 @@ html[data-theme="dark"] {
   --text-lv5: #c0c0c0;
   --text-lv6: #b0b0b0;
   --text-lv7: #a0a0a0;
+
+  .f-bg-red18 {
+    background-color: mix(red, black, 18%);
+  }
+
+  .f-bg-yellow18 {
+    background-color: mix(yellow, black, 18%);
+  }
+
+  .f-bg-blue18 {
+    background-color: mix(blue, black, 18%);
+  }
+
+  .f-bg-green18 {
+    background-color: mix(green, black, 18%);
+  }
 }
