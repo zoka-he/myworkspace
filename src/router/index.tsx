@@ -46,6 +46,7 @@ const B2CScrapy = lazy(() => import('../business/b2c_scrapy'));
 const EthAccountManage = lazy(() => import('../business/eth/ethAccountManage'));
 const EthNetworkManage = lazy(() => import('../business/eth/networkManage'));
 const EthTransaction = lazy(() => import('../business/eth/transaction'));
+const EthContractDeploy = lazy(() => import('../business/eth/contractDeploy'));
 
 async function mainFrameLoader() {
     let matches = useMatches();
@@ -100,6 +101,7 @@ export default function () {
                     <Route path="eth/network" element={<EthNetworkManage />} />
                     <Route path="eth/transaction" element={<EthTransaction />} />
                     <Route path="eth/transactionCustom" element={<EthTransaction mode="custom" />} />
+                    <Route path="eth/contractDeploy" element={<EthContractDeploy />} />
 
                     <Route path="*" element={<div><h1>此页面尚未实现！</h1></div>} />
                 </Route>
