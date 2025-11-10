@@ -78,7 +78,16 @@ class MyAccountService {
         }
 
         if (useDb) {
-            let queryRes = await this.permissionService.query({ type: 'menu' }, [], ['ID asc'], 1, 500);
+            let params: any = { type: 'menu' };
+            if (process.env.NODE_ENV === 'production') {
+                params.is_testing = 0;
+            }
+
+
+            // 测试,默认注释掉,强行模拟生成效果
+            // params.is_testing = 0;
+
+            let queryRes = await this.permissionService.query(params, [], ['ID asc'], 1, 500);
             ret = (queryRes.data as IPermission[] );
             this.logger.info(`get userID ${userID} permission from mysql`);
         }
@@ -86,7 +95,6 @@ class MyAccountService {
         if (!useCached) {
             cached.set(cacheKey, ret);
         }
-        
 
         return ret;
     }

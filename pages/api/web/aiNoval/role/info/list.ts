@@ -26,6 +26,13 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
             case 'role_id':
                 queryObject.role_id = v;
                 break;
+            case 'worldview_id':
+                queryObject.worldview_id = v;
+                break;
+            case 'name':
+            case 'name_in_worldview':
+                queryObject.name_in_worldview = { $like: `%${v}%` };
+                break;
         }
     }
 

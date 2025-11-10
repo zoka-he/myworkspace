@@ -1,0 +1,665 @@
+基于你的小说模块架构，多模型应用的思路如下：
+
+## **一、模型特性分析与侧重点**
+
+### **1. GPT-4/4o 系列**
+**优势**：
+- 叙事流畅，文风稳定
+- 情节逻辑强，前后呼应好
+- 擅长对话与心理描写
+- 理解复杂指令与上下文
+
+**侧重点**：
+- 正文生成（章节完整内容）
+- 对话撰写（自然、有角色特色）
+- 心理描写与情感渲染
+- 复杂情节编排
+
+**适用场景**：
+```
+- 章节完整生成（ChapterGeneratePanel）
+- AI续写（ChapterContinueModal）
+- 角色对话生成
+- 复杂情节转折设计
+```
+
+---
+
+### **2. Gemini Pro/Ultra**
+**优势**：
+- 长上下文（100万+ token）
+- 多模态理解（可结合图片）
+- 检索增强生成（RAG）效果好
+- 技术细节与世界观规则理解准确
+
+**侧重点**：
+- 世界观一致性检查
+- 长篇幅内容分析
+- 多章节上下文综合处理
+- 规则手册生成与校验
+
+**适用场景**：
+```
+- 世界观规则手册生成（WorldViewRulesPanel）
+- 多章节内容一致性检查
+- 专有名词词典提取（GlossaryPanel）
+- 小说整体架构分析
+- 时间线冲突检测
+```
+
+---
+
+### **3. Grok（xAI）**
+**优势**：
+- 实时信息获取（可联网）
+- 幽默感与创意表达
+- 轻松对话风格
+- 快速响应
+
+**侧重点**：
+- 创意灵感激发
+- 轻松风格章节
+- 快速原型生成
+- 头脑风暴式建议
+
+**适用场景**：
+```
+- 角色人设建议生成（GenRolePanel）
+- 创意章节标题生成
+- 轻松风格章节生成
+- 快速大纲生成
+- 灵感素材库生成
+```
+
+---
+
+### **4. Claude（Anthropic）**
+**优势**：
+- 安全性与可控性强
+- 长上下文（200K+ token）
+- 分析与总结能力好
+- 复杂推理能力强
+
+**侧重点**：
+- 内容质量评估与分析
+- 伏笔与呼应分析
+- 叙述节奏分析
+- 结构规划与优化建议
+- 内容审查与优化
+
+**适用场景**：
+```
+- 章节质量评估（ContentQualityPanel）
+- 伏笔追踪分析（ForeshadowingPanel）
+- 叙述节奏分析（NarrativeRhythmPanel）
+- 章节大纲优化（ChapterSkeletonPanel）
+- 内容审查与改进建议
+```
+
+---
+
+## **二、多模型协作架构设计**
+
+### **整体思路：按场景选模型**
+
+```
+┌─────────────────────────────────────────┐
+│         小说创作工作流                     │
+└─────────────────────────────────────────┘
+                    │
+        ┌───────────┴───────────┐
+        │                        │
+    ┌───▼────┐              ┌───▼────┐
+    │ 创作阶段 │              │ 优化阶段 │
+    └───┬────┘              └───┬────┘
+        │                        │
+   ┌────┴────┬────────┐    ┌────┴────┬────────┐
+   │         │        │    │         │        │
+ GPT-4   Grok   Gemini  Claude   Claude  Gemini
+(正文生成)(灵感)(规则)  (评估)   (优化)(检查)
+```
+
+---
+
+## **三、各模型提示词结构与思路**
+
+### **1. GPT-4 提示词设计（正文生成）**
+
+**核心思路**：结构化上下文 + 风格引导 + 细节控制
+
+**提示词结构**：
+```typescript
+const gpt4ChapterPrompt = {
+    // 第一部分：世界观上下文（来自worldView）
+    worldview: {
+        title: "世界观名称",
+        content: "世界观描述",
+        rules: ["规则1", "规则2"], // 从worldview_rules表获取
+        timeline: "时间线信息"
+    },
+    
+    // 第二部分：角色信息（从role_ids关联）
+    characters: [
+        {
+            name: "角色名",
+            background: "角色背景",
+            personality: "性格特点",
+            motivation: "核心动机", // 新增字段
+            currentState: "当前状态"
+        }
+    ],
+    
+    // 第三部分：章节骨架（skeleton_prompt）
+    skeleton: {
+        mainEvents: ["事件1", "事件2"],
+        keyMoments: ["关键时刻1", "关键时刻2"],
+        pacing: "快/中/慢"
+    },
+    
+    // 第四部分：相关章节摘要（related_chapter_ids对应的strippedContent）
+    previousContext: [
+        "前一章摘要：...",
+        "相关章节摘要：..."
+    ],
+    
+    // 第五部分：写作指令
+    writingInstructions: {
+        pov: "first-person/third-person/omniscient",
+        tone: "紧张/悲伤/轻松",
+        style: "详细描写/快速推进",
+        length: "3000-5000字",
+        focus: "重点：角色成长/情节推进/世界观展示"
+    },
+    
+    // 第六部分：禁止项
+    constraints: {
+        avoid: ["避免出现的内容"],
+        mustInclude: ["必须包含的元素"],
+        consistency: ["一致性要求"]
+    }
+}
+```
+
+**提示词模板**：
+```typescript
+const gpt4ChapterGenerationTemplate = `
+你是专业的小说作家，现在需要根据以下信息创作一个章节。
+
+## 世界观设定
+${worldview.content}
+
+## 世界观规则（必须严格遵守）
+${worldview.rules.map(r => `- ${r.rule_name}: ${r.rule_description}`).join('\n')}
+
+## 出场角色
+${characters.map(c => `
+- **${c.name}**
+  - 背景：${c.background}
+  - 性格：${c.personality}
+  - 动机：${c.core_motivation}
+  - 当前状态：${c.currentState}
+`).join('\n')}
+
+## 章节骨架
+${skeleton.mainEvents.map((e, i) => `${i+1}. ${e}`).join('\n')}
+
+## 前情提要
+${previousContext.join('\n\n')}
+
+## 写作要求
+- 视角：${writingInstructions.pov}
+- 情感基调：${writingInstructions.tone}
+- 叙事节奏：${writingInstructions.style}
+- 字数：${writingInstructions.length}
+- 重点：${writingInstructions.focus}
+
+## 必须遵守
+${constraints.mustInclude.map(c => `- ${c}`).join('\n')}
+
+## 必须避免
+${constraints.avoid.map(c => `- ${c}`).join('\n')}
+
+现在请开始创作，确保：
+1. 严格遵守世界观规则
+2. 角色行为符合其性格和动机
+3. 情节推进符合骨架设计
+4. 与前文保持连贯
+5. 文笔流畅，细节生动
+`;
+```
+
+---
+
+### **2. Gemini 提示词设计（一致性检查）**
+
+**核心思路**：长上下文分析 + 规则匹配 + 详细报告
+
+**提示词结构**：
+```typescript
+const geminiConsistencyCheckPrompt = {
+    // 第一部分：完整世界观规则手册
+    worldRules: {
+        physics: [...], // 物理规则
+        magic: [...],   // 魔法规则
+        society: [...], // 社会规则
+        time: [...]     // 时间规则
+    },
+    
+    // 第二部分：多章节内容（可包含10+章节）
+    chapters: [
+        {
+            chapterNumber: 1,
+            content: "完整章节内容",
+            timestamp: "时间点"
+        }
+    ],
+    
+    // 第三部分：专有名词词典
+    glossary: [
+        {term: "术语1", definition: "定义1"},
+        {term: "术语2", definition: "定义2"}
+    ],
+    
+    // 第四部分：检查项列表
+    checkItems: [
+        "世界观规则一致性",
+        "专有名词使用一致性",
+        "时间线逻辑性",
+        "角色行为一致性",
+        "情节逻辑性"
+    ]
+}
+```
+
+**提示词模板**：
+```typescript
+const geminiConsistencyCheckTemplate = `
+你是一位严格的小说审校专家，需要检查以下章节内容是否与世界观设定保持一致。
+
+## 世界观规则手册（必须严格遵守）
+### 物理规则
+${worldRules.physics.map(r => `- ${r.rule_name}: ${r.rule_description}`).join('\n')}
+
+### 魔法规则
+${worldRules.magic.map(r => `- ${r.rule_name}: ${r.rule_description}`).join('\n')}
+
+### 社会规则
+${worldRules.society.map(r => `- ${r.rule_name}: ${r.rule_description}`).join('\n')}
+
+## 专有名词词典
+${glossary.map(g => `- **${g.term}**: ${g.definition}`).join('\n')}
+
+## 待检查章节
+${chapters.map(c => `
+### 第${c.chapterNumber}章（时间：${c.timestamp}）
+${c.content}
+`).join('\n\n')}
+
+## 检查任务
+请逐一检查以下项目，并提供详细报告：
+
+1. **世界观规则一致性**
+   - 检查章节中是否有违反物理规则、魔法规则、社会规则的内容
+   - 列出所有违规项，并标注具体位置
+
+2. **专有名词使用一致性**
+   - 检查术语拼写是否正确
+   - 检查术语使用是否符合定义
+   - 识别新出现的专有名词
+
+3. **时间线逻辑性**
+   - 检查章节时间是否合理
+   - 检查角色年龄是否与时间线一致
+   - 检查事件顺序是否正确
+
+4. **角色行为一致性**
+   - 检查角色行为是否符合其性格设定
+   - 检查角色动机是否合理
+   - 检查角色能力是否与设定一致
+
+5. **情节逻辑性**
+   - 检查情节发展是否合理
+   - 检查因果关系是否清晰
+   - 检查是否有逻辑漏洞
+
+请以JSON格式返回检查结果：
+{
+  "overall_consistency_score": 85,
+  "issues": [
+    {
+      "type": "worldview_rule_violation",
+      "severity": "error",
+      "chapter": 3,
+      "location": "第3段",
+      "rule": "魔法规则：不能同时使用两种元素",
+      "violation": "章节中角色同时使用了火元素和水元素",
+      "suggestion": "改为先后使用，或者添加特殊设定解释"
+    }
+  ],
+  "new_terms": ["新术语1", "新术语2"],
+  "recommendations": ["建议1", "建议2"]
+}
+`;
+```
+
+---
+
+### **3. Grok 提示词设计（创意生成）**
+
+**核心思路**：轻松对话 + 快速迭代 + 创意激发
+
+**提示词结构**：
+```typescript
+const grokCreativePrompt = {
+    // 第一部分：简要背景
+    context: {
+        novelTitle: "小说标题",
+        currentChapter: "当前章节号",
+        previousSummary: "前情摘要（简短）"
+    },
+    
+    // 第二部分：创作方向
+    creativeDirection: {
+        type: "角色人设建议" | "章节标题" | "情节创意" | "对话灵感",
+        style: "轻松/严肃/幽默",
+        constraints: ["必须包含的元素"]
+    },
+    
+    // 第三部分：可选输入
+    userInput: "用户的具体要求或问题"
+}
+```
+
+**提示词模板**：
+```typescript
+const grokCreativeTemplate = `
+你是一位充满创意的写作助手，擅长快速产生有趣的想法。
+
+**小说背景**：${context.novelTitle}
+**当前进度**：第${context.currentChapter}章
+**前情**：${context.previousSummary}
+
+**需求**：${creativeDirection.type}
+**风格**：${creativeDirection.style}
+
+${creativeDirection.constraints.length > 0 ? `
+**约束条件**：
+${creativeDirection.constraints.map(c => `- ${c}`).join('\n')}
+` : ''}
+
+${userInput ? `
+**用户补充**：${userInput}
+` : ''}
+
+请提供3-5个创意选项，每个选项应该：
+1. 简洁明了（不超过200字）
+2. 富有创意和趣味性
+3. 符合小说背景和风格
+4. 可直接使用或作为灵感
+
+格式：
+**选项1：**[标题]
+[详细描述]
+
+**选项2：**[标题]
+[详细描述]
+...
+`;
+```
+
+---
+
+### **4. Claude 提示词设计（质量评估）**
+
+**核心思路**：深度分析 + 结构化评估 + 可执行建议
+
+**提示词结构**：
+```typescript
+const claudeQualityAssessmentPrompt = {
+    // 第一部分：章节内容
+    chapter: {
+        chapterNumber: 1,
+        title: "章节标题",
+        content: "完整章节内容",
+        skeleton: "章节骨架",
+        relatedChapters: ["相关章节摘要"]
+    },
+    
+    // 第二部分：评估维度
+    assessmentDimensions: [
+        "情节合理性",
+        "角色一致性",
+        "世界观一致性",
+        "叙述节奏",
+        "文笔质量",
+        "伏笔呼应"
+    ],
+    
+    // 第三部分：参考标准
+    reference: {
+        novelStyle: "小说整体风格",
+        targetAudience: "目标读者",
+        previousChaptersQuality: "前文质量水平"
+    }
+}
+```
+
+**提示词模板**：
+```typescript
+const claudeQualityAssessmentTemplate = `
+你是一位资深的小说编辑，需要对以下章节进行专业评估。
+
+## 待评估章节
+**章节**：第${chapter.chapterNumber}章 - ${chapter.title}
+**章节骨架**：${chapter.skeleton}
+
+**章节内容**：
+${chapter.content}
+
+**相关章节背景**：
+${chapter.relatedChapters.map(c => `- ${c}`).join('\n')}
+
+## 评估标准
+- **小说风格**：${reference.novelStyle}
+- **目标读者**：${reference.targetAudience}
+- **质量基准**：${reference.previousChaptersQuality}
+
+## 评估任务
+请从以下维度进行详细评估：
+
+### 1. 情节合理性（0-100分）
+- 情节发展是否逻辑清晰
+- 因果关系是否合理
+- 是否有明显的逻辑漏洞
+- 情节推进是否自然
+
+### 2. 角色一致性（0-100分）
+- 角色行为是否符合性格设定
+- 角色动机是否清晰
+- 角色成长是否合理
+- 角色对话是否有个性
+
+### 3. 世界观一致性（0-100分）
+- 是否严格遵守世界观规则
+- 世界观元素使用是否恰当
+- 是否有矛盾或冲突
+
+### 4. 叙述节奏（0-100分）
+- 对话/叙述/动作/描写比例是否合理
+- 节奏是否适合情节需要
+- 是否有拖沓或过快的问题
+
+### 5. 文笔质量（0-100分）
+- 语言是否流畅自然
+- 描写是否生动具体
+- 是否有语言错误
+- 是否有个性化的表达
+
+### 6. 伏笔呼应（0-100分）
+- 是否有效设置伏笔
+- 是否呼应前文伏笔
+- 伏笔设置是否自然
+
+请提供：
+1. 每个维度的评分（0-100）
+2. 详细的分析说明
+3. 具体的改进建议（可执行）
+4. 突出的优点
+5. 需要重点改进的问题
+
+返回JSON格式：
+{
+  "overall_score": 85,
+  "dimension_scores": {
+    "plot_reasonableness": 88,
+    "character_consistency": 82,
+    "worldview_consistency": 90,
+    "narrative_pacing": 80,
+    "writing_quality": 85,
+    "foreshadowing": 75
+  },
+  "strengths": ["优点1", "优点2"],
+  "issues": [
+    {
+      "dimension": "narrative_pacing",
+      "severity": "warning",
+      "description": "第3段对话过多，建议增加动作描写",
+      "location": "第3段",
+      "suggestion": "在对话间穿插角色动作和环境描写"
+    }
+  ],
+  "recommendations": ["建议1", "建议2"]
+}
+`;
+```
+
+---
+
+## **四、在你的工程中的集成方案**
+
+### **模型选择策略配置**
+
+```typescript
+// src/business/aiNoval/common/modelSelectionStrategy.ts
+
+export const MODEL_STRATEGY = {
+    // 章节生成 - 使用GPT-4
+    chapterGeneration: {
+        model: 'gpt-4o',
+        workflow: 'genChapter',
+        promptTemplate: 'gpt4ChapterGeneration'
+    },
+    
+    // 续写 - 使用GPT-4
+    chapterContinue: {
+        model: 'gpt-4o',
+        workflow: 'continueChapter',
+        promptTemplate: 'gpt4Continue'
+    },
+    
+    // 一致性检查 - 使用Gemini
+    consistencyCheck: {
+        model: 'gemini-pro',
+        workflow: 'checkConsistency',
+        promptTemplate: 'geminiConsistencyCheck'
+    },
+    
+    // 创意生成 - 使用Grok
+    creativeSuggestion: {
+        model: 'grok-beta',
+        workflow: 'creativeGen',
+        promptTemplate: 'grokCreative'
+    },
+    
+    // 质量评估 - 使用Claude
+    qualityAssessment: {
+        model: 'claude-3-opus',
+        workflow: 'assessQuality',
+        promptTemplate: 'claudeQualityAssessment'
+    },
+    
+    // 角色人设建议 - 使用Grok（快速创意）
+    roleSuggestion: {
+        model: 'grok-beta',
+        workflow: 'genRole',
+        promptTemplate: 'grokRoleSuggestion'
+    },
+    
+    // 世界观规则生成 - 使用Gemini（长上下文）
+    worldRulesGeneration: {
+        model: 'gemini-pro',
+        workflow: 'genWorldRules',
+        promptTemplate: 'geminiWorldRules'
+    },
+    
+    // 伏笔分析 - 使用Claude（深度分析）
+    foreshadowingAnalysis: {
+        model: 'claude-3-opus',
+        workflow: 'analyzeForeshadowing',
+        promptTemplate: 'claudeForeshadowing'
+    }
+}
+```
+
+### **API调用封装**
+
+```typescript
+// src/business/aiNoval/common/multiModelApi.ts
+
+interface ModelConfig {
+    model: string;
+    workflow: string;
+    template: string;
+}
+
+async function callModel(config: ModelConfig, inputs: any, worldviewId: number) {
+    // 1. 根据worldviewId获取对应模型的API Key
+    const apiKey = await getModelApiKey(worldviewId, config.model);
+    
+    // 2. 根据template加载提示词模板
+    const prompt = await buildPrompt(config.template, inputs, worldviewId);
+    
+    // 3. 调用对应的Dify工作流
+    const response = await fetch(`${DIFY_URL}/workflows/run`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            inputs: prompt,
+            response_mode: 'blocking',
+            user: 'my-worksite'
+        })
+    });
+    
+    return response;
+}
+```
+
+---
+
+## **五、实施建议**
+
+### **阶段1：单一模型验证（1周）**
+- 先在一个场景（如章节生成）验证GPT-4效果
+- 建立提示词模板库基础结构
+
+### **阶段2：双模型对比（1周）**
+- 引入Claude做质量评估
+- 对比单模型 vs 多模型的效果
+
+### **阶段3：全面集成（2周）**
+- 按场景接入对应模型
+- 建立模型选择配置系统
+- 实现提示词模板管理系统
+
+### **成本考虑**
+- GPT-4：较贵，用于核心正文生成
+- Gemini：性价比高，用于长文本分析
+- Grok：较便宜，用于快速创意
+- Claude：中等，用于深度分析
+
+**建议**：根据使用频率和重要性选择合适的模型。
+
+需要我继续细化某个具体模型的提示词模板，或设计多模型切换的前端界面吗？

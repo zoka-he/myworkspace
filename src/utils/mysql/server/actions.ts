@@ -72,6 +72,17 @@ async function updateOne(table: string, conditions: ISqlCondMap, obj: any) {
         conStr = conNames.join(' AND ');
     }
 
+    const sql = `update ${table} set ${sets.join(',')} where ${conStr}`
+
+    if (process.env.NODE_ENV === 'development') {
+        console.debug('updateOne: ');
+        console.debug('table:', table);
+        console.debug('conditions:', conditions);
+        console.debug('obj:', obj);
+        console.debug('sql:', sql);
+        console.debug('values:', values);
+    }
+
     let conn = await connPool.getConnection();
     await conn.execute(`update ${table} set ${sets.join(',')} where ${conStr}`, values);
     conn.release();
