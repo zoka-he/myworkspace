@@ -1,0 +1,328 @@
+// colors.scss 已在全局加载，无需导入
+// CSS变量（如 --bg-lv0, --text-lv0）可以直接使用
+
+.contractDeploy {
+//   background: var(--bg-lv0);
+//   padding: 20px;
+  height: 100%;
+  animation: fadeIn 0.3s ease-in-out;
+
+  .statsCard {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 12px;
+    
+    :global {
+      .ant-card-body {
+        padding: 20px;
+      }
+
+      .ant-statistic-title {
+        color: rgba(255, 255, 255, 0.85);
+        font-size: 14px;
+        margin-bottom: 8px;
+      }
+
+      .ant-statistic-content {
+        color: #fff;
+        font-size: 28px;
+        font-weight: bold;
+      }
+    }
+
+    &:nth-child(2) {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    &:nth-child(3) {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+  }
+
+  .queryBar {
+    flex: 1;
+  }
+
+  .tableContainer {
+    background: var(--bg-lv1);
+    border-radius: 8px;
+    // padding: 12px;
+    overflow: auto;
+
+    :global {
+      .ant-table {
+        background: transparent;
+      }
+
+      .ant-table-thead > tr > th {
+        background: var(--bg-lv2);
+        color: var(--text-lv0);
+        font-weight: 600;
+        border-bottom: 2px solid var(--bg-lv3);
+      }
+
+      .ant-table-tbody > tr {
+        transition: all 0.3s ease;
+
+        // &:hover {
+        //   transform: translateY(-2px);
+        //   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        // }
+
+        // &:hover > td {
+        //   background: var(--bg-lv2);
+        // }
+
+        > td {
+          background: var(--bg-lv1);
+          color: var(--text-lv1);
+          border-bottom: 1px solid var(--bg-lv2);
+        }
+      }
+    }
+  }
+
+  .actionButtons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+
+    button {
+      margin: 0;
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
+    }
+  }
+
+  .copyButton {
+    padding: 0 8px;
+    height: auto;
+    
+    &:hover {
+      color: #1890ff;
+    }
+  }
+
+  .networkTag {
+    font-weight: 500;
+    border-radius: 4px;
+    padding: 2px 8px;
+  }
+
+  .deployModal, .detailModal, .interactModal {
+    :global {
+      .ant-modal-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-bottom: none;
+
+        .ant-modal-title {
+          color: white;
+          font-size: 18px;
+          font-weight: 600;
+        }
+      }
+
+      .ant-modal-body {
+        background: var(--bg-lv0);
+        padding: 24px;
+      }
+
+      .ant-modal-footer {
+        background: var(--bg-lv1);
+        border-top: 1px solid var(--bg-lv2);
+      }
+
+      // Tab 内容区域过渡动画
+      .ant-tabs-content-holder {
+        overflow: hidden;
+      }
+
+      .ant-tabs-tabpane {
+        transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+      }
+
+      // 激活状态的 TabPane
+      .ant-tabs-tabpane-active {
+        animation: tabPaneFadeIn 0.4s ease-in-out;
+      }
+
+      // 非激活状态的 TabPane（隐藏时）
+      .ant-tabs-tabpane-hidden {
+        display: none;
+      }
+    }
+  }
+
+  // Tab 面板淡入动画
+  @keyframes tabPaneFadeIn {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .codeEditor {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    background: var(--bg-lv1);
+    border: 1px solid var(--bg-lv3);
+    border-radius: 6px;
+
+    &:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+    }
+  }
+
+  .contractDetail {
+    dl {
+      display: flex;
+      margin-bottom: 16px;
+      padding: 12px;
+      background: var(--bg-lv1);
+      border-radius: 6px;
+
+      dt {
+        min-width: 120px;
+        font-weight: 600;
+        color: var(--text-lv2);
+      }
+
+      dd {
+        flex: 1;
+        margin: 0;
+        color: var(--text-lv0);
+        word-break: break-all;
+      }
+    }
+
+    :global {
+      .ant-tabs-nav {
+        margin-bottom: 20px;
+      }
+
+      .ant-collapse {
+        background: var(--bg-lv1);
+        border: 1px solid var(--bg-lv2);
+
+        .ant-collapse-item {
+          border-bottom: 1px solid var(--bg-lv2);
+        }
+
+        .ant-collapse-header {
+          background: var(--bg-lv1);
+          color: var(--text-lv0);
+          padding: 12px 16px;
+        }
+
+        .ant-collapse-content {
+          background: var(--bg-lv0);
+          border-top: 1px solid var(--bg-lv2);
+        }
+      }
+    }
+  }
+
+  .sourceCode, .abiCode {
+    background: var(--bg-lv1);
+    border: 1px solid var(--bg-lv2);
+    border-radius: 6px;
+    padding: 16px;
+    max-height: 500px;
+    overflow: auto;
+
+    pre {
+      margin: 0;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-lv0);
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    &::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: var(--bg-lv2);
+      border-radius: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--bg-lv4);
+      border-radius: 4px;
+
+      &:hover {
+        background: var(--bg-lv5);
+      }
+    }
+  }
+
+  .alert_container {
+    margin-bottom: 16px;
+  }
+}
+
+// 暗色主题特殊处理
+:global(html[data-theme="dark"]) {
+  .contractDeploy {
+    .statsCard {
+      :global {
+        .ant-statistic-title {
+          color: rgba(255, 255, 255, 0.75);
+        }
+      }
+    }
+  }
+}
+
+// 响应式布局
+@media (max-width: 768px) {
+  .contractDeploy {
+    padding: 12px;
+
+    .actionButtons {
+      flex-direction: column;
+
+      button {
+        width: 100%;
+      }
+    }
+
+    .statsCard {
+      :global {
+        .ant-statistic-content {
+          font-size: 24px;
+        }
+      }
+    }
+  }
+}
+
+// 动画效果
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

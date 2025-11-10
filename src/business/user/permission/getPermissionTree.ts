@@ -68,6 +68,17 @@ function fromData(data: IPermission[]) {
 }
 
 async function fromRemote(params: any = {}) {
+
+    // 在生产环境，强制不显示测试模式的目录
+    if (typeof params?.is_testing === 'undefined') {
+        if (process.env.NODE_ENV === 'production') {
+            params.is_testing = 0;
+        }
+    }
+
+    // 测试,默认注释掉,强行模拟生成效果
+    // params.is_testing = 0;
+
     let data = await getRemotePermissionList(params);
     return fromData(data);
 }

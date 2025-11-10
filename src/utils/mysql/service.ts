@@ -204,12 +204,20 @@ class MysqlService {
                 if (k === this.priKey) {
                     // @ts-ignore
                     queryObj[k] = v;
-                } 
+                } else {
+                    if (process.env.NODE_ENV === 'development') {
+                        console.debug('updateOne: 您是否忘记指定主键了？主键是：', this.priKey, typeof this.priKey, '当前字段是：', k, typeof k, '当前值是：', v, typeof v);
+                    }
+                }
             } else {
                 if (this.priKey.includes(k)) {
                     // @ts-ignore
                     queryObj[k] = v;
-                } 
+                } else {
+                    if (process.env.NODE_ENV === 'development') {
+                        console.debug('updateOne: 您是否忘记指定主键了？主键是：', this.priKey, typeof this.priKey, '当前字段是：', k, typeof k, '当前值是：', v, typeof v);
+                    }
+                }
             }
         }
 
@@ -225,6 +233,19 @@ class MysqlService {
                     updateObj[k] = v;
                 }
             }
+        }
+
+        if (process.env.NODE_ENV === 'development') {
+            console.debug('updateOne: ');
+            console.debug('oldObj:', oldObj);
+            console.debug('obj:', obj);
+            console.debug('tableName:', this.tableName);
+            console.debug('queryObj:', queryObj);
+            console.debug('updateObj:', updateObj);
+        }
+
+        if (Object.keys(queryObj).length === 0) {
+            throw new Error('updateOne的查询条件必须包含至少一个字段！');
         }
 
         let obj3 = this.verifyInsertOrUpdate(updateObj);

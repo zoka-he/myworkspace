@@ -10,6 +10,12 @@ export default function usePagination() {
     }
 
     function onChange({ page, pageSize }: { page: number, pageSize: number }) {
+        if (page < 1) {
+            page = 1;
+        }
+        if (pageSize < 10) {
+            pageSize = 10;
+        }
         setPage(page);
         setPageSize(pageSize);
     }
