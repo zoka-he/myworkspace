@@ -5,7 +5,7 @@ html[data-theme="dark"] {
 }
 
 html[data-theme="light"] {
-    --m-app-header-background: rgb(112 162 245);;
+    --m-app-header-background: #1890ff;
     --m-main-header-background: white;
     --m-main-context-outlet-background: rgb(238, 238, 238);
 }
@@ -105,4 +105,25 @@ html[data-theme="light"] {
 
 .ant-layout .ant-layout-sider .ant-layout-sider-children {
     overflow-y: auto;
+}
+
+*, :deep(.ant-*), .scrollbar {
+    scrollbar-width: auto !important;
+    scrollbar-color: auto !important;
+
+    &::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: var(--bg-lv1) !important;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: var(--bg-lv2) !important;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+        background: var(--bg-lv3) !important;
+    }
 }
