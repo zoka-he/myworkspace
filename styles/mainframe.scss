@@ -23,6 +23,33 @@ html[data-theme="light"] {
         align-items: center;
 
         background-color: var(--m-main-header-background);
+        position: relative;
+        overflow: hidden;
+
+        // 右上角渐变蓝效果
+        &::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 60%;
+            height: 100%;
+            background: linear-gradient(
+                to left,
+                rgba(24, 144, 255, 0.12),
+                rgba(64, 169, 255, 0.08) 30%,
+                rgba(135, 208, 255, 0.04) 60%,
+                transparent 100%
+            );
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        // 确保内容在渐变之上
+        > * {
+            position: relative;
+            z-index: 1;
+        }
 
         &-tabs {
             height: 46px;
