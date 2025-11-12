@@ -3,11 +3,11 @@ export interface IContract {
     id?: number;
     name: string;
     address?: string; // 未部署时可能为空
-    deployer_address?: string; // 未部署时可能为空
-    deployer_account_id?: number; // 未部署时可能为空
-    network_id?: number; // 未部署时可能为空
-    network?: string; // 未部署时可能为空
-    chain_id?: number; // 未部署时可能为空
+    deployer_address?: string; // 部署者地址，未部署时可能为空
+    deployer_account_id?: number; // 部署者账户ID，未部署时可能为空
+    network_id?: number; // 网络ID，未部署时可能为空
+    network?: string; // 网络名称，未部署时可能为空
+    chain_id?: number; // 链ID，未部署时可能为空
     abi?: string; // JSON string, 未编译时可能为空
     bytecode?: string; // 未编译时可能为空
     source_code?: string;

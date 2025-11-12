@@ -102,17 +102,12 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
     const {
         name,
         address,
-        deployer_address,
         deployer_account_id,
         network_id,
-        network,
-        chain_id,
         abi,
         bytecode,
         source_code,
-        constructor_params,
         status = 'deployed',
-        remark
     } = req.body;
 
     // 验证必填字段
@@ -179,40 +174,22 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
  * 更新合约记录
  */
 async function handlePut(req: NextApiRequest, res: NextApiResponse) {
-    const { id, ...updates } = req.body;
+    const { id } = req.body;
+    const updateFields = {...req.body};
+    delete updateFields.id;
 
     if (!id) {
         return res.status(400).json({ error: 'Contract ID is required' });
     }
 
-    // 构建更新语句
-    const allowedFields = ['name', 'status', 'remark', 'abi', 'source_code'];
-    const updateFields: string[] = [];
-    const updateValues: any[] = [];
-
-    allowedFields.forEach(field => {
-        if (updates[field] !== undefined) {
-            updateFields.push(`${field} = ?`);
-            updateValues.push(updates[field]);
-        }
-    });
-
-    if (updateFields.length === 0) {
-        return res.status(400).json({ error: 'No valid fields to update' });
+    try {
+        await service.updateOne({ id }, updateFields);
+        res.status(200).json({
+            success: true
+        });
+    } catch (error: any) {
+        return res.status(500).json({ error: error.message });
     }
-
-    const updateSql = `
-        UPDATE eth_contract 
-        SET ${updateFields.join(', ')}, update_time = NOW()
-        WHERE id = ?
-    `;
-
-    await mysql.execute(updateSql, [...updateValues, id]);
-
-    res.status(200).json({
-        success: true,
-        message: 'Contract updated successfully'
-    });
 }
 
 /**
