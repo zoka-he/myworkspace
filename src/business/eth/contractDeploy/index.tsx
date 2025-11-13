@@ -386,6 +386,51 @@ export default function ContractDeploy() {
         });
     }
 
+    // 复制已部署的合约 - 打开对话框预填充数据
+    const onCopyContract = useCallback((contract: IContract) => {
+        // 重置当前合约（不关联原合约ID，这样会创建新合约而不是更新）
+        setCurrentContract(null);
+        
+        // 加载合约信息到表单
+        setSolCode(contract.source_code || '');
+        setManualAbi(contract.abi || '');
+        setManualBytecode(contract.bytecode || '');
+        
+        // 如果有 ABI，解析构造函数参数
+        if (contract.abi) {
+            parseConstructorParams(contract.abi);
+        } else {
+            setConstructorParams([]);
+        }
+        
+        // 准备表单字段
+        const formValues: any = {
+            contractName: `${contract.name} (副本)`,
+            remark: contract.remark ? `复制自: ${contract.name}` : `复制自: ${contract.name}`
+        };
+
+        // 如果合约有关联的账户，预设选择
+        if (contract.deployer_account_id) {
+            const account = accountList.find(a => a.id === contract.deployer_account_id);
+            setSelectedAccount(account || null);
+            formValues.accountId = contract.deployer_account_id;
+        }
+        
+        // 如果合约有关联的网络，预设选择
+        if (contract.network_id) {
+            const network = networkList.find(n => n.id === contract.network_id);
+            setSelectedNetwork(network || null);
+            formValues.networkId = contract.network_id;
+        }
+
+        // 设置表单值
+        form.setFieldsValue(formValues);
+
+        // 打开部署对话框
+        setIsModalVisible(true);
+        message.info('已复制合约信息，请编辑后保存或部署');
+    }, [form, parseConstructorParams, networkList, accountList]);
+
     // 调用合约方法
     const callContractMethod = useCallback(async () => {
         if (!currentContract) return;
@@ -568,6 +613,13 @@ export default function ContractDeploy() {
                     onClick={() => onInteractContract(row)}
                 >
                     交互
+                </Button>
+                <Button 
+                    size="small" 
+                    icon={<CopyOutlined />} 
+                    onClick={() => onCopyContract(row)}
+                >
+                    复制
                 </Button>
                 <Button 
                     size="small" 

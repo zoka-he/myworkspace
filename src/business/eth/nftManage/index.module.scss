@@ -1,0 +1,321 @@
+// colors.scss 已在全局加载，无需导入
+// CSS变量（如 --bg-lv0, --text-lv0）可以直接使用
+
+.nftManage {
+  height: 100%;
+  animation: fadeIn 0.3s ease-in-out;
+
+  .statsCard {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    border: none;
+    border-radius: 12px;
+    
+    :global {
+      .ant-card-body {
+        padding: 20px;
+      }
+
+      .ant-statistic-title {
+        color: rgba(255, 255, 255, 0.85);
+        font-size: 14px;
+        margin-bottom: 8px;
+      }
+
+      .ant-statistic-content {
+        color: #fff;
+        font-size: 28px;
+        font-weight: bold;
+      }
+    }
+
+    &:nth-child(2) {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    &:nth-child(3) {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    &:nth-child(4) {
+      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
+  }
+
+  .queryBar {
+    flex: 1;
+  }
+
+  .tableContainer {
+    background: var(--bg-lv1);
+    border-radius: 8px;
+    overflow: auto;
+
+    :global {
+      .ant-table {
+        background: transparent;
+      }
+
+      .ant-table-thead > tr > th {
+        background: var(--bg-lv2);
+        color: var(--text-lv0);
+        font-weight: 600;
+        border-bottom: 2px solid var(--bg-lv3);
+      }
+
+      .ant-table-tbody > tr {
+        transition: all 0.3s ease;
+
+        > td {
+          background: var(--bg-lv1);
+          color: var(--text-lv1);
+          border-bottom: 1px solid var(--bg-lv2);
+        }
+      }
+    }
+  }
+
+  .actionButtons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+
+    button {
+      margin: 0;
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
+    }
+  }
+
+  .copyButton {
+    padding: 0 8px;
+    height: auto;
+    
+    &:hover {
+      color: #1890ff;
+    }
+  }
+
+  .networkTag {
+    font-weight: 500;
+    border-radius: 4px;
+    padding: 2px 8px;
+  }
+
+  .noImage {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-lv2);
+    border-radius: 8px;
+  }
+
+  .mintModal, .detailModal {
+    :global {
+      .ant-modal-header {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        border-bottom: none;
+
+        .ant-modal-title {
+          color: white;
+          font-size: 18px;
+          font-weight: 600;
+        }
+      }
+
+      .ant-modal-body {
+        background: var(--bg-lv0);
+        padding: 24px;
+      }
+
+      .ant-modal-footer {
+        background: var(--bg-lv1);
+        border-top: 1px solid var(--bg-lv2);
+      }
+
+      .ant-tabs-content-holder {
+        overflow: hidden;
+      }
+
+      .ant-tabs-tabpane {
+        transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+      }
+
+      .ant-tabs-tabpane-active {
+        animation: tabPaneFadeIn 0.4s ease-in-out;
+      }
+
+      .ant-tabs-tabpane-hidden {
+        display: none;
+      }
+    }
+  }
+
+  @keyframes tabPaneFadeIn {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .codeEditor {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    background: var(--bg-lv1);
+    border: 1px solid var(--bg-lv3);
+    border-radius: 6px;
+
+    &:focus {
+      border-color: #f093fb;
+      box-shadow: 0 0 0 2px rgba(240, 147, 251, 0.2);
+    }
+  }
+
+  .nftDetail {
+    dl {
+      display: flex;
+      margin-bottom: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--bg-lv2);
+
+      dt {
+        min-width: 120px;
+        font-weight: 600;
+        color: var(--text-lv2);
+      }
+
+      dd {
+        flex: 1;
+        margin: 0;
+        color: var(--text-lv0);
+        word-break: break-all;
+      }
+
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+
+    .nftImageLarge {
+      width: 100%;
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--bg-lv1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+      img {
+        width: 100%;
+        height: auto;
+      }
+    }
+
+    .noImageLarge {
+      width: 100%;
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-lv2);
+      border-radius: 12px;
+    }
+
+    .attributeCard {
+      background: var(--bg-lv1);
+      border: 1px solid var(--bg-lv2);
+      border-radius: 8px;
+      text-align: center;
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border-color: #f093fb;
+      }
+
+      :global {
+        .ant-card-body {
+          padding: 12px;
+        }
+      }
+    }
+
+    :global {
+      .ant-divider {
+        margin: 16px 0;
+      }
+    }
+  }
+}
+
+// 暗色主题特殊处理
+:global(html[data-theme="dark"]) {
+  .nftManage {
+    .statsCard {
+      :global {
+        .ant-statistic-title {
+          color: rgba(255, 255, 255, 0.75);
+        }
+      }
+    }
+  }
+}
+
+// 响应式布局
+@media (max-width: 768px) {
+  .nftManage {
+    padding: 12px;
+
+    .actionButtons {
+      flex-direction: column;
+
+      button {
+        width: 100%;
+      }
+    }
+
+    .statsCard {
+      :global {
+        .ant-statistic-content {
+          font-size: 24px;
+        }
+      }
+    }
+
+    .nftDetail {
+      dl {
+        flex-direction: column;
+
+        dt {
+          margin-bottom: 4px;
+        }
+      }
+    }
+  }
+}
+
+// 动画效果
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
