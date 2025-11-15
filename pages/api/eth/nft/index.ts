@@ -143,52 +143,43 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
     }
 
     // 检查是否已存在
-    const checkQuery = `
-        SELECT id FROM nft 
-        WHERE contract_address = ? AND token_id = ?
-    `;
-    const existing: any = await mysqlQuery(checkQuery, [contract_address, token_id]);
+    const existing = await service.query({
+        contract_address,
+        token_id
+    }, [], [], 1, 1);
 
-    if (existing && existing.length > 0) {
+    if (existing && existing.data && existing.data.length > 0) {
         return res.status(400).json({ 
             error: 'NFT already exists with this contract address and token ID' 
         });
     }
 
-    const query = `
-        INSERT INTO nft (
-            contract_id, contract_address, token_id, owner_address, minter_address,
-            minter_account_id, metadata_uri, name, description, image_url,
-            attributes, transaction_hash, network_id, network, chain_id,
-            status, remark, create_time, update_time
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-    `;
-
-    const params = [
-        contract_id || null,
+    // 使用 service 创建记录
+    const nftData: any = {
+        contract_id: contract_id || null,
         contract_address,
         token_id,
         owner_address,
         minter_address,
-        minter_account_id || null,
-        metadata_uri || null,
-        name || null,
-        description || null,
-        image_url || null,
-        attributes || null,
-        transaction_hash || null,
-        network_id || null,
-        network || null,
-        chain_id || null,
-        status,
-        remark || null
-    ];
+        minter_account_id: minter_account_id || null,
+        metadata_uri: metadata_uri || null,
+        name: name || null,
+        description: description || null,
+        image_url: image_url || null,
+        attributes: attributes || null,
+        transaction_hash: transaction_hash || null,
+        network_id: network_id || null,
+        network: network || null,
+        chain_id: chain_id || null,
+        status: status || 'minted',
+        remark: remark || null
+    };
 
-    const result: any = await mysqlQuery(query, params);
+    const result = await service.insert(nftData);
 
     res.status(201).json({
         message: 'NFT created successfully',
-        id: result.insertId
+        id: result
     });
 }
 
@@ -259,17 +250,18 @@ async function handlePut(req: NextApiRequest, res: NextApiResponse) {
         return res.status(400).json({ error: 'No fields to update' });
     }
 
-    updateFields.push('update_time = NOW()');
+    const updateData: any = {};
+    
+    if (owner_address !== undefined) updateData.owner_address = owner_address;
+    if (metadata_uri !== undefined) updateData.metadata_uri = metadata_uri;
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (image_url !== undefined) updateData.image_url = image_url;
+    if (attributes !== undefined) updateData.attributes = attributes;
+    if (status !== undefined) updateData.status = status;
+    if (remark !== undefined) updateData.remark = remark;
 
-    const query = `
-        UPDATE nft 
-        SET ${updateFields.join(', ')}
-        WHERE id = ?
-    `;
-
-    params.push(id);
-
-    await mysqlQuery(query, params);
+    await service.update(id, updateData);
 
     res.status(200).json({ message: 'NFT updated successfully' });
 }
@@ -284,8 +276,7 @@ async function handleDelete(req: NextApiRequest, res: NextApiResponse) {
         return res.status(400).json({ error: 'Missing required parameter: id' });
     }
 
-    const query = 'DELETE FROM nft WHERE id = ?';
-    await mysqlQuery(query, [id]);
+    await service.delete(id);
 
     res.status(200).json({ message: 'NFT deleted successfully' });
 }

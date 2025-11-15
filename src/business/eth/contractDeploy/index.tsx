@@ -29,6 +29,55 @@ const { TabPane } = Tabs;
 const { Panel } = Collapse;
 const { Title, Text, Paragraph } = Typography;
 
+// 序列化包含 BigInt 的值
+function serializeBigInt(value: any): any {
+    // 处理 null 和 undefined
+    if (value === null || value === undefined) {
+        return value;
+    }
+    
+    // 处理 BigInt
+    if (typeof value === 'bigint') {
+        return value.toString();
+    }
+    
+    // 处理数组
+    if (Array.isArray(value)) {
+        return value.map(item => serializeBigInt(item));
+    }
+    
+    // 处理对象（包括 ethers.js 的 Result 类型）
+    if (typeof value === 'object') {
+        // 检查是否是 ethers.js 的 Result 类型（有 length 属性和数字索引）
+        if (typeof value.length === 'number' && value.length > 0) {
+            // 可能是数组或 Result 类型，尝试转换为数组
+            const arr: any[] = [];
+            for (let i = 0; i < value.length; i++) {
+                arr.push(serializeBigInt(value[i]));
+            }
+            // 如果有命名属性，也保留
+            const result: any = arr;
+            for (const key in value) {
+                if (!/^\d+$/.test(key) && value.hasOwnProperty(key)) {
+                    result[key] = serializeBigInt(value[key]);
+                }
+            }
+            return result;
+        }
+        
+        // 普通对象
+        const result: any = {};
+        for (const key in value) {
+            if (value.hasOwnProperty(key)) {
+                result[key] = serializeBigInt(value[key]);
+            }
+        }
+        return result;
+    }
+    
+    return value;
+}
+
 export default function ContractDeploy() {
     const [userParams, setUserParams] = useState({});
     const [listData, updateListData] = useState<IContract[]>([]);
@@ -483,13 +532,16 @@ export default function ContractDeploy() {
                 const contract = new ethers.Contract(currentContract.address, abi, provider);
                 const result = await contract[methodName](...params);
                 
+                // 序列化 BigInt 和其他无法序列化的值
+                const serializedResult = serializeBigInt(result);
+                
                 Modal.info({
                     title: '调用结果',
                     width: 600,
                     content: (
                         <div>
                             <Text strong>方法: </Text><Text>{methodName}</Text><br/>
-                            <Text strong>返回值: </Text><Text code>{JSON.stringify(result, null, 2)}</Text>
+                            <Text strong>返回值: </Text><Text code>{JSON.stringify(serializedResult, null, 2)}</Text>
                         </div>
                     )
                 });
@@ -521,6 +573,34 @@ export default function ContractDeploy() {
             message.error('调用失败: ' + e.message);
         }
     }, [currentContract, interactForm, accountList]);
+
+    // 切换合约状态（在 deployed 和 deprecated 之间切换）
+    const toggleContractStatus = useCallback(async (contract: IContract) => {
+        const currentStatus = contract.status;
+        const newStatus = currentStatus === 'deployed' ? 'deprecated' : 'deployed';
+        const actionText = newStatus === 'deprecated' ? '作废' : '恢复';
+        
+        confirm({
+            title: `${actionText}确认`,
+            icon: <ExclamationCircleFilled />,
+            content: `确定要将合约 "${contract.name}" ${actionText === '作废' ? '标记为已作废' : '恢复为已部署'}吗？`,
+            okText: actionText,
+            okType: actionText === '作废' ? 'danger' : 'primary',
+            cancelText: '取消',
+            async onOk() {
+                try {
+                    await fetch.put('/api/eth/contract', {
+                        id: contract.id,
+                        status: newStatus
+                    });
+                    message.success(`${actionText}成功`);
+                    onQuery();
+                } catch (e: any) {
+                    message.error(e.message || `${actionText}失败`);
+                }
+            },
+        });
+    }, [onQuery]);
 
     // 编辑或部署未部署的合约
     const deployUndeployedContract = useCallback(async (contract: IContract) => {
@@ -596,7 +676,9 @@ export default function ContractDeploy() {
             );
         }
 
-        // 已部署的合约显示交互按钮
+        // 已部署或已作废的合约显示交互按钮
+        const canToggleStatus = row.status === 'deployed' || row.status === 'deprecated';
+        
         return (
             <div className={styles.actionButtons}>
                 <Button 
@@ -607,13 +689,15 @@ export default function ContractDeploy() {
                 >
                     详情
                 </Button>
-                <Button 
-                    size="small" 
-                    icon={<InteractionOutlined />} 
-                    onClick={() => onInteractContract(row)}
-                >
-                    交互
-                </Button>
+                {row.status === 'deployed' && (
+                    <Button 
+                        size="small" 
+                        icon={<InteractionOutlined />} 
+                        onClick={() => onInteractContract(row)}
+                    >
+                        交互
+                    </Button>
+                )}
                 <Button 
                     size="small" 
                     icon={<CopyOutlined />} 
@@ -621,6 +705,17 @@ export default function ContractDeploy() {
                 >
                     复制
                 </Button>
+                {canToggleStatus && (
+                    <Button 
+                        size="small" 
+                        type={row.status === 'deployed' ? 'default' : 'primary'}
+                        danger={row.status === 'deployed'}
+                        icon={row.status === 'deployed' ? <ExclamationCircleFilled /> : <CheckCircleOutlined />}
+                        onClick={() => toggleContractStatus(row)}
+                    >
+                        {row.status === 'deployed' ? '作废' : '恢复'}
+                    </Button>
+                )}
                 <Button 
                     size="small" 
                     danger 
@@ -662,7 +757,8 @@ export default function ContractDeploy() {
             'undeployed': { color: 'default', icon: <FileTextOutlined />, text: '未部署' },
             'deployed': { color: 'success', icon: <CheckCircleOutlined />, text: '已部署' },
             'pending': { color: 'processing', icon: <SyncOutlined spin />, text: '部署中' },
-            'failed': { color: 'error', icon: <ExclamationCircleFilled />, text: '部署失败' }
+            'failed': { color: 'error', icon: <ExclamationCircleFilled />, text: '部署失败' },
+            'deprecated': { color: 'warning', icon: <ExclamationCircleFilled />, text: '已作废' }
         };
         const config = statusConfig[status] || statusConfig.deployed;
         return <Tag icon={config.icon} color={config.color}>{config.text}</Tag>;
@@ -1122,8 +1218,6 @@ export default function ContractDeploy() {
         }
 
         const methods = abi.filter((item: any) => item.type === 'function');
-        const selectedMethod = interactForm.getFieldValue('method');
-        const methodAbi = methods.find((m: any) => m.name === selectedMethod);
 
         return (
             <Form form={interactForm} layout="vertical">
@@ -1134,7 +1228,18 @@ export default function ContractDeploy() {
                 >
                     <Select 
                         placeholder="请选择要调用的方法"
-                        onChange={() => interactForm.resetFields(['accountId'])}
+                        onChange={(value) => {
+                            interactForm.resetFields(['accountId']);
+                            // 清除之前的参数值
+                            if (value) {
+                                const methodAbi = methods.find((m: any) => m.name === value);
+                                if (methodAbi && methodAbi.inputs) {
+                                    methodAbi.inputs.forEach((input: any) => {
+                                        interactForm.setFieldValue(`param_${input.name}`, undefined);
+                                    });
+                                }
+                            }
+                        }}
                     >
                         {methods.map((method: any, index: number) => (
                             <Option key={index} value={method.name}>
@@ -1149,41 +1254,52 @@ export default function ContractDeploy() {
                     </Select>
                 </Form.Item>
 
-                {methodAbi && methodAbi.inputs && methodAbi.inputs.length > 0 && (
-                    <>
-                        <Text strong>方法参数：</Text>
-                        {methodAbi.inputs.map((input: any, index: number) => (
-                            <Form.Item
-                                key={index}
-                                name={`param_${input.name}`}
-                                label={`${input.name} (${input.type})`}
-                                rules={[{ required: true, message: `请输入${input.name}` }]}
-                            >
-                                <Input placeholder={`请输入${input.type}类型的值`} />
-                            </Form.Item>
-                        ))}
-                    </>
-                )}
+                <Form.Item shouldUpdate={(prevValues, currentValues) => prevValues.method !== currentValues.method}>
+                    {() => {
+                        const selectedMethod = interactForm.getFieldValue('method');
+                        const methodAbi = methods.find((m: any) => m.name === selectedMethod);
+                        
+                        return (
+                            <>
+                                {methodAbi && methodAbi.inputs && methodAbi.inputs.length > 0 && (
+                                    <>
+                                        <Text strong>方法参数：</Text>
+                                        {methodAbi.inputs.map((input: any, index: number) => (
+                                            <Form.Item
+                                                key={index}
+                                                name={`param_${input.name}`}
+                                                label={`${input.name} (${input.type})`}
+                                                rules={[{ required: true, message: `请输入${input.name}` }]}
+                                            >
+                                                <Input placeholder={`请输入${input.type}类型的值`} />
+                                            </Form.Item>
+                                        ))}
+                                    </>
+                                )}
 
-                {methodAbi && 
-                 methodAbi.stateMutability !== 'view' && 
-                 methodAbi.stateMutability !== 'pure' && (
-                    <Form.Item
-                        name="accountId"
-                        label="交易账户"
-                        rules={[{ required: true, message: '请选择交易账户' }]}
-                    >
-                        <Select placeholder="请选择用于签名交易的账户">
-                            {accountList
-                                .filter(acc => acc.private_key)
-                                .map(account => (
-                                    <Option key={account.id} value={account.id}>
-                                        {account.name} ({account.address.substring(0, 8)}...)
-                                    </Option>
-                                ))}
-                        </Select>
-                    </Form.Item>
-                )}
+                                {methodAbi && 
+                                 methodAbi.stateMutability !== 'view' && 
+                                 methodAbi.stateMutability !== 'pure' && (
+                                    <Form.Item
+                                        name="accountId"
+                                        label="交易账户"
+                                        rules={[{ required: true, message: '请选择交易账户' }]}
+                                    >
+                                        <Select placeholder="请选择用于签名交易的账户">
+                                            {accountList
+                                                .filter(acc => acc.private_key)
+                                                .map(account => (
+                                                    <Option key={account.id} value={account.id}>
+                                                        {account.name} ({account.address.substring(0, 8)}...)
+                                                    </Option>
+                                                ))}
+                                        </Select>
+                                    </Form.Item>
+                                )}
+                            </>
+                        );
+                    }}
+                </Form.Item>
             </Form>
         );
     };
@@ -1258,6 +1374,7 @@ export default function ContractDeploy() {
                             <Option value="deployed">已部署</Option>
                             <Option value="pending">部署中</Option>
                             <Option value="failed">部署失败</Option>
+                            <Option value="deprecated">已作废</Option>
                         </Select>
                     </QueryBar.QueryItem>
                 </QueryBar>
@@ -1333,7 +1450,7 @@ export default function ContractDeploy() {
                         dataIndex="action" 
                         key="action" 
                         fixed="right" 
-                        width={240} 
+                        width={300} 
                         render={renderAction}
                     />
                 </Table>

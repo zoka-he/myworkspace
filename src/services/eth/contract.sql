@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS `eth_contract` (
   `bytecode` text COMMENT '合约字节码(未编译时可为空)',
   `source_code` text COMMENT '源代码',
   `constructor_params` text COMMENT '构造函数参数 (JSON格式)',
-  `status` enum('undeployed','deployed','pending','failed') DEFAULT 'undeployed' COMMENT '状态：undeployed-未部署(暂存), deployed-已部署, pending-部署中, failed-部署失败',
+  `status` enum('undeployed','deployed','pending','failed','deprecated') DEFAULT 'undeployed' COMMENT '状态：undeployed-未部署(暂存), deployed-已部署, pending-部署中, failed-部署失败, deprecated-已作废',
   `remark` text COMMENT '备注',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
