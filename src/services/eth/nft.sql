@@ -1,0 +1,56 @@
+-- NFT管理表
+CREATE TABLE IF NOT EXISTS `eth_nft` (
+  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'ID',
+  `contract_id` int(11) DEFAULT NULL COMMENT '关联的合约ID',
+  `contract_address` varchar(255) NOT NULL COMMENT 'NFT合约地址',
+  `token_id` varchar(255) NOT NULL COMMENT 'Token ID',
+  `owner_address` varchar(255) NOT NULL COMMENT '当前所有者地址',
+  `minter_address` varchar(255) NOT NULL COMMENT '铸造者地址',
+  `minter_account_id` int(11) DEFAULT NULL COMMENT '铸造者账户ID',
+  `metadata_uri` text COMMENT '元数据URI (IPFS或HTTP)',
+  `name` varchar(255) DEFAULT NULL COMMENT 'NFT名称',
+  `description` text COMMENT 'NFT描述',
+  `image_url` text COMMENT '图片URL',
+  `attributes` text COMMENT 'NFT属性（JSON格式）',
+  `transaction_hash` varchar(255) DEFAULT NULL COMMENT '铸造交易哈希',
+  `network_id` int(11) DEFAULT NULL COMMENT '网络ID',
+  `network` varchar(100) DEFAULT NULL COMMENT '网络名称',
+  `chain_id` int(11) DEFAULT NULL COMMENT '链ID',
+  `status` enum('pending','minted','failed') DEFAULT 'minted' COMMENT '状态: pending-铸造中, minted-已铸造, failed-失败',
+  `remark` text COMMENT '备注',
+  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
+  `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_nft` (`contract_address`, `token_id`),
+  KEY `idx_contract_id` (`contract_id`),
+  KEY `idx_owner_address` (`owner_address`),
+  KEY `idx_minter_address` (`minter_address`),
+  KEY `idx_network_id` (`network_id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_create_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='NFT管理表';
+
+-- NFT转移历史表（可选，用于追踪NFT的转移记录）
+CREATE TABLE IF NOT EXISTS `eth_nft_transfer_history` (
+  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'ID',
+  `nft_id` int(11) NOT NULL COMMENT 'NFT ID',
+  `contract_address` varchar(255) NOT NULL COMMENT '合约地址',
+  `token_id` varchar(255) NOT NULL COMMENT 'Token ID',
+  `from_address` varchar(255) NOT NULL COMMENT '转出地址',
+  `to_address` varchar(255) NOT NULL COMMENT '转入地址',
+  `transaction_hash` varchar(255) NOT NULL COMMENT '交易哈希',
+  `block_number` bigint(20) DEFAULT NULL COMMENT '区块号',
+  `network_id` int(11) DEFAULT NULL COMMENT '网络ID',
+  `network` varchar(100) DEFAULT NULL COMMENT '网络名称',
+  `chain_id` int(11) DEFAULT NULL COMMENT '链ID',
+  `transfer_time` datetime DEFAULT NULL COMMENT '转移时间',
+  `create_time` datetime DEFAULT NULL COMMENT '记录创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_nft_id` (`nft_id`),
+  KEY `idx_contract_token` (`contract_address`, `token_id`),
+  KEY `idx_from_address` (`from_address`),
+  KEY `idx_to_address` (`to_address`),
+  KEY `idx_transaction_hash` (`transaction_hash`),
+  KEY `idx_transfer_time` (`transfer_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='NFT转移历史表';
+

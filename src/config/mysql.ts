@@ -1,7 +1,7 @@
 const cfg = {
-    MYSQL_HOST: 'localhost',
+    // MYSQL_HOST: 'localhost',
     // MYSQL_HOST: '192.168.3.194',
-    // MYSQL_HOST: '192.168.0.175',
+    MYSQL_HOST: '192.168.0.175',
     MYSQL_DATABASE: 'task_manage',
     MYSQL_PORT: 3306,
     MYSQL_USER: 'myworksite',

@@ -29,6 +29,55 @@ const { TabPane } = Tabs;
 const { Panel } = Collapse;
 const { Title, Text, Paragraph } = Typography;
 
+// 序列化包含 BigInt 的值
+function serializeBigInt(value: any): any {
+    // 处理 null 和 undefined
+    if (value === null || value === undefined) {
+        return value;
+    }
+    
+    // 处理 BigInt
+    if (typeof value === 'bigint') {
+        return value.toString();
+    }
+    
+    // 处理数组
+    if (Array.isArray(value)) {
+        return value.map(item => serializeBigInt(item));
+    }
+    
+    // 处理对象（包括 ethers.js 的 Result 类型）
+    if (typeof value === 'object') {
+        // 检查是否是 ethers.js 的 Result 类型（有 length 属性和数字索引）
+        if (typeof value.length === 'number' && value.length > 0) {
+            // 可能是数组或 Result 类型，尝试转换为数组
+            const arr: any[] = [];
+            for (let i = 0; i < value.length; i++) {
+                arr.push(serializeBigInt(value[i]));
+            }
+            // 如果有命名属性，也保留
+            const result: any = arr;
+            for (const key in value) {
+                if (!/^\d+$/.test(key) && value.hasOwnProperty(key)) {
+                    result[key] = serializeBigInt(value[key]);
+                }
+            }
+            return result;
+        }
+        
+        // 普通对象
+        const result: any = {};
+        for (const key in value) {
+            if (value.hasOwnProperty(key)) {
+                result[key] = serializeBigInt(value[key]);
+            }
+        }
+        return result;
+    }
+    
+    return value;
+}
+
 export default function ContractDeploy() {
     const [userParams, setUserParams] = useState({});
     const [listData, updateListData] = useState<IContract[]>([]);
@@ -50,10 +99,13 @@ export default function ContractDeploy() {
     const [constructorParams, setConstructorParams] = useState<any[]>([]);
     const [manualAbi, setManualAbi] = useState('');
     const [manualBytecode, setManualBytecode] = useState('');
+    const [networkList, setNetworkList] = useState<any[]>([]);
+    const [selectedNetwork, setSelectedNetwork] = useState<any | null>(null);
 
     useEffect(() => {
         onQuery();
         loadAccounts();
+        loadNetworks();
     }, []);
 
     useEffect(() => {
@@ -73,9 +125,29 @@ export default function ContractDeploy() {
         }
     }
 
+    async function loadNetworks() {
+        try {
+            // @ts-ignore
+            // 加载所有网络（包括已禁用的），用于映射显示
+            const { data } = await fetch.get('/api/eth/network', { 
+                params: { page: 1, limit: 1000 } 
+            });
+            setNetworkList(data || []);
+        } catch (e: any) {
+            console.error('加载网络列表失败:', e);
+            message.error('加载网络列表失败');
+        }
+    }
+
     async function onQuery() {
         try {
             updateSpinning(true);
+
+            // 先更新网络和账户列表，确保映射最新数据
+            await Promise.all([
+                loadNetworks(),
+                loadAccounts()
+            ]);
 
             const params: any = {
                 ...userParams,
@@ -153,17 +225,40 @@ export default function ContractDeploy() {
                 bytecodeToSave = manualBytecode;
             }
 
-            // 保存合约信息到数据库，状态为未部署
-            await fetch.post('/api/eth/contract', {
+            const contractData: any = {
                 name: values.contractName,
                 abi: abiToSave,
                 bytecode: bytecodeToSave,
                 source_code: solCode || '', // sol 文件可选
                 status: 'undeployed',
                 remark: values.remark || ''
-            });
+            };
 
-            message.success('合约已暂存');
+            // 如果选择了网络，添加网络信息
+            if (selectedNetwork) {
+                contractData.network_id = selectedNetwork.id;
+            }
+
+            // 如果选择了账户，添加账户信息（暂存时可能需要记录意向账户）
+            if (selectedAccount) {
+                contractData.deployer_account_id = selectedAccount.id;
+                contractData.deployer_address = selectedAccount.address;
+            }
+
+            // 判断是更新还是创建
+            if (currentContract && currentContract.id) {
+                // 更新现有合约
+                await fetch.put('/api/eth/contract', {
+                    id: currentContract.id,
+                    ...contractData
+                });
+                message.success('合约已更新');
+            } else {
+                // 创建新合约
+                await fetch.post('/api/eth/contract', contractData);
+                message.success('合约已暂存');
+            }
+
             setIsModalVisible(false);
             onQuery();
             
@@ -173,6 +268,7 @@ export default function ContractDeploy() {
             setConstructorParams([]);
             setManualAbi('');
             setManualBytecode('');
+            setCurrentContract(null);
 
         } catch (e: any) {
             console.error('暂存失败:', e);
@@ -180,7 +276,7 @@ export default function ContractDeploy() {
         } finally {
             setDeploying(false);
         }
-    }, [form, solCode, manualAbi, manualBytecode, onQuery]);
+    }, [form, solCode, manualAbi, manualBytecode, currentContract, selectedNetwork, selectedAccount, onQuery]);
 
     // 部署合约
     const deployContract = useCallback(async () => {
@@ -191,6 +287,11 @@ export default function ContractDeploy() {
 
         if (!selectedAccount || !selectedAccount.private_key) {
             message.error('请选择有私钥的账户');
+            return;
+        }
+
+        if (!selectedNetwork) {
+            message.error('请选择部署网络');
             return;
         }
 
@@ -208,17 +309,8 @@ export default function ContractDeploy() {
                 return;
             }
 
-            // 从账户获取网络信息
-            // @ts-ignore
-            const { data: networks } = await fetch.get('/api/eth/network', {
-                params: { id: selectedAccount.network_id }
-            });
-            
-            const network = networks?.[0];
-            if (!network) {
-                message.error('未找到网络信息');
-                return;
-            }
+            // 使用选择的网络
+            const network = selectedNetwork;
 
             // 创建provider和wallet
             const provider = new ethers.JsonRpcProvider(network.rpc_url);
@@ -243,22 +335,33 @@ export default function ContractDeploy() {
 
             const contractAddress = await contract.getAddress();
 
-            // 保存合约信息到数据库
-            await fetch.post('/api/eth/contract', {
+            const contractData = {
                 name: values.contractName,
                 address: contractAddress,
                 deployer_address: selectedAccount.address,
                 deployer_account_id: selectedAccount.id,
-                network_id: selectedAccount.network_id,
-                network: selectedAccount.network,
-                chain_id: selectedAccount.chain_id,
+                network_id: network.id,
+                network: network.name,
+                chain_id: network.chain_id,
                 abi: manualAbi,
                 bytecode: manualBytecode,
                 source_code: solCode || '', // sol 文件可选
                 constructor_params: JSON.stringify(params),
                 status: 'deployed',
                 remark: values.remark || ''
-            });
+            };
+
+            // 判断是更新还是创建
+            if (currentContract && currentContract.id) {
+                // 更新现有合约（从未部署状态转为已部署）
+                await fetch.put('/api/eth/contract', {
+                    id: currentContract.id,
+                    ...contractData
+                });
+            } else {
+                // 创建新合约
+                await fetch.post('/api/eth/contract', contractData);
+            }
 
             message.success({ content: '部署成功', key: 'deploy' });
             setIsModalVisible(false);
@@ -270,6 +373,8 @@ export default function ContractDeploy() {
             setConstructorParams([]);
             setManualAbi('');
             setManualBytecode('');
+            setSelectedNetwork(null);
+            setCurrentContract(null);
 
         } catch (e: any) {
             console.error('部署失败:', e);
@@ -277,17 +382,24 @@ export default function ContractDeploy() {
         } finally {
             setDeploying(false);
         }
-    }, [manualAbi, manualBytecode, selectedAccount, form, constructorParams, solCode, onQuery]);
+    }, [manualAbi, manualBytecode, selectedAccount, selectedNetwork, form, constructorParams, solCode, currentContract, onQuery]);
 
     function onCreateContract() {
         setEditingContract(null);
+        setCurrentContract(null);
         form.resetFields();
         setSolCode('');
         setConstructorParams([]);
         setSelectedAccount(null);
+        setSelectedNetwork(null);
         setManualAbi('');
         setManualBytecode('');
         setIsModalVisible(true);
+    }
+
+    function onCancelModal() {
+        setIsModalVisible(false);
+        setCurrentContract(null);
     }
 
     function onViewContract(contract: IContract) {
@@ -322,6 +434,51 @@ export default function ContractDeploy() {
             },
         });
     }
+
+    // 复制已部署的合约 - 打开对话框预填充数据
+    const onCopyContract = useCallback((contract: IContract) => {
+        // 重置当前合约（不关联原合约ID，这样会创建新合约而不是更新）
+        setCurrentContract(null);
+        
+        // 加载合约信息到表单
+        setSolCode(contract.source_code || '');
+        setManualAbi(contract.abi || '');
+        setManualBytecode(contract.bytecode || '');
+        
+        // 如果有 ABI，解析构造函数参数
+        if (contract.abi) {
+            parseConstructorParams(contract.abi);
+        } else {
+            setConstructorParams([]);
+        }
+        
+        // 准备表单字段
+        const formValues: any = {
+            contractName: `${contract.name} (副本)`,
+            remark: contract.remark ? `复制自: ${contract.name}` : `复制自: ${contract.name}`
+        };
+
+        // 如果合约有关联的账户，预设选择
+        if (contract.deployer_account_id) {
+            const account = accountList.find(a => a.id === contract.deployer_account_id);
+            setSelectedAccount(account || null);
+            formValues.accountId = contract.deployer_account_id;
+        }
+        
+        // 如果合约有关联的网络，预设选择
+        if (contract.network_id) {
+            const network = networkList.find(n => n.id === contract.network_id);
+            setSelectedNetwork(network || null);
+            formValues.networkId = contract.network_id;
+        }
+
+        // 设置表单值
+        form.setFieldsValue(formValues);
+
+        // 打开部署对话框
+        setIsModalVisible(true);
+        message.info('已复制合约信息，请编辑后保存或部署');
+    }, [form, parseConstructorParams, networkList, accountList]);
 
     // 调用合约方法
     const callContractMethod = useCallback(async () => {
@@ -375,13 +532,16 @@ export default function ContractDeploy() {
                 const contract = new ethers.Contract(currentContract.address, abi, provider);
                 const result = await contract[methodName](...params);
                 
+                // 序列化 BigInt 和其他无法序列化的值
+                const serializedResult = serializeBigInt(result);
+                
                 Modal.info({
                     title: '调用结果',
                     width: 600,
                     content: (
                         <div>
                             <Text strong>方法: </Text><Text>{methodName}</Text><br/>
-                            <Text strong>返回值: </Text><Text code>{JSON.stringify(result, null, 2)}</Text>
+                            <Text strong>返回值: </Text><Text code>{JSON.stringify(serializedResult, null, 2)}</Text>
                         </div>
                     )
                 });
@@ -414,6 +574,34 @@ export default function ContractDeploy() {
         }
     }, [currentContract, interactForm, accountList]);
 
+    // 切换合约状态（在 deployed 和 deprecated 之间切换）
+    const toggleContractStatus = useCallback(async (contract: IContract) => {
+        const currentStatus = contract.status;
+        const newStatus = currentStatus === 'deployed' ? 'deprecated' : 'deployed';
+        const actionText = newStatus === 'deprecated' ? '作废' : '恢复';
+        
+        confirm({
+            title: `${actionText}确认`,
+            icon: <ExclamationCircleFilled />,
+            content: `确定要将合约 "${contract.name}" ${actionText === '作废' ? '标记为已作废' : '恢复为已部署'}吗？`,
+            okText: actionText,
+            okType: actionText === '作废' ? 'danger' : 'primary',
+            cancelText: '取消',
+            async onOk() {
+                try {
+                    await fetch.put('/api/eth/contract', {
+                        id: contract.id,
+                        status: newStatus
+                    });
+                    message.success(`${actionText}成功`);
+                    onQuery();
+                } catch (e: any) {
+                    message.error(e.message || `${actionText}失败`);
+                }
+            },
+        });
+    }, [onQuery]);
+
     // 编辑或部署未部署的合约
     const deployUndeployedContract = useCallback(async (contract: IContract) => {
         setCurrentContract(contract);
@@ -430,13 +618,31 @@ export default function ContractDeploy() {
             setConstructorParams([]);
         }
         
-        form.setFieldsValue({
+        // 准备表单字段
+        const formValues: any = {
             contractName: contract.name,
             remark: contract.remark
-        });
+        };
+
+        // 如果合约有关联的账户，预设选择
+        if (contract.deployer_account_id) {
+            const account = accountList.find(a => a.id === contract.deployer_account_id);
+            setSelectedAccount(account || null);
+            formValues.accountId = contract.deployer_account_id;
+        }
+        
+        // 如果合约有关联的网络，预设选择
+        if (contract.network_id) {
+            const network = networkList.find(n => n.id === contract.network_id);
+            setSelectedNetwork(network || null);
+            formValues.networkId = contract.network_id;
+        }
+
+        // 设置表单值
+        form.setFieldsValue(formValues);
 
         setIsModalVisible(true);
-    }, [form, parseConstructorParams]);
+    }, [form, parseConstructorParams, networkList, accountList]);
 
     function renderAction(cell: any, row: IContract) {
         if (row.status === 'undeployed') {
@@ -470,7 +676,9 @@ export default function ContractDeploy() {
             );
         }
 
-        // 已部署的合约显示交互按钮
+        // 已部署或已作废的合约显示交互按钮
+        const canToggleStatus = row.status === 'deployed' || row.status === 'deprecated';
+        
         return (
             <div className={styles.actionButtons}>
                 <Button 
@@ -481,13 +689,33 @@ export default function ContractDeploy() {
                 >
                     详情
                 </Button>
+                {row.status === 'deployed' && (
+                    <Button 
+                        size="small" 
+                        icon={<InteractionOutlined />} 
+                        onClick={() => onInteractContract(row)}
+                    >
+                        交互
+                    </Button>
+                )}
                 <Button 
                     size="small" 
-                    icon={<InteractionOutlined />} 
-                    onClick={() => onInteractContract(row)}
+                    icon={<CopyOutlined />} 
+                    onClick={() => onCopyContract(row)}
                 >
-                    交互
+                    复制
                 </Button>
+                {canToggleStatus && (
+                    <Button 
+                        size="small" 
+                        type={row.status === 'deployed' ? 'default' : 'primary'}
+                        danger={row.status === 'deployed'}
+                        icon={row.status === 'deployed' ? <ExclamationCircleFilled /> : <CheckCircleOutlined />}
+                        onClick={() => toggleContractStatus(row)}
+                    >
+                        {row.status === 'deployed' ? '作废' : '恢复'}
+                    </Button>
+                )}
                 <Button 
                     size="small" 
                     danger 
@@ -529,17 +757,121 @@ export default function ContractDeploy() {
             'undeployed': { color: 'default', icon: <FileTextOutlined />, text: '未部署' },
             'deployed': { color: 'success', icon: <CheckCircleOutlined />, text: '已部署' },
             'pending': { color: 'processing', icon: <SyncOutlined spin />, text: '部署中' },
-            'failed': { color: 'error', icon: <ExclamationCircleFilled />, text: '部署失败' }
+            'failed': { color: 'error', icon: <ExclamationCircleFilled />, text: '部署失败' },
+            'deprecated': { color: 'warning', icon: <ExclamationCircleFilled />, text: '已作废' }
         };
         const config = statusConfig[status] || statusConfig.deployed;
         return <Tag icon={config.icon} color={config.color}>{config.text}</Tag>;
     }
 
     function renderNetwork(network: string, row: any) {
+        // 优先使用 network_id 从列表中查找
+        if (row.network_id) {
+            const foundNetwork = networkList.find(n => n.id === row.network_id);
+            if (foundNetwork) {
+                return (
+                    <Tag className={styles.networkTag}>
+                        {foundNetwork.name} (Chain: {foundNetwork.chain_id})
+                    </Tag>
+                );
+            } else {
+                return (
+                    <Text type="warning">
+                        未知网络ID：{row.network_id}
+                    </Text>
+                );
+            }
+        }
+        
+        // 降级：使用原有的 network 和 chain_id 字段
         if (!network || !row.chain_id) {
             return <Text type="secondary">-</Text>;
         }
         return <Tag className={styles.networkTag}>{network}({row.chain_id})</Tag>;
+    }
+
+    function renderDeployerAccount(deployerAddress: string | undefined, row: any) {
+        // 判断是否为未部署状态
+        const isUndeployed = row.status === 'undeployed';
+        
+        // 如果有 deployer_account_id，尝试从列表中查找账户信息
+        if (row.deployer_account_id) {
+            const foundAccount = accountList.find(a => a.id === row.deployer_account_id);
+            if (foundAccount) {
+                return (
+                    <Space direction="vertical" size={0}>
+                        {isUndeployed ? (
+                            <Text strong style={{ fontSize: '12px', color: '#faad14' }}>
+                                <ExclamationCircleFilled style={{ marginRight: 4 }} />
+                                拟部署在此账号: {foundAccount.name}
+                            </Text>
+                        ) : (
+                            <Text strong style={{ fontSize: '12px' }}>{foundAccount.name}</Text>
+                        )}
+                        {deployerAddress && (
+                            <Button
+                                size="small"
+                                type="link"
+                                icon={<CopyOutlined />}
+                                className={styles.copyButton}
+                                onClick={() => {
+                                    copyToClip(deployerAddress);
+                                    message.success('已复制地址');
+                                }}
+                                style={{ padding: 0, height: 'auto' }}
+                            >
+                                {deployerAddress.substring(0, 8)}...{deployerAddress.substring(deployerAddress.length - 6)}
+                            </Button>
+                        )}
+                    </Space>
+                );
+            } else {
+                return (
+                    <Space direction="vertical" size={0}>
+                        <Text type="warning" style={{ fontSize: '12px' }}>
+                            {isUndeployed && <ExclamationCircleFilled style={{ marginRight: 4 }} />}
+                            未知账户ID：{row.deployer_account_id}
+                        </Text>
+                        {deployerAddress && (
+                            <Button
+                                size="small"
+                                type="link"
+                                icon={<CopyOutlined />}
+                                className={styles.copyButton}
+                                onClick={() => {
+                                    copyToClip(deployerAddress);
+                                    message.success('已复制地址');
+                                }}
+                                style={{ padding: 0, height: 'auto' }}
+                            >
+                                {deployerAddress.substring(0, 8)}...{deployerAddress.substring(deployerAddress.length - 6)}
+                            </Button>
+                        )}
+                    </Space>
+                );
+            }
+        }
+
+        // 如果没有 deployer_account_id 但有地址
+        if (deployerAddress) {
+            return (
+                <Button
+                    size="small"
+                    type="link"
+                    icon={<CopyOutlined />}
+                    className={styles.copyButton}
+                    onClick={() => {
+                        copyToClip(deployerAddress);
+                        message.success('已复制地址');
+                    }}
+                >
+                    {deployerAddress.substring(0, 8)}...{deployerAddress.substring(deployerAddress.length - 6)}
+                </Button>
+            );
+        }
+
+        // 完全没有信息
+        return <Text type="secondary">-</Text>;
     }
 
     // 上传文件
@@ -557,6 +889,86 @@ export default function ContractDeploy() {
                 setManualBytecode(content);
             }
             message.success(`${type.toUpperCase()} 文件读取成功`);
+        };
+        reader.readAsText(file);
+        return false; // 阻止自动上传
+    };
+
+    // 处理编译结果文件（支持 Hardhat、Remix 等）
+    const handleHardhatArtifactUpload = (file: File) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const content = e.target?.result as string;
+                const artifact = JSON.parse(content);
+                
+                let abi = null;
+                let bytecode = null;
+                let contractName = '';
+                let compilerType = '';
+
+                // 检测 Hardhat 格式
+                if (artifact.abi && artifact.bytecode) {
+                    abi = artifact.abi;
+                    bytecode = artifact.bytecode;
+                    contractName = artifact.contractName || '';
+                    compilerType = 'Hardhat';
+                    
+                    // 如果有源代码名称，可以作为备注
+                    if (artifact.sourceName && !form.getFieldValue('remark')) {
+                        form.setFieldValue('remark', `从 Hardhat 编译结果导入: ${artifact.sourceName}`);
+                    }
+                }
+                // 检测 Remix 格式（通常包含在一个对象的 contracts 字段中）
+                else if (artifact.contracts) {
+                    // Remix 格式：{ contracts: { "ContractName": { abi: [...], bin: "0x..." } } }
+                    const contracts = artifact.contracts;
+                    const contractKeys = Object.keys(contracts);
+                    
+                    if (contractKeys.length > 0) {
+                        const firstContract = contracts[contractKeys[0]];
+                        abi = firstContract.abi;
+                        bytecode = firstContract.bin || firstContract.evm?.bytecode?.object;
+                        contractName = contractKeys[0];
+                        compilerType = 'Remix';
+                    }
+                }
+                // 检测 Truffle 格式
+                else if (artifact.abi && artifact.bytecode === undefined && artifact.unlinked_binary) {
+                    abi = artifact.abi;
+                    bytecode = artifact.unlinked_binary;
+                    contractName = artifact.contract_name || artifact.contractName || '';
+                    compilerType = 'Truffle';
+                }
+
+                // 验证是否成功提取
+                if (!abi || !bytecode) {
+                    message.error('无法识别的编译结果格式，请确保文件包含 abi 和 bytecode 字段');
+                    return;
+                }
+
+                // 提取并填充 ABI
+                const abiString = JSON.stringify(abi, null, 2);
+                setManualAbi(abiString);
+                parseConstructorParams(abiString);
+
+                // 提取并填充 Bytecode（确保有 0x 前缀）
+                const bytecodeWithPrefix = bytecode.startsWith('0x') ? bytecode : `0x${bytecode}`;
+                setManualBytecode(bytecodeWithPrefix);
+
+                // 如果有合约名称且表单中合约名称为空，自动填充
+                if (contractName && !form.getFieldValue('contractName')) {
+                    form.setFieldValue('contractName', contractName);
+                }
+
+                message.success({
+                    content: `成功导入 ${compilerType} 编译结果: ${contractName || file.name}`,
+                    duration: 3
+                });
+            } catch (error: any) {
+                console.error('解析编译结果失败:', error);
+                message.error('解析文件失败，请确保上传的是有效的编译结果 JSON 文件');
+            }
         };
         reader.readAsText(file);
         return false; // 阻止自动上传
@@ -617,21 +1029,60 @@ export default function ContractDeploy() {
                         <dl>
                             <dt>部署账户：</dt>
                             <dd>
-                                {currentContract.deployer_address ? (
-                                    <Text code>{currentContract.deployer_address}</Text>
-                                ) : (
-                                    <Text type="secondary">-</Text>
-                                )}
+                                {(() => {
+                                    const isUndeployed = currentContract.status === 'undeployed';
+                                    
+                                    // 如果有账户ID
+                                    if (currentContract.deployer_account_id) {
+                                        const account = accountList.find(a => a.id === currentContract.deployer_account_id);
+                                        return (
+                                            <Space direction="vertical" size={0}>
+                                                {account ? (
+                                                    isUndeployed ? (
+                                                        <Text strong style={{ color: '#faad14' }}>
+                                                            <ExclamationCircleFilled style={{ marginRight: 4 }} />
+                                                            拟部署在此账号: {account.name}
+                                                        </Text>
+                                                    ) : (
+                                                        <Text strong>{account.name}</Text>
+                                                    )
+                                                ) : (
+                                                    <Text type="warning">未知账户ID：{currentContract.deployer_account_id}</Text>
+                                                )}
+                                                {currentContract.deployer_address && (
+                                                    <Text code>{currentContract.deployer_address}</Text>
+                                                )}
+                                            </Space>
+                                        );
+                                    }
+                                    
+                                    // 只有地址没有账户ID
+                                    if (currentContract.deployer_address) {
+                                        return <Text code>{currentContract.deployer_address}</Text>;
+                                    }
+                                    
+                                    // 什么都没有
+                                    return <Text type="secondary">-</Text>;
+                                })()}
                             </dd>
                         </dl>
                         <dl>
                             <dt>网络：</dt>
                             <dd>
-                                {currentContract.network && currentContract.chain_id ? (
-                                    `${currentContract.network} (Chain ID: ${currentContract.chain_id})`
-                                ) : (
-                                    <Text type="secondary">-</Text>
-                                )}
+                                {(() => {
+                                    if (currentContract.network_id) {
+                                        const network = networkList.find(n => n.id === currentContract.network_id);
+                                        if (network) {
+                                            return `${network.name} (Chain ID: ${network.chain_id})`;
+                                        } else {
+                                            return <Text type="warning">未知网络ID：{currentContract.network_id}</Text>;
+                                        }
+                                    } else if (currentContract.network && currentContract.chain_id) {
+                                        return `${currentContract.network} (Chain ID: ${currentContract.chain_id})`;
+                                    } else {
+                                        return <Text type="secondary">-</Text>;
+                                    }
+                                })()}
                             </dd>
                         </dl>
                         <dl>
@@ -767,8 +1218,6 @@ export default function ContractDeploy() {
         }
 
         const methods = abi.filter((item: any) => item.type === 'function');
-        const selectedMethod = interactForm.getFieldValue('method');
-        const methodAbi = methods.find((m: any) => m.name === selectedMethod);
 
         return (
             <Form form={interactForm} layout="vertical">
@@ -779,7 +1228,18 @@ export default function ContractDeploy() {
                 >
                     <Select 
                         placeholder="请选择要调用的方法"
-                        onChange={() => interactForm.resetFields(['accountId'])}
+                        onChange={(value) => {
+                            interactForm.resetFields(['accountId']);
+                            // 清除之前的参数值
+                            if (value) {
+                                const methodAbi = methods.find((m: any) => m.name === value);
+                                if (methodAbi && methodAbi.inputs) {
+                                    methodAbi.inputs.forEach((input: any) => {
+                                        interactForm.setFieldValue(`param_${input.name}`, undefined);
+                                    });
+                                }
+                            }
+                        }}
                     >
                         {methods.map((method: any, index: number) => (
                             <Option key={index} value={method.name}>
@@ -794,41 +1254,52 @@ export default function ContractDeploy() {
                     </Select>
                 </Form.Item>
 
-                {methodAbi && methodAbi.inputs && methodAbi.inputs.length > 0 && (
-                    <>
-                        <Text strong>方法参数：</Text>
-                        {methodAbi.inputs.map((input: any, index: number) => (
-                            <Form.Item
-                                key={index}
-                                name={`param_${input.name}`}
-                                label={`${input.name} (${input.type})`}
-                                rules={[{ required: true, message: `请输入${input.name}` }]}
-                            >
-                                <Input placeholder={`请输入${input.type}类型的值`} />
-                            </Form.Item>
-                        ))}
-                    </>
-                )}
+                <Form.Item shouldUpdate={(prevValues, currentValues) => prevValues.method !== currentValues.method}>
+                    {() => {
+                        const selectedMethod = interactForm.getFieldValue('method');
+                        const methodAbi = methods.find((m: any) => m.name === selectedMethod);
+                        
+                        return (
+                            <>
+                                {methodAbi && methodAbi.inputs && methodAbi.inputs.length > 0 && (
+                                    <>
+                                        <Text strong>方法参数：</Text>
+                                        {methodAbi.inputs.map((input: any, index: number) => (
+                                            <Form.Item
+                                                key={index}
+                                                name={`param_${input.name}`}
+                                                label={`${input.name} (${input.type})`}
+                                                rules={[{ required: true, message: `请输入${input.name}` }]}
+                                            >
+                                                <Input placeholder={`请输入${input.type}类型的值`} />
+                                            </Form.Item>
+                                        ))}
+                                    </>
+                                )}
 
-                {methodAbi && 
-                 methodAbi.stateMutability !== 'view' && 
-                 methodAbi.stateMutability !== 'pure' && (
-                    <Form.Item
-                        name="accountId"
-                        label="交易账户"
-                        rules={[{ required: true, message: '请选择交易账户' }]}
-                    >
-                        <Select placeholder="请选择用于签名交易的账户">
-                            {accountList
-                                .filter(acc => acc.private_key)
-                                .map(account => (
-                                    <Option key={account.id} value={account.id}>
-                                        {account.name} ({account.address.substring(0, 8)}...)
-                                    </Option>
-                                ))}
-                        </Select>
-                    </Form.Item>
-                )}
+                                {methodAbi && 
+                                 methodAbi.stateMutability !== 'view' && 
+                                 methodAbi.stateMutability !== 'pure' && (
+                                    <Form.Item
+                                        name="accountId"
+                                        label="交易账户"
+                                        rules={[{ required: true, message: '请选择交易账户' }]}
+                                    >
+                                        <Select placeholder="请选择用于签名交易的账户">
+                                            {accountList
+                                                .filter(acc => acc.private_key)
+                                                .map(account => (
+                                                    <Option key={account.id} value={account.id}>
+                                                        {account.name} ({account.address.substring(0, 8)}...)
+                                                    </Option>
+                                                ))}
+                                        </Select>
+                                    </Form.Item>
+                                )}
+                            </>
+                        );
+                    }}
+                </Form.Item>
             </Form>
         );
     };
@@ -903,6 +1374,7 @@ export default function ContractDeploy() {
                             <Option value="deployed">已部署</Option>
                             <Option value="pending">部署中</Option>
                             <Option value="failed">部署失败</Option>
+                            <Option value="deprecated">已作废</Option>
                         </Select>
                     </QueryBar.QueryItem>
                 </QueryBar>
@@ -948,10 +1420,9 @@ export default function ContractDeploy() {
                     />
                     <Column 
                         title="部署账户" 
-                        dataIndex="deployer_address" 
-                        key="deployer_address" 
-                        render={renderCopyableCell}
-                        width={180}
+                        key="deployer_account" 
+                        render={(_, row: IContract) => renderDeployerAccount(row.deployer_address, row)}
+                        width={200}
                     />
                     <Column 
                         title="网络" 
@@ -979,7 +1450,7 @@ export default function ContractDeploy() {
                         dataIndex="action" 
                         key="action" 
                         fixed="right" 
-                        width={240} 
+                        width={300} 
                         render={renderAction}
                     />
                 </Table>
@@ -987,13 +1458,13 @@ export default function ContractDeploy() {
 
             {/* 部署合约Modal */}
             <Modal
-                title={<Space><RocketOutlined />部署智能合约</Space>}
+                title={<Space><RocketOutlined />{currentContract?.id ? '编辑并部署合约' : '部署智能合约'}</Space>}
                 open={isModalVisible}
-                onCancel={() => setIsModalVisible(false)}
+                onCancel={onCancelModal}
                 width={1000}
                 className={styles.deployModal}
                 footer={[
-                    <Button key="cancel" onClick={() => setIsModalVisible(false)}>
+                    <Button key="cancel" onClick={onCancelModal}>
                         取消
                     </Button>,
                     <Button 
@@ -1002,7 +1473,7 @@ export default function ContractDeploy() {
                         onClick={saveAsDraft}
                         disabled={deploying}
                     >
-                        暂存
+                        {currentContract?.id ? '更新' : '暂存'}
                     </Button>,
                     <Button 
                         key="deploy" 
@@ -1010,7 +1481,7 @@ export default function ContractDeploy() {
                         icon={<RocketOutlined />}
                         onClick={deployContract}
                         loading={deploying}
-                        disabled={!manualAbi || !manualBytecode}
+                        disabled={!manualAbi || !manualBytecode || !selectedNetwork}
                     >
                         部署合约
                     </Button>
@@ -1050,6 +1521,40 @@ export default function ContractDeploy() {
                             key="upload"
                         >
                             <Space direction="vertical" style={{ width: '100%' }} size="large">
+                                {/* 编译结果快速导入 */}
+                                <Alert
+                                    message={
+                                        <Space>
+                                            <RocketOutlined />
+                                            <Text strong>快速导入编译结果</Text>
+                                        </Space>
+                                    }
+                                    description={
+                                        <Space direction="vertical" style={{ width: '100%' }}>
+                                            <Text>
+                                                支持上传主流编译器的 JSON 输出文件，系统将自动识别并提取 ABI 和 Bytecode：
+                                            </Text>
+                                            <ul style={{ marginBottom: 8, paddingLeft: 20 }}>
+                                                <li><Text strong>Hardhat：</Text><Text code>artifacts/contracts/YourContract.sol/YourContract.json</Text></li>
+                                                <li><Text strong>Remix：</Text>编译后导出的 JSON 文件</li>
+                                                <li><Text strong>Truffle：</Text><Text code>build/contracts/YourContract.json</Text></li>
+                                            </ul>
+                                            <Upload
+                                                accept=".json"
+                                                beforeUpload={handleHardhatArtifactUpload}
+                                                showUploadList={false}
+                                            >
+                                                <Button type="primary" icon={<CloudUploadOutlined />} size="large">
+                                                    上传编译结果文件 (.json)
+                                                </Button>
+                                            </Upload>
+                                        </Space>
+                                    }
+                                    type="info"
+                                    showIcon
+                                    style={{ marginBottom: 16 }}
+                                />
+
                                 {/* Sol 文件（可选） */}
                                 <div>
                                     <Space style={{ marginBottom: 8 }}>
@@ -1129,11 +1634,12 @@ export default function ContractDeploy() {
                                     message="提示"
                                     description={
                                         <div>
-                                            <p>请使用 Remix、Hardhat 或其他工具编译您的合约，然后将编译结果上传到这里。</p>
+                                            <p>请使用 Hardhat、Remix、Truffle 或其他工具编译您的合约，然后将编译结果上传到这里。</p>
                                             <ul style={{ marginBottom: 0, paddingLeft: 20 }}>
+                                                <li><Text strong>推荐：</Text>直接上传编译器输出的 JSON 文件，自动提取所有信息（支持 Hardhat、Remix、Truffle）</li>
                                                 <li>ABI 和 Bytecode 是部署合约的必需项</li>
                                                 <li>Solidity 源代码是可选的，仅用于存档和查看</li>
-                                                <li>支持手动输入或上传文件</li>
+                                                <li>支持手动输入或分别上传文件</li>
                                             </ul>
                                         </div>
                                     }
@@ -1148,16 +1654,27 @@ export default function ContractDeploy() {
                             key="deploy"
                         >
                             <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                                
+
                                 <Form.Item
                                     name="accountId"
                                     label="部署账户"
                                     rules={[{ required: true, message: '请选择部署账户' }]}
                                 >
                                     <Select 
-                                        placeholder="请选择用于部署的账户"
+                                        placeholder="请选择用于部署的账户（需要有私钥）"
                                         onChange={(value) => {
                                             const account = accountList.find(a => a.id === value);
                                             setSelectedAccount(account || null);
+                                            
+                                            // 自动选择账户默认的网络
+                                            if (account && account.network_id) {
+                                                const network = networkList.find(n => n.id === account.network_id);
+                                                if (network) {
+                                                    setSelectedNetwork(network);
+                                                    form.setFieldValue('networkId', network.id);
+                                                }
+                                            }
                                         }}
                                     >
                                         {accountList
@@ -1176,6 +1693,47 @@ export default function ContractDeploy() {
                                             ))}
                                     </Select>
                                 </Form.Item>
+
+                                <Form.Item
+                                    name="networkId"
+                                    label="部署网络"
+                                    rules={[{ required: true, message: '请选择部署网络' }]}
+                                >
+                                    <Select 
+                                        placeholder="请选择要部署到的网络"
+                                        onChange={(value) => {
+                                            const network = networkList.find(n => n.id === value);
+                                            setSelectedNetwork(network || null);
+                                        }}
+                                    >
+                                        {networkList
+                                            .filter(network => network.is_enable)
+                                            .map(network => (
+                                                <Option key={network.id} value={network.id}>
+                                                    <Space>
+                                                        <LinkOutlined />
+                                                        {network.name}
+                                                        <Text type="secondary">
+                                                            (Chain ID: {network.chain_id})
+                                                        </Text>
+                                                        {network.is_testnet ? (
+                                                            <Tag color="orange">测试网</Tag>
+                                                        ) : (
+                                                            <Tag color="blue">主网</Tag>
+                                                        )}
+                                                    </Space>
+                                                </Option>
+                                            ))}
+                                    </Select>
+                                </Form.Item>
+
+                                <Alert
+                                    message="部署说明"
+                                    description="选择账户后会自动选择该账户的默认网络，您也可以手动更改网络。账户可以跨网络使用，请确保账户在目标网络上有足够的余额支付 gas 费用。"
+                                    type="info"
+                                    showIcon
+                                    style={{ marginBottom: 16 }}
+                                />
 
                                 {constructorParams.length > 0 && (
                                     <>
