@@ -135,9 +135,6 @@ export default function(props: IGeoTreeProps) {
         <div style={{minHeight: 200}}>
             <Tree
                 showLine
-                defaultExpandAll={true}
-                autoExpandParent={true}
-                defaultExpandParent={true}
                 treeData={treeData}
                 titleRender={renderNode}
                 expandedKeys={expandedKeys}
