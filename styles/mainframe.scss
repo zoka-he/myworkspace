@@ -1,13 +1,29 @@
 html[data-theme="dark"] {
-    --m-app-header-background: rgb(19, 43, 85);
+    --m-app-header-background: rgb(34, 71, 134);
     --m-main-header-background: rgb(30, 30, 30);
-    --m-main-context-outlet-background: rgb(54, 54, 54);
+    --m-main-context-outlet-background: rgb(40, 40, 40);
+    --m-outlet-gradient-end: rgb(54, 54, 54);
+    --m-outlet-glow-color-1: rgba(64, 169, 255, 0.35);
+    --m-outlet-glow-color-2: rgba(24, 144, 255, 0.15);
+    --m-outlet-border-1: #1890ff;
+    --m-outlet-border-2: #40a9ff;
+    --m-outlet-border-3: #69c0ff;
+    --m-outlet-grid-color: rgba(64, 169, 255, 0.08);
+    --m-outlet-grid-opacity: 1;
 }
 
 html[data-theme="light"] {
-    --m-app-header-background: rgb(112 162 245);;
+    --m-app-header-background: #1890ff;
     --m-main-header-background: white;
-    --m-main-context-outlet-background: rgb(238, 238, 238);
+    --m-main-context-outlet-background: rgb(245, 247, 250);
+    --m-outlet-gradient-end: rgb(238, 242, 246);
+    --m-outlet-glow-color-1: rgba(24, 144, 255, 0.25);
+    --m-outlet-glow-color-2: rgba(135, 208, 255, 0.12);
+    --m-outlet-border-1: #1890ff;
+    --m-outlet-border-2: #40a9ff;
+    --m-outlet-border-3: #69c0ff;
+    --m-outlet-grid-color: rgba(24, 144, 255, 0.05);
+    --m-outlet-grid-opacity: 1;
 }
 
 .m-mainframe_context {
@@ -23,6 +39,33 @@ html[data-theme="light"] {
         align-items: center;
 
         background-color: var(--m-main-header-background);
+        position: relative;
+        overflow: hidden;
+
+        // 右上角渐变蓝效果
+        &::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 60%;
+            height: 100%;
+            background: linear-gradient(
+                to left,
+                rgba(24, 144, 255, 0.12),
+                rgba(64, 169, 255, 0.08) 30%,
+                rgba(135, 208, 255, 0.04) 60%,
+                transparent 100%
+            );
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        // 确保内容在渐变之上
+        > * {
+            position: relative;
+            z-index: 1;
+        }
 
         &-tabs {
             height: 46px;
@@ -71,15 +114,89 @@ html[data-theme="light"] {
     
 
     &-outlet {
-        background-color: var(--m-main-context-outlet-background);
-
+        position: relative;
         padding: 10px 24px 0;
         overflow: auto;
+        
+        // 背景采用渐变色，从上到下
+        background: 
+            linear-gradient(
+                135deg,
+                var(--m-main-context-outlet-background) 0%,
+                var(--m-outlet-gradient-end) 100%
+            );
+        
+        // 顶部装饰性渐变条
+        border-top: 3px solid transparent;
+        border-image: linear-gradient(
+            90deg,
+            var(--m-outlet-border-1) 0%,
+            var(--m-outlet-border-2) 50%,
+            var(--m-outlet-border-3) 100%
+        ) 1;
+        
+        // 网格纹理效果
+        &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                linear-gradient(var(--m-outlet-grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--m-outlet-grid-color) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+            opacity: var(--m-outlet-grid-opacity);
+        }
+
+        // 左上角光晕效果
+        &::after {
+            content: '';
+            position: absolute;
+            top: -50px;
+            left: -50px;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(
+                circle,
+                var(--m-outlet-glow-color-1) 0%,
+                var(--m-outlet-glow-color-2) 30%,
+                transparent 70%
+            );
+            pointer-events: none;
+            z-index: 0;
+            animation: outlet-glow 8s ease-in-out infinite;
+        }
+
+        // 确保内容在效果层之上
+        > * {
+            position: relative;
+            z-index: 2;
+        }
+
+        // 平滑的过渡动画
+        transition: all 0.3s ease;
+    }
+}
+
+// 光晕动画
+@keyframes outlet-glow {
+    0%, 100% {
+        opacity: 0.3;
+        transform: translate(0, 0) scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: translate(30px, 30px) scale(1.1);
     }
 }
 
 .m-app-header {
-    height: 46px;
+    height: 49px;
+    border-bottom: 3px solid var(--m-outlet-border-1);
     overflow: hidden;
 
     background-color: var(--m-app-header-background);
@@ -105,4 +222,25 @@ html[data-theme="light"] {
 
 .ant-layout .ant-layout-sider .ant-layout-sider-children {
     overflow-y: auto;
+}
+
+*, :deep(.ant-*), .scrollbar {
+    scrollbar-width: auto !important;
+    scrollbar-color: auto !important;
+
+    &::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: var(--bg-lv1) !important;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: var(--bg-lv2) !important;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+        background: var(--bg-lv3) !important;
+    }
 }

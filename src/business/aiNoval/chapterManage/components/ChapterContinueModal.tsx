@@ -472,18 +472,24 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
       prompt = selectedPromptParts.join('\n');
     }
 
+    // 要确保角色、阵营、地理名称不为空，否则会报错
     const reqObj = {
       prev_content: latestStripReportList
         .filter(chapter => chapter.state === 'completed' && chapter.strippedContent)
         .map(chapter => chapter.strippedContent)
         .join('\n\n'),
       curr_context: prompt,
-      role_names: roleNames,
-      faction_names: factionNames,
-      geo_names: geoNames,
+      role_names: roleNames || '',
+      faction_names: factionNames || '',
+      geo_names: geoNames || '',
       llm_type: llmType,
     };
     console.info('auto write reqObj -> ', reqObj);
+
+    // 有时候角色不填时，它会变成一个数组，要把它改回 String 类型
+    if ((reqObj.role_names as any) instanceof Array) {
+      reqObj.role_names = (reqObj.role_names as any).join(',');
+    }
 
     const res = await chapterApi.genChapterBlocking(selectedChapter.worldview_id, reqObj, store.getState().difySlice.frontHost || '');
     console.info('auto write res -> ', res);

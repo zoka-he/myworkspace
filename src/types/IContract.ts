@@ -12,7 +12,7 @@ export interface IContract {
     bytecode?: string; // 未编译时可能为空
     source_code?: string;
     constructor_params?: string; // JSON string
-    status: 'undeployed' | 'deployed' | 'pending' | 'failed';
+    status: 'undeployed' | 'deployed' | 'pending' | 'failed' | 'deprecated';
     remark?: string;
     create_time?: string;
     update_time?: string;
