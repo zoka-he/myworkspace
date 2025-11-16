@@ -1,32 +1,38 @@
 import { IGeoStarSystemData, IGeoStarData, IGeoPlanetData, IGeoSatelliteData, IGeoGeographyUnitData, IGeoUnionData } from '@/src/types/IAiNoval';
 import fetch from '@/src/fetch';
+import { notification } from 'antd';
 
 function wrapDataToTreeData(
-    data: IGeoStarSystemData | IGeoStarData | IGeoPlanetData, 
+    data: IGeoStarSystemData | IGeoStarData | IGeoPlanetData,
     type: string
 ): IGeoTreeItem<IGeoStarSystemData | IGeoStarData | IGeoPlanetData> {
 
-    let key;
+    let key: string;
     let title;
 
-    switch (type) {
-        case 'starSystem': 
-        case 'star': 
-        case 'planet':
-        case 'satellite':
-        case 'geographicUnit':
-            key = data.code?.toString() || ''; 
-            title = `${data.name || ''} (${data.code?.toString() || ''})`
-            break;
-        default: 
-            title = '';
-            key = ''; 
-            break;
-    }
+    // switch (type) {
+    //     case 'starSystem': 
+    //     case 'star': 
+    //     case 'planet':
+    //     case 'satellite':
+    //     case 'geographicUnit':
+    //         // 使用「类型 + 主键ID」作为树节点 key，避免不同数据类型之间 code 相同导致的 key 冲突，
+    //         // 造成在展开 / 收起节点时 React 复用错误节点，从而出现“节点被复制”的视觉 Bug。
+    //         // 如果没有 id，则退回使用 code。
+    //         const anyData: any = data as any;
+    //         const idPart = anyData.id ?? data.code;
+    //         key = `${type}_${idPart?.toString() || ''}`;
+    //         title = `${data.name || ''} (${data.code?.toString() || ''})`
+    //         break;
+    //     default: 
+    //         title = '';
+    //         key = ''; 
+    //         break;
+    // }
 
     return {
-        title,
-        key,
+        title: data.name || '',
+        key: data.code || '',
         dataType: type,
         data: data,
     };
@@ -170,6 +176,9 @@ export async function loadGeoTree(worldview_id: number) {
         return [];
     }
 
+    let hasConflict = false;
+    let codeSet = new Set<string | undefined | null>();
+
     // 提取星系map，星系与恒星、行星绑定关系是id、parent_id
     let starSystemMap = new Map<number, IGeoTreeItem<IGeoStarSystemData>>();
     starSystemData.forEach((starSystem: IGeoTreeItem<IGeoStarSystemData>) => {
@@ -177,6 +186,11 @@ export async function loadGeoTree(worldview_id: number) {
         if (id) {
             starSystemMap.set(id, starSystem);
         }
+
+        if (codeSet.has(starSystem?.data?.code)) {
+            hasConflict = true;
+        }
+        codeSet.add(starSystem?.data?.code);
     });
 
     // 组装恒星数据到星系数据，绑定关系是id、parent_id
@@ -192,6 +206,11 @@ export async function loadGeoTree(worldview_id: number) {
                 parentStarSystem.children.push(star);
             }
         }
+
+        if (codeSet.has(star?.data?.code)) {
+            hasConflict = true;
+        }
+        codeSet.add(star?.data?.code);
     });
 
     // 组装行星数据到星系数据，绑定关系是id、parent_id
@@ -207,6 +226,11 @@ export async function loadGeoTree(worldview_id: number) {
                 parentStarSystem.children.push(planet);
             }
         }  
+
+        if (codeSet.has(planet?.data?.code)) {
+            hasConflict = true;
+        }
+        codeSet.add(planet?.data?.code);
     })
 
     // 组装卫星数据到行星数据，绑定关系是id、planet_id
@@ -222,6 +246,11 @@ export async function loadGeoTree(worldview_id: number) {
                 parentPlanet.children.push(satellite);
             }
         }
+
+        if (codeSet.has(satellite?.data?.code)) {
+            hasConflict = true;
+        }
+        codeSet.add(satellite?.data?.code);
     });
 
     // 组装地理单元数据到行星、卫星、地理单元数据，绑定关系是id、planet_id、satellite_id、parent_id、parent_type
@@ -244,8 +273,22 @@ export async function loadGeoTree(worldview_id: number) {
                 parent.children = [];
             }
             parent.children.push(geoUnit);
-        }  
+        }
+        
+        if (codeSet.has(geoUnit?.data?.code)) {
+            hasConflict = true;
+        }
+        codeSet.add(geoUnit?.data?.code);
     })
 
-    return starSystemData;
+    if (hasConflict) {
+        notification.error({
+            message: '加载地理资源树失败！',
+            description: '数据冲突，请检查数据库数据code字段是否重复！',
+            duration: null 
+        });
+        return [];
+    } else {
+        return starSystemData;
+    }
 }

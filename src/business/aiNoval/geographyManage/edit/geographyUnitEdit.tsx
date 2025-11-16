@@ -2,11 +2,15 @@ import React from "react";
 import {Form, Modal, Input, Button, message, FormInstance, Radio, Select} from "antd";
 import _ from 'lodash';
 import fetch from '@/src/fetch';
-import { IGeoGeographyUnitData, GEO_UNIT_TYPES } from "@/src/types/IAiNoval";
+import { IGeoGeographyUnitData, GEO_UNIT_TYPES, IGeoUnionData } from "@/src/types/IAiNoval";
+import { loadGeoUnionList } from "../../common/geoDataUtil";
 
 interface IGeographyUnitEditState {
     modalOpen: boolean,
     loading: boolean,
+
+    // 可选的上级节点列表（行星 / 卫星 / 地理单元）
+    parentUnionList: IGeoUnionData[],
 }
 
 interface IGeographyUnitEditProps {
@@ -15,7 +19,8 @@ interface IGeographyUnitEditProps {
 
 class GeographyUnitEdit extends React.Component<IGeographyUnitEditProps, IGeographyUnitEditState> {
 
-    private mForm: FormInstance<any> | null;
+    // 使用 any 以兼容 antd FormRef / FormInstance 的差异
+    private mForm: any;
     private oldData: IGeoGeographyUnitData | null;
 
     constructor(props: IGeographyUnitEditProps) {
@@ -24,6 +29,7 @@ class GeographyUnitEdit extends React.Component<IGeographyUnitEditProps, IGeogra
         this.state = {
             modalOpen: false,
             loading: false,
+            parentUnionList: [],
         }
 
         this.mForm = null;
@@ -33,6 +39,104 @@ class GeographyUnitEdit extends React.Component<IGeographyUnitEditProps, IGeogra
     parseAndFixData(data: Object) {
         this.mForm?.setFieldsValue(_.clone(data));
     }
+
+    /**
+     * 加载当前世界观下可选的上级节点列表（行星 / 卫星 / 地理单元）
+     */
+    async loadParentUnionList(worldview_id: number | null | undefined) {
+        if (!worldview_id) {
+            this.setState({ parentUnionList: [] });
+            return;
+        }
+
+        try {
+            const unionList = await loadGeoUnionList(worldview_id);
+            const parentUnionList = unionList.filter(item =>
+                item.data_type === 'planet' ||
+                item.data_type === 'satellite' ||
+                item.data_type === 'geoUnit'
+            );
+
+            this.setState({ parentUnionList });
+
+            // 根据 oldData 预设选中项（保持原有逻辑的默认行为）
+            if (this.oldData && this.mForm) {
+                const parent_type = this.oldData.parent_type;
+                const parent_id = this.oldData.parent_id;
+
+                if (parent_type && parent_id) {
+                    let dataTypeForSelect: string | null = null;
+                    if (parent_type === 'planet') {
+                        dataTypeForSelect = 'planet';
+                    } else if (parent_type === 'satellite') {
+                        dataTypeForSelect = 'satellite';
+                    } else {
+                        // 地理单元在 unionList 中的 data_type 为 geoUnit
+                        dataTypeForSelect = 'geoUnit';
+                    }
+
+                    const parentSelectorValue = `${dataTypeForSelect}:${parent_id}`;
+                    this.mForm.setFieldsValue({
+                        parent_selector: parentSelectorValue,
+                    });
+                }
+            }
+        } catch (e: any) {
+            message.error(e?.message || '加载上级节点列表失败！');
+        }
+    }
+
+    /**
+     * 用户在“上级节点”下拉框中选择值时，同步更新 parent_type / parent_id / planet_id / satellite_id / star_system_id
+     * 保证后端现有逻辑不变，只是改为由表单决定这些字段。
+     */
+    onParentSelectorChange = (value: string) => {
+        if (!value || !this.mForm) return;
+
+        const [dataType, idStr] = value.split(':');
+        const parentId = Number(idStr) || null;
+
+        const target = this.state.parentUnionList.find(
+            item => item.data_type === dataType && item.id === parentId
+        );
+
+        let parent_type: string | null = null;
+        let planet_id: number | null = null;
+        let satellite_id: number | null = null;
+        let star_system_id: number | null = null;
+
+        if (target) {
+            star_system_id = target.star_system_id || null;
+        }
+
+        switch (dataType) {
+            case 'planet':
+                parent_type = 'planet';
+                planet_id = parentId;
+                satellite_id = null;
+                break;
+            case 'satellite':
+                parent_type = 'satellite';
+                satellite_id = parentId;
+                planet_id = target?.planet_id || null;
+                break;
+            case 'geoUnit':
+                // 地理单元作为上级，parent_type 使用 geographicUnit
+                parent_type = 'geographicUnit';
+                planet_id = target?.planet_id || null;
+                satellite_id = target?.satellite_id || null;
+                break;
+        }
+
+        this.mForm.setFieldsValue({
+            parent_selector: value,
+            parent_type,
+            parent_id: parentId,
+            planet_id,
+            satellite_id,
+            star_system_id,
+        });
+    };
 
     preCheckData(data: Object) {
         const baseCheckList = [
@@ -88,9 +192,13 @@ class GeographyUnitEdit extends React.Component<IGeographyUnitEditProps, IGeogra
             ...data,
         }
         this.parseAndFixData(this.oldData);
+
+        // 打开编辑器时，根据世界观加载可选上级节点
+        const dataObject = data as { [key: string]: any };
+        this.loadParentUnionList(dataObject.worldview_id || this.oldData.worldview_id || null);
     }
 
-    onFormRef(comp: FormInstance<any> | null) {
+    onFormRef(comp: any) {
         this.mForm = comp;
         if (this.oldData) {
             this.parseAndFixData(this.oldData);
@@ -205,6 +313,45 @@ class GeographyUnitEdit extends React.Component<IGeographyUnitEditProps, IGeogra
                         </Form.Item>
                         <Form.Item label={'地理单元类型'} name={'type'} rules={[{ required: true, message: '地理单元类型为必填！' }]}>
                             <Select options={this.getGeoUnitOptions()}/>
+                        </Form.Item>
+                        {/* 上级节点选择（支持行星 / 卫星 / 地理单元） */}
+                        <Form.Item label={'上级节点'} name={'parent_selector'}>
+                            <Select
+                                allowClear
+                                showSearch
+                                placeholder="默认为在树中选中的节点，可在此手动指定"
+                                options={this.state.parentUnionList.map(item => {
+                                    let typeLabel = '';
+                                    if (item.data_type === 'planet') {
+                                        typeLabel = '行星';
+                                    } else if (item.data_type === 'satellite') {
+                                        typeLabel = '卫星';
+                                    } else if (item.data_type === 'geoUnit') {
+                                        typeLabel = '地理单元';
+                                    }
+                                    const label = `[${typeLabel}] ${item.name || ''}${item.code ? ` (${item.code})` : ''}`;
+                                    const value = `${item.data_type}:${item.id}`;
+                                    return { label, value };
+                                })}
+                                optionFilterProp="label"
+                                onChange={this.onParentSelectorChange}
+                            />
+                        </Form.Item>
+                        {/* 隐藏字段：由上级节点选择器自动维护，保持与原有后端字段兼容 */}
+                        <Form.Item name={'parent_type'} hidden>
+                            <Input type="hidden" />
+                        </Form.Item>
+                        <Form.Item name={'parent_id'} hidden>
+                            <Input type="hidden" />
+                        </Form.Item>
+                        <Form.Item name={'planet_id'} hidden>
+                            <Input type="hidden" />
+                        </Form.Item>
+                        <Form.Item name={'satellite_id'} hidden>
+                            <Input type="hidden" />
+                        </Form.Item>
+                        <Form.Item name={'star_system_id'} hidden>
+                            <Input type="hidden" />
                         </Form.Item>
                         <Form.Item label={'地理单元描述'} name={'description'}>
                             <Input.TextArea autoSize={{ minRows: 10 }}/>
