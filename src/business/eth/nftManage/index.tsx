@@ -11,7 +11,7 @@ import {
     EditOutlined, DeleteOutlined, EyeOutlined, RocketOutlined,
     FileTextOutlined, CloudUploadOutlined, PictureOutlined,
     CheckCircleOutlined, SyncOutlined, WalletOutlined,
-    LinkOutlined, GiftOutlined, AppstoreOutlined
+    LinkOutlined, GiftOutlined, AppstoreOutlined, SendOutlined
 } from '@ant-design/icons';
 import { ethers } from 'ethers';
 import confirm from "antd/es/modal/confirm";
@@ -22,6 +22,7 @@ import usePagination from '@/src/utils/hooks/usePagination';
 import copyToClip from '@/src/utils/common/copy';
 import dayjs from 'dayjs';
 import styles from './index.module.scss';
+import NFTTxModal from './nftTxModal';
 
 const { Column } = Table;
 const { Option } = Select;
@@ -73,17 +74,31 @@ export default function NFTManage() {
     const [spinning, updateSpinning] = useState(false);
     const [isMintModalVisible, setIsMintModalVisible] = useState(false);
     const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+    const [isTransferModalVisible, setIsTransferModalVisible] = useState(false);
     const [currentNFT, setCurrentNFT] = useState<INFT | null>(null);
+    const [transferNFT, setTransferNFT] = useState<INFT | null>(null);
     const [minting, setMinting] = useState(false);
+    const [isEditingNFT, setIsEditingNFT] = useState(false);
+    const [updatingNFT, setUpdatingNFT] = useState(false);
+    const [fetchingOnchainNFTInfo, setFetchingOnchainNFTInfo] = useState(false);
     const [form] = Form.useForm();
+    const [detailForm] = Form.useForm();
+
+    // 导入相关状态
+    const [isImportModalVisible, setIsImportModalVisible] = useState(false);
+    const [importing, setImporting] = useState(false);
+    const [importForm] = Form.useForm();
     const pagination = usePagination();
 
     // 铸造相关状态
     const [selectedContract, setSelectedContract] = useState<IContract | null>(null);
     const [selectedAccount, setSelectedAccount] = useState<IEthAccount | null>(null);
+    const [importContract, setImportContract] = useState<IContract | null>(null);
     const [metadataJson, setMetadataJson] = useState('');
     const [autoTokenId, setAutoTokenId] = useState(true);
     const [useExistingAccount, setUseExistingAccount] = useState(false);
+    const [useExistingOwnerAccount, setUseExistingOwnerAccount] = useState(false);
+    const [fetchingOnchainInfo, setFetchingOnchainInfo] = useState(false);
     const [priceUnit, setPriceUnit] = useState<'ETH' | 'Gwei' | 'wei'>('ETH');
 
     useEffect(() => {
@@ -132,7 +147,7 @@ export default function NFTManage() {
         try {
             // @ts-ignore
             const { data } = await fetch.get('/api/eth/network', { 
-                params: { page: 1, limit: 1000 } 
+                params: { page: 1, limit: 1000, is_enable: true } 
             });
             setNetworkList(data || []);
         } catch (e: any) {
@@ -831,6 +846,211 @@ export default function NFTManage() {
         }
     }, [selectedContract, selectedAccount, form, metadataJson, autoTokenId, networkList, onQuery, priceUnit]);
 
+    // 导入链上已存在的 NFT
+    const importNFT = useCallback(async () => {
+        if (!importContract) {
+            message.error('请选择NFT合约');
+            return;
+        }
+
+        try {
+            const values = await importForm.validateFields();
+            setImporting(true);
+
+            // 获取网络信息（优先使用用户选择的 network_id）
+            const targetNetworkId = values.networkId || importContract.network_id;
+            const network = networkList.find(n => n.id === targetNetworkId);
+            if (!network) {
+                message.error('未找到网络信息');
+                setImporting(false);
+                return;
+            }
+
+            // 创建 provider（只读，无需私钥）
+            const provider = new ethers.JsonRpcProvider(network.rpc_url);
+
+            // 解析合约 ABI
+            let contractAbi;
+            try {
+                contractAbi = JSON.parse(importContract.abi || '[]');
+            } catch (e) {
+                message.error('合约ABI格式错误');
+                setImporting(false);
+                return;
+            }
+
+            const contract = new ethers.Contract(
+                importContract.address!,
+                contractAbi,
+                provider
+            );
+
+            const tokenId = values.tokenId;
+
+            // 尝试从链上读取 ownerOf 和 tokenURI
+            let ownerAddress: string | undefined = values.ownerAddress;
+            let metadataUri: string | undefined = values.metadataUri;
+
+            const hasOwnerOf = contractAbi.some((item: any) =>
+                item.type === 'function' && item.name === 'ownerOf'
+            );
+            const hasTokenURI = contractAbi.some((item: any) =>
+                item.type === 'function' && item.name === 'tokenURI'
+            );
+
+            if (hasOwnerOf) {
+                try {
+                    ownerAddress = await contract.ownerOf(tokenId);
+                } catch (e) {
+                    console.warn('读取 ownerOf 失败，将使用用户输入的地址:', e);
+                }
+            }
+
+            if (!ownerAddress) {
+                message.error('无法获取持有者地址，请手动填写');
+                setImporting(false);
+                return;
+            }
+
+            if (!metadataUri && hasTokenURI) {
+                try {
+                    metadataUri = await contract.tokenURI(tokenId);
+                } catch (e) {
+                    console.warn('读取 tokenURI 失败，元数据URI留空:', e);
+                }
+            }
+
+            const nftData: any = {
+                contract_id: importContract.id,
+                contract_address: importContract.address,
+                token_id: tokenId,
+                owner_address: ownerAddress,
+                // 导入的 NFT 无法准确获知铸造者，这里先使用当前持有者地址占位
+                minter_address: ownerAddress,
+                minter_account_id: null,
+                metadata_uri: metadataUri || null,
+                name: null,
+                description: null,
+                image_url: null,
+                attributes: null,
+                transaction_hash: null,
+                network_id: targetNetworkId,
+                network: network.name,
+                chain_id: network.chain_id,
+                status: 'minted',
+                remark: values.remark || 'Imported from on-chain NFT'
+            };
+
+            await fetch.post('/api/eth/nft', nftData);
+
+            message.success('导入成功');
+            setIsImportModalVisible(false);
+            importForm.resetFields();
+            setImportContract(null);
+            onQuery();
+        } catch (e: any) {
+            console.error('导入NFT失败:', e);
+            if (e?.error?.response?.data?.error) {
+                message.error(`导入失败: ${e.error.response.data.error}`);
+            } else {
+                message.error(`导入失败: ${e.message || '未知错误'}`);
+            }
+        } finally {
+            setImporting(false);
+        }
+    }, [importContract, importForm, networkList, onQuery]);
+
+    // 从链上获取 NFT 信息并填充表单
+    const fetchOnchainNFTInfo = useCallback(async () => {
+        if (!importContract) {
+            message.error('请先选择NFT合约');
+            return;
+        }
+
+        const { networkId, tokenId } = importForm.getFieldsValue(['networkId', 'tokenId']);
+        if (!networkId || !tokenId) {
+            message.error('请先选择网络并输入 Token ID');
+            return;
+        }
+
+        try {
+            setFetchingOnchainInfo(true);
+
+            const network = networkList.find((n: any) => n.id === networkId);
+            if (!network) {
+                message.error('未找到网络信息');
+                return;
+            }
+
+            // 创建只读 provider
+            const provider = new ethers.JsonRpcProvider(network.rpc_url);
+
+            // 解析 ABI
+            let contractAbi;
+            try {
+                contractAbi = JSON.parse(importContract.abi || '[]');
+            } catch (e) {
+                message.error('合约ABI格式错误');
+                return;
+            }
+
+            const contract = new ethers.Contract(
+                importContract.address!,
+                contractAbi,
+                provider
+            );
+
+            let ownerAddress: string | undefined;
+            let metadataUri: string | undefined;
+
+            const hasOwnerOf = contractAbi.some((item: any) =>
+                item.type === 'function' && item.name === 'ownerOf'
+            );
+            const hasTokenURI = contractAbi.some((item: any) =>
+                item.type === 'function' && item.name === 'tokenURI'
+            );
+
+            if (hasOwnerOf) {
+                try {
+                    ownerAddress = await contract.ownerOf(tokenId);
+                } catch (e) {
+                    console.warn('读取 ownerOf 失败:', e);
+                }
+            }
+
+            if (hasTokenURI) {
+                try {
+                    metadataUri = await contract.tokenURI(tokenId);
+                } catch (e) {
+                    console.warn('读取 tokenURI 失败:', e);
+                }
+            }
+
+            const nextValues: any = {};
+            const currentOwner = importForm.getFieldValue('ownerAddress');
+            const currentMetadata = importForm.getFieldValue('metadataUri');
+
+            if (ownerAddress && !currentOwner) {
+                nextValues.ownerAddress = ownerAddress;
+            }
+            if (metadataUri && !currentMetadata) {
+                nextValues.metadataUri = metadataUri;
+            }
+
+            if (Object.keys(nextValues).length > 0) {
+                importForm.setFieldsValue(nextValues);
+                message.success('已从链上获取NFT基础信息');
+            } else {
+                message.info('未能获取到新的链上信息，或表单中已存在对应值');
+            }
+        } catch (e: any) {
+            console.error('获取链上NFT信息失败:', e);
+            message.error(`获取链上信息失败: ${e.message || '未知错误'}`);
+        } finally {
+            setFetchingOnchainInfo(false);
+        }
+    }, [importContract, importForm, networkList]);
+
     function onMintNFT() {
         form.resetFields();
         setMetadataJson('');
@@ -846,10 +1066,158 @@ export default function NFTManage() {
         setIsMintModalVisible(false);
     }
 
+    // 初始化详情表单数据
+    const initDetailForm = (nft: INFT) => {
+        let attributes = '';
+        try {
+            if (nft.attributes) {
+                attributes = JSON.stringify(JSON.parse(nft.attributes), null, 2);
+            }
+        } catch (e) {
+            console.error('解析属性失败:', e);
+        }
+        detailForm.setFieldsValue({
+            name: nft.name || '',
+            description: nft.description || '',
+            image_url: nft.image_url || '',
+            metadata_uri: nft.metadata_uri || '',
+            attributes: attributes,
+            remark: nft.remark || ''
+        });
+    };
+
     function onViewNFT(nft: INFT) {
         setCurrentNFT(nft);
+        setIsEditingNFT(false);
         setIsDetailModalVisible(true);
+        // 初始化表单数据
+        initDetailForm(nft);
     }
+
+    // 切换到编辑模式时，确保表单数据已初始化
+    const handleEditNFT = () => {
+        if (currentNFT) {
+            // 确保表单数据已初始化（使用当前NFT数据）
+            initDetailForm(currentNFT);
+            setIsEditingNFT(true);
+        }
+    };
+
+    // 从链上获取NFT最新状态（用于详情/编辑页面）
+    const fetchOnchainNFTInfoForDetail = useCallback(async () => {
+        if (!currentNFT) {
+            message.error('NFT信息缺失');
+            return;
+        }
+
+        try {
+            setFetchingOnchainNFTInfo(true);
+
+            const contract = contractList.find(c => c.id === currentNFT.contract_id);
+            if (!contract) {
+                message.error('未找到合约信息');
+                return;
+            }
+
+            const network = networkList.find(n => n.id === contract.network_id);
+            if (!network) {
+                message.error('未找到网络信息');
+                return;
+            }
+
+            // 创建只读provider
+            const provider = new ethers.JsonRpcProvider(network.rpc_url);
+
+            // 解析合约ABI
+            let contractAbi;
+            try {
+                contractAbi = JSON.parse(contract.abi || '[]');
+            } catch (e) {
+                message.error('合约ABI格式错误');
+                return;
+            }
+
+            const contractInstance = new ethers.Contract(
+                contract.address!,
+                contractAbi,
+                provider
+            );
+
+            // 从链上读取信息
+            let ownerAddress: string | undefined;
+            let metadataUri: string | undefined;
+
+            const hasOwnerOf = contractAbi.some((item: any) =>
+                item.type === 'function' && item.name === 'ownerOf'
+            );
+            const hasTokenURI = contractAbi.some((item: any) =>
+                item.type === 'function' && item.name === 'tokenURI'
+            );
+
+            if (hasOwnerOf) {
+                try {
+                    ownerAddress = await contractInstance.ownerOf(currentNFT.token_id);
+                } catch (e) {
+                    console.warn('读取 ownerOf 失败:', e);
+                }
+            }
+
+            if (hasTokenURI) {
+                try {
+                    metadataUri = await contractInstance.tokenURI(currentNFT.token_id);
+                } catch (e) {
+                    console.warn('读取 tokenURI 失败:', e);
+                }
+            }
+
+            // 更新表单数据（只在编辑模式下更新）
+            if (isEditingNFT) {
+                const currentValues = detailForm.getFieldsValue();
+                const nextValues: any = {};
+
+                // 如果链上的元数据URI与当前不同，更新它
+                if (metadataUri && metadataUri !== currentValues.metadata_uri) {
+                    nextValues.metadata_uri = metadataUri;
+                }
+
+                // 如果链上的所有者与数据库不同，提示用户
+                if (ownerAddress && ownerAddress.toLowerCase() !== currentNFT.owner_address.toLowerCase()) {
+                    message.warning(`检测到链上所有者已变更: ${ownerAddress}，请手动更新所有者地址`);
+                }
+
+                if (Object.keys(nextValues).length > 0) {
+                    detailForm.setFieldsValue(nextValues);
+                    message.success('已从链上获取NFT信息并更新表单');
+                } else {
+                    message.info('链上信息与当前表单数据一致');
+                }
+            } else {
+                // 在查看模式下，更新currentNFT并提示
+                const updates: any = {};
+                if (ownerAddress && ownerAddress.toLowerCase() !== currentNFT.owner_address.toLowerCase()) {
+                    updates.owner_address = ownerAddress;
+                    message.warning(`检测到链上所有者已变更: ${ownerAddress}`);
+                }
+                if (metadataUri && metadataUri !== currentNFT.metadata_uri) {
+                    updates.metadata_uri = metadataUri;
+                }
+
+                if (Object.keys(updates).length > 0) {
+                    setCurrentNFT({ ...currentNFT, ...updates });
+                    // 同时更新表单数据，以便切换到编辑模式时能使用最新数据
+                    initDetailForm({ ...currentNFT, ...updates });
+                    message.success('已从链上获取NFT最新状态');
+                } else {
+                    message.info('链上信息与当前数据一致');
+                }
+            }
+        } catch (e: any) {
+            console.error('获取链上NFT信息失败:', e);
+            message.error(`获取链上信息失败: ${e.message || '未知错误'}`);
+        } finally {
+            setFetchingOnchainNFTInfo(false);
+        }
+    }, [currentNFT, contractList, networkList, isEditingNFT, detailForm]);
 
     function onDeleteNFT(nft: INFT) {
         confirm({
@@ -873,6 +1241,57 @@ export default function NFTManage() {
         });
     }
 
+    // 更新NFT信息
+    const handleUpdateNFT = async () => {
+        if (!currentNFT) {
+            message.error('NFT信息缺失');
+            return;
+        }
+
+        try {
+            const values = await detailForm.validateFields();
+            setUpdatingNFT(true);
+
+            // 处理属性字段
+            let attributes = null;
+            if (values.attributes) {
+                try {
+                    const parsed = JSON.parse(values.attributes);
+                    attributes = JSON.stringify(parsed);
+                } catch (e) {
+                    message.error('属性JSON格式错误');
+                    setUpdatingNFT(false);
+                    return;
+                }
+            }
+
+            const updateData: any = {
+                id: currentNFT.id,
+                name: values.name || null,
+                description: values.description || null,
+                image_url: values.image_url || null,
+                metadata_uri: values.metadata_uri || null,
+                attributes: attributes,
+                remark: values.remark || null
+            };
+
+            await fetch.put('/api/eth/nft', updateData);
+
+            message.success('更新成功');
+            setIsEditingNFT(false);
+            onQuery(); // 刷新列表
+            
+            // 更新当前NFT数据
+            const updatedNFT = { ...currentNFT, ...updateData };
+            setCurrentNFT(updatedNFT);
+        } catch (e: any) {
+            console.error('更新NFT失败:', e);
+            message.error(e.message || '更新失败');
+        } finally {
+            setUpdatingNFT(false);
+        }
+    };
+
     function renderAction(cell: any, row: INFT) {
         return (
             <div className={styles.actionButtons}>
@@ -883,6 +1302,16 @@ export default function NFTManage() {
                     onClick={() => onViewNFT(row)}
                 >
                     详情
+                </Button>
+                <Button 
+                    size="small" 
+                    icon={<SendOutlined />} 
+                    onClick={() => {
+                        setTransferNFT(row);
+                        setIsTransferModalVisible(true);
+                    }}
+                >
+                    转让
                 </Button>
                 <Button 
                     size="small" 
@@ -1003,6 +1432,111 @@ export default function NFTManage() {
 
         const contract = contractList.find(c => c.id === currentNFT.contract_id);
 
+        // 如果是编辑模式，显示表单
+        if (isEditingNFT) {
+            return (
+                <Form form={detailForm} layout="vertical">
+                    <Alert
+                        message="编辑模式"
+                        description={
+                            <Space>
+                                <span>您可以修改NFT的元数据信息。点击"从链上获取"按钮可以获取链上的最新状态。</span>
+                                <Button
+                                    size="small"
+                                    icon={<SyncOutlined />}
+                                    onClick={fetchOnchainNFTInfoForDetail}
+                                    loading={fetchingOnchainNFTInfo}
+                                >
+                                    从链上获取
+                                </Button>
+                            </Space>
+                        }
+                        type="info"
+                        showIcon
+                        style={{ marginBottom: 16 }}
+                    />
+                    <Row gutter={24}>
+                        <Col span={10}>
+                            <Form.Item
+                                name="image_url"
+                                label="图片URL"
+                            >
+                                <Input 
+                                    placeholder="https://..."
+                                    prefix={<PictureOutlined />}
+                                />
+                            </Form.Item>
+                            <Form.Item shouldUpdate={(prevValues, currentValues) => prevValues.image_url !== currentValues.image_url}>
+                                {({ getFieldValue }) => {
+                                    const imageUrl = getFieldValue('image_url') || currentNFT.image_url;
+                                    return (
+                                        <div className={styles.nftImageLarge}>
+                                            {imageUrl ? (
+                                                <Image
+                                                    src={imageUrl}
+                                                    alt={getFieldValue('name') || currentNFT.name || 'NFT'}
+                                                    style={{ width: '100%', borderRadius: 12 }}
+                                                    fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+                                                />
+                                            ) : (
+                                                <div className={styles.noImageLarge}>
+                                                    <PictureOutlined style={{ fontSize: 120, color: '#ccc' }} />
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                }}
+                            </Form.Item>
+                        </Col>
+                        <Col span={14}>
+                            <Form.Item
+                                name="name"
+                                label="NFT名称"
+                            >
+                                <Input placeholder="请输入NFT名称" />
+                            </Form.Item>
+                            <Form.Item
+                                name="description"
+                                label="描述"
+                            >
+                                <TextArea 
+                                    placeholder="请输入NFT描述"
+                                    rows={3}
+                                />
+                            </Form.Item>
+                            <Form.Item
+                                name="metadata_uri"
+                                label="元数据URI"
+                            >
+                                <Input 
+                                    placeholder="ipfs://... 或 https://..."
+                                    prefix={<LinkOutlined />}
+                                />
+                            </Form.Item>
+                            <Form.Item
+                                name="attributes"
+                                label="属性（JSON格式）"
+                                tooltip='格式: [{"trait_type":"属性名","value":"属性值"}]'
+                            >
+                                <TextArea 
+                                    placeholder='[{"trait_type":"Background","value":"Blue"}]'
+                                    rows={6}
+                                    className={styles.codeEditor}
+                                />
+                            </Form.Item>
+                            <Form.Item
+                                name="remark"
+                                label="备注"
+                            >
+                                <Input placeholder="备注信息（可选）" />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                </Form>
+            );
+        }
+
+        // 查看模式
         return (
             <div className={styles.nftDetail}>
                 <Row gutter={24}>
@@ -1254,6 +1788,18 @@ export default function NFTManage() {
                         size="large"
                     >
                         铸造NFT
+                    </Button>
+                    <Button
+                        icon={<CloudUploadOutlined />}
+                        onClick={() => {
+                            importForm.resetFields();
+                            setImportContract(null);
+                            setUseExistingOwnerAccount(false);
+                            setIsImportModalVisible(true);
+                        }}
+                        size="large"
+                    >
+                        导入NFT
                     </Button>
                 </Space>
             </div>
@@ -1688,21 +2234,274 @@ export default function NFTManage() {
                 </Form>
             </Modal>
 
+            {/* 导入NFT Modal */}
+            <Modal
+                title={<Space><CloudUploadOutlined />导入NFT</Space>}
+                open={isImportModalVisible}
+                onCancel={() => setIsImportModalVisible(false)}
+                width={700}
+                className={styles.mintModal}
+                footer={[
+                    <Button key="cancel" onClick={() => setIsImportModalVisible(false)}>
+                        取消
+                    </Button>,
+                    <Button
+                        key="import"
+                        type="primary"
+                        icon={<CloudUploadOutlined />}
+                        onClick={importNFT}
+                        loading={importing}
+                        disabled={!importContract}
+                    >
+                        导入NFT
+                    </Button>
+                ]}
+            >
+                <Form form={importForm} layout="vertical">
+                    <Alert
+                        message="导入说明"
+                        description="从链上导入已有的NFT记录到本系统。请选择对应的合约、网络并输入Token ID，系统会尽量从链上读取持有者和元数据URI。"
+                        type="info"
+                        showIcon
+                        style={{ marginBottom: 16 }}
+                    />
+
+                    <Form.Item
+                        name="contractId"
+                        label="NFT合约"
+                        rules={[{ required: true, message: '请选择NFT合约' }]}
+                    >
+                        <Select
+                            placeholder="请选择已部署的NFT合约"
+                            onChange={(value) => {
+                                const contract = contractList.find(c => c.id === value);
+                                setImportContract(contract || null);
+                                if (contract && contract.network_id) {
+                                    const targetNetwork = networkList.find(
+                                        (n: any) => n.id === contract.network_id
+                                    );
+                                    if (targetNetwork) {
+                                        importForm.setFieldsValue({ networkId: targetNetwork.id });
+                                    }
+                                }
+                            }}
+                            showSearch
+                            optionFilterProp="children"
+                        >
+                            {contractList.map(contract => (
+                                <Option key={contract.id} value={contract.id}>
+                                    <Space>
+                                        <AppstoreOutlined />
+                                        {contract.name}
+                                        <Text type="secondary">
+                                            ({contract.address?.substring(0, 8)}...)
+                                        </Text>
+                                    </Space>
+                                </Option>
+                            ))}
+                        </Select>
+                    </Form.Item>
+
+                    <Form.Item
+                        name="networkId"
+                        label="网络"
+                        rules={[{ required: true, message: '请选择网络' }]}
+                    >
+                        <Select
+                            placeholder="请选择网络"
+                            showSearch
+                            optionFilterProp="children"
+                        >
+                            {networkList.map(network => (
+                                <Option key={network.id} value={network.id}>
+                                    <Space>
+                                        <Tag color={network.is_testnet ? 'orange' : 'green'}>
+                                            {network.is_testnet ? 'Testnet' : 'Mainnet'}
+                                        </Tag>
+                                        {network.name}
+                                        <Text type="secondary">
+                                            (Chain: {network.chain_id})
+                                        </Text>
+                                    </Space>
+                                </Option>
+                            ))}
+                        </Select>
+                    </Form.Item>
+
+                    
+
+                    <Form.Item
+                        name="tokenId"
+                        label="Token ID"
+                        rules={[{ required: true, message: '请输入Token ID' }]}
+                    >
+                        <Input
+                            placeholder="请输入要导入的Token ID"
+                            addonAfter={
+                                <Button
+                                    type="link"
+                                    onClick={fetchOnchainNFTInfo}
+                                    loading={fetchingOnchainInfo}
+                                    disabled={!importContract}
+                                >
+                                    拉取链上信息
+                                </Button>
+                            }
+                        />
+                    </Form.Item>
+
+                    <Form.Item
+                        label={
+                            <Space>
+                                <span>持有者地址（可选）</span>
+                                <Checkbox
+                                    checked={useExistingOwnerAccount}
+                                    onChange={(e) => {
+                                        setUseExistingOwnerAccount(e.target.checked);
+                                        importForm.setFieldValue('ownerAddress', undefined);
+                                    }}
+                                >
+                                    使用已有账户
+                                </Checkbox>
+                            </Space>
+                        }
+                        tooltip="如果链上无法读取 ownerOf，将使用此地址作为当前持有者"
+                    >
+                        <Form.Item
+                            name="ownerAddress"
+                            noStyle
+                            rules={[
+                                ({ getFieldValue }) => ({
+                                    validator(_, value) {
+                                        if (!value) return Promise.resolve();
+                                        if (/^0x[a-fA-F0-9]{40}$/.test(value)) {
+                                            return Promise.resolve();
+                                        }
+                                        return Promise.reject(new Error('请输入有效的以太坊地址'));
+                                    }
+                                })
+                            ]}
+                        >
+                            {useExistingOwnerAccount ? (
+                                <Select
+                                    placeholder="请选择已有账户地址"
+                                    showSearch
+                                    optionFilterProp="children"
+                                >
+                                    {accountList.map(account => (
+                                        <Option key={account.id} value={account.address}>
+                                            <Space>
+                                                <WalletOutlined />
+                                                {account.name}
+                                                <Text type="secondary">
+                                                    ({account.address.substring(0, 8)}...{account.address.substring(account.address.length - 6)})
+                                                </Text>
+                                            </Space>
+                                        </Option>
+                                    ))}
+                                </Select>
+                            ) : (
+                                <Input placeholder="0x..." prefix={<WalletOutlined />} />
+                            )}
+                        </Form.Item>
+                    </Form.Item>
+
+                    <Form.Item
+                        name="metadataUri"
+                        label="元数据URI（可选）"
+                        tooltip="如留空，系统会尝试调用 tokenURI(tokenId) 获取"
+                    >
+                        <Input
+                            placeholder="ipfs://... 或 https://..."
+                            prefix={<LinkOutlined />}
+                        />
+                    </Form.Item>
+
+                    <Form.Item
+                        name="remark"
+                        label="备注（可选）"
+                    >
+                        <Input placeholder="例如：从某地址导入的NFT" />
+                    </Form.Item>
+                </Form>
+            </Modal>
+
             {/* NFT详情Modal */}
             <Modal
-                title={<Space><FileTextOutlined />NFT详情</Space>}
+                title={
+                    <Space>
+                        <FileTextOutlined />
+                        {isEditingNFT ? '编辑NFT信息' : 'NFT详情'}
+                    </Space>
+                }
                 open={isDetailModalVisible}
-                onCancel={() => setIsDetailModalVisible(false)}
+                onCancel={() => {
+                    setIsEditingNFT(false);
+                    setIsDetailModalVisible(false);
+                }}
                 width={1000}
                 footer={[
-                    <Button key="close" onClick={() => setIsDetailModalVisible(false)}>
-                        关闭
-                    </Button>
+                    <Button 
+                        key="cancel" 
+                        onClick={() => {
+                            setIsEditingNFT(false);
+                            setIsDetailModalVisible(false);
+                        }}
+                    >
+                        {isEditingNFT ? '取消' : '关闭'}
+                    </Button>,
+                    isEditingNFT ? (
+                        <>
+                            <Button
+                                key="save"
+                                type="primary"
+                                icon={<CheckCircleOutlined />}
+                                onClick={handleUpdateNFT}
+                                loading={updatingNFT}
+                            >
+                                保存
+                            </Button>
+                        </>
+                    ) : (
+                        <>
+                            <Button
+                                key="fetch"
+                                icon={<SyncOutlined />}
+                                onClick={fetchOnchainNFTInfoForDetail}
+                                loading={fetchingOnchainNFTInfo}
+                            >
+                                从链上获取
+                            </Button>
+                            <Button
+                                key="edit"
+                                icon={<EditOutlined />}
+                                onClick={handleEditNFT}
+                            >
+                                编辑
+                            </Button>
+                        </>
+                    )
                 ]}
                 className={styles.detailModal}
             >
                 {renderNFTDetail()}
             </Modal>
+
+            {/* NFT转让Modal */}
+            <NFTTxModal
+                visible={isTransferModalVisible}
+                nft={transferNFT}
+                accountList={accountList}
+                contractList={contractList}
+                networkList={networkList}
+                onCancel={() => {
+                    setIsTransferModalVisible(false);
+                    setTransferNFT(null);
+                }}
+                onSuccess={() => {
+                    onQuery();
+                }}
+            />
         </div>
     )
 }

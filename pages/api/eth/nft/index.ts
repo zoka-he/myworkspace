@@ -115,24 +115,12 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
  * 创建NFT记录
  */
 async function handlePost(req: NextApiRequest, res: NextApiResponse) {
+    
     const {
-        contract_id,
         contract_address,
         token_id,
         owner_address,
         minter_address,
-        minter_account_id,
-        metadata_uri,
-        name,
-        description,
-        image_url,
-        attributes,
-        transaction_hash,
-        network_id,
-        network,
-        chain_id,
-        status = 'minted',
-        remark
     } = req.body;
 
     // 验证必需字段
@@ -142,11 +130,18 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
         });
     }
 
+    let values: any = {...req.body};
+    delete values.id;
+    if (!values.status) {
+        values.status = 'minted';
+    }
+
+
     // 检查是否已存在
     const existing = await service.query({
         contract_address,
         token_id
-    }, [], [], 1, 1);
+    }, [], ['create_time desc'], 1, 1);
 
     if (existing && existing.data && existing.data.length > 0) {
         return res.status(400).json({ 
@@ -154,28 +149,7 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
         });
     }
 
-    // 使用 service 创建记录
-    const nftData: any = {
-        contract_id: contract_id || null,
-        contract_address,
-        token_id,
-        owner_address,
-        minter_address,
-        minter_account_id: minter_account_id || null,
-        metadata_uri: metadata_uri || null,
-        name: name || null,
-        description: description || null,
-        image_url: image_url || null,
-        attributes: attributes || null,
-        transaction_hash: transaction_hash || null,
-        network_id: network_id || null,
-        network: network || null,
-        chain_id: chain_id || null,
-        status: status || 'minted',
-        remark: remark || null
-    };
-
-    const result = await service.insert(nftData);
+    const result = await service.insertOne(values);
 
     res.status(201).json({
         message: 'NFT created successfully',
@@ -187,81 +161,19 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
  * 更新NFT记录
  */
 async function handlePut(req: NextApiRequest, res: NextApiResponse) {
+
     const {
         id,
-        owner_address,
-        metadata_uri,
-        name,
-        description,
-        image_url,
-        attributes,
-        status,
-        remark
     } = req.body;
+
+    let values: any = {...req.body};
+    delete values.id;
 
     if (!id) {
         return res.status(400).json({ error: 'Missing required field: id' });
     }
 
-    let updateFields = [];
-    let params: any[] = [];
-
-    if (owner_address !== undefined) {
-        updateFields.push('owner_address = ?');
-        params.push(owner_address);
-    }
-
-    if (metadata_uri !== undefined) {
-        updateFields.push('metadata_uri = ?');
-        params.push(metadata_uri);
-    }
-
-    if (name !== undefined) {
-        updateFields.push('name = ?');
-        params.push(name);
-    }
-
-    if (description !== undefined) {
-        updateFields.push('description = ?');
-        params.push(description);
-    }
-
-    if (image_url !== undefined) {
-        updateFields.push('image_url = ?');
-        params.push(image_url);
-    }
-
-    if (attributes !== undefined) {
-        updateFields.push('attributes = ?');
-        params.push(attributes);
-    }
-
-    if (status !== undefined) {
-        updateFields.push('status = ?');
-        params.push(status);
-    }
-
-    if (remark !== undefined) {
-        updateFields.push('remark = ?');
-        params.push(remark);
-    }
-
-    if (updateFields.length === 0) {
-        return res.status(400).json({ error: 'No fields to update' });
-    }
-
-    const updateData: any = {};
-    
-    if (owner_address !== undefined) updateData.owner_address = owner_address;
-    if (metadata_uri !== undefined) updateData.metadata_uri = metadata_uri;
-    if (name !== undefined) updateData.name = name;
-    if (description !== undefined) updateData.description = description;
-    if (image_url !== undefined) updateData.image_url = image_url;
-    if (attributes !== undefined) updateData.attributes = attributes;
-    if (status !== undefined) updateData.status = status;
-    if (remark !== undefined) updateData.remark = remark;
-
-    await service.update(id, updateData);
+    await service.updateOne({ id }, values);
 
     res.status(200).json({ message: 'NFT updated successfully' });
 }
