@@ -183,7 +183,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
   // 是否参考本章已有内容(默认不参考)
   const [isReferSelf, setIsReferSelf] = useState<boolean>(false)
 
-  const [llmType, setLlmType] = useState<'gemini' | 'deepseek'>('gemini')
+  const [llmType, setLlmType] = useState<'gemini' | 'deepseek' | 'gemini3'>('gemini')
 
   // 是否缩写本章
   const [isStripSelf, setIsStripSelf] = useState<boolean>(false)
@@ -913,6 +913,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
                   <Typography.Text>模型：</Typography.Text>
                   <Select value={llmType} onChange={(value) => setLlmType(value)} disabled={isContinuing}>
                     <Select.Option value="gemini">Gemini</Select.Option>
+                    <Select.Option value="gemini3">Gemini3</Select.Option>
                     <Select.Option value="deepseek">DeepSeek（实验）</Select.Option>
                     <Select.Option value="gpt" disabled>GPT-4o</Select.Option>
                   </Select>
