@@ -1066,7 +1066,7 @@ export default function NFTManage() {
         setIsMintModalVisible(false);
     }
 
-    // 初始化表单数据
+    // 初始化详情表单数据
     const initDetailForm = (nft: INFT) => {
         let attributes = '';
         try {
@@ -1097,7 +1097,7 @@ export default function NFTManage() {
     // 切换到编辑模式时，确保表单数据已初始化
     const handleEditNFT = () => {
         if (currentNFT) {
-            // 确保表单数据已初始化
+            // 确保表单数据已初始化（使用当前NFT数据）
             initDetailForm(currentNFT);
             setIsEditingNFT(true);
         }
@@ -1187,9 +1187,9 @@ export default function NFTManage() {
 
                 if (Object.keys(nextValues).length > 0) {
                     detailForm.setFieldsValue(nextValues);
-                    message.success('已从链上获取NFT信息');
+                    message.success('已从链上获取NFT信息并更新表单');
                 } else {
-                    message.info('链上信息与当前数据一致');
+                    message.info('链上信息与当前表单数据一致');
                 }
             } else {
                 // 在查看模式下，更新currentNFT并提示
@@ -1204,6 +1204,8 @@ export default function NFTManage() {
 
                 if (Object.keys(updates).length > 0) {
                     setCurrentNFT({ ...currentNFT, ...updates });
+                    // 同时更新表单数据，以便切换到编辑模式时能使用最新数据
+                    initDetailForm({ ...currentNFT, ...updates });
                     message.success('已从链上获取NFT最新状态');
                 } else {
                     message.info('链上信息与当前数据一致');
@@ -1216,8 +1218,6 @@ export default function NFTManage() {
             setFetchingOnchainNFTInfo(false);
         }
     }, [currentNFT, contractList, networkList, isEditingNFT, detailForm]);
-
-    // 从链上获取NFT信息（用于导入页面，保持原有函数名）
 
     function onDeleteNFT(nft: INFT) {
         confirm({
