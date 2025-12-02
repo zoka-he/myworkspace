@@ -112,6 +112,13 @@ const PromptTools = (props: PromptToolsProps) => {
         return -1;
     }
 
+    function setInputPosition(elementType: string, element: any, position: number) {
+        if (elementType === 'antd-textarea') {
+            console.debug('setInputPosition', position);
+            element.resizableTextArea.textArea.setSelectionRange(position, position);
+        }
+    }
+
     function doAddTag(tagGenerator: string | TagGenerator) {
         const elementType = checkTextArea();
         if (!elementType) {
@@ -123,6 +130,8 @@ const PromptTools = (props: PromptToolsProps) => {
         if (inputPosition === -1) {
             message.error('光标不在目标内');
             return;
+        } else {
+            console.debug('inputPosition', inputPosition);
         }
 
         const sourceString = getElementString(elementType, props.promptTextArea);
@@ -135,6 +144,9 @@ const PromptTools = (props: PromptToolsProps) => {
         
         let insertedString = sourceString.slice(0, inputPosition) + tagText + sourceString.slice(inputPosition);
         props.onChange?.(insertedString);
+        setTimeout(() => {
+            setInputPosition(elementType, props.promptTextArea, inputPosition + tagText.length);
+        }, 10);
     }
 
     function IndexedTagGenerator(tagPrefix: string) {
@@ -169,6 +181,8 @@ const PromptTools = (props: PromptToolsProps) => {
                     <Space direction={layout} align="center">
                         <Button size="small" type="primary" onClick={() => doAddTag('章节')}>章节</Button>
                         <Button size="small" type="primary" onClick={() => doAddTag('片段')}>片段</Button>
+                        <Button size="small" type="primary" onClick={() => doAddTag('出场')}>出场</Button>
+                        <Button size="small" type="primary" onClick={() => doAddTag('场景：')}>场景</Button>
                     </Space>
                 </Col>
                 <Col span={12} style={{ display: 'flex', justifyContent: 'center' }}>

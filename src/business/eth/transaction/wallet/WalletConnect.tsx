@@ -204,6 +204,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
               onClick={handleDisconnect}
               size="small"
               danger
+              disabled={refreshing}
             >
               断开
             </Button>
@@ -218,17 +219,25 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
               <UserOutlined />
               <span>账户地址</span>
             </div>
-            <div className={styles.infoValue}>
-              <Text code className={styles.address}>
-                {walletInfo.address}
-              </Text>
-              <Button 
-                type="text" 
-                icon={<CopyOutlined />} 
-                onClick={handleCopyAddress}
-                size="small"
-              />
-            </div>
+            {
+              refreshing ? (
+                <div className={styles.infoValue}>
+                  <Spin />
+                </div>
+              ) : (
+                <div className={styles.infoValue}>
+                  <Text code className={styles.address}>
+                    {walletInfo.address}
+                  </Text>
+                  <Button 
+                    type="text" 
+                    icon={<CopyOutlined />} 
+                    onClick={handleCopyAddress}
+                    size="small"
+                  />
+                </div>
+              )
+            }
           </div>
 
           <div className={styles.infoItem}>
@@ -236,11 +245,19 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
               <DollarOutlined />
               <span>账户余额</span>
             </div>
-            <div className={styles.infoValue}>
-              <Text strong className={styles.balance}>
-                {formatBalance(walletInfo.balance)} ETH
-              </Text>
-            </div>
+            {
+              refreshing ? (
+                <div className={styles.infoValue}>
+                  <Spin />
+                </div>
+              ) : (
+                <div className={styles.infoValue}>
+                  <Text strong className={styles.balance}>
+                    {formatBalance(walletInfo.balance)} ETH
+                  </Text>
+                </div>
+              )
+            }
           </div>
 
           <div className={styles.infoItem}>
@@ -248,14 +265,23 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
               <GlobalOutlined />
               <span>当前网络</span>
             </div>
-            <div className={styles.infoValue}>
-              <Tag color={getNetworkTagColor(walletInfo.chainId)}>
-                {walletInfo.networkInfo?.name}
-              </Tag>
-              <Text type="secondary" className={styles.chainId}>
-                Chain ID: {walletInfo.chainId}
-              </Text>
-            </div>
+            {
+              refreshing ? (
+                <div className={styles.infoValue}>
+                  <Spin />
+                </div>
+              ) : (
+                <div className={styles.infoValue}>
+                  <Tag color={getNetworkTagColor(walletInfo.chainId)}>
+                    {walletInfo.networkInfo?.name}
+                  </Tag>
+                  <Text type="secondary" className={styles.chainId}>
+                    Chain ID: {walletInfo.chainId}
+                  </Text>
+                </div>
+              )
+            }
+            
           </div>
         </div>
       </div>

@@ -777,7 +777,7 @@ function ChapterSkeletonPanel({
                 <TextArea
                   ref={promptTextAreaRef}
                   placeholder="请输入章节根提示词"
-                  autoSize={{ minRows: 8 }}
+                  autoSize={{ minRows: 18 }}
                   className={styles.promptTextArea}
                   showCount
                 />
