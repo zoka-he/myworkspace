@@ -77,6 +77,17 @@ function AttentionRefModal({ isVisible, onClose, content }: AttentionRefModalPro
 
   const refList = [
     {
+      title: 'Gemini3优化',
+      color: 'green',
+      content: '- 使用细腻流畅的行文风格，但不要堆砌形容词\n' +
+               '- 使用优秀的，具有浪漫想象力情节的表达，可引入俚语和OOC，丰富情感\n' +
+               '- 输出尽可能长的内容\n' +
+               '- 避免刻板描写、减少负面形容词\n' +
+               '- 要符合中文的用词习惯和表达习惯\n' +
+               '- 注意与前文的衔接\n' +
+               '- 避免塑造什么都不知道的人物，或愚蠢的、傻帽式的人物'
+    },
+    {
       title: '抗Gemini默认文风',
       color: 'red',
       content: '- 对人物对话、人物心理活动、人物动作细节、场景塑造进行综合调优\n' +
@@ -183,7 +194,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
   // 是否参考本章已有内容(默认不参考)
   const [isReferSelf, setIsReferSelf] = useState<boolean>(false)
 
-  const [llmType, setLlmType] = useState<'gemini' | 'deepseek' | 'gemini3'>('gemini')
+  const [llmType, setLlmType] = useState<'gemini' | 'deepseek' | 'gemini3'>('gemini3')
 
   // 是否缩写本章
   const [isStripSelf, setIsStripSelf] = useState<boolean>(false)
@@ -498,6 +509,11 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
     setAutoWriteStatus(res.status || 'idle')
     setAutoWriteError(res.error || '')
     setAutoWriteElapsed(res.elapsed_time || 0)
+
+    // dify bug, 直接重试一次
+    if (typeof res.error === 'string' && res.error.includes('operation not permitted')) {
+      executeAutoWrite();
+    }
   }
 
   // 保存实际提示词
