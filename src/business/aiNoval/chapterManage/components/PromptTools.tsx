@@ -13,7 +13,7 @@ type TagGenerator = (contentBefore: string, contentAfter: string) => string;
 
 const PromptTools = (props: PromptToolsProps) => {
 
-    const { layout = 'vertical' } = props;
+    const layout = 'vertical';
     const [findString, setFindString] = useState('');
     const [replaceString, setReplaceString] = useState('');
 

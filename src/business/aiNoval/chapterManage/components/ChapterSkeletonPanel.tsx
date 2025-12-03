@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Space, Typography, Button, Input, message, Form, Tag, Select, TreeSelect, Row, Col, GetRef } from 'antd'
-import { ReloadOutlined, EditOutlined, CopyOutlined, SortAscendingOutlined, RobotOutlined } from '@ant-design/icons'
+import { ReloadOutlined, EditOutlined, CopyOutlined, SortAscendingOutlined, RobotOutlined, InfoCircleOutlined } from '@ant-design/icons'
 import { IChapter, IWorldViewDataWithExtra, IGeoUnionData, IFactionDefData, IRoleData, ITimelineEvent, IGeoStarSystemData, IGeoGeographyUnitData, IGeoPlanetData, IGeoSatelliteData, IGeoStarData } from '@/src/types/IAiNoval'
 import styles from './ChapterSkeletonPanel.module.scss'
 import { getTimelineEventByIds, updateChapter, getChapterById, getChapterList } from '../apiCalls'
@@ -12,6 +12,7 @@ import { ModalProvider, showGenSkeletonModal, useGenSkeletonModal } from './GenS
 import GenRolePanel from './GenRolePanel'
 import copyToClip from '@/src/utils/common/copy'
 import PromptTools from './PromptTools'
+import AttentionRefModal from './AttentionRefModal'
 
 const { Text } = Typography
 const { TextArea } = Input
@@ -62,6 +63,7 @@ function ChapterSkeletonPanel({
 
   const [chapterList, setChapterList] = useState<IChapter[]>([])
   const [isGenRoleModalVisible, setIsGenRoleModalVisible] = useState(false)
+  const [isAttentionRefModalVisible, setIsAttentionRefModalVisible] = useState(false)
 
   const promptTextAreaRef = useRef<GetRef<typeof Input.TextArea> | null>(null)
 
@@ -747,7 +749,7 @@ function ChapterSkeletonPanel({
           </Form.Item>
 
           <div>
-            <Text strong>额外设置：</Text>
+            <Text strong>额外设置：(慎用，会触发全库检索，产生巨大耗时，建议先切换GPU)。</Text>
           </div>
           <Form.Item label={null} name="extra_settings">
             <TextArea autoSize={{ minRows: 1 }} />
@@ -755,6 +757,7 @@ function ChapterSkeletonPanel({
 
           <div>
             <Text strong>注意事项：</Text>
+            <Button type="link" icon={<InfoCircleOutlined />} onClick={() => setIsAttentionRefModalVisible(true)}>注意事项参考模板</Button>
           </div>
           <Form.Item label={null} name="attension">
             <TextArea autoSize={{ minRows: 1 }} />
@@ -865,6 +868,12 @@ function ChapterSkeletonPanel({
           width="80vw"
           rootPrompt={() => form.getFieldsValue()['seed_prompt']}
         />
+
+      <AttentionRefModal
+        isVisible={isAttentionRefModalVisible}
+        onClose={() => setIsAttentionRefModalVisible(false)}
+        content={''}
+      />
 
     </div>
   )
