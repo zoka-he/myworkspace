@@ -780,13 +780,13 @@ function EventPoolPanel({
   // 渲染事件卡片
   const renderEventCard = (event: Event) => (
     <div className={styles.eventCard}>
-      <Text strong>{event.title}&nbsp;</Text>
+      <div style={{ display: 'flex', gap: 5 }}>
+        <Tag>{renderNovelDate(event.date)}</Tag>
+        <Text strong>{event.title}&nbsp;</Text>
+      </div>
       <Text type="secondary" className="block">
         {event.description}
       </Text>
-      {/* <Text type="secondary" className="text-xs">
-        {event.worldview_id}
-      </Text> */}
       {renderRelatedInfo([event])}
     </div>
   )
