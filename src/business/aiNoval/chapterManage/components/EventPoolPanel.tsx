@@ -5,7 +5,7 @@ import { EventPool } from '../types'
 import styles from './EventPoolPanel.module.scss'
 import { IChapter, IStoryLine, IWorldViewDataWithExtra, ITimelineEvent, IGeoUnionData, IFactionDefData, IRoleData } from '@/src/types/IAiNoval'
 import { TimelineDateFormatter } from '../../common/novelDateUtils'
-import { EditOutlined, ReloadOutlined, SaveOutlined } from '@ant-design/icons'
+import { EditOutlined, ReloadOutlined, SaveOutlined, CopyOutlined } from '@ant-design/icons'
 import * as apiCalls from '../apiCalls'
 import { loadGeoUnionList } from '../../common/geoDataUtil'
 
@@ -44,6 +44,10 @@ const TimelineRangeModal = React.forwardRef(({
   const [visible, setVisible] = useState(false)
   const [type, setType] = useState<'start' | 'end'>('start')
   const [initialSeconds, setInitialSeconds] = useState<number | null>(null)
+  const [userDiffValue, setUserDiffValue] = useState<number | null>(null)
+  const [userDiffUnit, setUserDiffUnit] = useState<'day' | 'week' | 'month' | 'year'>('day')
+  
+  // 暴露给父组件的接口
   React.useImperativeHandle(ref, () => ({
     open: (type: 'start' | 'end', seconds: number | null) => {
       setType(type)
@@ -156,6 +160,62 @@ const TimelineRangeModal = React.forwardRef(({
     setInitialSeconds(lastDateSeconds)
   }
 
+  function handleApplyUserDiff() {
+    if (!userDiffValue) {
+      message.warning('请输入用户调整单位数量')
+      return
+    }
+    if (!userDiffUnit) {
+      message.warning('请选择用户调整单位')
+      return
+    }
+    
+    let lastDateSeconds: number = 0;
+    let secondsOfUnit = 0;
+    if (selectedWorldView) {
+      let secondsPerHour = selectedWorldView.tl_hour_length_in_seconds || 3600;
+      let hoursPerDay = selectedWorldView.tl_day_length_in_hours || 24;
+      let daysPerMonth = selectedWorldView.tl_month_length_in_days || 30;
+      let monthsPerYear = selectedWorldView.tl_year_length_in_months || 12;
+      switch (userDiffUnit) {
+        case 'day':
+          secondsOfUnit = hoursPerDay * secondsPerHour
+          break
+        case 'week':
+          secondsOfUnit = 7 * hoursPerDay * secondsPerHour
+          break
+        case 'month':
+          secondsOfUnit = daysPerMonth * hoursPerDay * secondsPerHour
+          break
+        case 'year':
+          secondsOfUnit = monthsPerYear * daysPerMonth * hoursPerDay * secondsPerHour
+          break
+      }
+      lastDateSeconds = (selectedWorldView.te_max_seconds || 0) - userDiffValue * secondsOfUnit;
+    } else {
+      switch (userDiffUnit) {
+        case 'day':
+          secondsOfUnit = 24 * 3600
+          break
+        case 'week':
+          secondsOfUnit = 7 * 24 * 3600
+          break
+        case 'month':
+          secondsOfUnit = 30 * 24 * 3600
+          break
+        case 'year':
+          secondsOfUnit = 365 * 24 * 3600
+          break
+      }
+
+      const now = new Date()
+      const lastDate = new Date(now.getTime() - userDiffValue * secondsOfUnit * 1000)
+      lastDateSeconds = lastDate.getTime() / 1000
+    }
+
+    setInitialSeconds(lastDateSeconds)
+  }
+
   return (
     <Modal
       title={type === 'start' ? '更改起点' : '更改终点'}
@@ -174,6 +234,22 @@ const TimelineRangeModal = React.forwardRef(({
         </Space>
         <Space>
           <Button onClick={handleUnlimited}>不限</Button>
+        </Space>
+      </div>
+      <div style={{ marginTop: 10 }}>
+        <Space>
+          <Text>末</Text>
+          <Space.Compact>
+            <InputNumber type="number" min={0} placeholder="用户调整" style={{ width: 80 }} value={userDiffValue} onChange={(value) => setUserDiffValue(value)} />
+            <Select value={userDiffUnit} onChange={(value) => setUserDiffUnit(value as 'day' | 'week' | 'month' | 'year')}>
+              <Select.Option value="day">天</Select.Option>
+              <Select.Option value="week">周</Select.Option>
+              <Select.Option value="month">月</Select.Option>
+              <Select.Option value="year">年</Select.Option>
+            </Select>
+          </Space.Compact>
+          <Text>-&gt;</Text>
+          <Button onClick={handleApplyUserDiff}>应用</Button>
         </Space>
       </div>
       <Divider />
@@ -739,7 +815,7 @@ function EventPoolPanel({
             </Select>
           </Col>
           <Col span={16}>
-            <Select
+            {/* <Select
               mode="multiple"
               style={{ width: '100%' }}
               placeholder="选择故事线"
@@ -751,21 +827,26 @@ function EventPoolPanel({
                   {line.name}
                 </Select.Option>
               ))}
-            </Select>
+            </Select> */}
+            <Space>
+            <Text>时间线范围：</Text>
+              <Button icon={<EditOutlined />} type="link" onClick={() => showTimelineModal('start', timelineStart)}>{timelineStart !== null ? renderNovelDate(timelineStart) : '不限'}</Button> - 
+              <Button icon={<EditOutlined />} type="link" onClick={() => showTimelineModal('end', timelineEnd)}>{timelineEnd !== null ? renderNovelDate(timelineEnd) : '不限'}</Button>
+            </Space>
+            
           </Col>
         </Row>
 
         
 
-        <div className="f-flex-row" style={{ alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-          {/* 事件线设置 */}
+        <div className="f-flex-row" style={{ width: '100%', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <Space>
-            <Text>时间线范围：</Text>
-            <Button icon={<EditOutlined />} type="link" onClick={() => showTimelineModal('start', timelineStart)}>{timelineStart !== null ? renderNovelDate(timelineStart) : '不限'}</Button> - 
-            <Button icon={<EditOutlined />} type="link" onClick={() => showTimelineModal('end', timelineEnd)}>{timelineEnd !== null ? renderNovelDate(timelineEnd) : '不限'}</Button>
+              <Button type="primary" icon={<ReloadOutlined />} onClick={() => loadChapterEvents()} loading={loading}>加载事件</Button>
+              <Button type="primary" icon={<CopyOutlined />} disabled>从上一章继承（未实现）</Button>
           </Space>
-          <Space>
-            <Button type="primary" icon={<ReloadOutlined />} onClick={() => loadChapterEvents()} loading={loading}>加载事件</Button>
+          
+          {/* 章节基础信息操作 */}
+          <Space align="end">
             <Button icon={<SaveOutlined />} onClick={saveChapterSetting} loading={loading}>保存配置和事件到章节</Button>
           </Space>
         </div>
