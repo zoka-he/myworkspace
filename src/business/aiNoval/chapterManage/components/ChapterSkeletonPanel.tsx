@@ -748,18 +748,20 @@ function ChapterSkeletonPanel({
             </Select>
           </Form.Item>
 
-          <div>
-            <Text strong>额外设置：(慎用，会触发全库检索，产生巨大耗时，建议先切换GPU)。</Text>
-          </div>
-          <Form.Item label={null} name="extra_settings">
-            <TextArea autoSize={{ minRows: 1 }} />
-          </Form.Item>
+          
 
           <div>
             <Text strong>注意事项：</Text>
             <Button type="link" icon={<InfoCircleOutlined />} onClick={() => setIsAttentionRefModalVisible(true)}>注意事项参考模板</Button>
           </div>
           <Form.Item label={null} name="attension">
+            <TextArea autoSize={{ minRows: 1 }} />
+          </Form.Item>
+
+          <div>
+            <Text strong>额外设置：(慎用，会触发全库检索，产生巨大耗时，建议先切换GPU)。</Text>
+          </div>
+          <Form.Item label={null} name="extra_settings">
             <TextArea autoSize={{ minRows: 1 }} />
           </Form.Item>
 
@@ -780,7 +782,7 @@ function ChapterSkeletonPanel({
                 <TextArea
                   ref={promptTextAreaRef}
                   placeholder="请输入章节根提示词"
-                  autoSize={{ minRows: 18 }}
+                  autoSize={{ minRows: 22 }}
                   className={styles.promptTextArea}
                   showCount
                 />

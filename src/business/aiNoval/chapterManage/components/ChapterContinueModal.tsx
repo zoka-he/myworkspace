@@ -856,7 +856,8 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
                     <Card size="small" style={{ marginTop: 16 }} title={
                         <div className='f-flex-two-side' style={{ alignItems: 'center' }}>
                           <div>
-                            <span>自动续写结果 - {selectedChapter?.chapter_number} {selectedChapter?.title || '未命名章节'}:v{selectedChapter?.version}&nbsp;</span>
+                            {/* <span>自动续写结果 - {selectedChapter?.chapter_number} {selectedChapter?.title || '未命名章节'}:v{selectedChapter?.version}&nbsp;</span> */}
+                            <span>自动续写结果&nbsp;</span>
                             <Tag>{autoWriteStatus}</Tag>
                             { autoWriteElapsed > 0 ? <Tag color="orange">{autoWriteElapsed}秒</Tag> : null }
                           </div>

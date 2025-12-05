@@ -175,6 +175,16 @@ const PromptTools = (props: PromptToolsProps) => {
                 {/* <Button size="small" style={{ width: '100%'}} onMouseDown={doReplaceFirst}>替换光标后首个</Button> */}
                 <Button size="small" type="primary" style={{ width: '100%'}} onClick={doReplaceAll}>替换所有</Button>
             </Space>
+            <Divider size="small">索引标签</Divider>
+            <Space direction={layout} style={{ width: '100%'}}>
+                <Button size="small" type="primary" block onClick={() => doAddTag(IndexedTagGenerator('片段'))}>片段</Button>
+                <Button size="small" type="primary" block onClick={() => doAddTag(IndexedTagGenerator('Day'))}>Day</Button>
+            </Space>
+            <Divider size="small">常量模板</Divider>
+            <Space direction={layout} style={{ width: '100%'}}>
+                <Button size="small" type="primary" block onClick={() => doAddTag(STR_CHAPTER_TEMPLATE)}>章节四要素</Button>
+                <Button size="small" type="primary" block onClick={() => doAddTag(STR_FRAGMENT_TEMPLATE)}>片段四要素</Button>
+            </Space>
             <Divider size="small">常量标签</Divider>
             <Row>
                 <Col span={12} style={{ display: 'flex', justifyContent: 'center' }}>
@@ -194,13 +204,23 @@ const PromptTools = (props: PromptToolsProps) => {
                     </Space>
                 </Col>
             </Row>
-            <Divider size="small">索引标签</Divider>
-            <Space direction={layout} style={{ width: '100%'}}>
-                <Button size="small" type="primary" block onClick={() => doAddTag(IndexedTagGenerator('片段'))}>片段</Button>
-                <Button size="small" type="primary" block onClick={() => doAddTag(IndexedTagGenerator('Day'))}>Day</Button>
-            </Space>
+            
         </div>
     )
 }
+
+const STR_CHAPTER_TEMPLATE = `【章节背景设定】
+   - 章节目的：
+   - 出场人物：
+   - 场景：
+
+【章节主要事件描述】
+`;
+
+const STR_FRAGMENT_TEMPLATE = `片段目的：
+出场人物：
+场景：
+片段主要事件描述：
+`;
 
 export default PromptTools;
