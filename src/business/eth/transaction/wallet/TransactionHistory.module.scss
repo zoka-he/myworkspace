@@ -93,6 +93,8 @@
             }
 
             .descriptions {
+
+                height: calc(100vh - 453px);
                 :global(.ant-descriptions-item-label) {
                     font-weight: 500;
                     // background-color: #fafafa;
@@ -129,6 +131,7 @@
                 text-align: center;
                 padding: 60px 20px;
                 color: #999;
+                height: calc(100vh - 453px);
             }
         }
     }

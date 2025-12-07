@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Row, Col, Table, Descriptions, Tag, Space, Input, Button, Spin, message, Typography } from 'antd';
+import { Card, Row, Col, Table, Descriptions, Tag, Space, Input, Button, Spin, message, Typography, Pagination, Select } from 'antd';
 import { SearchOutlined, ReloadOutlined, CopyOutlined } from '@ant-design/icons';
 import copyToClip from '@/src/utils/common/copy';
 import fetch from '@/src/fetch';
@@ -106,7 +106,7 @@ export default function TransactionHistory(props: WalletActionsProps) {
     const [searchValue, setSearchValue] = useState('');
     const [pagination, setPagination] = useState({
         current: 1,
-        pageSize: 10,
+        pageSize: 100,
         total: 0,
     });
     // const [networkId, setNetworkId] = useState<number | null>(null);
@@ -230,13 +230,21 @@ export default function TransactionHistory(props: WalletActionsProps) {
                                 allowClear
                                 className={transactionHistoryStyles.searchInput}
                             />
-                            <Button
-                                icon={<ReloadOutlined />}
-                                onClick={() => fetchTransactions(pagination.current, pagination.pageSize)}
-                                loading={loading}
-                            >
-                                刷新
-                            </Button>
+                            <Space.Compact>
+                                <Select style={{ width: 80 }} value={pagination.pageSize} onChange={(value) => fetchTransactions(1, value)}>
+                                    <Select.Option value={10}>10条</Select.Option>
+                                    <Select.Option value={50}>50条</Select.Option>
+                                    <Select.Option value={100}>100条</Select.Option>
+                                </Select>
+                                <Button
+                                    icon={<ReloadOutlined />}
+                                    onClick={() => fetchTransactions(pagination.current, pagination.pageSize)}
+                                    loading={loading}
+                                >
+                                    查询
+                                </Button>
+                            </Space.Compact>
+                            
                         </div>
                         <Spin spinning={loading}>
                             {/* 交易历史记录表 */}
@@ -244,16 +252,7 @@ export default function TransactionHistory(props: WalletActionsProps) {
                                 dataSource={filteredTransactions}
                                 rowKey="hash"
                                 size="small"
-                                pagination={{
-                                    current: pagination.current,
-                                    pageSize: pagination.pageSize,
-                                    total: pagination.total,
-                                    showSizeChanger: true,
-                                    showQuickJumper: true,
-                                    showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条`,
-                                    onChange: handleTableChange,
-                                }}
-                                // scroll={{ y: 500 }}
+                                pagination={false}
                                 onRow={(record) => ({
                                     onClick: () => setSelectedTransaction(record),
                                     className: selectedTransaction?.hash === record.hash ? transactionHistoryStyles.selectedRow : '',
