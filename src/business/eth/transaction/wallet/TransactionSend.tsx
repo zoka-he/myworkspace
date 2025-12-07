@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { IWalletInfo } from '../IWalletInfo';
 import { SendOutlined, WalletOutlined, SettingOutlined, ReloadOutlined, ExclamationCircleOutlined, EditOutlined, UnorderedListOutlined } from "@ant-design/icons";
 import transactionHistoryStyles from './TransactionHistory.module.scss';
+import fetch from '@/src/fetch';
 
 interface WalletActionsProps {
     walletInfo?: IWalletInfo | null;
