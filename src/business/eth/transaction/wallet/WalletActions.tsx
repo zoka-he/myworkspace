@@ -13,6 +13,7 @@ import WatchContract from './WatchContract';
 import WalletLog from './WalletLog';
 import MarketValue from './MarketValue';
 import TransactionHistory from './TransactionHistory';
+import NftOfWallet from './NftOfWallet';
 
 
 const { Title, Paragraph } = Typography;
@@ -41,8 +42,8 @@ export default function WalletActions(props: WalletActionsProps) {
         },
         {
             key: '3',
-            label: '扫链',
-            children: null,
+            label: 'NFT',
+            children: <NftOfWallet walletInfo={props.walletInfo}/>,
         },
         {
             key: '4',
