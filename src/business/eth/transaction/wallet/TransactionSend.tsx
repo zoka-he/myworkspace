@@ -6,9 +6,10 @@ import { IWalletInfo } from '../IWalletInfo';
 import { SendOutlined, WalletOutlined, SettingOutlined, ReloadOutlined, ExclamationCircleOutlined, EditOutlined, UnorderedListOutlined } from "@ant-design/icons";
 import transactionHistoryStyles from './TransactionHistory.module.scss';
 import fetch from '@/src/fetch';
+import { useWalletContext } from '../WalletContext';
 
 interface WalletActionsProps {
-    walletInfo?: IWalletInfo | null;
+    // walletInfo?: IWalletInfo | null;
 }
 
 // 付款表单数据类型
@@ -32,6 +33,8 @@ interface IEthAccountItem {
 }
 
 export default function TransactionSend(props: WalletActionsProps) {
+    const { walletInfo } = useWalletContext();
+
     const [form] = Form.useForm<SendFormData>();
     const [loading, setLoading] = useState(false);
     // const [estimatedGas, setEstimatedGas] = useState<string>('21000');
@@ -58,23 +61,23 @@ export default function TransactionSend(props: WalletActionsProps) {
                 limit: 100
             };
 
-            if (props.walletInfo?.networkId) {
-                params.network_id = props.walletInfo.networkId;
+            if (walletInfo?.networkId) {
+                params.network_id = walletInfo.networkId;
             }
 
             // @ts-ignore
             const { data } = await fetch.get('/api/eth/account', { params: params });
             let validReceivers = data.filter((item: any) => {
                 // 基础过滤：排除当前地址
-                const isNotCurrentAddress = item.address.toLowerCase() !== props.walletInfo?.address.toLowerCase();
+                const isNotCurrentAddress = item.address.toLowerCase() !== walletInfo?.address.toLowerCase();
                 const hasPrivateKey = item.private_key !== null && item.private_key !== '';
                 
                 // 网络匹配
                 let networkMatch = false;
-                if (props.walletInfo?.custom) {
-                    networkMatch = item.network_id === props.walletInfo?.networkId;
+                if (walletInfo?.custom) {
+                    networkMatch = item.network_id === walletInfo?.networkId;
                 } else {
-                    networkMatch = item.chain_id === Number(props.walletInfo?.networkInfo?.chainId);
+                    networkMatch = item.chain_id === Number(walletInfo?.networkInfo?.chainId);
                 }
                 
                 // 如果勾选了"仅限我的账户"，只显示有私钥的账户
@@ -101,7 +104,7 @@ export default function TransactionSend(props: WalletActionsProps) {
             loadAccounts();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [addressInputMode, props.walletInfo, onlyMyAccounts]);
+    }, [addressInputMode, walletInfo, onlyMyAccounts]);
 
     // 计算交易费用
     const calculateFee = (gasPrice: number, gasLimit: number) => {
@@ -184,7 +187,7 @@ export default function TransactionSend(props: WalletActionsProps) {
             setLoading(true);
             
             // 检查是否有钱包连接
-            if (!props.walletInfo) {
+            if (!walletInfo) {
                 message.error('请先连接钱包');
                 return;
             }
@@ -193,25 +196,25 @@ export default function TransactionSend(props: WalletActionsProps) {
             let signer: ethers.Wallet | ethers.JsonRpcSigner;
 
             // 判断是否为自定义钱包
-            if (props.walletInfo.custom) {
+            if (walletInfo.custom) {
                 // 使用自定义钱包（privateKey + rpcUrl）
-                if (!props.walletInfo.rpcUrl) {
+                if (!walletInfo.rpcUrl) {
                     message.error('缺少 RPC URL 配置');
                     return;
                 }
                 
-                if (!props.walletInfo.privateKey) {
+                if (!walletInfo.privateKey) {
                     message.error('缺少私钥信息');
                     return;
                 }
 
                 // 创建 provider 和 wallet
-                provider = new ethers.JsonRpcProvider(props.walletInfo.rpcUrl);
-                signer = new ethers.Wallet(props.walletInfo.privateKey, provider);
+                provider = new ethers.JsonRpcProvider(walletInfo.rpcUrl);
+                signer = new ethers.Wallet(walletInfo.privateKey, provider);
                 
                 // 验证地址匹配
                 const walletAddress = await signer.getAddress();
-                if (walletAddress.toLowerCase() !== props.walletInfo.address.toLowerCase()) {
+                if (walletAddress.toLowerCase() !== walletInfo.address.toLowerCase()) {
                     message.error('私钥与地址不匹配');
                     return;
                 }
@@ -227,7 +230,7 @@ export default function TransactionSend(props: WalletActionsProps) {
                 
                 // 验证当前账户
                 const currentAddress = await signer.getAddress();
-                if (currentAddress.toLowerCase() !== props.walletInfo.address.toLowerCase()) {
+                if (currentAddress.toLowerCase() !== walletInfo.address.toLowerCase()) {
                     message.error('钱包地址不匹配，请检查连接状态');
                     return;
                 }

@@ -1,45 +1,57 @@
-import { Button, Card, Space, Table, Tag } from 'antd';
+import { Button, Card, message, Space, Table, Tag } from 'antd';
 import { IWalletInfo } from '../IWalletInfo';
 import { useEffect, useState } from 'react';
 import EtherscanUtil from '../common/etherscanUtil';
 import { ReloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import { useWalletContext } from '../WalletContext';
 
 export interface NftOfWalletProps {
-    walletInfo?: IWalletInfo | null;
+    // walletInfo?: IWalletInfo | null;
 }
 
 export default function NftOfWallet(props: NftOfWalletProps) {
 
+    const { walletInfo } = useWalletContext();
     const [nftList, setNftList] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         setNftList([]);
+        // setLoading(true);
         fetchNftList();
-    }, [props.walletInfo]);
+    }, [walletInfo]);
 
     const fetchNftList = async () => {
-        if (!props.walletInfo) {
+        setLoading(true);
+        if (!walletInfo) {
             return;
         } 
 
-        const chainId = parseInt(props.walletInfo?.networkInfo?.chainId?.toString() || '0');
-        const address = props.walletInfo?.address;
+        const chainId = parseInt(walletInfo?.networkInfo?.chainId?.toString() || '0');
+        const address = walletInfo?.address;
         if (!chainId || !address) {
             return;
         }
 
-        const util = new EtherscanUtil(EtherscanUtil.EndPointUrl.MAINNET, chainId);
-        const nftList = await util.getNftList(address, '', 0, 'latest', 1, 100);
-        setNftList(nftList);
+        try {
+            const util = new EtherscanUtil(EtherscanUtil.EndPointUrl.MAINNET, chainId);
+            const nftList = await util.getNftList(address, '', 0, 'latest', 1, 100);
+            setNftList(nftList);
+        } catch (error: any) {
+            message.error(error.message || '获取NFT列表失败');
+            setNftList([]);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const renderRecordType = (value: string, record: any) => {
-        if (!props.walletInfo) {
+        if (!walletInfo) {
             return;
         } 
 
-        const address = props.walletInfo?.address;
+        const address = walletInfo?.address;
         if (/^0x[0]{40}$/.test(record.from)) {
             return <Tag color="orange">铸造</Tag>;
         } else if (address?.toLowerCase() === record.from?.toLowerCase()) {
@@ -56,11 +68,11 @@ export default function NftOfWallet(props: NftOfWalletProps) {
     };
 
     const renderConterparty = (value: string, record: any) => {
-        if (!props.walletInfo) {
+        if (!walletInfo) {
             return;
         } 
 
-        const address = props.walletInfo?.address;
+        const address = walletInfo?.address;
 
         let ret = '';
         if (address?.toLowerCase() === record.from?.toLowerCase()) {
@@ -91,10 +103,10 @@ export default function NftOfWallet(props: NftOfWalletProps) {
     return (
         <div className="f-flex-column" style={{ gap: 10 }}>
             <Space>
-                <Button type="primary" icon={<ReloadOutlined />} onClick={fetchNftList}>刷新</Button>
+                <Button type="primary" icon={<ReloadOutlined />} onClick={fetchNftList} loading={loading}>刷新</Button>
             </Space>
             <div className="f-flex-1 f-overflow-auto" style={{ marginTop: 10 }}>
-                <Table dataSource={nftList} size="small" columns={columns} />
+                <Table dataSource={nftList} size="small" columns={columns} loading={loading} />
             </div>
         </div>
     );

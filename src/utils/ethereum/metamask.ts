@@ -167,42 +167,6 @@ export function onChainChanged(callback: (chainId: string) => void): () => void 
   };
 }
 
-// // 预定义网络配置
-// export const PREDEFINED_NETWORKS: Record<string, NetworkInfo> = {
-//   '1': {
-//     chainId: '0x1',
-//     name: 'Ethereum Mainnet',
-//     rpcUrl: 'https://mainnet.infura.io/v3/YOUR_PROJECT_ID',
-//     blockExplorerUrl: 'https://etherscan.io',
-//     nativeCurrency: {
-//       name: 'Ether',
-//       symbol: 'ETH',
-//       decimals: 18
-//     }
-//   },
-//   '11155111': {
-//     chainId: '0xaa36a7',
-//     name: 'Sepolia Testnet',
-//     rpcUrl: 'https://sepolia.infura.io/v3/YOUR_PROJECT_ID',
-//     blockExplorerUrl: 'https://sepolia.etherscan.io',
-//     nativeCurrency: {
-//       name: 'Sepolia Ether',
-//       symbol: 'SepoliaETH',
-//       decimals: 18
-//     }
-//   },
-//   '5': {
-//     chainId: '0x5',
-//     name: 'Goerli Testnet',
-//     rpcUrl: 'https://goerli.infura.io/v3/YOUR_PROJECT_ID',
-//     blockExplorerUrl: 'https://goerli.etherscan.io',
-//     nativeCurrency: {
-//       name: 'Goerli Ether',
-//       symbol: 'GoerliETH',
-//       decimals: 18
-//     }
-//   }
-// };
 
 // 声明全局类型
 declare global {

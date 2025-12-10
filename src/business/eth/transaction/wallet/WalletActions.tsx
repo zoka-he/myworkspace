@@ -1,59 +1,54 @@
-import { Card, Button, Typography, Row, Col, Tabs, Table, Descriptions, Tag, Space, Input, Spin, message, Form, InputNumber, Select, Divider, Alert, Modal, Segmented, Checkbox } from "antd";
-import { useState, useEffect } from "react";
-import { TransactionOutlined, SearchOutlined, CopyOutlined, ArrowUpOutlined, ArrowDownOutlined, SendOutlined, WalletOutlined, SettingOutlined, ReloadOutlined, ExclamationCircleOutlined, EditOutlined, UnorderedListOutlined } from "@ant-design/icons";
-import { WalletInfo } from "@/src/utils/ethereum/metamask";
-import copyToClip from '@/src/utils/common/copy';
-import fetch from '@/src/fetch';
+import { Card, Typography, Row, Col, Tabs } from "antd";
+import { TransactionOutlined } from "@ant-design/icons";
 import styles from './WalletActions.module.scss';
-import transactionHistoryStyles from './TransactionHistory.module.scss';
-import { IWalletInfo } from '../IWalletInfo';
-import { ethers } from 'ethers';
 import TransactionSend from './TransactionSend';
 import WatchContract from './WatchContract';
 import WalletLog from './WalletLog';
 import MarketValue from './MarketValue';
 import TransactionHistory from './TransactionHistory';
 import NftOfWallet from './NftOfWallet';
+import { useWalletContext } from '../WalletContext';
+import ErrorFallback from '@/src/components/ErrorFallbackBoundary/ErrorFallback';
 
 
 const { Title, Paragraph } = Typography;
-const { Column } = Table;
 
 export interface WalletActionsProps {
-    walletInfo?: IWalletInfo | null;
+    // walletInfo?: IWalletInfo | null;
 }
 
 export default function WalletActions(props: WalletActionsProps) {
+    const { walletInfo } = useWalletContext();
     let tabs = [
         {
             key: '0',
             label: '钱包指令日志',
-            children: <WalletLog/>,
+            children: <ErrorFallback><WalletLog/></ErrorFallback>,
         },
         {
             key: '1',
             label: '交易发送',
-            children: <TransactionSend walletInfo={props.walletInfo}/>,
+            children: <ErrorFallback><TransactionSend/></ErrorFallback>,
         },
         {
             key: '2',
             label: '交易历史',
-            children: <TransactionHistory walletInfo={props.walletInfo}/>,
+            children: <ErrorFallback><TransactionHistory/></ErrorFallback>,
         },
         {
             key: '3',
             label: 'NFT',
-            children: <NftOfWallet walletInfo={props.walletInfo}/>,
+            children: <ErrorFallback><NftOfWallet/></ErrorFallback>,
         },
         {
             key: '4',
             label: '市值',
-            children: <MarketValue/>,
+            children: <ErrorFallback><MarketValue/></ErrorFallback>,
         },
         {
             key: '5',
             label: '合约监控',
-            children: <WatchContract/>,
+            children: <ErrorFallback><WatchContract/></ErrorFallback>,
         }
     ];
 
@@ -64,7 +59,7 @@ export default function WalletActions(props: WalletActionsProps) {
                 <TransactionOutlined className={styles.cardIcon} />
                 <Title level={4} className={styles.cardTitle}>交易功能</Title>
             </div>
-            {props.walletInfo && (
+            {walletInfo && (
                 <>
                     <Paragraph type="secondary">
                         钱包连接成功！您现在可以：
@@ -72,8 +67,8 @@ export default function WalletActions(props: WalletActionsProps) {
                     <Row>
                         <Col span={8}>
                             <ul className={styles.featureList}>
-                                <li>查看账户余额和交易历史（开发中）</li>
-                                <li>发送和接收以太坊（开发中）</li>
+                                <li>查看账户余额和交易历史</li>
+                                <li>发送和接收以太坊</li>
                             </ul>
                         </Col>
                         <Col span={8}>

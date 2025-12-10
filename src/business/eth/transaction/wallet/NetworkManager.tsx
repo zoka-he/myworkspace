@@ -3,9 +3,6 @@ import { Card, Select, Button, Space, Typography, Tag, message, Modal, Form, Inp
 import { 
   GlobalOutlined, 
   PlusOutlined, 
-  SettingOutlined,
-  CheckOutlined,
-  ExclamationCircleOutlined,
   ReloadOutlined,
   SwitcherOutlined
 } from '@ant-design/icons';
@@ -19,18 +16,19 @@ import { IEthNetwork } from '@/src/types/IEthAccount';
 import fetch from '@/src/fetch';
 import styles from './NetworkManager.module.scss';
 import { ethers } from 'ethers';
+import { useWalletContext } from '../WalletContext';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 interface NetworkManagerProps {
-  walletInfo: WalletInfo | null;
+  // walletInfo: WalletInfo | null;
   onNetworkChange?: (chainId: string) => void;
 }
 
-const NetworkManager: React.FC<NetworkManagerProps> = ({ walletInfo, onNetworkChange }) => {
+const NetworkManager: React.FC<NetworkManagerProps> = ({ onNetworkChange }) => {
+  const { walletInfo } = useWalletContext();
   const [loading, setLoading] = useState(false);
-  const [showAddNetwork, setShowAddNetwork] = useState(false);
   const [networks, setNetworks] = useState<IEthNetwork[]>([]);
   const [networksLoading, setNetworksLoading] = useState(false);
   const [targetNetwork, setTargetNetwork] = useState<IEthNetwork | null>(null);
@@ -87,12 +85,6 @@ const NetworkManager: React.FC<NetworkManagerProps> = ({ walletInfo, onNetworkCh
     // 根据是否为测试网设置颜色
     return network.is_testnet ? 'orange' : 'blue';
   };
-
-  // const getCurrentNetworkName = () => {
-  //   if (!walletInfo) return '未连接';
-  //   const network = networks.find(n => n.chain_id.toString() === walletInfo.chainId);
-  //   return network?.name || `Chain ${walletInfo.chainId}`;
-  // };
 
   const addNetworkToMetamask = async (network: IEthNetwork) => {
     if (!network) {

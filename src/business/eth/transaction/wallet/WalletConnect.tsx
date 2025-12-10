@@ -22,15 +22,16 @@ import {
 import copyToClip from '@/src/utils/common/copy';
 import styles from './WalletConnect.module.scss';
 import { IWalletInfo } from '../IWalletInfo';
+import { useWalletContext } from '../WalletContext';
 
 const { Title, Text, Paragraph } = Typography;
 
 interface WalletConnectProps {
-  onWalletChange?: (walletInfo: IWalletInfo | null) => void;
+  // onWalletChange?: (walletInfo: IWalletInfo | null) => void;
 }
 
-const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
-  const [walletInfo, setWalletInfo] = useState<IWalletInfo | null>(null);
+const WalletConnect: React.FC<WalletConnectProps> = () => {
+  const { walletInfo, setWalletInfo } = useWalletContext();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -46,7 +47,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
     const unsubscribeAccounts = onAccountsChanged((accounts) => {
       if (accounts.length === 0) {
         setWalletInfo(null);
-        onWalletChange?.(null);
+        // onWalletChange?.(null);
       } else {
         refreshWalletInfo();
       }
@@ -60,7 +61,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
       unsubscribeAccounts();
       unsubscribeChain();
     };
-  }, [onWalletChange]);
+  }, []);
 
   const checkWalletStatus = async () => {
     if (!isMetaMaskInstalled()) {
@@ -77,7 +78,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
     try {
       const info = await getWalletInfo();
       setWalletInfo(info);
-      onWalletChange?.(info);
+      // onWalletChange?.(info);
     } catch (error: any) {
       console.error('获取钱包信息失败:', error);
     } finally {
@@ -95,7 +96,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
     try {
       const info = await connectWallet();
       setWalletInfo(info);
-      onWalletChange?.(info);
+      // onWalletChange?.(info);
       message.success('钱包连接成功');
     } catch (error: any) {
       message.error(error.message || '连接钱包失败');
@@ -106,7 +107,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
 
   const handleDisconnect = () => {
     setWalletInfo(null);
-    onWalletChange?.(null);
+    // onWalletChange?.(null);
     message.info('已断开钱包连接');
   };
 

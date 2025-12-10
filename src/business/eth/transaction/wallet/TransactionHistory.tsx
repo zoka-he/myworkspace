@@ -7,6 +7,7 @@ import { IWalletInfo } from '../IWalletInfo';
 import transactionHistoryStyles from './TransactionHistory.module.scss';
 import { WalletActionsProps } from './WalletActions';
 import EtherscanUtil from '../common/etherscanUtil';
+import { useWalletContext } from '../WalletContext';
 
 const { Column } = Table;
 const { Paragraph, Text } = Typography;
@@ -100,6 +101,7 @@ function readableAmount(value: string) {
 }
 
 export default function TransactionHistory(props: WalletActionsProps) {
+    const { walletInfo } = useWalletContext();
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
     const [loading, setLoading] = useState(false);
@@ -114,14 +116,14 @@ export default function TransactionHistory(props: WalletActionsProps) {
     // 获取交易历史
     const fetchTransactions = async (page: number = 1, pageSize: number = 10) => {
 
-        if (!props.walletInfo) {
+        if (!walletInfo) {
             message.warning('请先连接钱包');
             return;
         }
 
-        const chainId = parseInt(props.walletInfo?.networkInfo?.chainId?.toString() || '0');
-        const networkId = props.walletInfo?.networkId;
-        const address = props.walletInfo?.address;
+        const chainId = parseInt(walletInfo?.networkInfo?.chainId?.toString() || '0');
+        const networkId = walletInfo?.networkId;
+        const address = walletInfo?.address;
 
         if (!chainId) {
             message.warning('请先选择网络');
@@ -162,15 +164,12 @@ export default function TransactionHistory(props: WalletActionsProps) {
 
     // 初始化加载
     useEffect(() => {
-        // 默认使用以太坊主网 ID (1)
-        // setNetworkId(1);
-        // fetchTransactions();
-    }, []);
-
-    // 分页变化
-    const handleTableChange = (page: number, pageSize: number) => {
-        fetchTransactions(page, pageSize);
-    };
+        if (walletInfo) {
+            fetchTransactions();
+        } else {
+            setTransactions([]);
+        }
+    }, [walletInfo]);
 
     // 过滤交易
     const filteredTransactions = transactions.filter(tx => {
@@ -201,7 +200,7 @@ export default function TransactionHistory(props: WalletActionsProps) {
     };
 
     const renderAmount = (value: string, record: Transaction) => {
-        const isSend = record.from.toLowerCase() === props.walletInfo?.address?.toLowerCase();
+        const isSend = record.from.toLowerCase() === walletInfo?.address?.toLowerCase();
 
         let className = '';
         if (!/^[0\.]+$/.test(record.value)) {
@@ -265,7 +264,7 @@ export default function TransactionHistory(props: WalletActionsProps) {
                                     dataIndex="type"
                                     key="type"
                                     width={80}
-                                    render={(type, record: Transaction) => renderTxType(record, props.walletInfo)}
+                                    render={(type, record: Transaction) => renderTxType(record, walletInfo)}
                                 />
                                 <Column
                                     title="金额"
@@ -296,7 +295,7 @@ export default function TransactionHistory(props: WalletActionsProps) {
                 {/* 右侧：交易详情 */}
                 <Col xs={24} lg={12} className={transactionHistoryStyles.detailPanel}>
                     <Card size="small" className={transactionHistoryStyles.detailCard} title="交易详情">
-                        <TransactionDetail transaction={selectedTransaction} walletInfo={props.walletInfo} />
+                        <TransactionDetail transaction={selectedTransaction} walletInfo={walletInfo} />
                     </Card>
                 </Col>
             </Row>
@@ -330,7 +329,7 @@ function TransactionDetail(props: { transaction?: Transaction | null, walletInfo
     const gasFee_gwei = EtherscanUtil.wei2gwei(BigInt(transaction.gasPrice) * BigInt(transaction.gasUsed));
     const gasFee_eth = EtherscanUtil.wei2eth(BigInt(transaction.gasPrice) * BigInt(transaction.gasUsed));
 
-    let txType = renderTxType(transaction, props.walletInfo);
+    let txType = renderTxType(transaction, walletInfo);
 
     return (
         <Descriptions
