@@ -1,6 +1,6 @@
 import fetch from '@/src/fetch';
 
-const defaultApiKey = 'NHA2XREMZYNWJTA8KATB2JTSTVATTZH8Z8';
+const defaultApiKey = process.env.ETHERSCAN_API_KEY;
 
 export default class EtherscanUtil {
     // static getEtherscanUrl(chainId: string) {

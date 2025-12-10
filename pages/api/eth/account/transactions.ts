@@ -67,7 +67,7 @@ async function getTransactions(req: NextApiRequest, res: NextApiResponse) {
                     });
                 }
                 
-                provider = new ethers.EtherscanProvider(chain_id, 'NHA2XREMZYNWJTA8KATB2JTSTVATTZH8Z8');
+                provider = new ethers.EtherscanProvider(chain_id, process.env.ETHERSCAN_API_KEY);
                 break;
             default:
                 provider = new ethers.JsonRpcProvider(rpc_url);

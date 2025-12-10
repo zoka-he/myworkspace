@@ -36,7 +36,7 @@ async function getBalance(req: NextApiRequest, res: NextApiResponse) {
     let provider;
     switch (network.vendor) {
         case 'etherscan':
-            provider = new ethers.EtherscanProvider(network.chain_id, 'NHA2XREMZYNWJTA8KATB2JTSTVATTZH8Z8');
+            provider = new ethers.EtherscanProvider(network.chain_id, process.env.ETHERSCAN_API_KEY);
             break;
         default:
             if (!network.rpc_url) {

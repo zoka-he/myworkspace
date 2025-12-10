@@ -35,7 +35,11 @@ const nextConfig = {
 
   webpack: ( config, { buildId, dev, isServer, defaultLoaders, nextRuntime, webpack } ) => {
     // Important: return the modified config
-    console.debug('config.module', config.module);
+    // console.debug('config.module', config.module);
+    config.plugins.push(new webpack.DefinePlugin({
+      'process.env.ETHERSCAN_API_KEY': JSON.stringify(process.env.ETHERSCAN_API_KEY),
+      'process.env.VITE_INFURA_API_KEY': JSON.stringify(process.env.VITE_INFURA_API_KEY),
+    }));
 
     return config;
   },
