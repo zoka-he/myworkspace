@@ -13,8 +13,24 @@
       margin-bottom: 16px;
     }
 
-    .connectButton {
+    .connectWrap {
       margin-top: 16px;
+    }
+
+    .connectAddon {
+      display: inline-block;
+      height: 40px;
+      padding: 0 12px;
+      line-height: 40px;
+      // vertical-align: middle;
+      box-sizing: border-box;
+    }
+
+    .connectSelect {
+      width: 6em;
+    }
+
+    .connectButton {
       height: 40px;
       padding: 0 24px;
     }

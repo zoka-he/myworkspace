@@ -1,4 +1,5 @@
 import fetch from '@/src/fetch';
+import * as EtherConvertUtil from './etherConvertUtil';
 
 const defaultApiKey = process.env.ETHERSCAN_API_KEY;
 
@@ -142,48 +143,12 @@ export default class EtherscanUtil {
 
         return response.result;
     }
-
-    private static bigint_divide_2_float(value: bigint | string, divisor_log: number, decimals = -1) : number {
-        if (typeof value === 'string') {
-            value = BigInt(value);
-        }
-
-        if (divisor_log < 0) {
-            throw new Error('Divisor log must be greater than 0');
-        }
-
-        const divisor = BigInt(10 ** divisor_log);
-        const integer = value / divisor;
-        const fraction = value % divisor;
-        
-        
-        if (fraction === BigInt(0)) {
-            return parseInt(integer.toString());
-        }
-        
-        const fractionStr = fraction.toString().padStart(divisor_log, '0');
-        // console.debug('fractionStr is', fractionStr);
-
-        let trimmed = '';
-        if (decimals < 0) {
-            trimmed = fractionStr.replace(/0+$/, '');
-        } else if (decimals > 0) {
-            trimmed = fractionStr.slice(0, decimals).replace(/0+$/, '');
-        }
-
-        if (!trimmed) {
-            return parseInt(`${integer.toString()}`);
-        } else {
-            return parseFloat(`${integer.toString()}.${trimmed.toString()}`);
-        }
-        
-    }
-
+    
     public static wei2eth(wei: string | bigint, decimals = 6) : number {
-        return this.bigint_divide_2_float(wei, 18, decimals);
+        return EtherConvertUtil.bigint_divide_2_float(wei, 18, decimals);
     }
 
     public static wei2gwei(wei: string | bigint, decimals = 6) : number {
-        return this.bigint_divide_2_float(wei, 9, decimals);
+        return EtherConvertUtil.bigint_divide_2_float(wei, 9, decimals);
     }
 }

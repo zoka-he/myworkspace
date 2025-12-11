@@ -1,4 +1,6 @@
 import { ethers, Network, FeeData } from 'ethers';
+// import { MetaMaskSDK } from '@metamask/sdk';
+import * as EtherConvertUtil from '@/src/business/eth/transaction/common/etherConvertUtil';
 
 export interface WalletInfo {
   address: string;
@@ -24,47 +26,152 @@ export interface NetworkInfo {
   };
 }
 
+export interface IProviderInfo {
+  rdns: string;
+  name: string;
+  icon: string;
+  uuid: string;
+}
+
+export interface IProviderDetail {
+}
+
+export interface IWalletAccount {
+  accounts: string[];
+  selectedAddress: string;
+  balance: string;
+}
+
+export interface INetworkInfo {
+  blockNumber: number;
+  chainId: string;
+  gasPrice: string;
+}
+
+let G_METAMASK_INSTALLED = false;
+let G_METAMASK_FLASK_INSTALLED = false;
+let G_PROVIDERS = new Map<string, { provider: any, info: IProviderInfo }>();
+
+export function startDetectBrowserWalletProvider() {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  window.addEventListener("eip6963:announceProvider", (event: any) => {
+    console.log('announceProvider', event);
+    const providerDetail = event.detail;
+
+    if (providerDetail.info.rdns === 'io.metamask') {
+      console.log('使用eip6963方式检测到Metamask');
+      G_METAMASK_INSTALLED = true;
+      G_PROVIDERS.set('io.metamask', providerDetail);
+    }
+
+    if (providerDetail.info.rdns === 'io.metamask.flask') {
+      console.log('使用eip6963方式检测到Metamask Flask');
+      G_METAMASK_FLASK_INSTALLED = true;
+      G_PROVIDERS.set('io.metamask.flask', providerDetail);
+    }
+  });
+
+  window.dispatchEvent(new Event('eip6963:requestProvider'));
+}
+
 // 检查是否安装了MetaMask
 export function isMetaMaskInstalled(): boolean {
-  return typeof window !== 'undefined' && typeof window.ethereum !== 'undefined';
+  if (G_METAMASK_INSTALLED || G_METAMASK_FLASK_INSTALLED) {
+    return true;
+  }
+
+  return window?.ethereum?.isMetaMask ?? false;
+}
+
+export function listProviderInfos(): IProviderInfo[] {
+  return Array.from(G_PROVIDERS.values()).map(({info}) => info);
+}
+
+export function getProviderInfoByRdns(rdns: string): IProviderInfo | null {
+  return G_PROVIDERS.get(rdns)?.info ?? null;
+}
+
+export function getInstalledProvider(): { provider: any, info: IProviderInfo }[] {
+  return Array.from(G_PROVIDERS.entries()).map(([_, value]) => value);
+}
+
+export function getProvider(rdns: string | null = null) {
+  if (rdns) {
+    return G_PROVIDERS.get(rdns)?.provider;
+  }
+
+  return window.ethereum;
 }
 
 // 检查是否已连接
-export function isConnected(): boolean {
-  return isMetaMaskInstalled() && window.ethereum.selectedAddress !== null;
+export function isConnected(providerOrRdns: any = null): boolean {
+  console.debug('isConnected parameter:', arguments);
+
+  let provider = null;
+  if (typeof providerOrRdns === 'string') {
+    provider = getProvider(providerOrRdns);
+  } else {
+    provider = providerOrRdns;
+  }
+
+  if (!provider) {
+    console.debug('isConnected provider is null');
+    return false;
+  }
+
+  return provider?.selectedAddress !== null;
 }
 
+
 // 连接MetaMask钱包
-export async function connectWallet(): Promise<WalletInfo | null> {
-  if (!isMetaMaskInstalled()) {
-    throw new Error('请先安装MetaMask钱包');
+export async function connectWallet(rdns: string): Promise<{ info: IProviderInfo | null, provider: any }> {
+
+  let provider = null;
+  if (rdns) {
+    provider = getProvider(rdns);
+  } else {
+    provider = window.ethereum;
   }
 
-  try {
-    // 请求连接钱包
-    const accounts = await window.ethereum.request({
-      method: 'eth_requestAccounts'
-    });
-
-    if (accounts.length === 0) {
-      throw new Error('未获取到账户信息');
-    }
-
-    return await getWalletInfo();
-    
-  } catch (error: any) {
-    if (error.code === 4001) {
-      throw new Error('用户拒绝了连接请求');
-    }
-    throw new Error(error.message || '连接钱包失败');
+  if (!provider) {
+    throw new Error('请先安装MetaMask钱包或其他浏览器钱包');
   }
+
+  // 请求连接钱包
+  const accounts = await provider.request({
+    method: 'eth_requestAccounts'
+  });
+
+  if (accounts.length === 0) {
+    throw new Error('未获取到账户信息');
+  }
+
+  return {
+    info: G_PROVIDERS.get(rdns)?.info ?? null,
+    provider: provider,
+  }
+}
+
+export async function disconnectWallet(rdns: string | null = null): Promise<void> {
+  let provider = getProvider(rdns);
+  if (!provider) {
+    throw new Error('请先安装MetaMask钱包或其他浏览器钱包');
+  }
+
+  await provider.request({
+    method: 'eth_requestAccounts'
+  });
 }
 
 // 获取当前钱包信息
 export async function getWalletInfo(): Promise<WalletInfo | null> {
-  if (!isMetaMaskInstalled() || !isConnected()) {
-    return null;
-  }
+  
+  // if (!isMetaMaskInstalled() || !isConnected()) {
+  //   return null;
+  // }
 
   try {
     const provider = new ethers.BrowserProvider(window.ethereum);
@@ -134,28 +241,44 @@ export async function addNetwork(networkInfo: NetworkInfo): Promise<void> {
 }
 
 // 监听账户变化
-export function onAccountsChanged(callback: (accounts: string[]) => void): () => void {
-  if (!isMetaMaskInstalled()) {
+export function onAccountsChanged(providerRdns: string | null = null, callback: (accounts: string[]) => void): () => void {
+  let provider = getProvider(providerRdns);
+  if (!provider) {
     return () => {};
   }
 
   const handler = (accounts: string[]) => {
+    console.debug('accountsChanged', accounts);
     callback(accounts);
   };
 
-  window.ethereum.on('accountsChanged', handler);
+  provider.on('accountsChanged', handler);
 
   return () => {
-    window.ethereum.removeListener('accountsChanged', handler);
+    provider.removeListener('accountsChanged', handler);
+  };
+}
+
+export function onProviderAccountsChanged(providerRdns: string, callback: (accounts: string[]) => void): () => void {
+  const providerDetail = G_PROVIDERS.get(providerRdns);
+  if (!providerDetail) {
+    return () => {};
+  }
+  
+  providerDetail.provider.on('accountsChanged', callback);
+
+  return () => {
+    providerDetail.provider.removeListener('accountsChanged', callback);
   };
 }
 
 // 监听网络变化
-export function onChainChanged(callback: (chainId: string) => void): () => void {
-  if (!isMetaMaskInstalled()) {
+export function onChainChanged(rdns: string | null = null, callback: (chainId: string) => void): () => void {
+  let provider = getProvider(rdns);
+  if (!provider) {
     return () => {};
   }
-
+  
   const handler = (chainId: string) => {
     callback(chainId);
   };
@@ -167,15 +290,178 @@ export function onChainChanged(callback: (chainId: string) => void): () => void 
   };
 }
 
+export function onProviderChainChanged(providerRdns: string, callback: (chainId: string) => void): () => void {
+  const providerDetail = G_PROVIDERS.get(providerRdns);
+  if (!providerDetail) {
+    return () => {};
+  }
+  
+  providerDetail.provider.on('chainChanged', callback);
 
-// 声明全局类型
-declare global {
-  interface Window {
-    ethereum?: {
-      request: (args: { method: string; params?: any[] }) => Promise<any>;
-      on: (event: string, handler: (...args: any[]) => void) => void;
-      removeListener: (event: string, handler: (...args: any[]) => void) => void;
-      selectedAddress: string | null;
-    };
+  return () => {
+    providerDetail.provider.removeListener('chainChanged', callback);
+  };
+}
+
+export function readableAmount(value: string) {
+  if (!value) {
+    return '--'
+  }
+  return EtherConvertUtil.readableAmount(value);
+}
+
+// 钱包工具类（原生实现）
+export class MetamaskTool {
+
+  private chainChangeHandler: ((chainId: string) => void) | null = null;
+  private accountsChangedHandler: ((accounts: string[]) => void) | null = null;
+
+  private gasPrice: string | null = null;
+  private blockNumber: number | null = null;
+  private chainId: string | null = null;
+  private accounts: string[] | null = null;
+  private balance: string | null = null;
+  private networkName: string | null = null;
+  private networkInfo: Network | null = null;
+  private feeData: FeeData | null = null;
+
+  constructor(private readonly provider: any) {
+
+    if (typeof provider === 'string') {
+      this.provider = getProvider(provider);
+    } else {
+      this.provider = provider;
+    }
+
+    if (!provider) {
+      throw new Error('provider is required');
+    }
+  }
+
+  public onChainChanged(callback: (chainId: string) => void): void {
+    if (this.chainChangeHandler) {
+      this.provider.removeListener('chainChanged', this.chainChangeHandler);
+    }
+    this.chainChangeHandler = callback;
+    this.provider.on('chainChanged', callback);
+  }
+
+  public onAccountsChanged(callback: (accounts: string[]) => void): void {
+    if (this.accountsChangedHandler) {
+      this.provider.removeListener('accountsChanged', this.accountsChangedHandler);
+    }
+    this.accountsChangedHandler = callback;
+    this.provider.on('accountsChanged', callback);
+  }
+
+  public offAllListeners(): void {
+    if (this.chainChangeHandler) {
+      this.provider.removeListener('chainChanged', this.chainChangeHandler);
+    }
+    if (this.accountsChangedHandler) {
+      this.provider.removeListener('accountsChanged', this.accountsChangedHandler);
+    }
+    this.chainChangeHandler = null;
+    this.accountsChangedHandler = null;
+  }
+
+  public getAccounts(): string[] | null {
+    return this.accounts;
+  }
+
+  public getSelectedAddress(): string | null {
+    return this.provider.selectedAddress;
+  }
+
+  public getBalance(): string | null {
+    return this.balance;
+  }
+
+  public getChainId(): string | null {
+    return this.chainId;
+  }
+
+  public getBlockNumber(): number | null {
+    return this.blockNumber;
+  }
+
+  public getGasPrice(): string | null {
+    return this.gasPrice;
+  }
+
+  public async requestAccountsAddress(): Promise<string[]> {
+    const response = await this.provider.request({
+      method: 'eth_requestAccounts'
+    });
+    this.accounts = response;
+    return response;
+  }
+
+  public async requestBalance(address?: string): Promise<string> {
+    if (!address) {
+      address = this.provider.selectedAddress;
+    }
+
+    const balance = await this.provider.request({
+      method: 'eth_getBalance',
+      params: [address, 'latest']
+    })
+
+    this.balance = balance;
+    return balance;
+  }
+
+  public async requestChainId(): Promise<string> {
+    const chainId = await this.provider.request({
+      method: 'eth_chainId',
+      params: []
+    })
+    this.chainId = chainId;
+    return chainId;
+  }
+
+  public async requestBlockNumber(): Promise<number> {
+    const blockNumber = await this.provider.request({
+      method: 'eth_blockNumber',
+      params: []
+    })
+    this.blockNumber = blockNumber;
+    return blockNumber;
+  }
+
+  public async requestGasPrice(): Promise<string> {
+    const gasPrice = await this.provider.request({
+      method: 'eth_gasPrice',
+      params: []
+    })
+    this.gasPrice = gasPrice;
+    return gasPrice;
+  }
+
+  public async requestWalletInfo(): Promise<IWalletAccount & INetworkInfo & { custom: boolean, isConnected: boolean }> {
+    try {
+      const [accounts, balance, chainId, blockNumber, gasPrice] = await Promise.all([
+        this.requestAccountsAddress(),
+        this.requestBalance(),
+        this.requestChainId(),
+        this.requestBlockNumber(),
+        this.requestGasPrice()
+      ])
+
+      return {
+        accounts,
+        selectedAddress: this.provider.selectedAddress,
+        balance: balance,
+        chainId: chainId,
+        blockNumber: blockNumber,
+        gasPrice: gasPrice,
+        custom: false,
+        isConnected: true
+      }
+
+    } catch (error) {
+      console.error('获取钱包信息失败:', error);
+      return null;
+    }
   }
 }

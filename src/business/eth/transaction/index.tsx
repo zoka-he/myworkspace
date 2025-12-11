@@ -1,6 +1,6 @@
 import React, { useState, createContext, useContext } from 'react';
 import { Row, Col, message } from 'antd';
-import WalletConnect from '@/src/business/eth/transaction/wallet/WalletConnect';
+import WalletConnect from '@/src/business/eth/transaction/wallet/walletConnect';
 import CustomWallet from '@/src/business/eth/transaction/wallet/CustomWallet';
 import NetworkManager from '@/src/business/eth/transaction/wallet/NetworkManager';
 import { WalletInfo } from '@/src/utils/ethereum/metamask';
