@@ -13,15 +13,7 @@ import {
   ClockCircleOutlined
 } from '@ant-design/icons';
 import { 
-  connectWallet, 
-  getWalletInfo, 
-  getProvider,
   isMetaMaskInstalled, 
-  isConnected,
-  onAccountsChanged,
-  onChainChanged,
-  WalletInfo,
-  getInstalledProvider,
   IProviderInfo,
   listProviderInfos,
   readableAmount,
@@ -72,44 +64,13 @@ export default function WalletConnect() {
     }
 
     // 然后更新钱包信息
-    refreshWalletInfo();
+    setRefreshing(true);
+    refreshWalletInfo().then(() => {
+      setRefreshing(false);
+    });
   }, [providerInfo, isWalletConnected]);
 
-  // 监听账户和网络变化
-  // useEffect(() => {
-  //   if (!isMetaMaskInstalled()) return;
-
-  //   const unsubscribeAccounts = onAccountsChanged(null, (accounts) => {
-  //     if (accounts.length === 0) {
-  //       setWalletInfo(null);
-  //       // onWalletChange?.(null);
-  //     } else {
-  //       refreshWalletInfo();
-  //     }
-  //   });
-
-  //   const unsubscribeChain = onChainChanged(null,(chainId) => {
-  //     refreshWalletInfo();
-  //   });
-
-  //   return () => {
-  //     unsubscribeAccounts();
-  //     unsubscribeChain();
-  //   };
-  // }, []);
-
-  // const checkWalletStatus = async () => {
-  //   if (!isMetaMaskInstalled()) {
-  //     return;
-  //   }
-
-  //   const providers = getInstalledProvider();
-  //   setInstalledBrowserWalletProviders(providers);
-
-  //   if (isConnected()) {
-  //     await refreshWalletInfo();
-  //   }
-  // };
+  
 
   // 切换钱包提供者
   const handleSwitchProvider = () => {
@@ -118,23 +79,6 @@ export default function WalletConnect() {
     message.success('切换钱包提供者成功');
   };
 
-  // 刷新钱包信息
-  // const refreshWalletInfo = async () => {
-  //   refreshWalletInfo();
-    // setRefreshing(true);
-    // try {
-    //   const info = await getWalletInfo();
-    //   setWalletInfo(info);
-    //   // onWalletChange?.(info);
-    // } catch (error: any) {
-    //   console.error('获取钱包信息失败:', error);
-    // } finally {
-    //   setRefreshing(false);
-    // }
-  // };
-
-  
-
   const handleDisconnect = () => {
     // setWalletInfo(null);
     // onWalletChange?.(null);
@@ -142,19 +86,14 @@ export default function WalletConnect() {
   };
 
   const handleCopyAddress = () => {
-  //   if (walletInfo?.address) {
-  //     copyToClip(walletInfo.address);
-  //     message.success('地址已复制');
-  //   }
+    if (accountInfo?.selectedAddress) {
+      copyToClip(accountInfo.selectedAddress);
+      message.success('地址已复制');
+    }
   };
 
   const formatBalance = (balance: string) => {
     return readableAmount(balance);
-  //   const num = parseFloat(balance);
-  //   if (num < 0.001) {
-  //     return num.toExponential(3);
-  //   }
-  //   return num.toFixed(4);
   };
 
   const getNetworkTagColor = (chainId: string) => {
@@ -239,24 +178,26 @@ export default function WalletConnect() {
           <Divider />
 
           <div className={styles.infoSection}>
-            <Descriptions size="small" column={2} bordered labelStyle={{width: '120px'}}>
-              <Descriptions.Item label={<><UserOutlined /> <span>钱包地址</span></>} span={2}>
-                <Text code className={styles.address}>{accountInfo?.selectedAddress}</Text>
-                <Button type="text" icon={<CopyOutlined />} onClick={handleCopyAddress} size="small"/>
-              </Descriptions.Item>
+            <Spin spinning={refreshing}>
+              <Descriptions size="small" column={2} bordered labelStyle={{width: '120px'}}>
+                <Descriptions.Item label={<><UserOutlined /> <span>钱包地址</span></>} span={2}>
+                  <Text code className={styles.address}>{accountInfo?.selectedAddress}</Text>
+                  <Button type="text" icon={<CopyOutlined />} onClick={handleCopyAddress} size="small"/>
+                </Descriptions.Item>
 
-              <Descriptions.Item label={<><DollarOutlined /> <span>账户余额</span></>} span={2}>
-                <Text strong className={styles.balance} style={{ color: '#52c41a' }}>{formatBalance(accountInfo?.balance)}</Text>
-              </Descriptions.Item>
+                <Descriptions.Item label={<><DollarOutlined /> <span>账户余额</span></>} span={2}>
+                  <Text strong className={styles.balance} style={{ color: '#52c41a' }}>{formatBalance(accountInfo?.balance)}</Text>
+                </Descriptions.Item>
 
-              <Descriptions.Item label={<><GlobalOutlined /> <span>Chain ID</span></>} span={2}>
-                {formatHexToDec(networkInfo?.chainId)} ({networkInfo?.chainId})
-              </Descriptions.Item>
+                <Descriptions.Item label={<><GlobalOutlined /> <span>Chain ID</span></>} span={2}>
+                  {formatHexToDec(networkInfo?.chainId)} ({networkInfo?.chainId})
+                </Descriptions.Item>
 
-              <Descriptions.Item label={<><ClockCircleOutlined /> <span>区块高度</span></>} span={1}> {formatHexToDec(networkInfo?.blockNumber)}</Descriptions.Item>
+                <Descriptions.Item label={<><ClockCircleOutlined /> <span>区块高度</span></>} span={1}> {formatHexToDec(networkInfo?.blockNumber)}</Descriptions.Item>
 
-              <Descriptions.Item label={<><DollarOutlined /> <span>Gas价格</span></>} span={1}> {formatHexToDec(networkInfo?.gasPrice)}</Descriptions.Item>
-            </Descriptions>
+                <Descriptions.Item label={<><DollarOutlined /> <span>Gas价格</span></>} span={1}> {formatHexToDec(networkInfo?.gasPrice)}</Descriptions.Item>
+              </Descriptions>
+            </Spin>
           </div>
           
         </div>

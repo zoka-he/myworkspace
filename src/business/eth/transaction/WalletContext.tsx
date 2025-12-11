@@ -12,7 +12,7 @@ declare type WalletContextType = {
     getWalletTool: () => MetamaskTool | null;
     accountInfo: any;
     networkInfo: any;
-    refreshWalletInfo: () => void;
+    refreshWalletInfo: () => Promise<void>;
 }
 
 export const WalletContext = createContext<WalletContextType>({
@@ -24,7 +24,7 @@ export const WalletContext = createContext<WalletContextType>({
     getWalletTool: () => null,
     accountInfo: null,
     networkInfo: null,
-    refreshWalletInfo: () => {},
+    refreshWalletInfo: () => Promise.resolve(),
 });
 
 export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
@@ -73,6 +73,8 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
 
     // 监听钱包提供者变化
     useEffect(() => {
+        console.debug('provider发生变化导致MetamaskTool需要更新');
+
         // 移除旧的监听
         if (walletToolRef.current) {
             walletToolRef.current.offAllListeners();
@@ -82,9 +84,11 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
         if (walletProviderRef.current) {
             let tool = new MetamaskTool(walletProviderRef.current);
             tool.onChainChanged((chainId) => {
+                console.debug('network发生变化导致钱包信息需要更新');
                 refreshWalletInfo();
             });
             tool.onAccountsChanged((accounts) => {
+                console.debug('accounts发生变化导致钱包信息需要更新');
                 refreshWalletInfo();
             });
             walletToolRef.current = new MetamaskTool(walletProviderRef.current);

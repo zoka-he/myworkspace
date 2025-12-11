@@ -51,13 +51,24 @@ export interface INetworkInfo {
 let G_METAMASK_INSTALLED = false;
 let G_METAMASK_FLASK_INSTALLED = false;
 let G_PROVIDERS = new Map<string, { provider: any, info: IProviderInfo }>();
+let G_DETECTION_STARTED = false; // 标记是否已经启动检测
 
 export function startDetectBrowserWalletProvider() {
   if (typeof window === 'undefined') {
     return false;
   }
 
-  window.addEventListener("eip6963:announceProvider", (event: any) => {
+  // 防止重复添加监听器
+  if (G_DETECTION_STARTED) {
+    console.debug('Provider detection already started, skipping...');
+    // 即使已经启动，也重新请求一次，以防有新的 provider 加入
+    window.dispatchEvent(new Event('eip6963:requestProvider'));
+    return true;
+  }
+
+  G_DETECTION_STARTED = true;
+
+  const handleAnnounceProvider = (event: any) => {
     console.log('announceProvider', event);
     const providerDetail = event.detail;
 
@@ -72,9 +83,14 @@ export function startDetectBrowserWalletProvider() {
       G_METAMASK_FLASK_INSTALLED = true;
       G_PROVIDERS.set('io.metamask.flask', providerDetail);
     }
-  });
+  };
 
+  window.addEventListener("eip6963:announceProvider", handleAnnounceProvider);
+
+  // 请求已安装的 provider 宣布自己
   window.dispatchEvent(new Event('eip6963:requestProvider'));
+
+  return true;
 }
 
 // 检查是否安装了MetaMask
