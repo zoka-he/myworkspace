@@ -14,14 +14,15 @@ export default function BeforeConnect() {
     const [selectedBrowserWalletProviderRdns, setSelectedBrowserWalletProviderRdns] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     const [show32002, setShow32002] = useState(false);
+    const [refreshKey, setRefreshKey] = useState(0);
 
-    const [installedProviderInfos, setInstalledProviderInfos] = useState<IProviderInfo[]>([]);
+    // 使用 useMemo 动态计算，确保 options 始终是最新的
+    const installedProviderInfos = useMemo(() => {
+        return listProviderInfos();
+    }, [refreshKey]);
 
     // 初始化检查
     useEffect(() => {
-        // checkWalletStatus();
-        setInstalledProviderInfos(listProviderInfos());
-
         // 加载所有浏览器钱包提供者
         let providers = getInstalledProvider();
 
@@ -48,6 +49,53 @@ export default function BeforeConnect() {
         
     }, []);
 
+    // 监听 provider 变化，定期刷新 provider 列表（处理异步加载的情况）
+    useEffect(() => {
+        // 初始检查
+        const checkProviders = () => {
+            const currentProviders = listProviderInfos();
+            if (currentProviders.length > 0) {
+                setRefreshKey(prev => prev + 1);
+                
+                // 如果之前设置了 selectedBrowserWalletProviderRdns，但 options 中没有，现在有了，确保值仍然有效
+                if (selectedBrowserWalletProviderRdns) {
+                    const exists = currentProviders.some(info => info.rdns === selectedBrowserWalletProviderRdns);
+                    if (!exists) {
+                        // 如果之前选择的值不存在了，尝试使用第一个可用的
+                        if (currentProviders.length > 0) {
+                            setSelectedBrowserWalletProviderRdns(currentProviders[0].rdns);
+                        }
+                    }
+                }
+            }
+        };
+
+        // 立即检查一次
+        checkProviders();
+
+        // 设置定时器，定期检查 provider 是否已加载（最多检查 5 秒）
+        const maxAttempts = 10;
+        let attempts = 0;
+        const interval = setInterval(() => {
+            attempts++;
+            checkProviders();
+            if (attempts >= maxAttempts) {
+                clearInterval(interval);
+            }
+        }, 500);
+
+        // 监听 eip6963:announceProvider 事件
+        const handleAnnounceProvider = () => {
+            checkProviders();
+        };
+        window.addEventListener('eip6963:announceProvider', handleAnnounceProvider);
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('eip6963:announceProvider', handleAnnounceProvider);
+        };
+    }, [selectedBrowserWalletProviderRdns]);
+
     function renderProviderOption(info: IProviderInfo ) {
         return (
           <Space key={info.rdns} align='center'>
@@ -59,6 +107,11 @@ export default function BeforeConnect() {
 
     // 尝试连接钱包，成功会设置钱包信息和钱包提供者
     const handleConnect = async () => {
+        if (!selectedBrowserWalletProviderRdns) {
+            message.error('请先选择钱包');
+            return;
+        }
+        
         if (selectedBrowserWalletProviderRdns.startsWith('io.metamask') && !isMetaMaskInstalled()) {
             message.error('请先安装MetaMask钱包');
             return;
@@ -92,12 +145,19 @@ export default function BeforeConnect() {
                     <Paragraph type="secondary">连接您的MetaMask钱包以查看账户信息和网络状态</Paragraph>
                     <Space.Compact className={styles.connectWrap}>
                         <Space.Addon className={styles.connectAddon}><Text><WalletOutlined /></Text></Space.Addon>
-                        <Select className={styles.connectSelect} size="large" value={selectedBrowserWalletProviderRdns} 
+                        <Select 
+                            className={styles.connectSelect} 
+                            size="large" 
+                            value={selectedBrowserWalletProviderRdns} 
                             loading={loading}
+                            onChange={(value) => setSelectedBrowserWalletProviderRdns(value)}
                             options={installedProviderInfos.map((info) => ({
                                 label: renderProviderOption(info),
                                 value: info.rdns
-                            }))} />
+                            }))} 
+                            placeholder="请选择钱包"
+                            notFoundContent={installedProviderInfos.length === 0 ? "未检测到钱包" : undefined}
+                        />
                         <Button 
                             type="primary" 
                             size="large"
