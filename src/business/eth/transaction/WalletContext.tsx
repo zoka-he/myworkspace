@@ -37,6 +37,15 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
 
     const isWalletConnected = isConnected(walletProviderRef.current);
 
+    useEffect(() => {
+        return () => {
+            // 移除所有监听
+            if (walletToolRef.current) {
+                walletToolRef.current.offAllListeners();
+            }
+        }
+    }, [])
+
     const switchRdns = useCallback((rdns: string | null) => {
         if (!rdns) {
             setWalletInfo(null);

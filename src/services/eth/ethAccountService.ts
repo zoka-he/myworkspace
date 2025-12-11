@@ -41,7 +41,7 @@ class EthAccountService extends MysqlService {
         }
 
         if (where) {
-            sql += ` where ${where}`;
+            sql += ` where ${where.replace(/^\s?and\s?/i, '')}`;
         }
 
         return await this.query(sql, values, ['ea.create_time asc'], page, limit);

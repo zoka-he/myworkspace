@@ -87,7 +87,9 @@ export function isMetaMaskInstalled(): boolean {
 }
 
 export function listProviderInfos(): IProviderInfo[] {
-  return Array.from(G_PROVIDERS.values()).map(({info}) => info);
+  let infos = Array.from(G_PROVIDERS.values()).map(({info}) => info);
+  console.debug('listProviderInfos -->', infos);
+  return infos;
 }
 
 export function getProviderInfoByRdns(rdns: string): IProviderInfo | null {
@@ -273,35 +275,35 @@ export function onProviderAccountsChanged(providerRdns: string, callback: (accou
 }
 
 // 监听网络变化
-export function onChainChanged(rdns: string | null = null, callback: (chainId: string) => void): () => void {
-  let provider = getProvider(rdns);
-  if (!provider) {
-    return () => {};
-  }
+// export function onChainChanged(rdns: string | null = null, callback: (chainId: string) => void): () => void {
+//   let provider = getProvider(rdns);
+//   if (!provider) {
+//     return () => {};
+//   }
   
-  const handler = (chainId: string) => {
-    callback(chainId);
-  };
+//   const handler = (chainId: string) => {
+//     callback(chainId);
+//   };
 
-  window.ethereum.on('chainChanged', handler);
+//   window.ethereum.on('chainChanged', handler);
 
-  return () => {
-    window.ethereum.removeListener('chainChanged', handler);
-  };
-}
+//   return () => {
+//     window.ethereum.removeListener('chainChanged', handler);
+//   };
+// }
 
-export function onProviderChainChanged(providerRdns: string, callback: (chainId: string) => void): () => void {
-  const providerDetail = G_PROVIDERS.get(providerRdns);
-  if (!providerDetail) {
-    return () => {};
-  }
+// export function onProviderChainChanged(providerRdns: string, callback: (chainId: string) => void): () => void {
+//   const providerDetail = G_PROVIDERS.get(providerRdns);
+//   if (!providerDetail) {
+//     return () => {};
+//   }
   
-  providerDetail.provider.on('chainChanged', callback);
+//   providerDetail.provider.on('chainChanged', callback);
 
-  return () => {
-    providerDetail.provider.removeListener('chainChanged', callback);
-  };
-}
+//   return () => {
+//     providerDetail.provider.removeListener('chainChanged', callback);
+//   };
+// }
 
 export function readableAmount(value: string) {
   if (!value) {

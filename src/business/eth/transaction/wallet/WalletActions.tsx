@@ -18,7 +18,7 @@ export interface WalletActionsProps {
 }
 
 export default function WalletActions(props: WalletActionsProps) {
-    const { walletInfo } = useWalletContext();
+    const { isWalletConnected } = useWalletContext();
     let tabs = [
         {
             key: '0',
@@ -59,7 +59,7 @@ export default function WalletActions(props: WalletActionsProps) {
                 <TransactionOutlined className={styles.cardIcon} />
                 <Title level={4} className={styles.cardTitle}>交易功能</Title>
             </div>
-            {walletInfo && (
+            {isWalletConnected && (
                 <>
                     <Paragraph type="secondary">
                         钱包连接成功！您现在可以：

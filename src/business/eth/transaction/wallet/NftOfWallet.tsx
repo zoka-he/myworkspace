@@ -12,7 +12,7 @@ export interface NftOfWalletProps {
 
 export default function NftOfWallet(props: NftOfWalletProps) {
 
-    const { walletInfo } = useWalletContext();
+    const { accountInfo, networkInfo, isWalletConnected } = useWalletContext();
     const [nftList, setNftList] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
@@ -20,16 +20,16 @@ export default function NftOfWallet(props: NftOfWalletProps) {
         setNftList([]);
         // setLoading(true);
         fetchNftList();
-    }, [walletInfo]);
+    }, [accountInfo, networkInfo]);
 
     const fetchNftList = async () => {
         setLoading(true);
-        if (!walletInfo) {
+        if (!isWalletConnected) {
             return;
         } 
 
-        const chainId = parseInt(walletInfo?.networkInfo?.chainId?.toString() || '0');
-        const address = walletInfo?.address;
+        const chainId = parseInt(networkInfo?.chainId?.toString() || '0');
+        const address = accountInfo?.selectedAddress;
         if (!chainId || !address) {
             return;
         }
@@ -47,11 +47,11 @@ export default function NftOfWallet(props: NftOfWalletProps) {
     };
 
     const renderRecordType = (value: string, record: any) => {
-        if (!walletInfo) {
+        if (!isWalletConnected) {
             return;
         } 
 
-        const address = walletInfo?.address;
+        const address = accountInfo?.selectedAddress;
         if (/^0x[0]{40}$/.test(record.from)) {
             return <Tag color="orange">铸造</Tag>;
         } else if (address?.toLowerCase() === record.from?.toLowerCase()) {
@@ -68,11 +68,11 @@ export default function NftOfWallet(props: NftOfWalletProps) {
     };
 
     const renderConterparty = (value: string, record: any) => {
-        if (!walletInfo) {
+        if (!isWalletConnected) {
             return;
         } 
 
-        const address = walletInfo?.address;
+        const address = accountInfo?.selectedAddress;
 
         let ret = '';
         if (address?.toLowerCase() === record.from?.toLowerCase()) {

@@ -66,13 +66,13 @@ function renderStatusTag(status: string, record: Transaction) {
     }
 };
 
-function renderTxType(transaction: Transaction, walletInfo?: IWalletInfo | null) {
-    if (!walletInfo) {
+function renderTxType(transaction: Transaction, accountInfo?: any | null) {
+    if (!accountInfo) {
         return null;
     }
 
     const senderAddress = transaction.from.toLowerCase();
-    const walletAddress = walletInfo?.address?.toLowerCase() || '';
+    const walletAddress = accountInfo?.selectedAddress?.toLowerCase() || '';
 
     const isContractCreation = transaction.contractAddress?.length > 0 && transaction.contractAddress !== '0x0000000000000000000000000000000000000000';
 
@@ -101,7 +101,7 @@ function readableAmount(value: string) {
 }
 
 export default function TransactionHistory(props: WalletActionsProps) {
-    const { walletInfo } = useWalletContext();
+    const { isWalletConnected, networkInfo, accountInfo } = useWalletContext();
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
     const [loading, setLoading] = useState(false);
@@ -116,14 +116,14 @@ export default function TransactionHistory(props: WalletActionsProps) {
     // 获取交易历史
     const fetchTransactions = async (page: number = 1, pageSize: number = 10) => {
 
-        if (!walletInfo) {
+        if (!isWalletConnected) {
             message.warning('请先连接钱包');
             return;
         }
 
-        const chainId = parseInt(walletInfo?.networkInfo?.chainId?.toString() || '0');
-        const networkId = walletInfo?.networkId;
-        const address = walletInfo?.address;
+        const chainId = parseInt(networkInfo?.chainId?.toString() || '0');
+        // const networkId = walletInfo?.networkId;
+        const address = accountInfo?.selectedAddress;
 
         if (!chainId) {
             message.warning('请先选择网络');
@@ -164,12 +164,12 @@ export default function TransactionHistory(props: WalletActionsProps) {
 
     // 初始化加载
     useEffect(() => {
-        if (walletInfo) {
+        if (isWalletConnected) {
             fetchTransactions();
         } else {
             setTransactions([]);
         }
-    }, [walletInfo]);
+    }, [isWalletConnected, accountInfo, networkInfo]);
 
     // 过滤交易
     const filteredTransactions = transactions.filter(tx => {
@@ -200,7 +200,7 @@ export default function TransactionHistory(props: WalletActionsProps) {
     };
 
     const renderAmount = (value: string, record: Transaction) => {
-        const isSend = record.from.toLowerCase() === walletInfo?.address?.toLowerCase();
+        const isSend = record.from.toLowerCase() === accountInfo?.selectedAddress?.toLowerCase();
 
         let className = '';
         if (!/^[0\.]+$/.test(record.value)) {
@@ -264,7 +264,7 @@ export default function TransactionHistory(props: WalletActionsProps) {
                                     dataIndex="type"
                                     key="type"
                                     width={80}
-                                    render={(type, record: Transaction) => renderTxType(record, walletInfo)}
+                                    render={(type, record: Transaction) => renderTxType(record, accountInfo)}
                                 />
                                 <Column
                                     title="金额"
@@ -295,7 +295,7 @@ export default function TransactionHistory(props: WalletActionsProps) {
                 {/* 右侧：交易详情 */}
                 <Col xs={24} lg={12} className={transactionHistoryStyles.detailPanel}>
                     <Card size="small" className={transactionHistoryStyles.detailCard} title="交易详情">
-                        <TransactionDetail transaction={selectedTransaction} walletInfo={walletInfo} />
+                        <TransactionDetail transaction={selectedTransaction} walletInfo={accountInfo} />
                     </Card>
                 </Col>
             </Row>
@@ -304,6 +304,9 @@ export default function TransactionHistory(props: WalletActionsProps) {
 }
 
 function TransactionDetail(props: { transaction?: Transaction | null, walletInfo?: IWalletInfo | null }) {
+
+
+    const { accountInfo } = useWalletContext();
 
     if (!props.transaction) {
         return <div className={transactionHistoryStyles.emptyDetail}>
@@ -329,7 +332,7 @@ function TransactionDetail(props: { transaction?: Transaction | null, walletInfo
     const gasFee_gwei = EtherscanUtil.wei2gwei(BigInt(transaction.gasPrice) * BigInt(transaction.gasUsed));
     const gasFee_eth = EtherscanUtil.wei2eth(BigInt(transaction.gasPrice) * BigInt(transaction.gasUsed));
 
-    let txType = renderTxType(transaction, walletInfo);
+    let txType = renderTxType(transaction, accountInfo);
 
     return (
         <Descriptions

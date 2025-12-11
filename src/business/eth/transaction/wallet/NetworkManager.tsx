@@ -27,7 +27,7 @@ interface NetworkManagerProps {
 }
 
 const NetworkManager: React.FC<NetworkManagerProps> = ({ onNetworkChange }) => {
-  const { walletInfo } = useWalletContext();
+  const { networkInfo, isWalletConnected } = useWalletContext();
   const [loading, setLoading] = useState(false);
   const [networks, setNetworks] = useState<IEthNetwork[]>([]);
   const [networksLoading, setNetworksLoading] = useState(false);
@@ -56,7 +56,7 @@ const NetworkManager: React.FC<NetworkManagerProps> = ({ onNetworkChange }) => {
   };
 
   const handleNetworkChange = async (chainId: string) => {
-    if (!walletInfo) {
+    if (!isWalletConnected) {
       message.warning('请先连接钱包');
       return;
     }
@@ -132,31 +132,6 @@ const NetworkManager: React.FC<NetworkManagerProps> = ({ onNetworkChange }) => {
         </div>
 
         <div className={styles.content}>
-          <Descriptions title="钱包网络信息" column={2} items={[
-            {
-              key: 'networkName',
-              label: '网络名称',
-              children: <Text type="secondary"><Tag color={getNetworkTagColor(walletInfo?.networkInfo?.chainId?.toString())}>{walletInfo?.networkInfo?.name}</Tag></Text>
-            }, 
-            {
-              key: 'chainId',
-              label: 'Chain ID',
-              children: <Text type="secondary">{walletInfo?.networkInfo?.chainId?.toString()}</Text>
-            },
-            {
-              key: 'gasPrice',
-              label: 'Gas价格',
-              children: <Text type="secondary">{ethers.formatEther(walletInfo?.feeData?.gasPrice || 0)} ETH</Text>
-            },
-            {
-              key: 'blockNumber',
-              label: '区块高度',
-              children: <Text type="secondary">{walletInfo?.blockNumber?.toString()}</Text>
-            },
-          ]} />
-          
-
-          <Divider />
 
           <Space className={styles.networkSelector}>
             <Text type="secondary">选择网络：</Text>
@@ -164,7 +139,7 @@ const NetworkManager: React.FC<NetworkManagerProps> = ({ onNetworkChange }) => {
               value={targetNetwork?.chain_id.toString() || undefined}
               onChange={(value) => setTargetNetwork(networks.find(n => n.chain_id.toString() === value) || null)}
               loading={loading || networksLoading}
-              disabled={!walletInfo}
+              disabled={!isWalletConnected}
               // className={styles.selector}
               placeholder="选择网络"
               style={{ width: 280 }}
@@ -187,7 +162,7 @@ const NetworkManager: React.FC<NetworkManagerProps> = ({ onNetworkChange }) => {
           </Space>
 
           <div style={{ marginTop: 16 }}>
-            <Descriptions column={1} items={[
+            <Descriptions bordered column={1} items={[
               {
                 key: 'networkName',
                 label: 'RPC地址',
@@ -214,7 +189,7 @@ const NetworkManager: React.FC<NetworkManagerProps> = ({ onNetworkChange }) => {
               type="primary" 
               icon={<SwitcherOutlined />} 
               onClick={() => handleNetworkChange(targetNetwork?.chain_id.toString() || '')}
-              disabled={!targetNetwork || targetNetwork.chain_id.toString() === walletInfo?.chainId?.toString()}
+              disabled={!targetNetwork || parseInt(targetNetwork.chain_id.toString()) === parseInt(networkInfo?.chainId?.toString())}
             >切换网络</Button>
           </div>
         </div>

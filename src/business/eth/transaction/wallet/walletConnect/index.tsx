@@ -176,9 +176,10 @@ export default function WalletConnect() {
     )
   }
 
-  // const getNetworkName = (chainId: string) => {
-  //   return PREDEFINED_NETWORKS[chainId]?.name || `Chain ${chainId}`;
-  // };
+  function formatHexToDec(s: string) {
+    if (!s) return '--';
+    return BigInt(s).toString();
+  }
 
   // 引导安装钱包
   if (!isMetaMaskInstalled()) {
@@ -249,12 +250,12 @@ export default function WalletConnect() {
               </Descriptions.Item>
 
               <Descriptions.Item label={<><GlobalOutlined /> <span>Chain ID</span></>} span={2}>
-                {networkInfo?.chainId}
+                {formatHexToDec(networkInfo?.chainId)} ({networkInfo?.chainId})
               </Descriptions.Item>
 
-              <Descriptions.Item label={<><ClockCircleOutlined /> <span>区块高度</span></>} span={1}> {networkInfo?.blockNumber}</Descriptions.Item>
+              <Descriptions.Item label={<><ClockCircleOutlined /> <span>区块高度</span></>} span={1}> {formatHexToDec(networkInfo?.blockNumber)}</Descriptions.Item>
 
-              <Descriptions.Item label={<><DollarOutlined /> <span>Gas价格</span></>} span={1}> {networkInfo?.gasPrice}</Descriptions.Item>
+              <Descriptions.Item label={<><DollarOutlined /> <span>Gas价格</span></>} span={1}> {formatHexToDec(networkInfo?.gasPrice)}</Descriptions.Item>
             </Descriptions>
           </div>
           

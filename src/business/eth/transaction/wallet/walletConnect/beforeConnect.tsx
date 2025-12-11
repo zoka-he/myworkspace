@@ -92,7 +92,7 @@ export default function BeforeConnect() {
                     <Paragraph type="secondary">连接您的MetaMask钱包以查看账户信息和网络状态</Paragraph>
                     <Space.Compact className={styles.connectWrap}>
                         <Space.Addon className={styles.connectAddon}><Text><WalletOutlined /></Text></Space.Addon>
-                        <Select size="large" value={selectedBrowserWalletProviderRdns} 
+                        <Select className={styles.connectSelect} size="large" value={selectedBrowserWalletProviderRdns} 
                             loading={loading}
                             options={installedProviderInfos.map((info) => ({
                                 label: renderProviderOption(info),
