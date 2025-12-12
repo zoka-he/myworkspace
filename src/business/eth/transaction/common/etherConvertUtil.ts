@@ -34,6 +34,39 @@ export function bigint_divide_2_float(value: bigint | string, divisor_log: numbe
     
 }
 
+export function float_multiply_2_bigint(valueStr: number | string, multiplier_log: number) : bigint {
+    
+    let parts = [];
+    if (typeof valueStr === 'number') {
+        parts = valueStr.toString().split('.');
+    } else {
+        parts = valueStr.split('.');
+    }
+
+    if (parts.length > 2 || parts.length === 0) {
+        throw new Error('Invalid value string');
+    }
+
+    let integer = parts[0];
+    let fraction = parts[1] || '0';
+
+    if (fraction.length > multiplier_log) {
+        fraction = fraction.slice(0, multiplier_log);
+    } else {
+        fraction = fraction.padEnd(multiplier_log, '0');
+    }
+
+    return BigInt(`${integer}${fraction}`);
+}
+
+export function eth2wei(eth: string | number) : bigint {
+    return float_multiply_2_bigint(eth, 18);
+}
+
+export function gwei2wei(gwei: string | number) : bigint {
+    return float_multiply_2_bigint(gwei, 9);
+}
+
 export function wei2eth(wei: string | bigint, decimals = 6) : number {
     return bigint_divide_2_float(wei, 18, decimals);
 }
@@ -42,12 +75,23 @@ export function wei2gwei(wei: string | bigint, decimals = 6) : number {
     return bigint_divide_2_float(wei, 9, decimals);
 }
 
-export function readableAmount(value: string) {
-    if (BigInt(value) > BigInt(10 ** 15)) {
-        return wei2eth(value).toString() + ' ETH';
-    } else if (BigInt(value) > BigInt(10 ** 6)) {
-        return wei2gwei(value).toString() + ' Gwei';
+export function readableAmount(value: string, unit: 'wei' | 'eth' | 'gwei' = 'wei') {
+
+    let safeValue = value;
+    
+    if (unit === 'gwei') {
+        safeValue = gwei2wei(value).toString();
+    } else if (unit === 'eth') {
+        safeValue = eth2wei(value).toString();
+    } else if (unit === 'wei') {
+        safeValue = BigInt(value.split('.')[0] || '0').toString();
+    }
+
+    if (BigInt(safeValue) > BigInt(10 ** 15)) {
+        return wei2eth(safeValue).toString() + ' ETH';
+    } else if (BigInt(safeValue) > BigInt(10 ** 6)) {
+        return wei2gwei(safeValue).toString() + ' Gwei';
     } else {
-        return value + ' wei';
+        return safeValue + ' wei';
     }
 }

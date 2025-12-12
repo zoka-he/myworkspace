@@ -147,13 +147,13 @@ export default function WalletConnect() {
             </div>
 
             <Space>
-              <Button icon={<ReloadOutlined />} loading={refreshing} onClick={refreshWalletInfo} size="small"/>
+              <Button icon={<ReloadOutlined />} loading={refreshing} onClick={refreshWalletInfo} size="small">刷新</Button>
               <Button 
                 icon={<DisconnectOutlined />} 
                 onClick={handleDisconnect}
                 size="small"
                 danger
-                disabled={refreshing}
+                disabled={refreshing || true}
               >
                 断开
               </Button>
@@ -195,7 +195,7 @@ export default function WalletConnect() {
 
                 <Descriptions.Item label={<><ClockCircleOutlined /> <span>区块高度</span></>} span={1}> {formatHexToDec(networkInfo?.blockNumber)}</Descriptions.Item>
 
-                <Descriptions.Item label={<><DollarOutlined /> <span>Gas价格</span></>} span={1}> {formatHexToDec(networkInfo?.gasPrice)}</Descriptions.Item>
+                <Descriptions.Item label={<><DollarOutlined /> <span>Gas价格</span></>} span={1}> {readableAmount(networkInfo?.gasPrice)}</Descriptions.Item>
               </Descriptions>
             </Spin>
           </div>

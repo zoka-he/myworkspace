@@ -1,12 +1,12 @@
 import copyToClip from '@/src/utils/common/copy';
 import { Form, message, Modal, Descriptions, Alert, Row, Col, Card, Space, Segmented, Input, Select, Tag, Spin, Checkbox, Button, InputNumber, Divider } from 'antd';
-import { ethers } from 'ethers';
-import { useState, useEffect } from 'react';
-import { IWalletInfo } from '../IWalletInfo';
+import { useState, useEffect, useMemo } from 'react';
 import { SendOutlined, WalletOutlined, SettingOutlined, ReloadOutlined, ExclamationCircleOutlined, EditOutlined, UnorderedListOutlined } from "@ant-design/icons";
-import transactionHistoryStyles from './TransactionHistory.module.scss';
+import transactionSendStyles from './TransactionSend.module.scss';
 import fetch from '@/src/fetch';
 import { useWalletContext } from '../WalletContext';
+import { readableAmount } from '@/src/utils/ethereum/metamask';
+import { eth2wei, gwei2wei } from '../common/etherConvertUtil';
 
 interface WalletActionsProps {
     // walletInfo?: IWalletInfo | null;
@@ -15,9 +15,9 @@ interface WalletActionsProps {
 // 付款表单数据类型
 interface SendFormData {
     to: string;
-    amount: number;
-    gasPrice: number;
-    gasLimit: number;
+    amount: bigint;
+    gasPrice: bigint;
+    gasLimit: bigint;
     data?: string;
 }
 
@@ -33,12 +33,12 @@ interface IEthAccountItem {
 }
 
 export default function TransactionSend(props: WalletActionsProps) {
-    const { isWalletConnected, networkInfo, accountInfo } = useWalletContext();
+    const { isWalletConnected, networkInfo, accountInfo, getWalletTool } = useWalletContext();
 
     const [form] = Form.useForm<SendFormData>();
     const [loading, setLoading] = useState(false);
     // const [estimatedGas, setEstimatedGas] = useState<string>('21000');
-    const [estimatedFee, setEstimatedFee] = useState<string>('0.001');
+    // const [estimatedFee, setEstimatedFee] = useState<string>('0.001');
     const [gasPriceOptions] = useState([
         { label: '慢速 (20 Gwei)', value: 20000000000 },
         { label: '标准 (30 Gwei)', value: 30000000000 },
@@ -51,6 +51,27 @@ export default function TransactionSend(props: WalletActionsProps) {
     const [accountList, setAccountList] = useState<IEthAccountItem[]>([]);
     const [accountsLoading, setAccountsLoading] = useState(false);
     const [onlyMyAccounts, setOnlyMyAccounts] = useState(true); // 是否仅显示我的账户
+    const [sendAmountUnit, setSendAmountUnit] = useState<'wei' | 'eth' | 'gwei'>('eth');
+
+    const formValues = Form.useWatch([], form);
+    const txData = useMemo(() => {
+        let amount: bigint = BigInt(0);
+        switch (sendAmountUnit) {
+            case 'wei':
+                amount = BigInt(formValues.amount.toString().split('.')[0] || '0');
+                break;
+            case 'eth':
+                amount = eth2wei(formValues?.amount?.toString() || '0');
+                break;
+            case 'gwei':
+                amount = gwei2wei(formValues?.amount?.toString() || '0'  );
+        }
+
+        return {
+            ...formValues,
+            amount,
+        }
+    }, [formValues, sendAmountUnit])
 
     // 加载账户列表
     const loadAccounts = async () => {
@@ -109,17 +130,17 @@ export default function TransactionSend(props: WalletActionsProps) {
     // 计算交易费用
     const calculateFee = (gasPrice: number, gasLimit: number) => {
         const fee = (gasPrice * gasLimit) / 1e18;
-        return fee.toFixed(6);
+        return readableAmount(fee.toString(), 'eth');
     };
 
     // 监听表单变化，更新费用估算
-    const handleFormChange = () => {
-        const values = form.getFieldsValue();
-        if (values.gasPrice && values.gasLimit) {
-            const fee = calculateFee(values.gasPrice, values.gasLimit);
-            setEstimatedFee(fee);
-        }
-    };
+    // const handleFormChange = () => {
+    //     const values = form.getFieldsValue();
+    //     if (values.gasPrice && values.gasLimit) {
+    //         const fee = calculateFee(values.gasPrice, values.gasLimit);
+    //         setEstimatedFee(fee);
+    //     }
+    // };
 
     // 缩短地址显示
     const shortenAddress = (address: string) => {
@@ -129,7 +150,8 @@ export default function TransactionSend(props: WalletActionsProps) {
 
     // 显示二次确认对话框
     const showConfirmModal = (values: SendFormData) => {
-        const totalAmount = parseFloat(values.amount.toString()) + parseFloat(estimatedFee);
+        const estimatedFee = BigInt(values.gasPrice) * BigInt(values.gasLimit);
+        const totalAmount = values.amount + estimatedFee;
         
         Modal.confirm({
             title: '确认发送交易',
@@ -142,21 +164,21 @@ export default function TransactionSend(props: WalletActionsProps) {
                         </Descriptions.Item>
                         <Descriptions.Item label="发送金额">
                             <span style={{ fontSize: 16, fontWeight: 'bold', color: '#ff4d4f' }}>
-                                {values.amount} ETH
+                                {readableAmount(values.amount.toString())}
                             </span>
                         </Descriptions.Item>
                         <Descriptions.Item label="Gas Price">
-                            {(values.gasPrice / 1e9).toFixed(0)} Gwei
+                            {readableAmount(values.gasPrice.toString())}
                         </Descriptions.Item>
                         <Descriptions.Item label="Gas Limit">
-                            {values.gasLimit}
+                            {readableAmount(values.gasLimit.toString())}
                         </Descriptions.Item>
                         <Descriptions.Item label="预估费用">
-                            {estimatedFee} ETH
+                            {readableAmount(estimatedFee.toString())}
                         </Descriptions.Item>
                         <Descriptions.Item label="总计">
                             <span style={{ fontSize: 16, fontWeight: 'bold', color: '#1890ff' }}>
-                                {totalAmount.toFixed(6)} ETH
+                                {readableAmount(totalAmount.toString())}
                             </span>
                         </Descriptions.Item>
                     </Descriptions>
@@ -192,104 +214,60 @@ export default function TransactionSend(props: WalletActionsProps) {
                 return;
             }
 
-            let provider: ethers.JsonRpcProvider | ethers.BrowserProvider;
-            let signer: ethers.Wallet | ethers.JsonRpcSigner;
-
-            // 判断是否为自定义钱包
-            if (accountInfo?.custom) {
-                // 使用自定义钱包（privateKey + rpcUrl）
-                if (!networkInfo?.rpcUrl) {
-                    message.error('缺少 RPC URL 配置');
-                    return;
-                }
-                
-                if (!accountInfo?.privateKey) {
-                    message.error('缺少私钥信息');
-                    return;
-                }
-
-                // 创建 provider 和 wallet
-                provider = new ethers.JsonRpcProvider(networkInfo?.rpcUrl);
-                signer = new ethers.Wallet(accountInfo?.privateKey, provider);
-                
-                // 验证地址匹配
-                const walletAddress = await signer.getAddress();
-                if (walletAddress.toLowerCase() !== accountInfo?.selectedAddress.toLowerCase()) {
-                    message.error('私钥与地址不匹配');
-                    return;
-                }
-            } else {
-                // 使用 MetaMask 钱包
-                if (typeof window === 'undefined' || !window.ethereum) {
-                    message.error('未检测到钱包，请安装 MetaMask');
-                    return;
-                }
-
-                provider = new ethers.BrowserProvider(window.ethereum);
-                signer = await provider.getSigner();
-                
-                // 验证当前账户
-                const currentAddress = await signer.getAddress();
-                if (currentAddress.toLowerCase() !== accountInfo?.selectedAddress.toLowerCase()) {
-                    message.error('钱包地址不匹配，请检查连接状态');
-                    return;
-                }
-            }
-
-            // 获取当前地址
-            const currentAddress = await signer.getAddress();
-
-            // 检查余额是否充足
-            const balance = await provider.getBalance(currentAddress);
-            const totalAmount = ethers.parseEther(values.amount.toString()) + 
-                               BigInt(values.gasPrice) * BigInt(values.gasLimit);
-            
-            if (balance < totalAmount) {
-                message.error('余额不足，无法完成交易');
-                return;
-            }
-
-            // 构建交易
-            const transaction: ethers.TransactionRequest = {
-                to: values.to,
-                value: ethers.parseEther(values.amount.toString()),
-                gasLimit: values.gasLimit,
-                gasPrice: values.gasPrice,
-            };
-
-            // 如果有附加数据
-            if (values.data && values.data.trim() !== '') {
-                transaction.data = values.data.trim();
-            }
+            let fromAddress = accountInfo?.selectedAddress;
 
             message.loading({ content: '正在发送交易...', key: 'sendTx', duration: 0 });
 
-            // 发送交易
-            const txResponse = await signer.sendTransaction(transaction);
+            let txHash = await getWalletTool()?.sendTransaction({
+                from: fromAddress,
+                to: values.to,
+                value: values.amount.toString(16),
+                gas: values.gasLimit.toString(16),
+                gasPrice: values.gasPrice.toString(16),
+                data: (values.data || '').trim(),
+            })
+
+            if (!txHash) {
+                message.error('发送交易失败');
+                return;
+            }
             
             message.loading({ 
-                content: `交易已发送，等待确认... (Hash: ${txResponse.hash.slice(0, 10)}...)`, 
+                content: `交易已发送，等待确认... (Hash: ${txHash.slice(0, 10)}...)`, 
                 key: 'sendTx',
                 duration: 0 
             });
 
-            // 等待交易确认
-            const receipt = await txResponse.wait();
-            
-            if (receipt?.status === 1) {
+            const sleep = (seconds: number) => {
+                return new Promise(resolve => setTimeout(resolve, seconds * 1000));
+            }
+
+            let receipt: any = null;
+            for (let i = 60; i > 0; i-=2) {
+                await sleep(2);
+                receipt = await getWalletTool()?.waitForTransactionReceipt(txHash);
+                if (receipt) {
+                    break;
+                }
+            }
+
+            if (!receipt) {
+                message.error({ content: '交易超时', key: 'sendTx', duration: 5 });
+                return;
+            } else if (parseInt(receipt?.status) === 1) {
                 message.success({ 
-                    content: `交易成功! Hash: ${txResponse.hash}`,
+                    content: `交易成功! Hash: ${txHash}`,
                     key: 'sendTx',
                     duration: 5,
                 });
                 
                 // 复制交易哈希到剪贴板
-                copyToClip(txResponse.hash);
+                copyToClip(txHash);
                 message.info('交易哈希已复制到剪贴板');
                 
                 // 重置表单
                 form.resetFields();
-                setEstimatedFee('0.001');
+                // setEstimatedFee('0.001');
             } else {
                 throw new Error('交易失败');
             }
@@ -321,8 +299,8 @@ export default function TransactionSend(props: WalletActionsProps) {
 
     // 设置最大 Gas
     const setMaxGas = () => {
-        form.setFieldsValue({ gasLimit: 21000 });
-        handleFormChange();
+        form.setFieldsValue({ gasLimit: BigInt(21000) });
+        // handleFormChange();
     };
 
     // 验证地址格式
@@ -347,16 +325,43 @@ export default function TransactionSend(props: WalletActionsProps) {
         return Promise.resolve();
     };
 
+    function renderAccountItem(acc: IEthAccountItem) {
+        return (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Space>
+                    <span>{acc.name}</span>
+                    {acc.network && (
+                        <Tag color="blue" style={{ margin: 0 }}>
+                            {acc.network}{acc.chain_id ? `(${acc.chain_id})` : ''}
+                        </Tag>
+                    )}
+                </Space>
+                <span style={{ color: '#999', fontSize: '12px' }}>
+                    {shortenAddress(acc.address)}
+                </span>
+            </div>
+        )
+    }
+
+    const accountOptions = useMemo(() => {
+        return accountList.map(acc => ({
+            value: acc.address,
+            label: renderAccountItem(acc),
+            // 用于搜索的文本
+            searchLabel: `${acc.name} ${acc.address} ${acc.network || ''}`,
+        }));
+    }, [accountList]);
+
     return (
-        <div className={transactionHistoryStyles.transactionSend}>
+        <div className={transactionSendStyles.transactionSend}>
             <Row gutter={[16, 16]}>
                 <Col xs={24} lg={16}>
-                    <Card size="small" title="发送交易" className={transactionHistoryStyles.sendCard}>
+                    <Card size="small" title="发送交易" className={transactionSendStyles.sendCard}>
                         <Form
                             form={form}
                             layout="vertical"
-                            onFinish={handleSend}
-                            onValuesChange={handleFormChange}
+                            onFinish={() => handleSend(txData)}
+                            // onValuesChange={handleFormChange}
                             initialValues={{
                                 gasPrice: 30000000000,
                                 gasLimit: 21000,
@@ -395,7 +400,7 @@ export default function TransactionSend(props: WalletActionsProps) {
                                             <Input
                                                 placeholder="请输入接收地址 (0x...)"
                                                 prefix={<WalletOutlined />}
-                                                className={transactionHistoryStyles.addressInput}
+                                                className={transactionSendStyles.addressInput}
                                             />
                                         </Form.Item>
                                     ) : (
@@ -411,26 +416,7 @@ export default function TransactionSend(props: WalletActionsProps) {
                                                     showSearch
                                                     optionFilterProp="label"
                                                     style={{ width: '100%' }}
-                                                    options={accountList.map(acc => ({
-                                                        value: acc.address,
-                                                        label: (
-                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                                <Space>
-                                                                    <span>{acc.name}</span>
-                                                                    {acc.network && (
-                                                                        <Tag color="blue" style={{ margin: 0 }}>
-                                                                            {acc.network}{acc.chain_id ? `(${acc.chain_id})` : ''}
-                                                                        </Tag>
-                                                                    )}
-                                                                </Space>
-                                                                <span style={{ color: '#999', fontSize: '12px' }}>
-                                                                    {shortenAddress(acc.address)}
-                                                                </span>
-                                                            </div>
-                                                        ),
-                                                        // 用于搜索的文本
-                                                        searchLabel: `${acc.name} ${acc.address} ${acc.network || ''}`,
-                                                    }))}
+                                                    options={accountOptions}
                                                     filterOption={(input, option) => {
                                                         const searchLabel = (option as any)?.searchLabel || '';
                                                         return searchLabel.toLowerCase().includes(input.toLowerCase());
@@ -444,15 +430,7 @@ export default function TransactionSend(props: WalletActionsProps) {
                                             <Checkbox
                                                 checked={onlyMyAccounts}
                                                 onChange={(e) => setOnlyMyAccounts(e.target.checked)}
-                                                style={{ 
-                                                    padding: '0 11px',
-                                                    border: '1px solid #d9d9d9',
-                                                    borderLeft: 'none',
-                                                    height: '32px',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    whiteSpace: 'nowrap'
-                                                }}
+                                                className={transactionSendStyles.addressBelongTo}
                                             >
                                                 仅我的
                                             </Checkbox>
@@ -472,14 +450,27 @@ export default function TransactionSend(props: WalletActionsProps) {
                                 name="amount"
                                 rules={[{ validator: validateAmount }]}
                             >
-                                <InputNumber
-                                    placeholder="0.0"
-                                    min={0}
-                                    max={1000}
-                                    precision={6}
-                                    style={{ width: '100%' }}
-                                    addonAfter="ETH"
-                                />
+                                <Space.Compact style={{ width: '100%' }}>  
+                                    <Form.Item noStyle name="amount">
+                                        <InputNumber
+                                            placeholder="0.0"
+                                            // precision={6}
+                                            min={0}
+                                            max={1000}
+                                            style={{ width: '100%' }}
+                                        />
+                                    </Form.Item>
+                                    <Select
+                                        value={sendAmountUnit}
+                                        style={{ width: 80 }}
+                                        onChange={(value) => setSendAmountUnit(value as 'wei' | 'eth' | 'gwei')}
+                                        options={[
+                                            { label: 'ETH', value: 'eth' },
+                                            { label: 'Gwei', value: 'gwei' },
+                                            { label: 'wei', value: 'wei' },
+                                        ]}
+                                    />
+                                </Space.Compact>
                             </Form.Item>
 
                             <Divider orientation="left" plain>
@@ -508,21 +499,22 @@ export default function TransactionSend(props: WalletActionsProps) {
                                         name="gasLimit"
                                         rules={[{ required: true, message: '请输入 Gas Limit' }]}
                                     >
-                                        <InputNumber
-                                            placeholder="21000"
-                                            min={21000}
-                                            max={1000000}
-                                            style={{ width: '100%' }}
-                                            addonAfter={
-                                                <Button 
-                                                    type="link" 
-                                                    size="small" 
-                                                    onClick={setMaxGas}
-                                                >
-                                                    最大
-                                                </Button>
-                                            }
-                                        />
+                                        <Space.Compact style={{ width: '100%' }}>
+                                            <Form.Item noStyle name="gasLimit">
+                                                <InputNumber
+                                                    placeholder="21000"
+                                                    min={21000}
+                                                    max={1000000}
+                                                    style={{ width: '100%' }}
+                                                />
+                                            </Form.Item>
+                                            <Button 
+                                                type="default" 
+                                                onClick={setMaxGas}
+                                            >
+                                                最大
+                                            </Button>
+                                        </Space.Compact>
                                     </Form.Item>
                                 </Col>
                             </Row>
@@ -534,7 +526,7 @@ export default function TransactionSend(props: WalletActionsProps) {
                                 <Input.TextArea
                                     placeholder="0x..."
                                     rows={3}
-                                    className={transactionHistoryStyles.dataInput}
+                                    className={transactionSendStyles.dataInput}
                                 />
                             </Form.Item>
 
@@ -546,7 +538,7 @@ export default function TransactionSend(props: WalletActionsProps) {
                                     icon={<SendOutlined />}
                                     size="large"
                                     block
-                                    className={transactionHistoryStyles.sendButton}
+                                    className={transactionSendStyles.sendButton}
                                 >
                                     {loading ? '发送中...' : '发送交易'}
                                 </Button>
@@ -556,69 +548,109 @@ export default function TransactionSend(props: WalletActionsProps) {
                 </Col>
 
                 <Col xs={24} lg={8}>
-                    <Card size="small" title="交易预览" className={transactionHistoryStyles.previewCard}>
-                        <div className={transactionHistoryStyles.previewContent}>
-                            <div className={transactionHistoryStyles.previewItem}>
-                                <span className={transactionHistoryStyles.previewLabel}>接收地址:</span>
-                                <span className={transactionHistoryStyles.previewValue}>
-                                    {form.getFieldValue('to') || '未设置'}
-                                </span>
-                            </div>
-                            
-                            <div className={transactionHistoryStyles.previewItem}>
-                                <span className={transactionHistoryStyles.previewLabel}>发送金额:</span>
-                                <span className={transactionHistoryStyles.previewValue}>
-                                    {form.getFieldValue('amount') || '0'} ETH
-                                </span>
-                            </div>
-                            
-                            <div className={transactionHistoryStyles.previewItem}>
-                                <span className={transactionHistoryStyles.previewLabel}>Gas Price:</span>
-                                <span className={transactionHistoryStyles.previewValue}>
-                                    {form.getFieldValue('gasPrice') ? 
-                                        `${(form.getFieldValue('gasPrice') / 1e9).toFixed(0)} Gwei` : 
-                                        '未设置'
-                                    }
-                                </span>
-                            </div>
-                            
-                            <div className={transactionHistoryStyles.previewItem}>
-                                <span className={transactionHistoryStyles.previewLabel}>Gas Limit:</span>
-                                <span className={transactionHistoryStyles.previewValue}>
-                                    {form.getFieldValue('gasLimit') || '未设置'}
-                                </span>
-                            </div>
-                            
-                            <Divider />
-                            
-                            <div className={transactionHistoryStyles.previewItem}>
-                                <span className={transactionHistoryStyles.previewLabel}>预估费用:</span>
-                                <span className={transactionHistoryStyles.previewValue}>
-                                    {estimatedFee} ETH
-                                </span>
-                            </div>
-                            
-                            <div className={transactionHistoryStyles.previewItem}>
-                                <span className={transactionHistoryStyles.previewLabel}>总金额:</span>
-                                <span className={transactionHistoryStyles.previewValue}>
-                                    {form.getFieldValue('amount') ? 
-                                        `${(parseFloat(form.getFieldValue('amount')) + parseFloat(estimatedFee)).toFixed(6)} ETH` : 
-                                        '0 ETH'
-                                    }
-                                </span>
-                            </div>
-                        </div>
-
-                        <Alert
-                            message="注意事项"
-                            description="请确保账户有足够的 ETH 余额支付交易费用。交易一旦发送无法撤销。"
-                            type="warning"
-                            showIcon
-                            className={transactionHistoryStyles.warningAlert}
-                        />
-                    </Card>
+                    <TransactionPreview txData={txData} />
                 </Col>
             </Row>
         </div>
     );
+}
+
+
+interface TransactionPreviewProps {
+    txData: SendFormData;
+}
+
+
+function TransactionPreview({ txData }: TransactionPreviewProps) {
+
+    const { accountInfo } = useWalletContext();
+
+    // 计算交易费用
+    const calculateFee = useMemo(() => {
+
+        if (!txData?.gasPrice || !txData?.gasLimit) {
+            return null;
+        }
+
+        return txData.gasPrice * txData.gasLimit;
+    }, [txData?.gasPrice, txData?.gasLimit]);
+
+    const totalAmount = useMemo(() => {
+        if (!txData?.amount || calculateFee === null) {
+            return null;
+        }
+
+        return (txData.amount + BigInt(calculateFee));
+    }, [txData?.amount, calculateFee]);
+
+    const showNotEnoughBalance = useMemo(() => {
+        if (!totalAmount || !accountInfo?.balance || calculateFee === null) {
+            return false; // 无法判断，不显示
+        }
+        return totalAmount > accountInfo.balance;
+    }, [totalAmount, accountInfo?.balance]);
+
+    return (
+        <Card size="small" title="交易预览" className={transactionSendStyles.previewCard}>
+            <div className={transactionSendStyles.previewContent}>
+                <div className={transactionSendStyles.previewItem}>
+                    <span className={transactionSendStyles.previewLabel}>接收地址:</span>
+                    <span className={transactionSendStyles.previewValue}>
+                        {txData?.to || '未设置'}
+                    </span>
+                </div>
+                
+                <div className={transactionSendStyles.previewItem}>
+                    <span className={transactionSendStyles.previewLabel}>发送金额:</span>
+                    <span className={transactionSendStyles.previewValue}>
+                        {readableAmount(txData?.amount.toString())}
+                    </span>
+                </div>
+                
+                <div className={transactionSendStyles.previewItem}>
+                    <span className={transactionSendStyles.previewLabel}>Gas Price:</span>
+                    <span className={transactionSendStyles.previewValue}>
+                        {txData?.gasPrice ? 
+                            readableAmount(txData.gasPrice.toString()) : 
+                            '未设置'
+                        }
+                    </span>
+                </div>
+                
+                <div className={transactionSendStyles.previewItem}>
+                    <span className={transactionSendStyles.previewLabel}>Gas Limit:</span>
+                    <span className={transactionSendStyles.previewValue}>
+                        {txData?.gasLimit?.toString() || '未设置'}
+                    </span>
+                </div>
+                
+                {/* <Divider /> */}
+                
+                <div className={transactionSendStyles.previewItem}>
+                    <span className={transactionSendStyles.previewLabel}>交易费用:</span>
+                    <span className={transactionSendStyles.previewValue}>
+                        {calculateFee ? readableAmount(calculateFee.toString()) : '--'}
+                    </span>
+                </div>
+                
+                <div className={transactionSendStyles.previewItem}>
+                    <span className={transactionSendStyles.previewLabel}>总金额:</span>
+                    <span className={transactionSendStyles.previewValue}>
+                        {totalAmount ? readableAmount(totalAmount.toString()) : '--'}
+                    </span>
+                </div>
+            </div>
+
+            {showNotEnoughBalance ? (
+                <Alert
+                    message="余额不足"
+                        description="本账户没有足够的 ETH 余额支付交易费用。交易一旦发送无法撤销。"
+                        type="error"
+                        showIcon
+                        className={transactionSendStyles.warningAlert}
+                    />
+                ) 
+            : null}
+        </Card>
+    )
 }

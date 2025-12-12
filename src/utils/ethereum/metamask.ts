@@ -48,6 +48,15 @@ export interface INetworkInfo {
   gasPrice: string;
 }
 
+export interface ITransactionFields {
+  to: string,
+  from: string,
+  gas: string,
+  value: string,
+  data: string,
+  gasPrice: string
+}
+
 let G_METAMASK_INSTALLED = false;
 let G_METAMASK_FLASK_INSTALLED = false;
 let G_PROVIDERS = new Map<string, { provider: any, info: IProviderInfo }>();
@@ -321,12 +330,14 @@ export function onProviderAccountsChanged(providerRdns: string, callback: (accou
 //   };
 // }
 
-export function readableAmount(value: string) {
-  if (!value) {
-    return '--'
-  }
-  return EtherConvertUtil.readableAmount(value);
-}
+export const readableAmount = EtherConvertUtil.readableAmount;
+
+// export function readableAmount(value: string) {
+//   if (!value) {
+//     return '--'
+//   }
+//   return EtherConvertUtil.readableAmount(value);
+// }
 
 // 钱包工具类（原生实现）
 export class MetamaskTool {
@@ -482,4 +493,36 @@ export class MetamaskTool {
       return null;
     }
   }
+
+  /**
+   * 发送交易，并返回交易的hash
+   * @param params 
+   * @returns 
+   */
+  public async sendTransaction(params: ITransactionFields): Promise<string | null> {
+    try {
+      const txHash = await this.provider.request({
+        method: 'eth_sendTransaction',
+        params: [params]
+      })
+      return txHash;
+    } catch (error) {
+      console.error('发送交易失败:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 查询交易结果，并返回交易信息
+   * @param txHash 
+   * @returns 未打包返回null，成功status为1，否则为0
+   */
+  public async waitForTransactionReceipt(txHash: string): Promise<any> {
+    const receipt = await this.provider.request({
+      method: 'eth_getTransactionReceipt',
+      params: [txHash]
+    })
+    return receipt;
+  }
+
 }

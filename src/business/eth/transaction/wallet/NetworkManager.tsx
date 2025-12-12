@@ -40,6 +40,13 @@ const NetworkManager: React.FC<NetworkManagerProps> = ({ onNetworkChange }) => {
     fetchNetworks();
   }, []);
 
+  useEffect(() => {
+    if (networkInfo) {
+      let chainId = parseInt(networkInfo.chainId?.toString() || '0');
+      setTargetNetwork(networks.find(n => n.chain_id.toString() === chainId.toString()) || null);
+    }
+  }, [networkInfo]);
+
   const fetchNetworks = async () => {
     try {
       setNetworksLoading(true);
@@ -162,7 +169,7 @@ const NetworkManager: React.FC<NetworkManagerProps> = ({ onNetworkChange }) => {
           </Space>
 
           <div style={{ marginTop: 16 }}>
-            <Descriptions bordered column={1} items={[
+            <Descriptions bordered size="small" labelStyle={{width: '120px'}} column={1} items={[
               {
                 key: 'networkName',
                 label: 'RPC地址',
