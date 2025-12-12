@@ -77,6 +77,10 @@ export function wei2gwei(wei: string | bigint, decimals = 6) : number {
 
 export function readableAmount(value: string, unit: 'wei' | 'eth' | 'gwei' = 'wei') {
 
+    if (!value?.length) {
+        return '--';
+    }
+
     let safeValue = value;
     
     if (unit === 'gwei') {
