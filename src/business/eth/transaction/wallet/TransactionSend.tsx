@@ -1,12 +1,13 @@
 import copyToClip from '@/src/utils/common/copy';
-import { Form, message, Modal, Descriptions, Alert, Row, Col, Card, Space, Segmented, Input, Select, Tag, Spin, Checkbox, Button, InputNumber, Divider } from 'antd';
+import { Form, message, Modal, Descriptions, Alert, Row, Col, Card, Space, Segmented, Input, Select, Tag, Spin, Checkbox, Button, InputNumber, Divider, Typography } from 'antd';
 import { useState, useEffect, useMemo } from 'react';
 import { SendOutlined, WalletOutlined, SettingOutlined, ReloadOutlined, ExclamationCircleOutlined, EditOutlined, UnorderedListOutlined } from "@ant-design/icons";
 import transactionSendStyles from './TransactionSend.module.scss';
 import fetch from '@/src/fetch';
 import { useWalletContext } from '../WalletContext';
 import { readableAmount } from '@/src/utils/ethereum/metamask';
-import { eth2wei, gwei2wei } from '../common/etherConvertUtil';
+import { eth2wei, gwei2wei, wei2eth } from '../common/etherConvertUtil';
+import EtherscanUtil from '../common/etherscanUtil';
 
 interface WalletActionsProps {
     // walletInfo?: IWalletInfo | null;
@@ -32,6 +33,22 @@ interface IEthAccountItem {
     unit?: string;
 }
 
+const wei2usd = (amount?: bigint | string, eth2usd?: string | number) => {
+    if (!amount || !eth2usd) {
+        return '--';
+    }
+
+    try {
+        let _amount = typeof amount === 'string' ? BigInt(amount) : amount;
+        let _eth2usd = typeof eth2usd === 'string' ? parseFloat(eth2usd) : eth2usd;
+
+        return (wei2eth(_amount, 8) * _eth2usd).toFixed(2); // 小于1美分无意义
+    } catch (error: any) {
+        console.error(error);
+        return '--';
+    }
+}
+
 export default function TransactionSend(props: WalletActionsProps) {
     const { isWalletConnected, networkInfo, accountInfo, getWalletTool } = useWalletContext();
 
@@ -52,6 +69,41 @@ export default function TransactionSend(props: WalletActionsProps) {
     const [accountsLoading, setAccountsLoading] = useState(false);
     const [onlyMyAccounts, setOnlyMyAccounts] = useState(true); // 是否仅显示我的账户
     const [sendAmountUnit, setSendAmountUnit] = useState<'wei' | 'eth' | 'gwei'>('eth');
+
+    
+    useEffect(() => {
+        const timer =setInterval(() => {
+            fetchMarketValue();
+        }, 1000 * 30);
+        return () => clearInterval(timer);
+    }, []);
+
+
+    // 定期获取以太币/USD价格
+    const [eth2usd, setEth2usd] = useState('--');
+    const fetchMarketValue = async () => {
+        if (!networkInfo?.chainId) {
+            return;
+        }
+
+        const chainId = parseInt(networkInfo?.chainId?.toString() || '0');
+        if (chainId === 0) {
+            return;
+        }
+
+        try {
+            const etherscanUtil = new EtherscanUtil(EtherscanUtil.EndPointUrl.MAINNET, chainId);
+            const latestPrice = await etherscanUtil.getLatestPrice(chainId);
+            setEth2usd(parseFloat(latestPrice.ethusd).toFixed(6));
+        } catch (error: any) {
+            console.error(error);
+            message.error(error.message || '获取最新价格失败');
+        }
+    }
+
+    const calculateUsdAmount = () => {
+        return wei2usd(txData?.amount, eth2usd);
+    }
 
     const formValues = Form.useWatch([], form);
     const txData = useMemo(() => {
@@ -132,15 +184,6 @@ export default function TransactionSend(props: WalletActionsProps) {
         const fee = (gasPrice * gasLimit) / 1e18;
         return readableAmount(fee.toString(), 'eth');
     };
-
-    // 监听表单变化，更新费用估算
-    // const handleFormChange = () => {
-    //     const values = form.getFieldsValue();
-    //     if (values.gasPrice && values.gasLimit) {
-    //         const fee = calculateFee(values.gasPrice, values.gasLimit);
-    //         setEstimatedFee(fee);
-    //     }
-    // };
 
     // 缩短地址显示
     const shortenAddress = (address: string) => {
@@ -319,9 +362,6 @@ export default function TransactionSend(props: WalletActionsProps) {
         if (!value || value <= 0) {
             return Promise.reject(new Error('请输入有效的金额'));
         }
-        if (value > 1000) {
-            return Promise.reject(new Error('金额不能超过 1000 ETH'));
-        }
         return Promise.resolve();
     };
 
@@ -445,33 +485,46 @@ export default function TransactionSend(props: WalletActionsProps) {
                                 </Space>
                             </Form.Item>
 
-                            <Form.Item
-                                label="金额 (ETH)"
-                                name="amount"
-                                rules={[{ validator: validateAmount }]}
-                            >
-                                <Space.Compact style={{ width: '100%' }}>  
-                                    <Form.Item noStyle name="amount">
-                                        <InputNumber
-                                            placeholder="0.0"
-                                            // precision={6}
-                                            min={0}
-                                            max={1000}
-                                            style={{ width: '100%' }}
-                                        />
+                            <Row gutter={16}>
+                                <Col span={12}>
+                                    <Form.Item
+                                        label={`金额 (${sendAmountUnit})`}
+                                        name="amount"
+                                        rules={[{ validator: validateAmount }]}
+                                    >
+                                        <Space.Compact style={{ width: '100%' }}>  
+                                            <Form.Item noStyle name="amount">
+                                                <InputNumber
+                                                    placeholder="0.0"
+                                                    // precision={6}
+                                                    min={0}
+                                                    style={{ width: '100%' }}
+                                                />
+                                            </Form.Item>
+                                            <Select
+                                                value={sendAmountUnit}
+                                                style={{ width: 80 }}
+                                                onChange={(value) => setSendAmountUnit(value as 'wei' | 'eth' | 'gwei')}
+                                                options={[
+                                                    { label: 'ETH', value: 'eth' },
+                                                    { label: 'Gwei', value: 'gwei' },
+                                                    { label: 'wei', value: 'wei' },
+                                                ]}
+                                            />
+                                        </Space.Compact>
                                     </Form.Item>
-                                    <Select
-                                        value={sendAmountUnit}
-                                        style={{ width: 80 }}
-                                        onChange={(value) => setSendAmountUnit(value as 'wei' | 'eth' | 'gwei')}
-                                        options={[
-                                            { label: 'ETH', value: 'eth' },
-                                            { label: 'Gwei', value: 'gwei' },
-                                            { label: 'wei', value: 'wei' },
-                                        ]}
-                                    />
-                                </Space.Compact>
-                            </Form.Item>
+                                </Col>
+                                <Col span={12}>
+                                    <Form.Item label={`金额 (USD) (1 ETH = ${eth2usd} USD)`}>
+                                        <Space.Compact style={{ width: '100%' }}>
+                                            
+                                            <Input readOnly value={calculateUsdAmount()} />
+                                            <Space.Addon>USD</Space.Addon>
+                                        </Space.Compact>
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+                            
 
                             <Divider orientation="left" plain>
                                 <Space>
@@ -548,7 +601,7 @@ export default function TransactionSend(props: WalletActionsProps) {
                 </Col>
 
                 <Col xs={24} lg={8}>
-                    <TransactionPreview txData={txData} />
+                    <TransactionPreview txData={txData} eth2usd={eth2usd} />
                 </Col>
             </Row>
         </div>
@@ -558,10 +611,11 @@ export default function TransactionSend(props: WalletActionsProps) {
 
 interface TransactionPreviewProps {
     txData: SendFormData;
+    eth2usd: string;
 }
 
 
-function TransactionPreview({ txData }: TransactionPreviewProps) {
+function TransactionPreview({ txData, eth2usd }: TransactionPreviewProps) {
 
     const { accountInfo } = useWalletContext();
 
@@ -629,14 +683,14 @@ function TransactionPreview({ txData }: TransactionPreviewProps) {
                 <div className={transactionSendStyles.previewItem}>
                     <span className={transactionSendStyles.previewLabel}>交易费用:</span>
                     <span className={transactionSendStyles.previewValue}>
-                        {calculateFee ? readableAmount(calculateFee.toString()) : '--'}
+                        {calculateFee ? readableAmount(calculateFee.toString()) : '--'}, {wei2usd(calculateFee?.toString() || '0', eth2usd)} USD
                     </span>
                 </div>
                 
                 <div className={transactionSendStyles.previewItem}>
                     <span className={transactionSendStyles.previewLabel}>总金额:</span>
                     <span className={transactionSendStyles.previewValue}>
-                        {totalAmount ? readableAmount(totalAmount.toString()) : '--'}
+                        {totalAmount ? readableAmount(totalAmount.toString()) : '--'}, {wei2usd(totalAmount?.toString() || '0', eth2usd)} USD
                     </span>
                 </div>
             </div>
