@@ -151,4 +151,21 @@ export default class EtherscanUtil {
     public static wei2gwei(wei: string | bigint, decimals = 6) : number {
         return EtherConvertUtil.bigint_divide_2_float(wei, 9, decimals);
     }
+
+    async getLatestPrice(chainId: number = this.chainId) {
+        const response = await fetch.get(this.endpoint, {
+            params: {
+                apikey: this.apiKey,
+                chainid: chainId,
+                module: 'stats',
+                action: 'ethprice',
+            }
+        });
+
+        if (response.status != 1) {
+            throw new Error(response.message || 'Failed to get last price');
+        }
+
+        return response.result;
+    }
 }
