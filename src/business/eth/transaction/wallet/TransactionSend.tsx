@@ -8,6 +8,7 @@ import { useWalletContext } from '../WalletContext';
 import { readableAmount } from '@/src/utils/ethereum/metamask';
 import { eth2wei, gwei2wei, wei2eth } from '../common/etherConvertUtil';
 import EtherscanUtil from '../common/etherscanUtil';
+import _ from 'lodash';
 
 interface WalletActionsProps {
     // walletInfo?: IWalletInfo | null;
@@ -56,13 +57,7 @@ export default function TransactionSend(props: WalletActionsProps) {
     const [loading, setLoading] = useState(false);
     // const [estimatedGas, setEstimatedGas] = useState<string>('21000');
     // const [estimatedFee, setEstimatedFee] = useState<string>('0.001');
-    const [gasPriceOptions] = useState([
-        { label: '慢速 (20 Gwei)', value: 20000000000 },
-        { label: '标准 (30 Gwei)', value: 30000000000 },
-        { label: '快速 (50 Gwei)', value: 50000000000 },
-        { label: '极速 (100 Gwei)', value: 100000000000 },
-    ]);
-    
+
     // 接收地址输入模式：manual-手动输入, select-选择账户
     const [addressInputMode, setAddressInputMode] = useState<'manual' | 'select'>('select');
     const [accountList, setAccountList] = useState<IEthAccountItem[]>([]);
@@ -347,20 +342,30 @@ export default function TransactionSend(props: WalletActionsProps) {
     };
 
     const setGasPrice = (gasPrice: number | string) => {
-        let _gasPrice = parseInt(networkInfo?.gasPrice) || 30000000000; // 30gwei
-        if (gasPrice === 'fast2') {
-            _gasPrice *= 2;
-        } else if (gasPrice === 'fast1') {
-            _gasPrice *= 1.5;
-        } else if (gasPrice === 'slow') {
-            _gasPrice *= 0.8;
-        } else if (gasPrice === 'standard') {
-        } else if (typeof gasPrice === 'number') {
-            _gasPrice = gasPrice;
-        } else if (typeof gasPrice === 'string' && _.isNumber(gasPrice)) {
-            _gasPrice = Number(gasPrice);
+        let gasPrice_standard = parseInt(networkInfo?.gasPrice) || null; 
+        if (gasPrice_standard === null || gasPrice_standard === undefined || gasPrice_standard === 0) {
+            if (typeof gasPrice === 'number') {
+                form.setFieldValue('gasPrice', gasPrice);
+            } else if (typeof gasPrice === 'string' && _.isNumber(gasPrice)) {
+                form.setFieldValue('gasPrice', Number(gasPrice));
+            }
+        } else {
+            if (gasPrice === 'fast2') {
+                form.setFieldValue('gasPrice', gasPrice_standard * 2);
+            } else if (gasPrice === 'fast1') {
+                form.setFieldValue('gasPrice', gasPrice_standard * 1.5);
+            } else if (gasPrice === 'slow') {
+                form.setFieldValue('gasPrice', gasPrice_standard * 0.8);
+            } else if (gasPrice === 'standard') {
+                form.setFieldValue('gasPrice', gasPrice_standard);
+            } else if (typeof gasPrice === 'number') {
+                form.setFieldValue('gasPrice', gasPrice);
+            } else if (typeof gasPrice === 'string' && _.isNumber(gasPrice)) {
+                form.setFieldValue('gasPrice', Number(gasPrice));
+            }
         }
-        form.setFieldValue('gasPrice', _gasPrice);
+
+        
     };
 
     // 验证地址格式
@@ -420,7 +425,7 @@ export default function TransactionSend(props: WalletActionsProps) {
                             onFinish={() => handleSend(txData)}
                             // onValuesChange={handleFormChange}
                             initialValues={{
-                                gasPrice: 30000000000,
+                                gasPrice: networkInfo?.gasPrice ? gwei2wei(networkInfo?.gasPrice) : null,
                                 gasLimit: 21000,
                             }}
                         >
@@ -532,7 +537,10 @@ export default function TransactionSend(props: WalletActionsProps) {
                                     </Form.Item>
                                 </Col>
                                 <Col span={12}>
-                                    <Form.Item label={`金额 (USD) (1 ETH = ${eth2usd} USD)`}>
+                                    <Form.Item label={<>
+                                        <span>金额 (USD) (1 ETH = {eth2usd} USD) </span>
+                                        <Button type="link" size="small" onClick={fetchMarketValue} icon={<ReloadOutlined />} style={{ fontSize: 16, height: 16 }}/>
+                                        </>}>
                                         <Space.Compact style={{ width: '100%' }}>
                                             
                                             <Input readOnly value={calculateUsdAmount()} />
@@ -655,7 +663,7 @@ function TransactionPreview({ txData, eth2usd }: TransactionPreviewProps) {
             return null;
         }
 
-        return txData.gasPrice * txData.gasLimit;
+        return BigInt(txData.gasPrice) * BigInt(txData.gasLimit);
     }, [txData?.gasPrice, txData?.gasLimit]);
 
     const totalAmount = useMemo(() => {
