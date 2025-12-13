@@ -1,5 +1,5 @@
 import copyToClip from '@/src/utils/common/copy';
-import { Form, message, Modal, Descriptions, Alert, Row, Col, Card, Space, Segmented, Input, Select, Tag, Spin, Checkbox, Button, InputNumber, Divider, Typography } from 'antd';
+import { Form, message, Modal, Descriptions, Alert, Row, Col, Card, Space, Segmented, Input, Select, Tag, Spin, Checkbox, Button, InputNumber, Divider, Typography, Dropdown } from 'antd';
 import { useState, useEffect, useMemo } from 'react';
 import { SendOutlined, WalletOutlined, SettingOutlined, ReloadOutlined, ExclamationCircleOutlined, EditOutlined, UnorderedListOutlined } from "@ant-design/icons";
 import transactionSendStyles from './TransactionSend.module.scss';
@@ -346,6 +346,23 @@ export default function TransactionSend(props: WalletActionsProps) {
         // handleFormChange();
     };
 
+    const setGasPrice = (gasPrice: number | string) => {
+        let _gasPrice = parseInt(networkInfo?.gasPrice) || 30000000000; // 30gwei
+        if (gasPrice === 'fast2') {
+            _gasPrice *= 2;
+        } else if (gasPrice === 'fast1') {
+            _gasPrice *= 1.5;
+        } else if (gasPrice === 'slow') {
+            _gasPrice *= 0.8;
+        } else if (gasPrice === 'standard') {
+        } else if (typeof gasPrice === 'number') {
+            _gasPrice = gasPrice;
+        } else if (typeof gasPrice === 'string' && _.isNumber(gasPrice)) {
+            _gasPrice = Number(gasPrice);
+        }
+        form.setFieldValue('gasPrice', _gasPrice);
+    };
+
     // 验证地址格式
     const validateAddress = (_: any, value: string) => {
         if (!value) {
@@ -536,14 +553,26 @@ export default function TransactionSend(props: WalletActionsProps) {
                             <Row gutter={16}>
                                 <Col span={12}>
                                     <Form.Item
-                                        label="Gas Price (Gwei)"
+                                        label="Gas Price (wei)"
                                         name="gasPrice"
                                         rules={[{ required: true, message: '请选择 Gas Price' }]}
                                     >
-                                        <Select
-                                            placeholder="选择 Gas Price"
-                                            options={gasPriceOptions}
-                                        />
+                                        <Space.Compact block style={{ width: '100%' }}>
+                                            <Form.Item noStyle name="gasPrice">
+                                                <InputNumber
+                                                    style={{ width: '100%' }}
+                                                    placeholder="0.0"
+                                                    min={0}
+                                                />
+                                            </Form.Item>
+                                            <Dropdown.Button style={{ width: 95 }} menu={{
+                                                items: [
+                                                    { key: 'fast2', label: '极速', onClick: () => setGasPrice('fast2') },
+                                                    { key: 'fast1', label: '快速', onClick: () => setGasPrice('fast1') },
+                                                    { key: 'slow',label: '慢速', onClick: () => setGasPrice('slow') },
+                                                ],
+                                            }} onClick={() => setGasPrice('standard')}>标准</Dropdown.Button>
+                                        </Space.Compact>
                                     </Form.Item>
                                 </Col>
                                 <Col span={12}>

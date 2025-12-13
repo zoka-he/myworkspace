@@ -260,6 +260,13 @@ export default function TransactionHistory(props: WalletActionsProps) {
                                 className={transactionHistoryStyles.transactionTable}
                             >
                                 <Column
+                                    title="Nonce"
+                                    dataIndex="nonce"
+                                    key="nonce"
+                                    width={80}
+                                    render={(nonce, record: Transaction) => nonce.toString()}
+                                />
+                                <Column
                                     title="类型"
                                     dataIndex="type"
                                     key="type"
@@ -341,6 +348,9 @@ function TransactionDetail(props: { transaction?: Transaction | null, walletInfo
             bordered
             className={transactionHistoryStyles.descriptions}
         >
+            <Descriptions.Item label="Nonce" span={2}>
+                {transaction.nonce}
+            </Descriptions.Item>
             <Descriptions.Item label="交易哈希" span={2}>
                 <Space>
                     <Text className={transactionHistoryStyles.fullHash}>
