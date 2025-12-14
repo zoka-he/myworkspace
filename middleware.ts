@@ -42,9 +42,9 @@ export default function middleware(request: NextRequestWithAuth, event: NextFetc
         return NextResponse.next();
     }
 
-    // llmTools相关页面直接放行
-    if (/^(\/llmTools)/.test(pathname)) {
-        console.debug('origin req ------->>>>>', request);
+    // mcp相关页面直接放行
+    if (/^(\/mcp)/.test(pathname)) {
+        console.debug('MCP req ------->>>>>', request);
         return NextResponse.next();
     }
 
