@@ -9,23 +9,23 @@ import copyToClip from "@/src/utils/common/copy";
 
 export default function WalletSign() {
 
-    const [contractList, setContractList] = useState<IContract[]>([]);
-    const [selectedContract, setSelectedContract] = useState<IContract | null>(null);
+    // const [contractList, setContractList] = useState<IContract[]>([]);
+    // const [selectedContract, setSelectedContract] = useState<IContract | null>(null);
 
     useEffect(() => {
-        fetchContractList();
+        // fetchContractList();
     }, []);
 
-    async function fetchContractList() {
-        const { data } = await fetch.get('/api/eth/contract', {
-            params: {
-                page: 1,
-                limit: 100,
-                status: 'deployed',
-            },
-        });
-        setContractList(data || []);
-    }
+    // async function fetchContractList() {
+    //     const { data } = await fetch.get('/api/eth/contract', {
+    //         params: {
+    //             page: 1,
+    //             limit: 100,
+    //             status: 'deployed',
+    //         },
+    //     });
+    //     setContractList(data || []);
+    // }
 
     function renderContractList(contractList: IContract[]) {
         return contractList.map((contract) => {
@@ -38,7 +38,7 @@ export default function WalletSign() {
 
     return <div>
         <Space direction="vertical" style={{ width: '100%' }}>
-            <Space>
+            {/* <Space>
                 <Typography.Text>合约：</Typography.Text>
                 <Select 
                     style={{ width: '200px' }}
@@ -48,13 +48,13 @@ export default function WalletSign() {
                         setSelectedContract(contractList.find((contract) => contract.address === value) || null);
                     }} 
                 />
-            </Space>
-            <ContractContext.Provider value={{ contract: selectedContract }}>
+            </Space> */}
+            {/* <ContractContext.Provider value={{ contract: selectedContract }}> */}
                 <Space direction="vertical" style={{ width: '100%' }}>
                     <Signer />
                     <Verifier />
                 </Space>
-            </ContractContext.Provider>
+            {/* </ContractContext.Provider> */}
         </Space>
     </div>;
 }
@@ -66,17 +66,17 @@ const ContractContext = createContext<{
 });
 
 function Signer() {
-    const { contract } = useContext(ContractContext);
+    // const { contract } = useContext(ContractContext);
     const { getWalletProvider, isWalletConnected, accountInfo } = useWalletContext();
     const [textToSign, setTextToSign] = useState('');
     const [signature, setSignature] = useState('');
     const [loading, setLoading] = useState(false);
 
     async function handleSign() {
-        if (!contract?.address) {
-            message.error('请选择合约');
-            return;
-        };
+        // if (!contract?.address) {
+        //     message.error('请选择合约');
+        //     return;
+        // };
         
         const walletProvider = getWalletProvider();
         if (!walletProvider) {
@@ -182,7 +182,7 @@ function Signer() {
 }
 
 function Verifier() {
-    const { contract } = useContext(ContractContext);
+    // const { contract } = useContext(ContractContext);
     const { getWalletProvider, accountInfo } = useWalletContext();
     
     const [textToSign, setTextToSign] = useState('');
@@ -190,10 +190,10 @@ function Verifier() {
     const [result, setResult] = useState('');
 
     async function handleVerify() {
-        if (!contract?.address) {
-            message.error('请选择合约');
-            return;
-        }
+        // if (!contract?.address) {
+        //     message.error('请选择合约');
+        //     return;
+        // }
 
         const provider = getWalletProvider();
         if (!provider) {
