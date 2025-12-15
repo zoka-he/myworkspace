@@ -67,6 +67,7 @@ export default function TransactionSend(props: WalletActionsProps) {
 
     
     useEffect(() => {
+        fetchMarketValue();
         const timer =setInterval(() => {
             fetchMarketValue();
         }, 1000 * 30);

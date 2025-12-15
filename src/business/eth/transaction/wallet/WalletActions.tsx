@@ -9,6 +9,7 @@ import TransactionHistory from './TransactionHistory';
 import NftOfWallet from './NftOfWallet';
 import { useWalletContext } from '../WalletContext';
 import ErrorFallback from '@/src/components/ErrorFallbackBoundary/ErrorFallback';
+import WalletSign from './WalletSign';
 
 
 const { Title, Paragraph } = Typography;
@@ -47,6 +48,11 @@ export default function WalletActions(props: WalletActionsProps) {
         },
         {
             key: '5',
+            label: "签名",
+            children: <ErrorFallback><WalletSign/></ErrorFallback>,
+        },
+        {
+            key: '6',
             label: '合约监控',
             children: <ErrorFallback><WatchContract/></ErrorFallback>,
         }

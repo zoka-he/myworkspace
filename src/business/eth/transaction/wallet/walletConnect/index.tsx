@@ -43,6 +43,19 @@ export default function WalletConnect() {
     return listProviderInfos();
   }, []);
 
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      try {
+        await refreshWalletInfo()
+      } catch (error: any) {
+        console.error('刷新钱包信息失败:', error);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
   // 防止用户意外切换钱包提供者
   const allowChangeProvider = useMemo(() => {
     // 没有提供者，或只有1个提供者，没有必要切换

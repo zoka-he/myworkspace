@@ -13,6 +13,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+
   // 只处理POST请求
   if (req.method !== 'POST') {
     return res.status(405).json({
@@ -38,6 +39,8 @@ export default async function handler(
     
     // 处理不同的MCP方法
     switch (method) {
+
+      // 获取所有工具列表
       case 'tools/list': {
         const tools = mcpToolRegistry.getAllToolDefinitions();
         return res.status(200).json({
@@ -47,6 +50,7 @@ export default async function handler(
         });
       }
       
+      // 执行工具
       case 'tools/call': {
         if (!params || !params.name) {
           return res.status(200).json({
@@ -71,6 +75,7 @@ export default async function handler(
         });
       }
       
+      // 心跳检测
       case 'ping':
         return res.status(200).json({
           jsonrpc: '2.0',
@@ -82,6 +87,7 @@ export default async function handler(
           }
         });
       
+      // 兜底方法
       default:
         return res.status(200).json({
           jsonrpc: '2.0',
