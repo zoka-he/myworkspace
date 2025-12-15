@@ -1,11 +1,11 @@
 import { IContract } from "@/src/types/IContract";
-import { Button, Input, message, Select, Space, Typography } from "antd";
-import { useState, useEffect, useContext, createContext } from "react";
-import fetch from "@/src/fetch";
+import { Button, Input, message, Space, Typography, Card, Divider, Row, Col } from "antd";
+import { useState, useEffect, createContext } from "react";
 import { ethers } from "ethers";
 import { useWalletContext } from "../WalletContext";
-import { CheckOutlined, CloseOutlined, CopyOutlined } from "@ant-design/icons";
+import { CheckOutlined, CloseOutlined, CopyOutlined, EditOutlined, SafetyCertificateOutlined, SnippetsOutlined } from "@ant-design/icons";
 import copyToClip from "@/src/utils/common/copy";
+import styles from './WalletSign.module.scss';
 
 export default function WalletSign() {
 
@@ -36,26 +36,15 @@ export default function WalletSign() {
         });
     }
 
-    return <div>
-        <Space direction="vertical" style={{ width: '100%' }}>
-            {/* <Space>
-                <Typography.Text>合约：</Typography.Text>
-                <Select 
-                    style={{ width: '200px' }}
-                    options={renderContractList(contractList)} 
-                    value={selectedContract?.address} 
-                    onChange={(value) => {
-                        setSelectedContract(contractList.find((contract) => contract.address === value) || null);
-                    }} 
-                />
-            </Space> */}
-            {/* <ContractContext.Provider value={{ contract: selectedContract }}> */}
-                <Space direction="vertical" style={{ width: '100%' }}>
-                    <Signer />
-                    <Verifier />
-                </Space>
-            {/* </ContractContext.Provider> */}
-        </Space>
+    return <div className={styles.walletSign}>
+        <Row gutter={[16, 16]}>
+            <Col xs={24} lg={12}>
+                <Signer />
+            </Col>
+            <Col xs={24} lg={12}>
+                <Verifier />
+            </Col>
+        </Row>
     </div>;
 }
 
@@ -66,11 +55,21 @@ const ContractContext = createContext<{
 });
 
 function Signer() {
-    // const { contract } = useContext(ContractContext);
-    const { getWalletProvider, isWalletConnected, accountInfo } = useWalletContext();
+    const { getWalletProvider, accountInfo } = useWalletContext();
     const [textToSign, setTextToSign] = useState('');
     const [signature, setSignature] = useState('');
     const [loading, setLoading] = useState(false);
+
+    async function handlePaste(setter: (value: string) => void) {
+        try {
+            const text = await navigator.clipboard.readText();
+            setter(text);
+            message.success('粘贴成功');
+        } catch (error: any) {
+            console.error('粘贴失败:', error);
+            message.error('粘贴失败，请检查剪贴板权限');
+        }
+    }
 
     async function handleSign() {
         // if (!contract?.address) {
@@ -164,21 +163,86 @@ function Signer() {
         }
     }
 
-    return <div><Space>
-        <Typography.Text>信息：</Typography.Text>
-        <Space.Compact>
-            <Input value={textToSign} onChange={(e) => setTextToSign(e.target.value)} />
-            <Button icon={<CopyOutlined />} onClick={() => copyToClip(textToSign)} />
-        </Space.Compact>
+    return (
+        <Card 
+            className={styles.signCard}
+            title={
+                <Space>
+                    <EditOutlined style={{ color: '#1890ff' }} />
+                    <Typography.Title level={5} style={{ margin: 0 }}>消息签名</Typography.Title>
+                </Space>
+            }
+        >
+            <Space direction="vertical" style={{ width: '100%' }} size="large">
+                <div className={styles.inputGroup}>
+                    <Typography.Text strong className={styles.label}>待签名消息</Typography.Text>
+                    <div className={styles.inputWrapper}>
+                        <Input.TextArea
+                            value={textToSign}
+                            onChange={(e) => setTextToSign(e.target.value)}
+                            placeholder="请输入要签名的文本消息"
+                            rows={3}
+                            className={styles.messageInput}
+                        />
+                        <div className={styles.buttonGroup}>
+                            <Button 
+                                icon={<CopyOutlined />} 
+                                onClick={() => copyToClip(textToSign)}
+                                disabled={!textToSign}
+                                className={styles.copyButton}
+                            />
+                            <Button 
+                                icon={<SnippetsOutlined />} 
+                                onClick={() => handlePaste(setTextToSign)}
+                                className={styles.pasteButton}
+                            />
+                        </div>
+                    </div>
+                </div>
 
-        <Space.Compact>
-            <Button type="primary" loading={loading} onClick={() => {
-                handleSign();
-            }}>签名-&gt;</Button>
-            <Input value={signature} readOnly />
-            <Button icon={<CopyOutlined />} onClick={() => copyToClip(signature)} />
-        </Space.Compact>
-    </Space></div>;
+                <div className={styles.actionGroup}>
+                    <Button 
+                        type="primary" 
+                        size="large"
+                        loading={loading} 
+                        onClick={handleSign}
+                        icon={<EditOutlined />}
+                        block
+                        className={styles.signButton}
+                    >
+                        生成签名
+                    </Button>
+                </div>
+
+                <Divider style={{ margin: '8px 0' }} />
+                <div className={styles.inputGroup}>
+                    <Typography.Text strong className={styles.label}>签名结果</Typography.Text>
+                    <div className={styles.inputWrapper}>
+                        <Input.TextArea
+                            value={signature}
+                            readOnly
+                            rows={3}
+                            className={styles.signatureInput}
+                            placeholder="签名结果将显示在这里"
+                        />
+                        <div className={styles.buttonGroup}>
+                            <Button 
+                                icon={<CopyOutlined />} 
+                                onClick={() => copyToClip(signature)}
+                                disabled={!signature}
+                                className={styles.copyButton}
+                            />
+                            {/* <Button 
+                                icon={<SnippetsOutlined />} 
+                                onClick={() => handlePaste(setSignature)}
+                                className={styles.pasteButton}
+                            /> */}
+                        </div>
+                    </div>
+                </div>
+            </Space>
+        </Card>
+    );
 }
 
 function Verifier() {
@@ -188,6 +252,17 @@ function Verifier() {
     const [textToSign, setTextToSign] = useState('');
     const [signature, setSignature] = useState('');
     const [result, setResult] = useState('');
+
+    async function handlePaste(setter: (value: string) => void) {
+        try {
+            const text = await navigator.clipboard.readText();
+            setter(text);
+            message.success('粘贴成功');
+        } catch (error: any) {
+            console.error('粘贴失败:', error);
+            message.error('粘贴失败，请检查剪贴板权限');
+        }
+    }
 
     async function handleVerify() {
         // if (!contract?.address) {
@@ -215,26 +290,122 @@ function Verifier() {
     }
     
     return (
-        <div>
-            <Space>
-                <Typography.Text>信息：</Typography.Text>
-                <Space.Compact>
-                    <Input value={textToSign} onChange={(e) => setTextToSign(e.target.value)} />
-                    <Button icon={<CopyOutlined />} onClick={() => copyToClip(textToSign)} />
-                </Space.Compact>    
-                <Typography.Text>签名：</Typography.Text>
-                <Space.Compact>
-                    <Input value={signature} onChange={(e) => setSignature(e.target.value)} />
-                    <Button icon={<CopyOutlined />} onClick={() => copyToClip(signature)} />
-                </Space.Compact>
+        <Card 
+            className={styles.verifyCard}
+            title={
+                <Space>
+                    <SafetyCertificateOutlined style={{ color: '#52c41a' }} />
+                    <Typography.Title level={5} style={{ margin: 0 }}>签名验证</Typography.Title>
+                </Space>
+            }
+        >
+            <Space direction="vertical" style={{ width: '100%' }} size="large">
+                <div className={styles.inputGroup}>
+                    <Typography.Text strong className={styles.label}>原始消息</Typography.Text>
+                    <div className={styles.inputWrapper}>
+                        <Input.TextArea
+                            value={textToSign}
+                            onChange={(e) => setTextToSign(e.target.value)}
+                            placeholder="请输入原始消息"
+                            rows={3}
+                            className={styles.messageInput}
+                        />
+                        <div className={styles.buttonGroup}>
+                            <Button 
+                                icon={<CopyOutlined />} 
+                                onClick={() => copyToClip(textToSign)}
+                                disabled={!textToSign}
+                                className={styles.copyButton}
+                            />
+                            <Button 
+                                icon={<SnippetsOutlined />} 
+                                onClick={() => handlePaste(setTextToSign)}
+                                className={styles.pasteButton}
+                            />
+                        </div>
+                    </div>
+                </div>
 
-                <Space.Compact>
-                    <Button type="primary" onClick={() => {
-                        handleVerify();
-                    }}>验证-&gt;</Button>
-                    <Input value={result} readOnly suffix={isCorrect} />
-                </Space.Compact>
+                <div className={styles.inputGroup}>
+                    <Typography.Text strong className={styles.label}>签名数据</Typography.Text>
+                    <div className={styles.inputWrapper}>
+                        <Input.TextArea
+                            value={signature}
+                            onChange={(e) => setSignature(e.target.value)}
+                            placeholder="请输入签名数据"
+                            rows={3}
+                            className={styles.signatureInput}
+                        />
+                        <div className={styles.buttonGroup}>
+                            <Button 
+                                icon={<CopyOutlined />} 
+                                onClick={() => copyToClip(signature)}
+                                disabled={!signature}
+                                className={styles.copyButton}
+                            />
+                            <Button 
+                                icon={<SnippetsOutlined />} 
+                                onClick={() => handlePaste(setSignature)}
+                                className={styles.pasteButton}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <div className={styles.actionGroup}>
+                    <Button 
+                        type="primary" 
+                        size="large"
+                        onClick={handleVerify}
+                        icon={<SafetyCertificateOutlined />}
+                        block
+                        className={styles.verifyButton}
+                        disabled={!textToSign || !signature}
+                    >
+                        验证签名
+                    </Button>
+                </div>
+
+                <Divider style={{ margin: '8px 0' }} />
+                <div className={styles.inputGroup}>
+                    <Typography.Text strong className={styles.label}>验证结果</Typography.Text>
+                    <div className={styles.inputWrapper}>
+                        <Input
+                            value={result}
+                            readOnly
+                            className={styles.resultInput}
+                            placeholder="验证结果将显示在这里"
+                            suffix={
+                                <Space size="small">
+                                    {isCorrect && (
+                                        <Typography.Text 
+                                            type={result?.toLowerCase() === accountInfo?.selectedAddress?.toLowerCase() ? 'success' : 'danger'}
+                                            strong
+                                            style={{ fontSize: '14px' }}
+                                        >
+                                            {result?.toLowerCase() === accountInfo?.selectedAddress?.toLowerCase() ? '验证通过' : '验证失败'}
+                                        </Typography.Text>
+                                    )}
+                                    {isCorrect}
+                                </Space>
+                            }
+                        />
+                        <div className={styles.buttonGroup}>
+                            <Button 
+                                icon={<CopyOutlined />} 
+                                onClick={() => copyToClip(result)}
+                                disabled={!result}
+                                className={styles.copyButton}
+                            />
+                            {/* <Button 
+                                icon={<SnippetsOutlined />} 
+                                onClick={() => handlePaste(setResult)}
+                                className={styles.pasteButton}
+                            /> */}
+                        </div>
+                    </div>
+                </div>
             </Space>
-        </div>
+        </Card>
     );
 }
