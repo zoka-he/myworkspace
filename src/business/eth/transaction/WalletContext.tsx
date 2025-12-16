@@ -71,10 +71,44 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
         return walletToolRef.current;
     }, []);
 
+    // 刷新钱包信息
+    const refreshWalletInfo = useCallback(async () => {
+        console.debug('walletContext刷新钱包信息');
+
+        if (!walletToolRef.current) {
+            setAccountInfo(null);
+            setNetworkInfo(null);
+            console.error('执行异常：walletToolRef为空');
+            return;
+        }
+
+        const walletInfo = await walletToolRef.current?.requestWalletInfo();
+        if (walletInfo) {
+            setAccountInfo({
+                accounts: walletInfo.accounts,
+                selectedAddress: walletInfo.selectedAddress,
+                balance: walletInfo.balance,
+            });
+            setNetworkInfo({
+                chainId: walletInfo.chainId,
+                blockNumber: walletInfo.blockNumber,
+                gasPrice: walletInfo.gasPrice,
+            });
+        } else {
+            setAccountInfo(null);
+            setNetworkInfo(null);
+            console.error('刷新钱包信息失败');
+        }
+    }, []);
+
     // 监听钱包提供者变化
     useEffect(() => {
         console.debug('provider发生变化导致MetamaskTool需要更新');
 
+        createWalletTool();
+    }, [providerInfo, refreshWalletInfo]);
+
+    function createWalletTool() {
         // 移除旧的监听
         if (walletToolRef.current) {
             walletToolRef.current.offAllListeners();
@@ -94,23 +128,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
             walletToolRef.current = new MetamaskTool(walletProviderRef.current);
         } else {
             walletToolRef.current = null;
-        }
-    }, [walletProviderRef.current]);
-
-    // 刷新钱包信息
-    async function refreshWalletInfo() {
-        const walletInfo = await getWalletTool()?.requestWalletInfo();
-        if (walletInfo) {
-            setAccountInfo({
-                accounts: walletInfo.accounts,
-                selectedAddress: walletInfo.selectedAddress,
-                balance: walletInfo.balance,
-            });
-            setNetworkInfo({
-                chainId: walletInfo.chainId,
-                blockNumber: walletInfo.blockNumber,
-                gasPrice: walletInfo.gasPrice,
-            });
+            console.debug('provider未设置，未完成初始化');
         }
     }
 
@@ -126,7 +144,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
             networkInfo,
             refreshWalletInfo,
         }
-    }, [providerInfo, walletProviderRef.current, isWalletConnected, accountInfo, networkInfo]);
+    }, [providerInfo, isWalletConnected, switchRdns, getWalletProvider, getWalletTool, accountInfo, networkInfo, refreshWalletInfo]);
 
     console.debug('sharedState changed:', sharedState);
     return <WalletContext.Provider value={sharedState}>{children}</WalletContext.Provider>;

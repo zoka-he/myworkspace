@@ -21,6 +21,7 @@ import copyToClip from '@/src/utils/common/copy';
 import dayjs from 'dayjs';
 import styles from './index.module.scss';
 import { IContract, IContractMethod } from '../../../types/IContract';
+import ContractTextModal from './contractTestModal';
 
 const { Column } = Table;
 const { Option } = Select;
@@ -481,98 +482,98 @@ export default function ContractDeploy() {
     }, [form, parseConstructorParams, networkList, accountList]);
 
     // 调用合约方法
-    const callContractMethod = useCallback(async () => {
-        if (!currentContract) return;
+    // const callContractMethod = useCallback(async () => {
+    //     if (!currentContract) return;
 
-        if (!currentContract.address) {
-            message.error('合约地址不存在，无法调用方法');
-            return;
-        }
+    //     if (!currentContract.address) {
+    //         message.error('合约地址不存在，无法调用方法');
+    //         return;
+    //     }
 
-        try {
-            const values = await interactForm.validateFields();
-            const methodName = values.method;
+    //     try {
+    //         const values = await interactForm.validateFields();
+    //         const methodName = values.method;
             
-            if (!currentContract.abi) {
-                message.error('合约ABI不存在，无法调用方法');
-                return;
-            }
+    //         if (!currentContract.abi) {
+    //             message.error('合约ABI不存在，无法调用方法');
+    //             return;
+    //         }
             
-            const abi = JSON.parse(currentContract.abi);
-            const method = abi.find((item: any) => 
-                item.type === 'function' && item.name === methodName
-            );
+    //         const abi = JSON.parse(currentContract.abi);
+    //         const method = abi.find((item: any) => 
+    //             item.type === 'function' && item.name === methodName
+    //         );
 
-            if (!method) {
-                message.error('未找到方法');
-                return;
-            }
+    //         if (!method) {
+    //             message.error('未找到方法');
+    //             return;
+    //         }
 
-            // 获取网络信息
-            // @ts-ignore
-            const { data: networks } = await fetch.get('/api/eth/network', {
-                params: { id: currentContract.network_id }
-            });
+    //         // 获取网络信息
+    //         // @ts-ignore
+    //         const { data: networks } = await fetch.get('/api/eth/network', {
+    //             params: { id: currentContract.network_id }
+    //         });
             
-            const network = networks?.[0];
-            if (!network) {
-                message.error('未找到网络信息');
-                return;
-            }
+    //         const network = networks?.[0];
+    //         if (!network) {
+    //             message.error('未找到网络信息');
+    //             return;
+    //         }
 
-            const provider = new ethers.JsonRpcProvider(network.rpc_url);
+    //         const provider = new ethers.JsonRpcProvider(network.rpc_url);
             
-            // 准备参数
-            const params = method.inputs.map((input: any) => {
-                return values[`param_${input.name}`];
-            });
+    //         // 准备参数
+    //         const params = method.inputs.map((input: any) => {
+    //             return values[`param_${input.name}`];
+    //         });
 
-            if (method.stateMutability === 'view' || method.stateMutability === 'pure') {
-                // 只读方法，不需要签名
-                const contract = new ethers.Contract(currentContract.address, abi, provider);
-                const result = await contract[methodName](...params);
+    //         if (method.stateMutability === 'view' || method.stateMutability === 'pure') {
+    //             // 只读方法，不需要签名
+    //             const contract = new ethers.Contract(currentContract.address, abi, provider);
+    //             const result = await contract[methodName](...params);
                 
-                // 序列化 BigInt 和其他无法序列化的值
-                const serializedResult = serializeBigInt(result);
+    //             // 序列化 BigInt 和其他无法序列化的值
+    //             const serializedResult = serializeBigInt(result);
                 
-                Modal.info({
-                    title: '调用结果',
-                    width: 600,
-                    content: (
-                        <div>
-                            <Text strong>方法: </Text><Text>{methodName}</Text><br/>
-                            <Text strong>返回值: </Text><Text code>{JSON.stringify(serializedResult, null, 2)}</Text>
-                        </div>
-                    )
-                });
-            } else {
-                // 需要交易的方法
-                const account = accountList.find(a => a.id === values.accountId);
-                if (!account || !account.private_key) {
-                    message.error('请选择有私钥的账户');
-                    return;
-                }
+    //             Modal.info({
+    //                 title: '调用结果',
+    //                 width: 600,
+    //                 content: (
+    //                     <div>
+    //                         <Text strong>方法: </Text><Text>{methodName}</Text><br/>
+    //                         <Text strong>返回值: </Text><Text code>{JSON.stringify(serializedResult, null, 2)}</Text>
+    //                     </div>
+    //                 )
+    //             });
+    //         } else {
+    //             // 需要交易的方法
+    //             const account = accountList.find(a => a.id === values.accountId);
+    //             if (!account || !account.private_key) {
+    //                 message.error('请选择有私钥的账户');
+    //                 return;
+    //             }
 
-                const wallet = new ethers.Wallet(account.private_key, provider);
-                const contract = new ethers.Contract(currentContract.address, abi, wallet);
+    //             const wallet = new ethers.Wallet(account.private_key, provider);
+    //             const contract = new ethers.Contract(currentContract.address, abi, wallet);
                 
-                message.loading({ content: '正在发送交易...', key: 'call' });
-                const tx = await contract[methodName](...params);
-                await tx.wait();
+    //             message.loading({ content: '正在发送交易...', key: 'call' });
+    //             const tx = await contract[methodName](...params);
+    //             await tx.wait();
                 
-                message.success({ 
-                    content: `交易成功: ${tx.hash}`, 
-                    key: 'call',
-                    duration: 5
-                });
-            }
+    //             message.success({ 
+    //                 content: `交易成功: ${tx.hash}`, 
+    //                 key: 'call',
+    //                 duration: 5
+    //             });
+    //         }
 
-            setIsInteractModalVisible(false);
-        } catch (e: any) {
-            console.error('调用失败:', e);
-            message.error('调用失败: ' + e.message);
-        }
-    }, [currentContract, interactForm, accountList]);
+    //         setIsInteractModalVisible(false);
+    //     } catch (e: any) {
+    //         console.error('调用失败:', e);
+    //         message.error('调用失败: ' + e.message);
+    //     }
+    // }, [currentContract, interactForm, accountList]);
 
     // 切换合约状态（在 deployed 和 deprecated 之间切换）
     const toggleContractStatus = useCallback(async (contract: IContract) => {
@@ -1188,121 +1189,121 @@ export default function ContractDeploy() {
     };
 
     // 渲染合约交互界面
-    const renderContractInteract = () => {
-        if (!currentContract) return null;
+    // const renderContractInteract = () => {
+    //     if (!currentContract) return null;
 
-        if (!currentContract.abi) {
-            return (
-                <Alert
-                    message="无法交互"
-                    description="此合约尚未编译或缺少ABI信息，无法进行交互。"
-                    type="warning"
-                    showIcon
-                />
-            );
-        }
+    //     if (!currentContract.abi) {
+    //         return (
+    //             <Alert
+    //                 message="无法交互"
+    //                 description="此合约尚未编译或缺少ABI信息，无法进行交互。"
+    //                 type="warning"
+    //                 showIcon
+    //             />
+    //         );
+    //     }
 
-        let abi: any[] = [];
-        try {
-            abi = JSON.parse(currentContract.abi);
-        } catch (e) {
-            console.error('解析ABI失败:', e);
-            return (
-                <Alert
-                    message="ABI解析失败"
-                    description="合约ABI格式不正确，无法进行交互。"
-                    type="error"
-                    showIcon
-                />
-            );
-        }
+    //     let abi: any[] = [];
+    //     try {
+    //         abi = JSON.parse(currentContract.abi);
+    //     } catch (e) {
+    //         console.error('解析ABI失败:', e);
+    //         return (
+    //             <Alert
+    //                 message="ABI解析失败"
+    //                 description="合约ABI格式不正确，无法进行交互。"
+    //                 type="error"
+    //                 showIcon
+    //             />
+    //         );
+    //     }
 
-        const methods = abi.filter((item: any) => item.type === 'function');
+    //     const methods = abi.filter((item: any) => item.type === 'function');
 
-        return (
-            <Form form={interactForm} layout="vertical">
-                <Form.Item
-                    name="method"
-                    label="选择方法"
-                    rules={[{ required: true, message: '请选择方法' }]}
-                >
-                    <Select 
-                        placeholder="请选择要调用的方法"
-                        onChange={(value) => {
-                            interactForm.resetFields(['accountId']);
-                            // 清除之前的参数值
-                            if (value) {
-                                const methodAbi = methods.find((m: any) => m.name === value);
-                                if (methodAbi && methodAbi.inputs) {
-                                    methodAbi.inputs.forEach((input: any) => {
-                                        interactForm.setFieldValue(`param_${input.name}`, undefined);
-                                    });
-                                }
-                            }
-                        }}
-                    >
-                        {methods.map((method: any, index: number) => (
-                            <Option key={index} value={method.name}>
-                                <Space>
-                                    <Tag color={method.stateMutability === 'view' || method.stateMutability === 'pure' ? 'blue' : 'orange'}>
-                                        {method.stateMutability || 'nonpayable'}
-                                    </Tag>
-                                    {method.name}
-                                </Space>
-                            </Option>
-                        ))}
-                    </Select>
-                </Form.Item>
+    //     return (
+    //         <Form form={interactForm} layout="vertical">
+    //             <Form.Item
+    //                 name="method"
+    //                 label="选择方法"
+    //                 rules={[{ required: true, message: '请选择方法' }]}
+    //             >
+    //                 <Select 
+    //                     placeholder="请选择要调用的方法"
+    //                     onChange={(value) => {
+    //                         interactForm.resetFields(['accountId']);
+    //                         // 清除之前的参数值
+    //                         if (value) {
+    //                             const methodAbi = methods.find((m: any) => m.name === value);
+    //                             if (methodAbi && methodAbi.inputs) {
+    //                                 methodAbi.inputs.forEach((input: any) => {
+    //                                     interactForm.setFieldValue(`param_${input.name}`, undefined);
+    //                                 });
+    //                             }
+    //                         }
+    //                     }}
+    //                 >
+    //                     {methods.map((method: any, index: number) => (
+    //                         <Option key={index} value={method.name}>
+    //                             <Space>
+    //                                 <Tag color={method.stateMutability === 'view' || method.stateMutability === 'pure' ? 'blue' : 'orange'}>
+    //                                     {method.stateMutability || 'nonpayable'}
+    //                                 </Tag>
+    //                                 {method.name}
+    //                             </Space>
+    //                         </Option>
+    //                     ))}
+    //                 </Select>
+    //             </Form.Item>
 
-                <Form.Item shouldUpdate={(prevValues, currentValues) => prevValues.method !== currentValues.method}>
-                    {() => {
-                        const selectedMethod = interactForm.getFieldValue('method');
-                        const methodAbi = methods.find((m: any) => m.name === selectedMethod);
+    //             <Form.Item shouldUpdate={(prevValues, currentValues) => prevValues.method !== currentValues.method}>
+    //                 {() => {
+    //                     const selectedMethod = interactForm.getFieldValue('method');
+    //                     const methodAbi = methods.find((m: any) => m.name === selectedMethod);
                         
-                        return (
-                            <>
-                                {methodAbi && methodAbi.inputs && methodAbi.inputs.length > 0 && (
-                                    <>
-                                        <Text strong>方法参数：</Text>
-                                        {methodAbi.inputs.map((input: any, index: number) => (
-                                            <Form.Item
-                                                key={index}
-                                                name={`param_${input.name}`}
-                                                label={`${input.name} (${input.type})`}
-                                                rules={[{ required: true, message: `请输入${input.name}` }]}
-                                            >
-                                                <Input placeholder={`请输入${input.type}类型的值`} />
-                                            </Form.Item>
-                                        ))}
-                                    </>
-                                )}
+    //                     return (
+    //                         <>
+    //                             {methodAbi && methodAbi.inputs && methodAbi.inputs.length > 0 && (
+    //                                 <>
+    //                                     <Text strong>方法参数：</Text>
+    //                                     {methodAbi.inputs.map((input: any, index: number) => (
+    //                                         <Form.Item
+    //                                             key={index}
+    //                                             name={`param_${input.name}`}
+    //                                             label={`${input.name} (${input.type})`}
+    //                                             rules={[{ required: true, message: `请输入${input.name}` }]}
+    //                                         >
+    //                                             <Input placeholder={`请输入${input.type}类型的值`} />
+    //                                         </Form.Item>
+    //                                     ))}
+    //                                 </>
+    //                             )}
 
-                                {methodAbi && 
-                                 methodAbi.stateMutability !== 'view' && 
-                                 methodAbi.stateMutability !== 'pure' && (
-                                    <Form.Item
-                                        name="accountId"
-                                        label="交易账户"
-                                        rules={[{ required: true, message: '请选择交易账户' }]}
-                                    >
-                                        <Select placeholder="请选择用于签名交易的账户">
-                                            {accountList
-                                                .filter(acc => acc.private_key)
-                                                .map(account => (
-                                                    <Option key={account.id} value={account.id}>
-                                                        {account.name} ({account.address.substring(0, 8)}...)
-                                                    </Option>
-                                                ))}
-                                        </Select>
-                                    </Form.Item>
-                                )}
-                            </>
-                        );
-                    }}
-                </Form.Item>
-            </Form>
-        );
-    };
+    //                             {methodAbi && 
+    //                              methodAbi.stateMutability !== 'view' && 
+    //                              methodAbi.stateMutability !== 'pure' && (
+    //                                 <Form.Item
+    //                                     name="accountId"
+    //                                     label="交易账户"
+    //                                     rules={[{ required: true, message: '请选择交易账户' }]}
+    //                                 >
+    //                                     <Select placeholder="请选择用于签名交易的账户">
+    //                                         {accountList
+    //                                             .filter(acc => acc.private_key)
+    //                                             .map(account => (
+    //                                                 <Option key={account.id} value={account.id}>
+    //                                                     {account.name} ({account.address.substring(0, 8)}...)
+    //                                                 </Option>
+    //                                             ))}
+    //                                     </Select>
+    //                                 </Form.Item>
+    //                             )}
+    //                         </>
+    //                     );
+    //                 }}
+    //             </Form.Item>
+    //         </Form>
+    //     );
+    // };
 
     return (
         <div className={`f-fit-height f-flex-col ${styles.contractDeploy}`}>
@@ -1785,18 +1786,15 @@ export default function ContractDeploy() {
             </Modal>
 
             {/* 合约交互Modal */}
-            <Modal
-                title={<Space><InteractionOutlined />合约交互</Space>}
-                open={isInteractModalVisible}
-                onOk={callContractMethod}
+            <ContractTextModal
+                isOpen={isInteractModalVisible}
+                accountList={accountList}
+                onClose={() => setIsInteractModalVisible(false)}
+                // onOk={callContractMethod}
                 onCancel={() => setIsInteractModalVisible(false)}
-                width={700}
-                okText="调用"
-                cancelText="取消"
-                className={styles.interactModal}
-            >
-                {renderContractInteract()}
-            </Modal>
+                currentContract={currentContract || null}
+            />
+            
         </div>
     )
 }
