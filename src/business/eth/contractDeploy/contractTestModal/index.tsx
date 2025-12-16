@@ -14,14 +14,14 @@ import ContractInfo from "./contractInfo";
 const { Text } = Typography;    
 const { Option } = Select;
 
-interface IContractTextModalProps {
+interface IContractTestModalProps {
     isOpen: boolean;
     accountList: IEthAccount[];
     onCancel: () => void;
     currentContract: IContract | null;
 }
 
-export default function ContractTextModal(props: IContractTextModalProps) {
+export default function ContractTestModal(props: IContractTestModalProps) {
 
     const [selectedMethod, setSelectedMethod] = useState<IContractMethod | null>(null);
 
@@ -29,13 +29,185 @@ export default function ContractTextModal(props: IContractTextModalProps) {
         setSelectedMethod(null);
     }, [props.currentContract]);
 
+    function handleSelectMethodFromContractInfo(method: IContractMethod) {
+        setSelectedMethod(method);
+        
+        // 让 Modal 的位置回到视口顶部
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                let modalWrap: HTMLElement | null = null;
+                
+                // 方法1: 通过 CSS 模块类名查找（如果类名没有被转换）
+                const modalWithClass = document.querySelector(`.${styles.ContractInteractionModal}`);
+                if (modalWithClass) {
+                    modalWrap = modalWithClass.closest('.ant-modal-wrap') as HTMLElement;
+                }
+                
+                // 方法2: 如果方法1失败，通过 Modal 标题查找（最可靠的方法）
+                if (!modalWrap) {
+                    const allModalWraps = document.querySelectorAll('.ant-modal-wrap');
+                    Array.from(allModalWraps).forEach((wrap) => {
+                        const title = wrap.querySelector('.ant-modal-title');
+                        if (title && title.textContent?.includes('合约交互')) {
+                            modalWrap = wrap as HTMLElement;
+                        }
+                    });
+                }
+                
+                // 方法3: 如果还是找不到，查找最后一个可见的 Modal
+                if (!modalWrap) {
+                    const allModalWraps = document.querySelectorAll('.ant-modal-wrap');
+                    // 查找可见的 Modal（display 不为 none）
+                    Array.from(allModalWraps).forEach((wrap) => {
+                        const style = window.getComputedStyle(wrap);
+                        if (style.display !== 'none' && style.visibility !== 'hidden' && !modalWrap) {
+                            modalWrap = wrap as HTMLElement;
+                        }
+                    });
+                }
+                
+                if (modalWrap) {
+                    console.debug('找到 modalWrap -------->', modalWrap);
+                    console.debug('当前 window.scrollY:', window.scrollY);
+                    console.debug('当前 document.documentElement.scrollTop:', document.documentElement.scrollTop);
+                    console.debug('当前 document.body.scrollTop:', document.body.scrollTop);
+                    
+                    // 优先处理 modalWrap 的滚动（这是主要的滚动容器）
+                    const currentModalWrap = modalWrap; // 保存引用避免闭包问题
+                    if (currentModalWrap.scrollTop > 0) {
+                        console.debug('优先滚动 modalWrap 到顶部，从', currentModalWrap.scrollTop, '到 0');
+                        currentModalWrap.scrollTop = 0;
+                        if (typeof currentModalWrap.scrollTo === 'function') {
+                            currentModalWrap.scrollTo({ top: 0, behavior: 'instant' });
+                        }
+                        // 使用 requestAnimationFrame 确保生效
+                        requestAnimationFrame(() => {
+                            if (currentModalWrap) {
+                                currentModalWrap.scrollTop = 0;
+                            }
+                        });
+                    }
+                    
+                    // 查找 Modal 内部的所有可能的滚动容器
+                    const modalBody = modalWrap.querySelector('.ant-modal-body') as HTMLElement;
+                    const modalContent = modalWrap.querySelector('.ant-modal-content') as HTMLElement;
+                    const modal = modalWrap.querySelector('.ant-modal') as HTMLElement;
+                    
+                    // 查找 Modal 内部所有可滚动的元素
+                    const allScrollableElements = modalWrap.querySelectorAll('*');
+                    const scrollContainers: HTMLElement[] = [
+                        document.documentElement,
+                        document.body,
+                        modalWrap,
+                    ];
+                    
+                    // 添加 Modal 内部可能的滚动容器
+                    if (modalBody) scrollContainers.push(modalBody);
+                    if (modalContent) scrollContainers.push(modalContent);
+                    if (modal) scrollContainers.push(modal);
+                    
+                    // 检查所有元素，查找可滚动的
+                    allScrollableElements.forEach((el) => {
+                        const htmlEl = el as HTMLElement;
+                        try {
+                            const style = window.getComputedStyle(htmlEl);
+                            const overflow = style.overflow;
+                            const overflowY = style.overflowY;
+                            const scrollTop = htmlEl.scrollTop;
+                            
+                            // 如果元素有滚动能力（overflow 为 auto/scroll）或者 scrollTop 不为 0
+                            if ((overflow === 'auto' || overflow === 'scroll' || overflowY === 'auto' || overflowY === 'scroll' || scrollTop > 0) && scrollTop > 0) {
+                                console.debug('找到可滚动元素:', htmlEl.tagName, htmlEl.className, 'scrollTop:', scrollTop);
+                                scrollContainers.push(htmlEl);
+                            }
+                        } catch (e) {
+                            // 忽略错误
+                        }
+                    });
+                    
+                    // 向上查找所有父容器
+                    let parent: HTMLElement | null = modalWrap.parentElement;
+                    while (parent && parent !== document.body && parent !== document.documentElement) {
+                        scrollContainers.push(parent);
+                        parent = parent.parentElement;
+                    }
+                    
+                    // 滚动所有可能的容器
+                    scrollContainers.forEach((container) => {
+                        try {
+                            const style = window.getComputedStyle(container);
+                            const overflow = style.overflow;
+                            const overflowY = style.overflowY;
+                            const scrollTop = container.scrollTop;
+                            const scrollHeight = container.scrollHeight;
+                            const clientHeight = container.clientHeight;
+                            
+                            console.debug('检查容器:', container.tagName, container.className, 'overflow:', overflow, 'overflowY:', overflowY, 'scrollTop:', scrollTop, 'scrollHeight:', scrollHeight, 'clientHeight:', clientHeight);
+                            
+                            // 如果 scrollTop > 0 或者可以滚动（scrollHeight > clientHeight）
+                            if (scrollTop > 0 || (scrollHeight > clientHeight && (overflow === 'auto' || overflow === 'scroll' || overflowY === 'auto' || overflowY === 'scroll'))) {
+                                console.debug('滚动容器到顶部:', container, '从', scrollTop, '到 0');
+                                // 使用多种方法确保滚动生效
+                                container.scrollTop = 0;
+                                // 如果支持 scrollTo，也使用它
+                                if (typeof container.scrollTo === 'function') {
+                                    container.scrollTo({ top: 0, behavior: 'instant' });
+                                }
+                                // 再次设置确保生效
+                                requestAnimationFrame(() => {
+                                    container.scrollTop = 0;
+                                });
+                            }
+                        } catch (e) {
+                            console.debug('滚动容器时出错:', e);
+                        }
+                    });
+                    
+                    // 强制滚动 window 和 document 到顶部（立即，不使用 smooth）
+                    window.scrollTo(0, 0);
+                    document.documentElement.scrollTop = 0;
+                    document.body.scrollTop = 0;
+                    
+                    // 再次检查是否成功滚动
+                    const finalModalWrap = modalWrap; // 保存引用避免闭包问题
+                    setTimeout(() => {
+                        console.debug('滚动后 window.scrollY:', window.scrollY);
+                        console.debug('滚动后 document.documentElement.scrollTop:', document.documentElement.scrollTop);
+                        console.debug('滚动后 document.body.scrollTop:', document.body.scrollTop);
+                        if (finalModalWrap) {
+                            console.debug('滚动后 modalWrap.scrollTop:', finalModalWrap.scrollTop);
+                        }
+                        if (modalBody) console.debug('滚动后 modalBody.scrollTop:', modalBody.scrollTop);
+                        if (modalContent) console.debug('滚动后 modalContent.scrollTop:', modalContent.scrollTop);
+                        if (modal) console.debug('滚动后 modal.scrollTop:', modal.scrollTop);
+                        
+                        // 如果 modalWrap 的 scrollTop 仍然不为 0，强制再次滚动
+                        if (finalModalWrap && finalModalWrap.scrollTop > 0) {
+                            console.debug('检测到 modalWrap.scrollTop 仍不为 0，强制滚动');
+                            finalModalWrap.scrollTop = 0;
+                            if (typeof finalModalWrap.scrollTo === 'function') {
+                                finalModalWrap.scrollTo({ top: 0, behavior: 'instant' });
+                            }
+                        }
+                    }, 50);
+                } else {
+                    console.debug('未找到 modalWrap，尝试滚动 window');
+                    // 如果找不到 Modal，直接滚动 window 到顶部
+                    window.scrollTo(0, 0);
+                    document.documentElement.scrollTop = 0;
+                    document.body.scrollTop = 0;
+                }
+            }, 100);
+        });
+    }
+
     return <Modal
         title={<Space><InteractionOutlined />合约交互</Space>}
         open={props.isOpen}
         onCancel={props.onCancel}
         width={'70vw'}
         footer={null}
-        className={styles.interactModal}
+        className={styles.ContractInteractionModal}
     >
         <WalletProvider>
 
@@ -44,7 +216,7 @@ export default function ContractTextModal(props: IContractTextModalProps) {
                 <Col span={8}>
                     <Space direction="vertical" size={16}>
                         <WalletInfo />
-                        <ContractInfo contract={props.currentContract} onMethodClick={setSelectedMethod} />
+                        <ContractInfo contract={props.currentContract} onMethodClick={handleSelectMethodFromContractInfo} />
                     </Space>
                 </Col>
                 <Col span={16}>
