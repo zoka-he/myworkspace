@@ -6,6 +6,7 @@ import fetch from '@/src/fetch';
 import styles from './CustomWallet.module.scss';
 import copyToClip from '@/src/utils/common/copy';
 import { IWalletInfo } from '../IWalletInfo';
+import { useWalletContext } from '../WalletContext';
 
 interface IEthAccountRow {
     id: number;
@@ -20,10 +21,12 @@ interface IEthAccountRow {
 }
 
 interface CustomWalletProps {
-    onWalletChange: (info: IWalletInfo | null) => void;
+    // onWalletChange: (info: IWalletInfo | null) => void;
 }
 
 export default function CustomWallet(props: CustomWalletProps) {
+    const { setWalletInfo } = useWalletContext();
+
     function shortenAddress(address: string) {
         if (!address) return '';
         return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -114,7 +117,7 @@ export default function CustomWallet(props: CustomWalletProps) {
                 blockNumber,
             } as IWalletInfo;
 
-            props.onWalletChange(updated);
+            setWalletInfo(updated);
         } catch (e) {
             console.warn('更新网络信息失败:', e);
         }
@@ -158,7 +161,7 @@ export default function CustomWallet(props: CustomWalletProps) {
             rpcUrl: rpcUrl,
             ...(networkInfo ? { networkInfo } : {}),
         } as IWalletInfo;
-        props.onWalletChange(walletInfo);
+        setWalletInfo(walletInfo);
         message.success(`已切换到账户 ${row.name}`);
 
         // 切换后立即刷新余额

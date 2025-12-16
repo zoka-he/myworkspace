@@ -224,7 +224,7 @@ html[data-theme="light"] {
     overflow-y: auto;
 }
 
-*, :deep(.ant-*), .scrollbar {
+*, [class*="ant-"], .scrollbar {
     scrollbar-width: auto !important;
     scrollbar-color: auto !important;
 

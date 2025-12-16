@@ -48,5 +48,5 @@ export default function (props: IPlanSelectProps) {
         >
             {options.map((item: any) => <Option value={item.value} key={item.value}>{item.label}</Option>)}
         </Select>
-    )
+    );
 }

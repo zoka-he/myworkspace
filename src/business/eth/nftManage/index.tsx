@@ -1752,7 +1752,6 @@ export default function NFTManage() {
                     </Card>
                 </Col>
             </Row>
-
             <div className="f-flex-two-side">
                 <QueryBar onChange={onQuery} spinning={spinning} className={styles.queryBar}>
                     <QueryBar.QueryItem name="name" label="NFT名称">
@@ -1803,7 +1802,6 @@ export default function NFTManage() {
                     </Button>
                 </Space>
             </div>
-
             <div className={`f-flex-1 ${styles.tableContainer}`} style={{ margin: '12px 0' }}>
                 <Table 
                     dataSource={listData} 
@@ -1889,7 +1887,6 @@ export default function NFTManage() {
                     />
                 </Table>
             </div>
-
             {/* 铸造NFT Modal */}
             <Modal
                 title={<Space><GiftOutlined />铸造NFT</Space>}
@@ -2233,7 +2230,6 @@ export default function NFTManage() {
                     </Tabs>
                 </Form>
             </Modal>
-
             {/* 导入NFT Modal */}
             <Modal
                 title={<Space><CloudUploadOutlined />导入NFT</Space>}
@@ -2425,7 +2421,6 @@ export default function NFTManage() {
                     </Form.Item>
                 </Form>
             </Modal>
-
             {/* NFT详情Modal */}
             <Modal
                 title={
@@ -2486,7 +2481,6 @@ export default function NFTManage() {
             >
                 {renderNFTDetail()}
             </Modal>
-
             {/* NFT转让Modal */}
             <NFTTxModal
                 visible={isTransferModalVisible}
@@ -2503,6 +2497,6 @@ export default function NFTManage() {
                 }}
             />
         </div>
-    )
+    );
 }
 

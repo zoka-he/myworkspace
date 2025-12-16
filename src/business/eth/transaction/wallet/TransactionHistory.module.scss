@@ -35,10 +35,11 @@
             }
 
             .transactionTable {
-                height: calc(100vh - 540px);
+                height: calc(100vh - 500px);
+                overflow-y: auto;
 
                 .selectedRow {
-                    background-color: #e6f7ff !important;
+                    background-color: hsla(199, 100%, 50%, 0.1) !important;
                     cursor: pointer;
                 }
 
@@ -92,17 +93,19 @@
             }
 
             .descriptions {
+
+                height: calc(100vh - 453px);
                 :global(.ant-descriptions-item-label) {
                     font-weight: 500;
-                    background-color: #fafafa;
-                    width: 120px;
+                    // background-color: #fafafa;
+                    width: 90px;
                 }
 
                 .fullHash {
                     font-family: 'Courier New', monospace;
                     font-size: 12px;
                     word-break: break-all;
-                    color: #333;
+                    // color: #333;
                 }
 
                 .address {
@@ -128,6 +131,7 @@
                 text-align: center;
                 padding: 60px 20px;
                 color: #999;
+                height: calc(100vh - 453px);
             }
         }
     }

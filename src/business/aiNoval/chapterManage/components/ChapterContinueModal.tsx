@@ -10,7 +10,7 @@ import _ from 'lodash'
 import ChapterStripState, { type ChapterStripReport, type ChapterStripStateProps } from './ChapterStripState'
 import copyToClip from '@/src/utils/common/copy';
 import store from '@/src/store'
-import { connect } from 'react-redux'
+import AttentionRefModal from './AttentionRefModal'
 
 interface ChapterContinueModalProps {
   selectedChapterId: number | undefined
@@ -65,91 +65,6 @@ function ContentViewModal({ isVisible, onClose, content, chapterInfo, type }: Co
   )
 }
 
-// 注意事项快速复制 Modal
-interface AttentionRefModalProps {
-  isVisible: boolean
-  onClose: () => void
-  content: string
-}
-
-function AttentionRefModal({ isVisible, onClose, content }: AttentionRefModalProps) {
-  const [copyStatus, setCopyStatus] = useState<'idle' | 'success' | 'error'>('idle')
-
-  const refList = [
-    {
-      title: '抗Gemini默认文风',
-      color: 'red',
-      content: '- 对人物对话、人物心理活动、人物动作细节、场景塑造进行综合调优\n' +
-               '- 使用优秀的，具有浪漫想象力情节的表达\n' +
-               '- 输出尽可能长的内容，\n' +
-               '- 不要堆砌形容词，使用幽默的描写\n' +
-               '- 避免刻板描写、避免出现行军文风、军旅文风、命令文风、避免大幅度“讽刺”\n' +
-               '- 避免出现“不是……而是……”等对比句式'
-    },
-    {
-      title: '避免重复介绍',
-      color: 'yellow',
-      content: '- 人物均已出现过，避免重复介绍。'
-    },
-    {
-      title: '基础',
-      color: 'blue',
-      content: '* 扩写时，请仔细分析用户提供的片段，理解其含义和作用。\n' +
-               '* 扩写时，请充分利用前情提要和相关设定，为故事增加细节和深度。\n' +
-               '* 扩写时，请注意人物的心理活动和行为动机，使人物更加立体和真实。\n' +
-               '* 扩写时，请注意情节的节奏和悬念，使故事更加引人入胜。'
-    },
-    {
-      title: '轻松',
-      color: 'green',
-      content: '- 对人物对话、人物心理活动、人物动作细节、场景塑造进行综合调优\n' +
-               '- 使用流畅、地道的表达，适当的时机使用俚语化的表达，加强气氛\n' +
-               '- 加上日式吐槽优化语言张力；'
-    }
-  ]
-
-  
-
-  async function handleCopy(content: string) {
-    try {
-      copyToClip(content)
-      message.success('复制成功')
-    } catch (error) {
-      message.error('复制失败')
-    }
-  }
-
-
-  function RefItem(props: { title: string, color: string, content: string }) {
-    const title = <div className={'f-flex-two-side'}>
-      <Tag color={props.color}>{props.title}</Tag>
-      <Button type="link" size="small" icon={<CopyOutlined />} onClick={() => handleCopy(props.content)}>复制</Button>
-    </div>
-
-    return (
-      <Card size="small" title={title} style={{ marginTop: '10px' }}>
-        <Typography.Paragraph style={{ whiteSpace: 'pre-wrap' }}>{props.content}</Typography.Paragraph>
-      </Card>
-    )
-  }
-
-  return (
-    <Modal
-      title="注意事项参考"
-      open={isVisible}
-      onCancel={onClose}
-      width={520}
-      footer={[
-        <Button key="close" onClick={onClose}>关闭</Button>
-      ]}
-    >
-      {refList.map((item, index) => (
-        <RefItem key={index} title={item.title} color={item.color} content={item.content} />
-      ))}
-    </Modal>
-  )
-}
-
 function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapterChange }: ChapterContinueModalProps) {
   const [continuedContent, setContinuedContent] = useState('')
   const [isContinuing, setIsContinuing] = useState(false)
@@ -183,7 +98,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
   // 是否参考本章已有内容(默认不参考)
   const [isReferSelf, setIsReferSelf] = useState<boolean>(false)
 
-  const [llmType, setLlmType] = useState<'gemini' | 'deepseek' | 'gemini3'>('gemini')
+  const [llmType, setLlmType] = useState<'gemini' | 'deepseek' | 'gemini3'>('gemini3')
 
   // 是否缩写本章
   const [isStripSelf, setIsStripSelf] = useState<boolean>(false)
@@ -498,6 +413,11 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
     setAutoWriteStatus(res.status || 'idle')
     setAutoWriteError(res.error || '')
     setAutoWriteElapsed(res.elapsed_time || 0)
+
+    // dify bug, 直接重试一次
+    if (typeof res.error === 'string' && res.error.includes('operation not permitted')) {
+      executeAutoWrite();
+    }
   }
 
   // 保存实际提示词
@@ -936,7 +856,8 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapter
                     <Card size="small" style={{ marginTop: 16 }} title={
                         <div className='f-flex-two-side' style={{ alignItems: 'center' }}>
                           <div>
-                            <span>自动续写结果 - {selectedChapter?.chapter_number} {selectedChapter?.title || '未命名章节'}:v{selectedChapter?.version}&nbsp;</span>
+                            {/* <span>自动续写结果 - {selectedChapter?.chapter_number} {selectedChapter?.title || '未命名章节'}:v{selectedChapter?.version}&nbsp;</span> */}
+                            <span>自动续写结果&nbsp;</span>
                             <Tag>{autoWriteStatus}</Tag>
                             { autoWriteElapsed > 0 ? <Tag color="orange">{autoWriteElapsed}秒</Tag> : null }
                           </div>

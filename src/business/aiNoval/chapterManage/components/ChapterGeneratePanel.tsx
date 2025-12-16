@@ -10,6 +10,7 @@ import GenChapterByDetailModal from './GenChapterByDetailModal'
 import * as apiCalls from '../apiCalls'
 import copyToClip from '@/src/utils/common/copy'
 
+
 const { TextArea } = Input
 const { Text } = Typography
 

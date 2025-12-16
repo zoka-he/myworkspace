@@ -1,0 +1,123 @@
+.walletSign {
+    padding: 16px 0;
+    min-height: 400px;
+
+    .signCard,
+    .verifyCard {
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        height: 100%;
+
+        :global(.ant-card-head) {
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        :global(.ant-card-body) {
+            padding: 24px;
+        }
+    }
+
+    .inputGroup {
+        width: 100%;
+
+        .label {
+            display: block;
+            margin-bottom: 8px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .inputWrapper {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+
+            :global(.ant-input),
+            :global(.ant-input-affix-wrapper) {
+                flex: 1;
+            }
+        }
+
+        .messageInput,
+        .signatureInput {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .signatureInput {
+            background-color: #fafafa;
+        }
+
+        .buttonGroup {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex-shrink: 0;
+            align-self: flex-start;
+        }
+
+        .copyButton,
+        .pasteButton {
+            flex-shrink: 0;
+            padding-top: 4px;
+            padding-bottom: 4px;
+        }
+
+        .resultInput {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+
+            :global(.ant-input-suffix) {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+        }
+    }
+
+    .actionGroup {
+        width: 100%;
+        margin-top: 8px;
+
+        .signButton {
+            height: 48px;
+            font-size: 16px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+            border: none;
+            transition: all 0.3s;
+
+            &:hover {
+                background: linear-gradient(135deg, #40a9ff 0%, #1890ff 100%);
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+            }
+        }
+
+        .verifyButton {
+            height: 48px;
+            font-size: 16px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
+            border: none;
+            transition: all 0.3s;
+
+            &:hover:not(:disabled) {
+                background: linear-gradient(135deg, #73d13d 0%, #52c41a 100%);
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(82, 196, 26, 0.3);
+            }
+        }
+    }
+}
+
+// 响应式设计
+@media (max-width: 992px) {
+    .walletSign {
+        .signCard,
+        .verifyCard {
+            margin-bottom: 16px;
+        }
+    }
+}
+

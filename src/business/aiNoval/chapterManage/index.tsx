@@ -447,7 +447,7 @@ function ChapterManage() {
           >
             {selectedNovel && selectedChapter ? (
               /* 右方面板内容 */
-              renderModuleContent()
+              (renderModuleContent())
             ) : (
               <div className={styles.selectPrompt}>
                 <Text>请先选择小说和章节</Text>
@@ -456,7 +456,6 @@ function ChapterManage() {
           </Card>
         </Col>
       </Row>
-
       {/* 添加章节modal */}
       <Modal
         title={editingChapter ? '编辑章节' : '添加章节'}
@@ -490,7 +489,7 @@ function ChapterManage() {
         </Form>
       </Modal>
     </div>
-  )
+  );
 }
 
 export default ChapterManage

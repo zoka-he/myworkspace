@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react'
-import { Space, Typography, Button, Input, message, Form, Tag, Select, TreeSelect } from 'antd'
-import { ReloadOutlined, EditOutlined, CopyOutlined, SortAscendingOutlined, RobotOutlined } from '@ant-design/icons'
+import React, { useEffect, useRef, useState } from 'react'
+import { Space, Typography, Button, Input, message, Form, Tag, Select, TreeSelect, Row, Col, GetRef } from 'antd'
+import { ReloadOutlined, EditOutlined, CopyOutlined, SortAscendingOutlined, RobotOutlined, InfoCircleOutlined } from '@ant-design/icons'
 import { IChapter, IWorldViewDataWithExtra, IGeoUnionData, IFactionDefData, IRoleData, ITimelineEvent, IGeoStarSystemData, IGeoGeographyUnitData, IGeoPlanetData, IGeoSatelliteData, IGeoStarData } from '@/src/types/IAiNoval'
 import styles from './ChapterSkeletonPanel.module.scss'
 import { getTimelineEventByIds, updateChapter, getChapterById, getChapterList } from '../apiCalls'
@@ -11,6 +11,8 @@ import { loadGeoTree, type IGeoTreeItem } from '../../common/geoDataUtil'
 import { ModalProvider, showGenSkeletonModal, useGenSkeletonModal } from './GenSkeletonModal'
 import GenRolePanel from './GenRolePanel'
 import copyToClip from '@/src/utils/common/copy'
+import PromptTools from './PromptTools'
+import AttentionRefModal from './AttentionRefModal'
 
 const { Text } = Typography
 const { TextArea } = Input
@@ -60,8 +62,10 @@ function ChapterSkeletonPanel({
   const [roleList, setRoleList] = useState<IRoleData[]>([])
 
   const [chapterList, setChapterList] = useState<IChapter[]>([])
-
   const [isGenRoleModalVisible, setIsGenRoleModalVisible] = useState(false)
+  const [isAttentionRefModalVisible, setIsAttentionRefModalVisible] = useState(false)
+
+  const promptTextAreaRef = useRef<GetRef<typeof Input.TextArea> | null>(null)
 
   // 初始化数据
   useEffect(() => {
@@ -173,7 +177,9 @@ function ChapterSkeletonPanel({
         role_ids: selectedChapter.role_ids || [],
         seed_prompt: selectedChapter.seed_prompt || '',
         related_chapter_ids: selectedChapter.related_chapter_ids || [],
-        skeleton_prompt: selectedChapter.skeleton_prompt || ''
+        skeleton_prompt: selectedChapter.skeleton_prompt || '',
+        extra_settings: selectedChapter.extra_settings || '',
+        attension: selectedChapter.attension || ''
       })
     }
   }, [selectedChapter])
@@ -367,7 +373,9 @@ function ChapterSkeletonPanel({
         role_ids: values.role_ids,
         seed_prompt: values.seed_prompt,
         related_chapter_ids: values.related_chapter_ids,
-        skeleton_prompt: values.skeleton_prompt
+        skeleton_prompt: values.skeleton_prompt,
+        attension: values.attension,
+        extra_settings: values.extra_settings
       };
 
       // console.debug('updateObject', updateObject);
@@ -740,24 +748,62 @@ function ChapterSkeletonPanel({
             </Select>
           </Form.Item>
 
-          <div className="f-flex-two-side f-fit-width" style={{marginBottom: 12}}>
-            <Text strong>章节提示词（在生成面板中，会根据双换行进行切分）</Text>
-            <Button size="small" type="primary" onClick={handleSaveChapterInfo}>保存</Button>
+          
+
+          <div>
+            <Text strong>注意事项：</Text>
+            <Button type="link" icon={<InfoCircleOutlined />} onClick={() => setIsAttentionRefModalVisible(true)}>注意事项参考模板</Button>
           </div>
-          <Form.Item
-            label={null}
-            name="seed_prompt"
-          >
-            <TextArea
-              placeholder="请输入章节根提示词"
-              autoSize={{ minRows: 8 }}
-              className={styles.promptTextArea}
-              showCount
-            />
+          <Form.Item label={null} name="attension">
+            <TextArea autoSize={{ minRows: 1 }} />
           </Form.Item>
 
+          <div>
+            <Text strong>额外设置：(慎用，会触发全库检索，产生巨大耗时，建议先切换GPU)。</Text>
+          </div>
+          <Form.Item label={null} name="extra_settings">
+            <TextArea autoSize={{ minRows: 1 }} />
+          </Form.Item>
 
-          <div className="f-flex-two-side f-fit-width" style={{marginBottom: 8}}>
+          <div className="f-flex-two-side f-fit-width" style={{marginBottom: 12}}>
+            <Text strong>章节提示词（在生成面板中，会根据双换行进行切分）</Text>
+            <Space>
+              <Button size="small" type="primary" onClick={handleSaveChapterInfo}>保存</Button>
+              <Button size="small" type="primary" danger onClick={() => handleSaveChapterInfo()}>保存并覆盖实际配置</Button>
+            </Space>
+          </div>
+          
+          <div className="f-flex-row">
+            <div className="f-flex-1">
+              <Form.Item
+                label={null}
+                name="seed_prompt"
+              >
+                <TextArea
+                  ref={promptTextAreaRef}
+                  placeholder="请输入章节根提示词"
+                  autoSize={{ minRows: 22 }}
+                  className={styles.promptTextArea}
+                  showCount
+                />
+              </Form.Item>
+            </div>
+            <div style={{ marginLeft: 10 }}>
+              <PromptTools
+                promptTextArea={promptTextAreaRef?.current}
+                layout="vertical"
+                onChange={(prompt) => {
+                  form.setFieldsValue({
+                    seed_prompt: prompt
+                  });
+                }}
+              />
+            </div>
+          </div>
+          
+
+
+          {/* <div className="f-flex-two-side f-fit-width" style={{marginBottom: 8}}>
             <Space>
               <Text strong>章节细纲（对应细纲生成工作流）</Text>
               <Button
@@ -802,15 +848,15 @@ function ChapterSkeletonPanel({
             <Button size="small" type="primary" onClick={handleSaveChapterInfo}>保存</Button>
           </div>
           <Form.Item
-          label={null}
-          name="skeleton_prompt"
-        >
-          <TextArea
-            placeholder="请输入章节细纲"
-            autoSize={{ minRows: 8 }}
-            showCount
-          />
-        </Form.Item>
+            label={null}
+            name="skeleton_prompt"
+          >
+            <TextArea
+              placeholder="请输入章节细纲"
+              autoSize={{ minRows: 8 }}
+              showCount
+            />
+          </Form.Item> */}
         </Form>
 
       </ModalProvider>
@@ -824,6 +870,12 @@ function ChapterSkeletonPanel({
           width="80vw"
           rootPrompt={() => form.getFieldsValue()['seed_prompt']}
         />
+
+      <AttentionRefModal
+        isVisible={isAttentionRefModalVisible}
+        onClose={() => setIsAttentionRefModalVisible(false)}
+        content={''}
+      />
 
     </div>
   )
