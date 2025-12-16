@@ -1,6 +1,8 @@
-import { lazy } from "react";
+'use client';
+
+import { lazy, Suspense } from "react";
 // import { RouterProvider, createHashRouter as createRouter } from "react-router-dom";
-import { BrowserRouter, Routes, Route, Navigate, useMatches } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 import MainFrame from '../framework';
 
@@ -49,65 +51,68 @@ const EthTransaction = lazy(() => import('../business/eth/transaction'));
 const EthContractDeploy = lazy(() => import('../business/eth/contractDeploy'));
 const EthNFTManage = lazy(() => import('../business/eth/nftManage'));
 
-async function mainFrameLoader() {
-    let matches = useMatches();
-    console.debug('matches', matches);
-}
+const LoadingFallback = () => (
+    <div style={{ padding: '20px', textAlign: 'center' }}>
+        <div>加载中...</div>
+    </div>
+);
 
 export default function () {
     return (
         <BrowserRouter>
-            <Routes>
-                <Route path="/" loader={mainFrameLoader} element={<MainFrame />}>
-                    <Route path="taskManage/dashboard" element={<Dashboard />} />
-                    <Route path="taskManage/taskManage" element={<TaskManage />} />
-                    <Route path="taskManage/figure" element={<TaskFigure />} />
+            <Suspense fallback={<LoadingFallback />}>
+                <Routes>
+                    <Route path="/" element={<MainFrame />}>
+                        <Route path="taskManage/dashboard" element={<Dashboard />} />
+                        <Route path="taskManage/taskManage" element={<TaskManage />} />
+                        <Route path="taskManage/figure" element={<TaskFigure />} />
 
-                    <Route path="taskManage/bugTrace" element={<BugTrace />} />
-                    <Route path="taskManage/catfightLog" element={<CatfightLog />} />
-                    <Route path="taskManage/uplineCheck" element={<UplineCheck />} />
-                    <Route path="taskManage/weeklyReport" element={<WeekReport />} />
+                        <Route path="taskManage/bugTrace" element={<BugTrace />} />
+                        <Route path="taskManage/catfightLog" element={<CatfightLog />} />
+                        <Route path="taskManage/uplineCheck" element={<UplineCheck />} />
+                        <Route path="taskManage/weeklyReport" element={<WeekReport />} />
 
-                    <Route path="roadBook/planBoard" element={<RoadBookPlanBoard />} />
-                    <Route path="roadBook/editor" element={<RoadBookEditor />} />
-                    <Route path="roadBook/calendar" element={<RoadBookCalendar />} />
-                    <Route path="roadBook/wishboard" element={<WishBoard />} />
-                    <Route path="roadBook/countBoard" element={<CountBoard />} />
+                        <Route path="roadBook/planBoard" element={<RoadBookPlanBoard />} />
+                        <Route path="roadBook/editor" element={<RoadBookEditor />} />
+                        <Route path="roadBook/calendar" element={<RoadBookCalendar />} />
+                        <Route path="roadBook/wishboard" element={<WishBoard />} />
+                        <Route path="roadBook/countBoard" element={<CountBoard />} />
 
-                    <Route path="infos/accounts" element={<AccountManage />} />
-                    <Route path="infos/employeeManage" element={<EmployeeManage />} />
+                        <Route path="infos/accounts" element={<AccountManage />} />
+                        <Route path="infos/employeeManage" element={<EmployeeManage />} />
 
-                    <Route path="bike/wheelDev" element={<WheelDev />} />
-                    <Route path="bike/bikeManage" element={<BikeManage />} />
+                        <Route path="bike/wheelDev" element={<WheelDev />} />
+                        <Route path="bike/bikeManage" element={<BikeManage />} />
 
-                    <Route path="user/permission" element={<Permission />} />
-                    <Route path="user/account" element={<UserAccount />} />
-                    <Route path="user/role" element={<UserRole />} />
-                    <Route path="user/profile" element={<UserProfile />} />
+                        <Route path="user/permission" element={<Permission />} />
+                        <Route path="user/account" element={<UserAccount />} />
+                        <Route path="user/role" element={<UserRole />} />
+                        <Route path="user/profile" element={<UserProfile />} />
 
-                    <Route path="devTools/encoding" element={<DevEncoding />} />
+                        <Route path="devTools/encoding" element={<DevEncoding />} />
 
-                    <Route path="novel/NovalManage" element={<AiNovalManager/>}/>
-                    <Route path="novel/worldViewManage" element={<AiWorldViewManager/>}/>
-                    <Route path="novel/geographyManage" element={<AiWorldGeoManager/>}/>
-                    <Route path="novel/toolConfig" element={<AiNovalToolsConfig/>}/>
-                    <Route path="novel/roleManage" element={<AiNovalRoleManage/>}/>
-                    <Route path="novel/factionManage" element={<AiNovalFactionManage/>}/>
-                    <Route path="novel/eventManage" element={<AiNovalEventManage/>}/>
-                    <Route path="novel/chapterManage" element={<AiNovalChapterManage/>}/>
+                        <Route path="novel/NovalManage" element={<AiNovalManager/>}/>
+                        <Route path="novel/worldViewManage" element={<AiWorldViewManager/>}/>
+                        <Route path="novel/geographyManage" element={<AiWorldGeoManager/>}/>
+                        <Route path="novel/toolConfig" element={<AiNovalToolsConfig/>}/>
+                        <Route path="novel/roleManage" element={<AiNovalRoleManage/>}/>
+                        <Route path="novel/factionManage" element={<AiNovalFactionManage/>}/>
+                        <Route path="novel/eventManage" element={<AiNovalEventManage/>}/>
+                        <Route path="novel/chapterManage" element={<AiNovalChapterManage/>}/>
 
-                    <Route path="b2c-scrapy/*" element={<B2CScrapy />} />
+                        <Route path="b2c-scrapy/*" element={<B2CScrapy />} />
 
-                    <Route path="eth/account" element={<EthAccountManage />} />
-                    <Route path="eth/network" element={<EthNetworkManage />} />
-                    <Route path="eth/transaction" element={<EthTransaction />} />
-                    <Route path="eth/transactionCustom" element={<EthTransaction mode="custom" />} />
-                    <Route path="eth/contractDeploy" element={<EthContractDeploy />} />
-                    <Route path="eth/nftManage" element={<EthNFTManage />} />
-                    
-                    <Route path="*" element={<div><h1>此页面尚未实现！</h1></div>} />
-                </Route>
-            </Routes>
+                        <Route path="eth/account" element={<EthAccountManage />} />
+                        <Route path="eth/network" element={<EthNetworkManage />} />
+                        <Route path="eth/transaction" element={<EthTransaction />} />
+                        <Route path="eth/transactionCustom" element={<EthTransaction mode="custom" />} />
+                        <Route path="eth/contractDeploy" element={<EthContractDeploy />} />
+                        <Route path="eth/nftManage" element={<EthNFTManage />} />
+                        
+                        <Route path="*" element={<div><h1>此页面尚未实现！</h1></div>} />
+                    </Route>
+                </Routes>
+            </Suspense>
         </BrowserRouter>
     )
 }

@@ -192,10 +192,10 @@ export default function TransactionHistory(props: WalletActionsProps) {
     const renderTypeIcon = (type: string) => {
         return type === 'send' ? (
             // <ArrowUpOutlined className={transactionHistoryStyles.sendIcon} />
-            <Tag color="red">发送</Tag>
+            (<Tag color="red">发送</Tag>)
         ) : (
             // <ArrowDownOutlined className={transactionHistoryStyles.receiveIcon} />
-            <Tag color="green">接收</Tag>
+            (<Tag color="green">接收</Tag>)
         );
     };
 

@@ -10,22 +10,20 @@
     border: none;
     border-radius: 12px;
     
-    :global {
-      .ant-card-body {
-        padding: 20px;
-      }
+    :global(.ant-card-body) {
+      padding: 20px;
+    }
 
-      .ant-statistic-title {
-        color: rgba(255, 255, 255, 0.85);
-        font-size: 14px;
-        margin-bottom: 8px;
-      }
+    :global(.ant-statistic-title) {
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
 
-      .ant-statistic-content {
-        color: #fff;
-        font-size: 28px;
-        font-weight: bold;
-      }
+    :global(.ant-statistic-content) {
+      color: #fff;
+      font-size: 28px;
+      font-weight: bold;
     }
 
     &:nth-child(2) {
@@ -50,27 +48,25 @@
     border-radius: 8px;
     overflow: auto;
 
-    :global {
-      .ant-table {
-        background: transparent;
-      }
+    :global(.ant-table) {
+      background: transparent;
+    }
 
-      .ant-table-thead > tr > th {
-        background: var(--bg-lv2);
-        color: var(--text-lv0);
-        font-weight: 600;
-        border-bottom: 2px solid var(--bg-lv3);
-      }
+    :global(.ant-table-thead > tr > th) {
+      background: var(--bg-lv2);
+      color: var(--text-lv0);
+      font-weight: 600;
+      border-bottom: 2px solid var(--bg-lv3);
+    }
 
-      .ant-table-tbody > tr {
-        transition: all 0.3s ease;
+    :global(.ant-table-tbody > tr) {
+      transition: all 0.3s ease;
+    }
 
-        > td {
-          background: var(--bg-lv1);
-          color: var(--text-lv1);
-          border-bottom: 1px solid var(--bg-lv2);
-        }
-      }
+    :global(.ant-table-tbody > tr > td) {
+      background: var(--bg-lv1);
+      color: var(--text-lv1);
+      border-bottom: 1px solid var(--bg-lv2);
     }
   }
 
@@ -120,43 +116,41 @@
   }
 
   .mintModal, .detailModal {
-    :global {
-      .ant-modal-header {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        border-bottom: none;
+    :global(.ant-modal-header) {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      border-bottom: none;
+    }
 
-        .ant-modal-title {
-          color: white;
-          font-size: 18px;
-          font-weight: 600;
-        }
-      }
+    :global(.ant-modal-header .ant-modal-title) {
+      color: white;
+      font-size: 18px;
+      font-weight: 600;
+    }
 
-      .ant-modal-body {
-        background: var(--bg-lv0);
-        padding: 24px;
-      }
+    :global(.ant-modal-body) {
+      background: var(--bg-lv0);
+      padding: 24px;
+    }
 
-      .ant-modal-footer {
-        background: var(--bg-lv1);
-        border-top: 1px solid var(--bg-lv2);
-      }
+    :global(.ant-modal-footer) {
+      background: var(--bg-lv1);
+      border-top: 1px solid var(--bg-lv2);
+    }
 
-      .ant-tabs-content-holder {
-        overflow: hidden;
-      }
+    :global(.ant-tabs-content-holder) {
+      overflow: hidden;
+    }
 
-      .ant-tabs-tabpane {
-        transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
-      }
+    :global(.ant-tabs-tabpane) {
+      transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+    }
 
-      .ant-tabs-tabpane-active {
-        animation: tabPaneFadeIn 0.4s ease-in-out;
-      }
+    :global(.ant-tabs-tabpane-active) {
+      animation: tabPaneFadeIn 0.4s ease-in-out;
+    }
 
-      .ant-tabs-tabpane-hidden {
-        display: none;
-      }
+    :global(.ant-tabs-tabpane-hidden) {
+      display: none;
     }
   }
 
@@ -246,17 +240,13 @@
         border-color: #f093fb;
       }
 
-      :global {
-        .ant-card-body {
-          padding: 12px;
-        }
+      :global(.ant-card-body) {
+        padding: 12px;
       }
     }
 
-    :global {
-      .ant-divider {
-        margin: 16px 0;
-      }
+    :global(.ant-divider) {
+      margin: 16px 0;
     }
   }
 }
@@ -265,10 +255,8 @@
 :global(html[data-theme="dark"]) {
   .nftManage {
     .statsCard {
-      :global {
-        .ant-statistic-title {
-          color: rgba(255, 255, 255, 0.75);
-        }
+      :global(.ant-statistic-title) {
+        color: rgba(255, 255, 255, 0.75);
       }
     }
   }
@@ -288,10 +276,8 @@
     }
 
     .statsCard {
-      :global {
-        .ant-statistic-content {
-          font-size: 24px;
-        }
+      :global(.ant-statistic-content) {
+        font-size: 24px;
       }
     }
 

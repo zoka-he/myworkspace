@@ -12,22 +12,20 @@
     border: none;
     border-radius: 12px;
     
-    :global {
-      .ant-card-body {
-        padding: 20px;
-      }
+    :global(.ant-card-body) {
+      padding: 20px;
+    }
 
-      .ant-statistic-title {
-        color: rgba(255, 255, 255, 0.85);
-        font-size: 14px;
-        margin-bottom: 8px;
-      }
+    :global(.ant-statistic-title) {
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
 
-      .ant-statistic-content {
-        color: #fff;
-        font-size: 28px;
-        font-weight: bold;
-      }
+    :global(.ant-statistic-content) {
+      color: #fff;
+      font-size: 28px;
+      font-weight: bold;
     }
 
     &:nth-child(2) {
@@ -49,36 +47,34 @@
     // padding: 12px;
     overflow: auto;
 
-    :global {
-      .ant-table {
-        background: transparent;
-      }
+    :global(.ant-table) {
+      background: transparent;
+    }
 
-      .ant-table-thead > tr > th {
-        background: var(--bg-lv2);
-        color: var(--text-lv0);
-        font-weight: 600;
-        border-bottom: 2px solid var(--bg-lv3);
-      }
+    :global(.ant-table-thead > tr > th) {
+      background: var(--bg-lv2);
+      color: var(--text-lv0);
+      font-weight: 600;
+      border-bottom: 2px solid var(--bg-lv3);
+    }
 
-      .ant-table-tbody > tr {
-        transition: all 0.3s ease;
+    :global(.ant-table-tbody > tr) {
+      transition: all 0.3s ease;
 
-        // &:hover {
-        //   transform: translateY(-2px);
-        //   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        // }
+      // &:hover {
+      //   transform: translateY(-2px);
+      //   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      // }
 
-        // &:hover > td {
-        //   background: var(--bg-lv2);
-        // }
+      // &:hover > td {
+      //   background: var(--bg-lv2);
+      // }
+    }
 
-        > td {
-          background: var(--bg-lv1);
-          color: var(--text-lv1);
-          border-bottom: 1px solid var(--bg-lv2);
-        }
-      }
+    :global(.ant-table-tbody > tr > td) {
+      background: var(--bg-lv1);
+      color: var(--text-lv1);
+      border-bottom: 1px solid var(--bg-lv2);
     }
   }
 
@@ -118,46 +114,44 @@
   }
 
   .deployModal, .detailModal, .interactModal {
-    :global {
-      .ant-modal-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-bottom: none;
+    :global(.ant-modal-header) {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-bottom: none;
+    }
 
-        .ant-modal-title {
-          color: white;
-          font-size: 18px;
-          font-weight: 600;
-        }
-      }
+    :global(.ant-modal-header .ant-modal-title) {
+      color: white;
+      font-size: 18px;
+      font-weight: 600;
+    }
 
-      .ant-modal-body {
-        background: var(--bg-lv0);
-        padding: 24px;
-      }
+    :global(.ant-modal-body) {
+      background: var(--bg-lv0);
+      padding: 24px;
+    }
 
-      .ant-modal-footer {
-        background: var(--bg-lv1);
-        border-top: 1px solid var(--bg-lv2);
-      }
+    :global(.ant-modal-footer) {
+      background: var(--bg-lv1);
+      border-top: 1px solid var(--bg-lv2);
+    }
 
-      // Tab 内容区域过渡动画
-      .ant-tabs-content-holder {
-        overflow: hidden;
-      }
+    // Tab 内容区域过渡动画
+    :global(.ant-tabs-content-holder) {
+      overflow: hidden;
+    }
 
-      .ant-tabs-tabpane {
-        transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
-      }
+    :global(.ant-tabs-tabpane) {
+      transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+    }
 
-      // 激活状态的 TabPane
-      .ant-tabs-tabpane-active {
-        animation: tabPaneFadeIn 0.4s ease-in-out;
-      }
+    // 激活状态的 TabPane
+    :global(.ant-tabs-tabpane-active) {
+      animation: tabPaneFadeIn 0.4s ease-in-out;
+    }
 
-      // 非激活状态的 TabPane（隐藏时）
-      .ant-tabs-tabpane-hidden {
-        display: none;
-      }
+    // 非激活状态的 TabPane（隐藏时）
+    :global(.ant-tabs-tabpane-hidden) {
+      display: none;
     }
   }
 
@@ -209,30 +203,28 @@
       }
     }
 
-    :global {
-      .ant-tabs-nav {
-        margin-bottom: 20px;
-      }
+    :global(.ant-tabs-nav) {
+      margin-bottom: 20px;
+    }
 
-      .ant-collapse {
-        background: var(--bg-lv1);
-        border: 1px solid var(--bg-lv2);
+    :global(.ant-collapse) {
+      background: var(--bg-lv1);
+      border: 1px solid var(--bg-lv2);
+    }
 
-        .ant-collapse-item {
-          border-bottom: 1px solid var(--bg-lv2);
-        }
+    :global(.ant-collapse .ant-collapse-item) {
+      border-bottom: 1px solid var(--bg-lv2);
+    }
 
-        .ant-collapse-header {
-          background: var(--bg-lv1);
-          color: var(--text-lv0);
-          padding: 12px 16px;
-        }
+    :global(.ant-collapse .ant-collapse-header) {
+      background: var(--bg-lv1);
+      color: var(--text-lv0);
+      padding: 12px 16px;
+    }
 
-        .ant-collapse-content {
-          background: var(--bg-lv0);
-          border-top: 1px solid var(--bg-lv2);
-        }
-      }
+    :global(.ant-collapse .ant-collapse-content) {
+      background: var(--bg-lv0);
+      border-top: 1px solid var(--bg-lv2);
     }
   }
 
@@ -283,10 +275,8 @@
 :global(html[data-theme="dark"]) {
   .contractDeploy {
     .statsCard {
-      :global {
-        .ant-statistic-title {
-          color: rgba(255, 255, 255, 0.75);
-        }
+      :global(.ant-statistic-title) {
+        color: rgba(255, 255, 255, 0.75);
       }
     }
   }
@@ -306,10 +296,8 @@
     }
 
     .statsCard {
-      :global {
-        .ant-statistic-content {
-          font-size: 24px;
-        }
+      :global(.ant-statistic-content) {
+        font-size: 24px;
       }
     }
   }

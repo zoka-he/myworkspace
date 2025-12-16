@@ -393,7 +393,6 @@ export default function EthAccountManage() {
                     </Card>
                 </Col>
             </Row>
-
             <div className={styles.alert_container}>
                 <Alert 
                     message={<span>{balanceRefreshCount}秒后<Button size="small" type="link" onClick={handleImmediateRefresh}>刷新</Button></span>} 
@@ -402,7 +401,6 @@ export default function EthAccountManage() {
                     style={{ textAlign: 'center' }}
                 />
             </div>
-
             <div className="f-flex-two-side">
                 <QueryBar onChange={onQuery} spinning={spinning} className={styles.queryBar}>
                     <QueryBar.QueryItem name="name" label="账户名称">
@@ -430,7 +428,6 @@ export default function EthAccountManage() {
                     </Button>
                 </Space>
             </div>
-
             <div className={`f-flex-1 ${styles.tableContainer}`} style={{ margin: '12px 0' }}>
                 <Table 
                     dataSource={listData} 
@@ -496,7 +493,6 @@ export default function EthAccountManage() {
                     />
                 </Table>
             </div>
-
             <Modal
                 title={editingAccount ? '编辑ETH账户' : '新增ETH账户'}
                 open={isModalVisible}
@@ -580,7 +576,7 @@ export default function EthAccountManage() {
                 </Form>
             </Modal>
         </div>
-    )
+    );
 }
 
 
