@@ -21,11 +21,11 @@ export interface WalletActionsProps {
 export default function WalletActions(props: WalletActionsProps) {
     const { isWalletConnected } = useWalletContext();
     let tabs = [
-        {
-            key: '0',
-            label: '钱包指令日志',
-            children: <ErrorFallback><WalletLog/></ErrorFallback>,
-        },
+        // {
+        //     key: '0',
+        //     label: '钱包指令日志',
+        //     children: <ErrorFallback><WalletLog/></ErrorFallback>,
+        // },
         {
             key: '1',
             label: '交易发送',
@@ -51,11 +51,11 @@ export default function WalletActions(props: WalletActionsProps) {
             label: "签名",
             children: <ErrorFallback><WalletSign/></ErrorFallback>,
         },
-        {
-            key: '6',
-            label: '合约监控',
-            children: <ErrorFallback><WatchContract/></ErrorFallback>,
-        }
+        // {
+        //     key: '6',
+        //     label: '合约监控',
+        //     children: <ErrorFallback><WatchContract/></ErrorFallback>,
+        // }
     ];
 
 

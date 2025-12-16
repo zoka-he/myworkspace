@@ -141,6 +141,8 @@ const PromptTools = (props: PromptToolsProps) => {
         } else {
             tagText = tagGenerator;
         }
+
+        tagText = `\n${tagText}\n`;
         
         let insertedString = sourceString.slice(0, inputPosition) + tagText + sourceString.slice(inputPosition);
         props.onChange?.(insertedString);
@@ -209,6 +211,7 @@ const PromptTools = (props: PromptToolsProps) => {
     )
 }
 
+// 注意，换行是根据使用习惯决定的，不要随意修改
 const STR_CHAPTER_TEMPLATE = `【章节背景设定】
    - 章节目的：
    - 出场人物：
@@ -217,7 +220,9 @@ const STR_CHAPTER_TEMPLATE = `【章节背景设定】
 【章节主要事件描述】
 `;
 
-const STR_FRAGMENT_TEMPLATE = `片段目的：
+// 注意，换行是根据使用习惯决定的，不要随意修改
+const STR_FRAGMENT_TEMPLATE = `
+片段目的：
 出场人物：
 场景：
 片段主要事件描述：

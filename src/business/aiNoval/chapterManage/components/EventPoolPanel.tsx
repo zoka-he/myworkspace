@@ -160,12 +160,13 @@ const TimelineRangeModal = React.forwardRef(({
     setInitialSeconds(lastDateSeconds)
   }
 
-  function handleApplyUserDiff() {
+  function handleApplyUserDiff(_userDiffUnit: 'day' | 'week' | 'month' | 'year' = userDiffUnit) {
     if (!userDiffValue) {
       message.warning('请输入用户调整单位数量')
       return
     }
-    if (!userDiffUnit) {
+
+    if (!_userDiffUnit) {
       message.warning('请选择用户调整单位')
       return
     }
@@ -177,7 +178,7 @@ const TimelineRangeModal = React.forwardRef(({
       let hoursPerDay = selectedWorldView.tl_day_length_in_hours || 24;
       let daysPerMonth = selectedWorldView.tl_month_length_in_days || 30;
       let monthsPerYear = selectedWorldView.tl_year_length_in_months || 12;
-      switch (userDiffUnit) {
+      switch (_userDiffUnit) {
         case 'day':
           secondsOfUnit = hoursPerDay * secondsPerHour
           break
@@ -193,7 +194,7 @@ const TimelineRangeModal = React.forwardRef(({
       }
       lastDateSeconds = (selectedWorldView.te_max_seconds || 0) - userDiffValue * secondsOfUnit;
     } else {
-      switch (userDiffUnit) {
+      switch (_userDiffUnit) {
         case 'day':
           secondsOfUnit = 24 * 3600
           break
@@ -214,6 +215,11 @@ const TimelineRangeModal = React.forwardRef(({
     }
 
     setInitialSeconds(lastDateSeconds)
+  }
+
+  function handleSetUserDiffUnitAndApply(unit: 'day' | 'week' | 'month' | 'year') {
+    setUserDiffUnit(unit)
+    handleApplyUserDiff()
   }
 
   return (
@@ -239,17 +245,15 @@ const TimelineRangeModal = React.forwardRef(({
       <div style={{ marginTop: 10 }}>
         <Space>
           <Text>末</Text>
-          <Space.Compact>
+          {/* <Space.Compact> */}
             <InputNumber type="number" min={0} placeholder="用户调整" style={{ width: 80 }} value={userDiffValue} onChange={(value) => setUserDiffValue(value)} />
-            <Select value={userDiffUnit} onChange={(value) => setUserDiffUnit(value as 'day' | 'week' | 'month' | 'year')}>
-              <Select.Option value="day">天</Select.Option>
-              <Select.Option value="week">周</Select.Option>
-              <Select.Option value="month">月</Select.Option>
-              <Select.Option value="year">年</Select.Option>
-            </Select>
-          </Space.Compact>
-          <Text>-&gt;</Text>
-          <Button onClick={handleApplyUserDiff}>应用</Button>
+            <Button onClick={() => handleSetUserDiffUnitAndApply('day')}>天</Button>
+            <Button onClick={() => handleSetUserDiffUnitAndApply('week')}>周</Button>
+            <Button onClick={() => handleSetUserDiffUnitAndApply('month')}>月</Button>
+            <Button onClick={() => handleSetUserDiffUnitAndApply('year')}>年</Button>
+          {/* </Space.Compact> */}
+          {/* <Text>-&gt;</Text> */}
+          {/* <Button onClick={handleApplyUserDiff}>应用</Button> */}
         </Space>
       </div>
       <Divider />
