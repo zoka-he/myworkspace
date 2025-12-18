@@ -10,6 +10,8 @@ import ChapterGeneratePanel from './components/ChapterGeneratePanel'
 import styles from './index.module.scss'
 import * as chapterApi from './apiCalls'
 import { loadGeoUnionList } from '../common/geoDataUtil'
+import ChapterContextProvider, { ChapterContext, useChapterContext } from './chapterContext'
+import WorldViewContextProvider from './WorldViewContext'
 
 const { Text } = Typography
 const { TextArea } = Input
@@ -19,26 +21,27 @@ type ModuleType = 'event-pool' | 'chapter-skeleton' | 'chapter-generate'
 function ChapterManage() {
   const [novels, setNovels] = useState<ExtendedNovelData[]>([])
   const [selectedNovel, setSelectedNovel] = useState<number | null>(null)
+  const [selectedChapterId, setSelectedChapterId] = useState<number | null>(null)
   const [selectedChapter, setSelectedChapter] = useState<IChapter | null>(null)
-  const [selectedWorldContext, setSelectedWorldContext] = useState<string>('all')
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [form] = Form.useForm()
   const [editingChapter, setEditingChapter] = useState<IChapter | null>(null)
-  const [activeModule, setActiveModule] = useState<ModuleType>('event-pool')
+  // const [activeModule, setActiveModule] = useState<ModuleType>('event-pool')
   const [loading, setLoading] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [totalChapters, setTotalChapters] = useState(0)
-  const [worldViewList, setWorldViewList] = useState<IWorldViewDataWithExtra[]>([])
-  const [selectedWorldView, setSelectedWorldView] = useState<IWorldViewDataWithExtra | null>(null)
-  const [geoUnionList, setGeoUnionList] = useState<IGeoUnionData[]>([])
-  const [factionList, setFactionList] = useState<IFactionDefData[]>([])
-  const [roleList, setRoleList] = useState<IRoleData[]>([])
+  // const [worldViewList, setWorldViewList] = useState<IWorldViewDataWithExtra[]>([])
+  // const [selectedWorldView, setSelectedWorldView] = useState<IWorldViewDataWithExtra | null>(null)
+  // const [geoUnionList, setGeoUnionList] = useState<IGeoUnionData[]>([])
+  // const [factionList, setFactionList] = useState<IFactionDefData[]>([])
+  // const [roleList, setRoleList] = useState<IRoleData[]>([])
+  const [userUpdateTime, setUserUpdateTime] = useState(0)
 
   // 组件挂载时，获取小说列表和世界观列表
   useEffect(() => {
     fetchNovels()
-    fetchWorldViewList()
+    // fetchWorldViewList()
   }, [])
 
   // 当小说被选中时，刷新章节列表
@@ -52,21 +55,21 @@ function ChapterManage() {
     }
   }, [selectedNovel])
 
-  useEffect(() => {
-    if (selectedChapter && selectedChapter.worldview_id) {
-      setSelectedWorldView(worldViewList.find(worldView => worldView.id === selectedChapter.worldview_id) || null)
-    } else {
-      setSelectedWorldView(null)
-    }
-  }, [selectedChapter])
+  // useEffect(() => {
+  //   if (selectedChapter && selectedChapter.worldview_id) {
+  //     setSelectedWorldView(worldViewList.find(worldView => worldView.id === selectedChapter.worldview_id) || null)
+  //   } else {
+  //     setSelectedWorldView(null)
+  //   }
+  // }, [selectedChapter])
 
   // 获取世界观列表
-  const fetchWorldViewList = async () => {
-    const response = await chapterApi.getWorldViewList()
-    if (response.data) {
-      setWorldViewList(response.data)
-    }
-  }
+  // const fetchWorldViewList = async () => {
+  //   const response = await chapterApi.getWorldViewList()
+  //   if (response.data) {
+  //     setWorldViewList(response.data)
+  //   }
+  // }
 
   // 获取小说列表
   const fetchNovels = async () => {
@@ -125,6 +128,12 @@ function ChapterManage() {
     if (novelId) {
       fetchChapters(novelId)
     }
+  }
+
+  const handleChapterChange = (chapterId: number | null) => {
+    setSelectedChapterId(chapterId)
+    setUserUpdateTime(new Date().getTime())
+    // forceUpdateChapter(chapterId)
   }
 
   // 打开modal添加章节
@@ -241,77 +250,39 @@ function ChapterManage() {
   }
 
   // 世界观变更
-  const handleWorldViewChange = (value?: number | null) => {
+  // const handleWorldViewChange = (value?: number | null) => {
 
-    if (!value) {
-      setSelectedWorldView(null)
-      setGeoUnionList([])
-      setFactionList([])
-      setRoleList([])
-      return
-    }
+  //   if (!value) {
+  //     // setSelectedWorldView(null)
+  //     setGeoUnionList([])
+  //     setFactionList([])
+  //     setRoleList([])
+  //     return
+  //   }
 
-    let worldView = worldViewList.find(worldView => worldView.id === value) || null;
-    if (!worldView) {
-      setSelectedWorldView(null)
-      setGeoUnionList([])
-      setFactionList([])
-      setRoleList([])
-      return
-    }
+  //   let worldView = worldViewList.find(worldView => worldView.id === value) || null;
+  //   if (!worldView) {
+  //     // setSelectedWorldView(null)
+  //     setGeoUnionList([])
+  //     setFactionList([])
+  //     setRoleList([])
+  //     return
+  //   }
 
-    setSelectedWorldView(worldView);
+  //   // setSelectedWorldView(worldView);
 
-    Promise.all([
-      loadGeoUnionList(worldView.id!),
-      chapterApi.loadFactionList(worldView.id!),
-      chapterApi.loadRoleList(worldView.id!),
-    ]).then(([geoUnionList, factionList, roleList]) => {
-      setGeoUnionList(geoUnionList)
-      setFactionList(factionList)
-      setRoleList(roleList)
-    });
-  }
+  //   Promise.all([
+  //     loadGeoUnionList(worldView.id!),
+  //     chapterApi.loadFactionList(worldView.id!),
+  //     chapterApi.loadRoleList(worldView.id!),
+  //   ]).then(([geoUnionList, factionList, roleList]) => {
+  //     setGeoUnionList(geoUnionList)
+  //     setFactionList(factionList)
+  //     setRoleList(roleList)
+  //   });
+  // }
 
-  /**
-   * 渲染右方面板内容：事件池管理、章节骨架、章节生成
-   * @returns 
-   */
-  const renderModuleContent = () => {
-    switch (activeModule) {
-      case 'event-pool':  // 事件池管理对话框
-        return (
-          <EventPoolPanel
-            worldViewList={worldViewList}
-            selectedChapterId={selectedChapter?.id}
-            geoUnionList={geoUnionList}
-            factionList={factionList}
-            roleList={roleList}
-            onChapterChange={() => fetchChapters(selectedNovel || 0)}
-          />
-        )
-      case 'chapter-skeleton':  // 章节骨架对话框
-        return (
-          <ChapterSkeletonPanel
-            selectedChapterId={selectedChapter?.id}
-            novelId={selectedNovel}
-            onChapterChange={() => fetchChapters(selectedNovel || 0)}
-            onRefresh={() => { fetchNovels(); handleWorldViewChange(selectedChapter?.worldview_id || null) }}
-            onEditEventPool={() => setActiveModule('event-pool')}
-            onUpdateWorldView={handleWorldViewChange}
-          />
-        )
-      case 'chapter-generate': // 章节生成对话框
-        return (
-          <ChapterGeneratePanel
-            selectedChapter={selectedChapter}
-            onChapterChange={() => fetchChapters(selectedNovel || 0)}
-          />
-        )
-      default:
-        return null
-    }
-  }
+  
 
   return (
     <div className={styles.container}>
@@ -328,7 +299,6 @@ function ChapterManage() {
                   placeholder="请选择小说"
                   value={selectedNovel || undefined}
                   onChange={handleNovelChange}
-                  allowClear
                   loading={loading}
                 >
                   {novels.map(novel => (
@@ -364,7 +334,7 @@ function ChapterManage() {
                       .find(novel => novel.id === selectedNovel)
                       ?.chapters.map(chapter => (
                         <div key={chapter.id} className={styles.chapterItem}>
-                          <Space style={{ cursor: 'pointer' }} onClick={() => setSelectedChapter({ ...chapter })}>
+                          <Space style={{ cursor: 'pointer' }} onClick={() => handleChapterChange(chapter?.id || null)}>
                             <Text type="secondary">第{chapter.chapter_number}章</Text>
                             {chapter.title ? (
                               <Text>{chapter.title}</Text>
@@ -418,42 +388,9 @@ function ChapterManage() {
 
         <Col span={16} className="f-fit-height">
           {/* 右方面板 */}
-          <Card
-            className="f-fit-height"
-            title={  // 右方面板title
-              <Space>
-                { selectedChapter ? [
-                  <Text>当前章节：</Text>, 
-                  <Text>第{selectedChapter.chapter_number}章</Text>,
-                  selectedChapter.title ? (
-                    <Text>{selectedChapter.title}</Text>
-                  ) : (
-                    <Text type="secondary" italic>章节标题未设定</Text>
-                  ),
-                  <Tag color='green'>v{selectedChapter.version}</Tag>
-                  ] : null}
-                <Radio.Group
-                  value={activeModule}
-                  onChange={e => setActiveModule(e.target.value)}
-                  buttonStyle="solid"
-                >
-                  <Radio.Button value="event-pool">事件池管理</Radio.Button>
-                  {/* <Radio.Button value="chapter-relation">章节关系</Radio.Button> */}
-                  <Radio.Button value="chapter-skeleton">章节骨架</Radio.Button>
-                  <Radio.Button value="chapter-generate">章节生成</Radio.Button>
-                </Radio.Group>
-              </Space>
-            }
-          >
-            {selectedNovel && selectedChapter ? (
-              /* 右方面板内容 */
-              (renderModuleContent())
-            ) : (
-              <div className={styles.selectPrompt}>
-                <Text>请先选择小说和章节</Text>
-              </div>
-            )}
-          </Card>
+          <ChapterContextProvider novelId={selectedNovel} chapterId={selectedChapterId || null} userUpdateTime={userUpdateTime}>
+            <ChapterCard selectedNovelId={selectedNovel} selectedChapterId={selectedChapterId} />
+          </ChapterContextProvider>
         </Col>
       </Row>
       {/* 添加章节modal */}
@@ -490,6 +427,98 @@ function ChapterManage() {
       </Modal>
     </div>
   );
+}
+
+interface ChapterCardProps {
+  selectedNovelId: number | null
+  selectedChapterId: number | null
+}
+
+function ChapterCard(props: ChapterCardProps) {
+  const { state: selectedChapter } = useChapterContext()
+  const [activeModule, setActiveModule] = useState<ModuleType>('event-pool')
+
+  /**
+   * 渲染右方面板内容：事件池管理、章节骨架、章节生成
+   * @returns 
+   */
+  const renderModuleContent = () => {
+    switch (activeModule) {
+      case 'event-pool':  // 事件池管理对话框
+        return (
+          <EventPoolPanel
+            // worldViewList={worldViewList}
+            // selectedChapterId={selectedChapter?.id}
+            // geoUnionList={geoUnionList}
+            // factionList={factionList}
+            // roleList={roleList}
+            // onChapterChange={() => fetchChapters(selectedNovel || 0)}
+          />
+        )
+      case 'chapter-skeleton':  // 章节骨架对话框
+        return (
+          <ChapterSkeletonPanel
+            // selectedChapterId={props.selectedChapterId}
+            // novelId={props.selectedNovelId}
+            // onChapterChange={() => fetchChapters(selectedNovel || 0)}
+            // onRefresh={() => { fetchNovels(); handleWorldViewChange(selectedChapter?.worldview_id || null) }}
+            // onEditEventPool={() => setActiveModule('event-pool')}
+            // onUpdateWorldView={handleWorldViewChange}
+          />
+        )
+      case 'chapter-generate': // 章节生成对话框
+        return (
+          <ChapterGeneratePanel
+            // selectedChapter={selectedChapter}
+            // onChapterChange={() => fetchChapters(selectedNovel || 0)}
+          />
+        )
+      default:
+        return null
+    }
+  }
+
+  console.debug('selectedChapter --> ', selectedChapter);
+  
+  return (
+    <Card
+      className="f-fit-height"
+      title={  // 右方面板title
+        <Space>
+          {selectedChapter ? [
+            <Text>当前章节：</Text>,
+            <Text>第{selectedChapter.chapter_number}章</Text>,
+            selectedChapter.title ? (
+              <Text>{selectedChapter.title}</Text>
+            ) : (
+              <Text type="secondary" italic>章节标题未设定</Text>
+            ),
+            <Tag color='green'>v{selectedChapter.version}</Tag>
+          ] : null}
+          <Radio.Group
+            value={activeModule}
+            onChange={e => setActiveModule(e.target.value)}
+            buttonStyle="solid"
+          >
+            <Radio.Button value="event-pool">事件池管理</Radio.Button>
+            {/* <Radio.Button value="chapter-relation">章节关系</Radio.Button> */}
+            <Radio.Button value="chapter-skeleton">章节骨架</Radio.Button>
+            <Radio.Button value="chapter-generate">章节生成</Radio.Button>
+          </Radio.Group>
+        </Space>
+      }
+    >
+      <WorldViewContextProvider worldViewId={selectedChapter?.worldview_id || null}>
+        {props.selectedNovelId && selectedChapter ? (
+          renderModuleContent()
+        ) : (
+          <div className={styles.selectPrompt}>
+            <Text>请先选择小说和章节</Text>
+          </div>
+        )}
+      </WorldViewContextProvider>
+    </Card>
+  )
 }
 
 export default ChapterManage

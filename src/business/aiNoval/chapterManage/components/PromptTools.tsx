@@ -221,8 +221,7 @@ const STR_CHAPTER_TEMPLATE = `【章节背景设定】
 `;
 
 // 注意，换行是根据使用习惯决定的，不要随意修改
-const STR_FRAGMENT_TEMPLATE = `
-片段目的：
+const STR_FRAGMENT_TEMPLATE = `片段目的：
 出场人物：
 场景：
 片段主要事件描述：
