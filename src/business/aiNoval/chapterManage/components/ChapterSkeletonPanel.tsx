@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Space, Typography, Button, Input, message, Form, Tag, Select, TreeSelect, Row, Col, GetRef } from 'antd'
+import { Space, Typography, Button, Input, message, Form, Tag, Select, TreeSelect, Row, Col, GetRef, Divider, Affix } from 'antd'
 import { ReloadOutlined, EditOutlined, CopyOutlined, SortAscendingOutlined, RobotOutlined, InfoCircleOutlined } from '@ant-design/icons'
 import { IChapter, IWorldViewDataWithExtra, IGeoUnionData, IFactionDefData, IRoleData, ITimelineEvent, IGeoStarSystemData, IGeoGeographyUnitData, IGeoPlanetData, IGeoSatelliteData, IGeoStarData } from '@/src/types/IAiNoval'
 import styles from './ChapterSkeletonPanel.module.scss'
@@ -60,11 +60,28 @@ function ChapterSkeletonPanel({
   const [isAttentionRefModalVisible, setIsAttentionRefModalVisible] = useState(false)
 
   const promptTextAreaRef = useRef<GetRef<typeof Input.TextArea> | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLElement | null>(null)
 
   // 获取事件关联信息
   const locations = chapterContext?.geo_ids || [];
   const factions = chapterContext?.faction_ids || []
   const characters = chapterContext?.role_ids || []
+
+  // 查找滚动容器（Card 的 body）
+  useEffect(() => {
+    if (containerRef.current) {
+      // 向上查找最近的 .ant-card-body 元素
+      let parent = containerRef.current.parentElement
+      while (parent) {
+        if (parent.classList.contains('ant-card-body')) {
+          scrollContainerRef.current = parent
+          break
+        }
+        parent = parent.parentElement
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (geoUnionList) {
@@ -365,7 +382,7 @@ function ChapterSkeletonPanel({
 
 
   return (
-    <div className={styles.container}>
+    <div ref={containerRef} className={styles.container}>
       <ModalProvider>
         {/* 世界观信息展示 */}
         <div className={styles.worldViewInfo}>
@@ -420,47 +437,18 @@ function ChapterSkeletonPanel({
                   </div>
                 </div>
 
-                <div className={styles.relatedInfoItem}>
+                {/* <div className={styles.relatedInfoItem}>
                   <Text strong>关联事件：</Text>
                   <div className={styles.eventsContainer}>
                     {eventList.length > 0 ? (
                       eventList.map((event, index) => (
-                        <div key={index} className={styles.eventCard}>
-                          <div className={styles.eventCardHeader}>
-                            <div className={styles.eventCardTitle}>{event.title}</div>
-                            <div className={styles.eventCardTimestamp}>
-                              {formatDate(event.date)}
-                            </div>
-                          </div>
-                          <div className={styles.eventCardDescription}>
-                            <Space>
-                              {event.description}
-                              <Button
-                                type="text"
-                                size="small"
-                                icon={<CopyOutlined />}
-                                onClick={() => {
-                                  const formattedDate = formatDate(event.date)
-                                  const copyText = `${formattedDate}\n${event.title}\n${event.description}`
-                                  try {
-                                    copyToClip(copyText)
-                                    message.success('已复制到剪贴板')
-                                  } catch (error) {
-                                    console.error('handleCopyEvent error -> ', error)
-                                    message.error('复制失败')
-                                  }
-                                }}
-                                title="复制事件内容"
-                              />
-                            </Space>
-                          </div>
-                        </div>
+                        <EventTag key={index} event={event} />
                       ))
                     ) : (
                       <Text type="secondary">暂无关联事件</Text>
                     )}
                   </div>
-                </div>
+                </div> */}
               </div>
             </>
           ) : (
@@ -651,43 +639,66 @@ function ChapterSkeletonPanel({
             <TextArea autoSize={{ minRows: 1 }} />
           </Form.Item>
 
-          <div className="f-flex-two-side f-fit-width" style={{marginBottom: 12}}>
-            <Text strong>章节提示词（在生成面板中，会根据双换行进行切分）</Text>
-            <Space>
-              <Button size="small" type="primary" onClick={handleSaveChapterInfo}>保存</Button>
-              <Button size="small" type="primary" danger onClick={() => handleSaveChapterInfo()}>保存并覆盖实际配置</Button>
-            </Space>
-          </div>
-          
-          <div className="f-flex-row">
-            <div className="f-flex-1">
-              <Form.Item
-                label={null}
-                name="seed_prompt"
-              >
-                <TextArea
-                  ref={promptTextAreaRef}
-                  placeholder="请输入章节根提示词"
-                  autoSize={{ minRows: 22 }}
-                  className={styles.promptTextArea}
-                  showCount
-                />
-              </Form.Item>
-            </div>
-            <div style={{ marginLeft: 10 }}>
-              <PromptTools
-                promptTextArea={promptTextAreaRef?.current}
-                layout="vertical"
-                onChange={(prompt) => {
-                  form.setFieldsValue({
-                    seed_prompt: prompt
-                  });
-                }}
-              />
-            </div>
-          </div>
-          
-
+          <Divider size='large'/>
+          <Row gutter={8}>
+            <Col span={6}>
+              <Affix offsetTop={12} target={() => scrollContainerRef.current || window}>
+                <div>
+                  <div style={{ marginBottom: 12 }}>
+                    <Text strong>关联事件</Text>
+                  </div>
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    {eventList.length > 0 ? (
+                      eventList.map((event, index) => (
+                        <EventTag key={index} event={event} />
+                      ))
+                    ) : (
+                      <Text type="secondary">暂无关联事件</Text>
+                    )}
+                  </Space>
+                </div>
+              </Affix>
+            </Col>
+            <Col span={18}>
+              <div className="f-flex-two-side f-fit-width" style={{marginBottom: 12}}>
+                <Text strong>章节提示词</Text>
+                <Space>
+                  <Button size="small" type="primary" onClick={handleSaveChapterInfo}>保存</Button>
+                  <Button size="small" type="primary" danger onClick={() => handleSaveChapterInfo()}>保存并覆盖实际配置</Button>
+                </Space>
+              </div>
+              
+              <div className="f-flex-row">
+                <div className="f-flex-1">
+                  <Form.Item
+                    label={null}
+                    name="seed_prompt"
+                  >
+                    <TextArea
+                      ref={promptTextAreaRef}
+                      placeholder="请输入章节根提示词"
+                      autoSize={{ minRows: 22 }}
+                      className={styles.promptTextArea}
+                      showCount
+                    />
+                  </Form.Item>
+                </div>
+                <div style={{ marginLeft: 10 }}>
+                  <Affix offsetTop={12} target={() => scrollContainerRef.current || window}>
+                    <PromptTools
+                      promptTextArea={promptTextAreaRef?.current}
+                      layout="vertical"
+                      onChange={(prompt) => {
+                        form.setFieldsValue({
+                          seed_prompt: prompt
+                        });
+                      }}
+                    />
+                  </Affix>
+                </div>
+              </div>
+            </Col>
+          </Row>
         </Form>
 
       </ModalProvider>
@@ -730,8 +741,51 @@ function LocationTag({ code }: { code: string }) {
   return <Tag color="blue">{locationItem?.name}</Tag>
 }
 
+function formatDate(date: number, worldViewData?: IWorldViewDataWithExtra | null) {
+  if (!worldViewData) {
+    return '时间点 ' + date
+  }
+
+  const timelineDateFormatter = TimelineDateFormatter.fromWorldViewWithExtra(worldViewData)
+  return timelineDateFormatter.formatSecondsToDate(date)
+}
+
 function EventTag({ event }: { event: ITimelineEvent }) {
-  return <Tag color="orange">{event.title}</Tag>
+
+  const { worldViewData } = useWorldViewContext();
+
+  return (
+    <div className={styles.eventCard}>
+      <div className={styles.eventCardHeader}>
+        <div className={styles.eventCardTitle}>{event.title}</div>
+        <div className={styles.eventCardTimestamp}>
+          {formatDate(event.date, worldViewData)}
+        </div>
+      </div>
+      <div className={styles.eventCardDescription}>
+        <Space>
+          {event.description}
+          <Button
+            type="text"
+            size="small"
+            icon={<CopyOutlined />}
+            onClick={() => {
+              const formattedDate = formatDate(event.date, worldViewData)
+              const copyText = `${formattedDate}\n${event.title}\n${event.description}`
+              try {
+                copyToClip(copyText)
+                message.success('已复制到剪贴板')
+              } catch (error) {
+                console.error('handleCopyEvent error -> ', error)
+                message.error('复制失败')
+              }
+            }}
+            title="复制事件内容"
+          />
+        </Space>
+      </div>
+    </div>
+  )
 }
 
 export default ChapterSkeletonPanel 
