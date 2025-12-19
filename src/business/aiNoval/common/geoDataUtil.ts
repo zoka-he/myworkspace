@@ -6,30 +6,6 @@ function wrapDataToTreeData(
     data: IGeoStarSystemData | IGeoStarData | IGeoPlanetData,
     type: string
 ): IGeoTreeItem<IGeoStarSystemData | IGeoStarData | IGeoPlanetData> {
-
-    let key: string;
-    let title;
-
-    // switch (type) {
-    //     case 'starSystem': 
-    //     case 'star': 
-    //     case 'planet':
-    //     case 'satellite':
-    //     case 'geographicUnit':
-    //         // 使用「类型 + 主键ID」作为树节点 key，避免不同数据类型之间 code 相同导致的 key 冲突，
-    //         // 造成在展开 / 收起节点时 React 复用错误节点，从而出现“节点被复制”的视觉 Bug。
-    //         // 如果没有 id，则退回使用 code。
-    //         const anyData: any = data as any;
-    //         const idPart = anyData.id ?? data.code;
-    //         key = `${type}_${idPart?.toString() || ''}`;
-    //         title = `${data.name || ''} (${data.code?.toString() || ''})`
-    //         break;
-    //     default: 
-    //         title = '';
-    //         key = ''; 
-    //         break;
-    // }
-
     return {
         title: data.name || '',
         key: data.code || '',
@@ -148,30 +124,13 @@ export async function loadGeoUnionList(worldview_id: number): Promise<IGeoUnionD
     return unionDataList;
 }
 
-/**
-     * 更新地理资源树：
-     * 1.加载星系数据
-     * 2.加载恒星数据
-     * 3.加载行星数据
-     * 4.加载卫星数据
-     * 5.加载行星地貌数据
-     */
-export async function loadGeoTree(worldview_id: number) {
-
-    let [
-        starSystemData,
-        starData,
-        planetData,
-        satelliteData,
-        geoUnitData,
-    ] = await Promise.all([
-        loadStarSystemData(worldview_id),
-        loadStarData(worldview_id),
-        loadPlanetData(worldview_id),
-        loadSatelliteData(worldview_id),
-        loadGeographyUnitData(worldview_id)
-    ]);
-
+function constructGeoTree(
+    starSystemData: IGeoTreeItem<IGeoStarSystemData>[], 
+    starData: IGeoTreeItem<IGeoStarData>[], 
+    planetData: IGeoTreeItem<IGeoPlanetData>[], 
+    satelliteData: IGeoTreeItem<IGeoSatelliteData>[], 
+    geoUnitData: IGeoTreeItem<IGeoGeographyUnitData>[]
+): IGeoTreeItem<IGeoStarSystemData | IGeoStarData | IGeoPlanetData | IGeoSatelliteData | IGeoGeographyUnitData>[] {
     if (!starSystemData || starSystemData.length === 0) {
         return [];
     }
@@ -291,4 +250,83 @@ export async function loadGeoTree(worldview_id: number) {
     } else {
         return starSystemData;
     }
+}
+
+/**
+     * 更新地理资源树：
+     * 1.加载星系数据
+     * 2.加载恒星数据
+     * 3.加载行星数据
+     * 4.加载卫星数据
+     * 5.加载行星地貌数据
+     */
+export async function loadGeoTree(worldview_id: number) {
+
+    let [
+        starSystemData,
+        starData,
+        planetData,
+        satelliteData,
+        geoUnitData,
+    ] = await Promise.all([
+        loadStarSystemData(worldview_id),
+        loadStarData(worldview_id),
+        loadPlanetData(worldview_id),
+        loadSatelliteData(worldview_id),
+        loadGeographyUnitData(worldview_id)
+    ]);
+
+    return constructGeoTree(starSystemData, starData, planetData, satelliteData, geoUnitData);
+}
+
+
+export function transfromGeoUnionToGeoTree(geoUnionList: IGeoUnionData[]): IGeoTreeItem<IGeoStarSystemData | IGeoStarData | IGeoPlanetData | IGeoSatelliteData | IGeoGeographyUnitData>[] {
+
+    let starSystemData: IGeoTreeItem<IGeoStarSystemData>[] = [];
+    let starData: IGeoTreeItem<IGeoStarData>[] = [];
+    let planetData: IGeoTreeItem<IGeoPlanetData>[] = [];
+    let satelliteData: IGeoTreeItem<IGeoSatelliteData>[] = [];
+    let geoUnitData: IGeoTreeItem<IGeoGeographyUnitData>[] = [];
+
+    function removeDataType(geoItem: IGeoUnionData): IGeoStarSystemData | IGeoStarData | IGeoPlanetData | IGeoSatelliteData | IGeoGeographyUnitData | never {
+        const item2 = Object.assign({}, geoItem);
+        const type = item2.data_type;
+        delete item2.data_type;
+        switch (type) {
+            case 'starSystem':
+                return item2 as IGeoStarSystemData;
+            case 'star':
+                return item2 as IGeoStarData;
+            case 'planet':
+                return item2 as IGeoPlanetData;
+            case 'satellite':
+                return item2 as IGeoSatelliteData;
+            case 'geoUnit':
+                return item2 as IGeoGeographyUnitData;
+            default:
+                throw new Error('Invalid data type: ' + type);
+        }
+    }
+
+    geoUnionList.forEach(geoItem => {
+        switch (geoItem.data_type) {
+            case 'starSystem':
+                starSystemData.push(wrapDataToTreeData(removeDataType(geoItem) as IGeoStarSystemData, 'starSystem'));
+                break;
+            case 'star':
+                starData.push(wrapDataToTreeData(removeDataType(geoItem) as IGeoStarData, 'star'));
+                break;
+            case 'planet':
+                planetData.push(wrapDataToTreeData(removeDataType(geoItem) as IGeoPlanetData, 'planet'));
+                break;
+            case 'satellite':
+                satelliteData.push(wrapDataToTreeData(removeDataType(geoItem) as IGeoSatelliteData, 'satellite'));
+                break;
+            case 'geoUnit':
+                geoUnitData.push(wrapDataToTreeData(removeDataType(geoItem) as IGeoGeographyUnitData, 'geoUnit'));
+                break;
+        }
+    });
+
+    return constructGeoTree(starSystemData, starData, planetData, satelliteData, geoUnitData);
 }

@@ -658,7 +658,7 @@ function EventPoolPanel() {
                 <Checkbox checked={showCharacters} onChange={() => setShowCharacters(!showCharacters)}>显示角色</Checkbox>
               </Space.Addon>
             </Space.Compact>
-            <Button type="default" icon={<CopyOutlined />} onClick={() => handleLoadFromPreviousChapter()}>从上一章继承（未实现）</Button>
+            <Button type="default" icon={<CopyOutlined />} onClick={() => handleLoadFromPreviousChapter()}>从上一章继承</Button>
           </Space>
           
           {/* 章节基础信息操作 */}
