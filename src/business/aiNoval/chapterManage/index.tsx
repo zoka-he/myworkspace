@@ -1,20 +1,17 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, Select, Space, Row, Col, Typography, Button, Input, message, Modal, Form, Radio, Tag, Pagination, Tooltip } from 'antd'
-import { DragDropContext } from 'react-beautiful-dnd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined, WarningOutlined } from '@ant-design/icons'
-import { IChapter, IWorldViewDataWithExtra, IGeoUnionData, IRoleData, IFactionDefData } from '@/src/types/IAiNoval'
-import { EventPool, ExtendedNovelData } from './types'
+import { IChapter } from '@/src/types/IAiNoval'
+import { ExtendedNovelData } from './types'
 import EventPoolPanel from './components/EventPoolPanel'
 import ChapterSkeletonPanel from './components/ChapterSkeletonPanel'
 import ChapterGeneratePanel from './components/ChapterGeneratePanel'
 import styles from './index.module.scss'
 import * as chapterApi from './apiCalls'
-import { loadGeoUnionList } from '../common/geoDataUtil'
-import ChapterContextProvider, { ChapterContext, useChapterContext } from './chapterContext'
+import ChapterContextProvider, { useChapterContext } from './chapterContext'
 import WorldViewContextProvider from './WorldViewContext'
 
 const { Text } = Typography
-const { TextArea } = Input
 
 type ModuleType = 'event-pool' | 'chapter-skeleton' | 'chapter-generate'
 
@@ -26,16 +23,10 @@ function ChapterManage() {
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [form] = Form.useForm()
   const [editingChapter, setEditingChapter] = useState<IChapter | null>(null)
-  // const [activeModule, setActiveModule] = useState<ModuleType>('event-pool')
   const [loading, setLoading] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [totalChapters, setTotalChapters] = useState(0)
-  // const [worldViewList, setWorldViewList] = useState<IWorldViewDataWithExtra[]>([])
-  // const [selectedWorldView, setSelectedWorldView] = useState<IWorldViewDataWithExtra | null>(null)
-  // const [geoUnionList, setGeoUnionList] = useState<IGeoUnionData[]>([])
-  // const [factionList, setFactionList] = useState<IFactionDefData[]>([])
-  // const [roleList, setRoleList] = useState<IRoleData[]>([])
   const [userUpdateTime, setUserUpdateTime] = useState(0)
 
   // 组件挂载时，获取小说列表和世界观列表
@@ -54,22 +45,6 @@ function ChapterManage() {
       setSelectedChapter(null)
     }
   }, [selectedNovel])
-
-  // useEffect(() => {
-  //   if (selectedChapter && selectedChapter.worldview_id) {
-  //     setSelectedWorldView(worldViewList.find(worldView => worldView.id === selectedChapter.worldview_id) || null)
-  //   } else {
-  //     setSelectedWorldView(null)
-  //   }
-  // }, [selectedChapter])
-
-  // 获取世界观列表
-  // const fetchWorldViewList = async () => {
-  //   const response = await chapterApi.getWorldViewList()
-  //   if (response.data) {
-  //     setWorldViewList(response.data)
-  //   }
-  // }
 
   // 获取小说列表
   const fetchNovels = async () => {
@@ -249,39 +224,6 @@ function ChapterManage() {
     }
   }
 
-  // 世界观变更
-  // const handleWorldViewChange = (value?: number | null) => {
-
-  //   if (!value) {
-  //     // setSelectedWorldView(null)
-  //     setGeoUnionList([])
-  //     setFactionList([])
-  //     setRoleList([])
-  //     return
-  //   }
-
-  //   let worldView = worldViewList.find(worldView => worldView.id === value) || null;
-  //   if (!worldView) {
-  //     // setSelectedWorldView(null)
-  //     setGeoUnionList([])
-  //     setFactionList([])
-  //     setRoleList([])
-  //     return
-  //   }
-
-  //   // setSelectedWorldView(worldView);
-
-  //   Promise.all([
-  //     loadGeoUnionList(worldView.id!),
-  //     chapterApi.loadFactionList(worldView.id!),
-  //     chapterApi.loadRoleList(worldView.id!),
-  //   ]).then(([geoUnionList, factionList, roleList]) => {
-  //     setGeoUnionList(geoUnionList)
-  //     setFactionList(factionList)
-  //     setRoleList(roleList)
-  //   });
-  // }
-
   
 
   return (
@@ -372,8 +314,6 @@ function ChapterManage() {
                       onChange={handlePageChange}
                       showSizeChanger={false}
                       align='center'
-                      // showQuickJumper
-                      // showTotal={(total) => `共 ${total} 章`}
                     />
                   </div>
                 </div>
@@ -446,32 +386,15 @@ function ChapterCard(props: ChapterCardProps) {
     switch (activeModule) {
       case 'event-pool':  // 事件池管理对话框
         return (
-          <EventPoolPanel
-            // worldViewList={worldViewList}
-            // selectedChapterId={selectedChapter?.id}
-            // geoUnionList={geoUnionList}
-            // factionList={factionList}
-            // roleList={roleList}
-            // onChapterChange={() => fetchChapters(selectedNovel || 0)}
-          />
+          <EventPoolPanel/>
         )
       case 'chapter-skeleton':  // 章节骨架对话框
         return (
-          <ChapterSkeletonPanel
-            // selectedChapterId={props.selectedChapterId}
-            // novelId={props.selectedNovelId}
-            // onChapterChange={() => fetchChapters(selectedNovel || 0)}
-            // onRefresh={() => { fetchNovels(); handleWorldViewChange(selectedChapter?.worldview_id || null) }}
-            // onEditEventPool={() => setActiveModule('event-pool')}
-            // onUpdateWorldView={handleWorldViewChange}
-          />
+          <ChapterSkeletonPanel onEditEventPool={() => setActiveModule('event-pool')}/>
         )
       case 'chapter-generate': // 章节生成对话框
         return (
-          <ChapterGeneratePanel
-            // selectedChapter={selectedChapter}
-            // onChapterChange={() => fetchChapters(selectedNovel || 0)}
-          />
+          <ChapterGeneratePanel/>
         )
       default:
         return null
@@ -501,7 +424,6 @@ function ChapterCard(props: ChapterCardProps) {
             buttonStyle="solid"
           >
             <Radio.Button value="event-pool">事件池管理</Radio.Button>
-            {/* <Radio.Button value="chapter-relation">章节关系</Radio.Button> */}
             <Radio.Button value="chapter-skeleton">章节骨架</Radio.Button>
             <Radio.Button value="chapter-generate">章节生成</Radio.Button>
           </Radio.Group>

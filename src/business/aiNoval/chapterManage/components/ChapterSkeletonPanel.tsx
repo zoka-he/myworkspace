@@ -21,12 +21,7 @@ const { TextArea } = Input
 const { Option } = Select
 
 interface ChapterSkeletonPanelProps {
-  selectedChapterId?: number | null
-  novelId?: number | null
-  onChapterChange: () => void
-  onRefresh: () => void
   onEditEventPool: () => void
-  onUpdateWorldView: (worldViewId?: number | null) => void
 }
 
 interface ISkeletonItem {
@@ -36,11 +31,11 @@ interface ISkeletonItem {
 }
 
 function ChapterSkeletonPanel({ 
-  selectedChapterId, 
-  novelId,
-  onChapterChange,
+  // selectedChapterId, 
+  // novelId,
+  // onChapterChange,
   onEditEventPool,
-  onUpdateWorldView
+  // onUpdateWorldView
 }: ChapterSkeletonPanelProps) {
   const { state: chapterContext, forceUpdateChapter } = useChapterContext();
   const { worldViewData, geoUnionList, factionList, roleList } = useWorldViewContext();
@@ -294,7 +289,7 @@ function ChapterSkeletonPanel({
 
       // TODO: 调用API保存章节信息
       message.success('保存成功')
-      onChapterChange()
+      // onChapterChange()
     } catch (error) {
       console.error('保存失败', error);
       message.error('保存失败：' + (error instanceof Error ? error.message : 'Unknown error'))
