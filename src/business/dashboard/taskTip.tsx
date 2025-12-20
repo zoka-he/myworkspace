@@ -87,7 +87,7 @@ class TaskTip extends Component<ITaskTipProps>{
         // 显示问题简要描述
         let renderProblems = null;
         if (typeof bug_titles === 'string') {
-            let problems = bug_titles.split('|||').map(item => <li style={{ padding: '0', margin: '0', fontSize: '10px' }}>{item}</li>);
+            let problems = bug_titles.split('|||').map((item: string, index: number) => <li key={index} style={{ padding: '0', margin: '0', fontSize: '10px' }}>{item}</li>);
 
             renderProblems = <div className="m_tasktip-problems">
                 <ul style={{ listStyle: 'decimal', paddingInlineStart: '15px', margin: '2px 0' }}>{problems}</ul>
@@ -96,12 +96,15 @@ class TaskTip extends Component<ITaskTipProps>{
 
         // 显示附加button
         let renderExtraBtns = null;
-        let extraBtns = [renderBug, renderCatflight].filter(item => item !== null);
+        // let extraBtns = [renderBug, renderCatflight].filter(item => item !== null);
         let extraClassName = ['m_tasktip-extra_btn'];
         if (!msg_cnt && !bug_cnt) { // 假如都没有问题，让它自动隐藏
             extraClassName.push('auto_hide')
         }
-        renderExtraBtns = <div className={extraClassName.join(' ')}>{extraBtns}</div>;
+        renderExtraBtns = <div className={extraClassName.join(' ')}>
+            {renderBug}
+            {renderCatflight}
+        </div>;
 
 
         let renderEmployee = null;

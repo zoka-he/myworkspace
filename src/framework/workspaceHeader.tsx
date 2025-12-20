@@ -1,7 +1,7 @@
 import { Breadcrumb, Button, Select, Space, Switch, Tag, Typography } from "antd";
 import { connect } from "react-redux";
 import store, { IRootState } from "../store";
-import { useSession, signOut } from 'next-auth/react';
+// import { useSession, signOut } from 'next-auth/react';
 import { useNavigate } from "react-router-dom";
 import { UserOutlined, SettingOutlined, LogoutOutlined } from '@ant-design/icons';
 import { useRef, useState } from "react";
@@ -39,14 +39,14 @@ interface IWorkspaceHeaderProps {
 }
 
 function WorkspaceHeader(props: IWorkspaceHeaderProps) {
-    let session = useSession();
+    // let session = useSession();
     let navigate = useNavigate();
 
-    let userLabel = null;
-    if (props?.loginUser?.nickname || session?.data?.user?.name) {
-        const openProfile = () => navigate('/user/profile?tabKey=1');
-        userLabel = <Button type="text" icon={<UserOutlined/>} onClick={openProfile}>{props?.loginUser?.nickname || session?.data?.user?.name}</Button>
-    }
+    // let userLabel = null;
+    // if (props?.loginUser?.nickname || session?.data?.user?.name) {
+    //     const openProfile = () => navigate('/user/profile?tabKey=1');
+    //     userLabel = <Button type="text" icon={<UserOutlined/>} onClick={openProfile}>{props?.loginUser?.nickname || session?.data?.user?.name}</Button>
+    // }
 
     let settingLabel = (
         <Button type="text" icon={<SettingOutlined />} onClick={() => navigate('/user/profile?tabKey=2')}>设置</Button>

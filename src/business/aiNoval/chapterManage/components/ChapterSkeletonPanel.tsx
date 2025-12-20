@@ -59,9 +59,33 @@ function ChapterSkeletonPanel({
   const scrollContainerRef = useRef<HTMLElement | null>(null)
 
   // 获取事件关联信息
-  const locations = chapterContext?.geo_ids || [];
-  const factions = chapterContext?.faction_ids || []
-  const characters = chapterContext?.role_ids || []
+  const locations = useMemo(() => {
+    if (!eventList?.length) {
+      return chapterContext?.geo_ids || []
+    }
+
+    let locations = _.uniq(_.flatten(eventList.map(event => event.location)))
+    return locations
+
+  }, [chapterContext?.geo_ids, eventList])
+
+  const factions = useMemo(() => {
+    if (!eventList?.length) {
+      return chapterContext?.faction_ids || []
+    }
+
+    let factions = _.uniq(_.flatten(eventList.map(event => event.faction_ids)))
+    return factions
+  }, [chapterContext?.faction_ids, eventList])
+
+  const characters = useMemo(() => {
+    if (!eventList?.length) {
+      return chapterContext?.role_ids || []
+    }
+
+    let characters = _.uniq(_.flatten(eventList.map(event => event.role_ids)))
+    return characters
+  }, [chapterContext?.role_ids, eventList])
 
   // 查找滚动容器（Card 的 body）
   useEffect(() => {
