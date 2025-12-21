@@ -228,8 +228,7 @@ function ChapterManage() {
 
   return (
     <div className={styles.container}>
-      <Row gutter={16} className='f-fit-height'>
-        <Col span={8} className='f-fit-height'>
+      <div className={styles.leftLayout}>
           {/* 章节列表外框 */}
           <Card 
             className='f-fit-height'
@@ -324,15 +323,14 @@ function ChapterManage() {
               </div>
             )}
           </Card>
-        </Col>
+      </div>
 
-        <Col span={16} className="f-fit-height">
+      <div className={styles.rightLayout}>
           {/* 右方面板 */}
           <ChapterContextProvider novelId={selectedNovel} chapterId={selectedChapterId || null} userUpdateTime={userUpdateTime}>
             <ChapterCard selectedNovelId={selectedNovel} selectedChapterId={selectedChapterId} />
           </ChapterContextProvider>
-        </Col>
-      </Row>
+      </div>
       {/* 添加章节modal */}
       <Modal
         title={editingChapter ? '编辑章节' : '添加章节'}

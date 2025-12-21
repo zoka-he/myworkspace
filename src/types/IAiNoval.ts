@@ -197,6 +197,8 @@ export interface IRoleRelation {
     day_length_in_hours: number    // 标准日长度（时）
     month_length_in_days: number   // 标准月长度（天）
     year_length_in_months: number  // 标准年长度（月）
+    faction_id: number            // 所属势力ID
+    description: string           // 描述
   }
 
   export interface IWorldViewDataWithExtra {

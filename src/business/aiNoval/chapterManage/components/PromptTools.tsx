@@ -142,7 +142,7 @@ const PromptTools = (props: PromptToolsProps) => {
             tagText = tagGenerator;
         }
 
-        tagText = `\n${tagText}\n`;
+        tagText = `${tagText}\n`;
         
         let insertedString = sourceString.slice(0, inputPosition) + tagText + sourceString.slice(inputPosition);
         props.onChange?.(insertedString);
