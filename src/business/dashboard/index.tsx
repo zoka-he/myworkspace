@@ -307,7 +307,7 @@ class Dashboard extends React.Component<{}, IDashboardState & IDashboardLists & 
                 {(provided, snapshot) => {
                     return (
                         <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
-                            <TaskTip taskData={item}
+                            <TaskTip key={item.ID} taskData={item}
                                      onEdit={(task: ITaskData) => this.onEditTask(task)}
                                      onShowInteract={(task: ITaskData) => this.onShowInteract(task)}
                                      onShowBug={(task: ITaskData) => this.onShowBug(task)}
