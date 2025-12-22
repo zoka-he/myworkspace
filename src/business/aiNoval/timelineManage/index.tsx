@@ -7,6 +7,7 @@ import { Button, Card, Radio, Select, Typography, Checkbox } from 'antd';
 const { Text } = Typography;
 import styles from './index.module.scss';
 import EditOrCreateTimeline from './EditOrCreateTimeline';
+import TimelineComparePanel from './TimelineComparePanel';
 
 export default function TimelineManage() {
     return (
@@ -102,6 +103,8 @@ function TimelineEditCard() {
     let EditComponent = () => <div>不支持的模式...</div>
     if (timelineManageState.mode === 'edit' || timelineManageState.mode === 'create') {
         EditComponent = EditOrCreateTimeline;
+    } else if (timelineManageState.mode === 'compare') {
+        EditComponent = TimelineComparePanel;
     }
 
     return (
@@ -118,11 +121,7 @@ function TimelineEditCard() {
             }
         >
             <div>
-                {(timelineManageState.mode !== 'create' && !timelineState.timelineData) ? (
-                    <Text>未选择时间线</Text>
-                ) : (
-                    <EditComponent />
-                )}
+                <EditComponent />
             </div>
             
         </Card>

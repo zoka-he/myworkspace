@@ -17,6 +17,7 @@ export class TimelineDateFormatter {
   private readonly dayLengthInHours: number
   private readonly monthLengthInDays: number
   private readonly yearLengthInMonths: number
+  private readonly baseSeconds: number
 
   public static fromWorldViewWithExtra(worldView: IWorldViewDataWithExtra): TimelineDateFormatter {
     return new TimelineDateFormatter({
@@ -27,8 +28,13 @@ export class TimelineDateFormatter {
       hour_length_in_seconds: worldView.tl_hour_length_in_seconds ?? 3600,
       day_length_in_hours: worldView.tl_day_length_in_hours ?? 24,
       month_length_in_days: worldView.tl_month_length_in_days ?? 30,
-      year_length_in_months: worldView.tl_year_length_in_months ?? 365
+      year_length_in_months: worldView.tl_year_length_in_months ?? 365,
+      base_seconds: worldView.tl_base_seconds ?? 0
     })
+  }
+
+  public static fromTimelineDef(timelineDef: ITimelineDef): TimelineDateFormatter {
+    return new TimelineDateFormatter(timelineDef);
   }
 
   constructor(timelineDef: ITimelineDef) {
@@ -38,6 +44,7 @@ export class TimelineDateFormatter {
     this.dayLengthInHours = timelineDef.day_length_in_hours
     this.monthLengthInDays = timelineDef.month_length_in_days
     this.yearLengthInMonths = timelineDef.year_length_in_months
+    this.baseSeconds = timelineDef.base_seconds ?? 0
   }
 
   /**
@@ -46,8 +53,14 @@ export class TimelineDateFormatter {
    * @returns 结构化的日期数据
    */
   secondsToDateData(seconds: number): ITimelineDateData {
+    const seconds_fix_base = seconds - (this.baseSeconds || 0);
+
+    console.debug('config --> ', this.baseSeconds, this.startSeconds, this.hourLengthInSeconds, this.dayLengthInHours, this.monthLengthInDays, this.yearLengthInMonths);
+
     // const absSeconds = Math.abs(seconds)
-    const isBC = seconds < 0
+    const isBC = seconds_fix_base < 0
+
+    console.debug('isBC: ', isBC);
     
     // Calculate total seconds in a year
     const secondsInYear = this.yearLengthInMonths * this.monthLengthInDays * this.dayLengthInHours * this.hourLengthInSeconds
@@ -57,8 +70,8 @@ export class TimelineDateFormatter {
     const secondsInDay = this.dayLengthInHours * this.hourLengthInSeconds
 
     // Calculate year, month, and day
-    const year = Math.floor(seconds / secondsInYear)
-    const remainingSeconds = seconds - year * secondsInYear
+    const year = Math.floor(seconds_fix_base / secondsInYear)
+    const remainingSeconds = seconds_fix_base - year * secondsInYear
     const month = Math.floor(remainingSeconds / secondsInMonth) + 1
     const remainingSecondsAfterMonth = remainingSeconds % secondsInMonth
     const day = Math.floor(remainingSecondsAfterMonth / secondsInDay) + 1
@@ -80,7 +93,7 @@ export class TimelineDateFormatter {
       second
     }
 
-    // console.debug(seconds, ' --> ', dateData)
+    console.debug(seconds, ' --> ', dateData)
 
     return dateData
   }
@@ -107,7 +120,8 @@ export class TimelineDateFormatter {
                     ((day - 1) * secondsInDay) +
                     (hour * this.hourLengthInSeconds) +
                     (minute * 60) +
-                    second
+                    second + 
+                    this.baseSeconds
     } else {
       // For AD dates: calculate normally
       totalSeconds = ((year - 1) * secondsInYear) + 
@@ -115,7 +129,8 @@ export class TimelineDateFormatter {
                     ((day - 1) * secondsInDay) +
                     (hour * this.hourLengthInSeconds) +
                     (minute * 60) +
-                    second
+                    second + 
+                    this.baseSeconds
     }
 
     // console.debug(dateData, ' --> ', totalSeconds)
@@ -130,8 +145,8 @@ export class TimelineDateFormatter {
    */
   formatSecondsToDate(seconds: number): string {
     const dateData = this.secondsToDateData(seconds)
-    // console.debug(dateData);
-    return `${dateData.isBC ? '公元前' : '公元'}${dateData.year}年${dateData.month}月${dateData.day}日`
+    // console.debug(seconds, ' --> ', dateData);
+    return `${dateData.isBC ? '前' : ''}${dateData.year}年${dateData.month}月${dateData.day}日`
   }
 
   /**
@@ -144,7 +159,7 @@ export class TimelineDateFormatter {
    */
   dateToSeconds(dateStr: string): number {
     // 尝试匹配标准格式（公元前/公元）
-    const standardRegex = /^(公元前|公元)(\d+)年(\d+)月(\d+)日$/
+    const standardRegex = /^(公元?)(前?)(\d+)年(\d+)月(\d+)日$/
     const standardMatch = dateStr.match(standardRegex)
     
     // 尝试匹配简化格式（带负号）

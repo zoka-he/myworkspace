@@ -11,6 +11,7 @@ export interface IWorldViewData {
     title?: string | null,
     content?: string | null,
     is_dify_knowledge_base?: number | null,
+    base_timeline_id?: number | null,
 }
 
 export interface IGeoStarSystemData {
@@ -197,14 +198,16 @@ export interface IRoleRelation {
     day_length_in_hours: number    // 标准日长度（时）
     month_length_in_days: number   // 标准月长度（天）
     year_length_in_months: number  // 标准年长度（月）
-    faction_id: number            // 所属势力ID
-    description: string           // 描述
+    faction_id?: number            // 所属势力ID
+    description?: string           // 描述
+    base_seconds: number          // 基准点（秒）
   }
 
   export interface IWorldViewDataWithExtra {
     id?: number | null,
     title?: string | null,
     content?: string | null,
+    base_timeline_id?: number | null,
     is_dify_knowledge_base?: number | null,
     tl_id?: number | null,
     tl_worldview_id?: number | null,
@@ -215,6 +218,7 @@ export interface IRoleRelation {
     tl_month_length_in_days?: number | null,
     tl_year_length_in_months?: number | null,
     te_max_seconds?: number | null,
+    tl_base_seconds?: number | null,
 }
 
 export interface IStoryLine {
