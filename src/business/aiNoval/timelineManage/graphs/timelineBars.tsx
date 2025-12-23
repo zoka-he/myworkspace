@@ -146,27 +146,76 @@ function ZoomControl(props: IZoomControlProps) {
                     .domain([baseRangeRef.current.min, baseRangeRef.current.max])
                     .range(yRange);
 
-                // 获取鼠标位置
-                let mouseY = dimensions.height / 2;
-                if (event.sourceEvent) {
-                    const rect = svg.getBoundingClientRect();
-                    mouseY = (event.sourceEvent as MouseEvent).clientY - rect.top;
-                }
-
-                // 将鼠标y坐标转换为数据值（基于基准范围）
-                const mouseDataValue = baseYScale.invert(mouseY);
-
-                // 计算新的范围：以鼠标位置为中心进行缩放
+                // 计算新的范围：基于缩放比例
                 const baseRange = baseRangeRef.current.max - baseRangeRef.current.min;
                 const newRange = baseRange / k;
 
-                // 计算平移：将像素平移转换为数据域偏移
+                // 使用d3的transform直接转换y坐标
+                // 在y轴中，range是[bottom, top]，即[height - margin.bottom, margin.top]
+                // 我们需要将transform应用到y坐标上，然后转换回数据域
                 const pixelToData = baseRange / yHeight;
-                const dataOffset = -ty * pixelToData;
+                
+                // 直接使用transform.y，但需要根据y轴方向调整
+                // transform.y正值表示向下移动，在y轴中应该显示更早的时间（更小的值）
+                // 所以：ty正值 → dataOffset应该是正值 → newMin减小（使用减法）
+                const dataOffset = ty * pixelToData;
 
-                // 以鼠标位置为中心计算新范围
-                let newMin = mouseDataValue - (mouseY - yRange[1]) / yHeight * newRange + dataOffset;
-                let newMax = newMin + newRange;
+                // 调试日志
+                const isDragging = Math.abs(k - 1) < 0.001;
+                // console.log('=== Zoom Debug ===');
+                // console.log('k (scale):', k);
+                // console.log('ty (transform.y):', ty);
+                // console.log('isDragging (k≈1):', isDragging);
+                // console.log('baseRange:', baseRange);
+                // console.log('pixelToData:', pixelToData);
+                // console.log('dataOffset:', dataOffset);
+                // console.log('baseRangeRef.current:', baseRangeRef.current);
+                if (event.sourceEvent) {
+                    const rect = svg.getBoundingClientRect();
+                    const mouseY = (event.sourceEvent as MouseEvent).clientY - rect.top;
+                    console.log('mouseY:', mouseY);
+                    console.log('event.type:', (event.sourceEvent as MouseEvent).type);
+                }
+
+                let newMin: number;
+                let newMax: number;
+
+                // 判断是纯拖拽还是缩放
+                if (isDragging) {
+                    // 纯拖拽：直接平移整个范围
+                    // 从日志看，向下拖拽时ty正值，但方向不对
+                    // 尝试反转：向下拖拽（ty正值）→ dataOffset正值 → newMin和newMax都增大（使用加法）
+                    newMin = baseRangeRef.current.min + dataOffset;
+                    newMax = baseRangeRef.current.max + dataOffset;
+                    // console.log('纯拖拽计算（反转后）:');
+                    // console.log('  newMin =', baseRangeRef.current.min, '+', dataOffset, '=', newMin);
+                    // console.log('  newMax =', baseRangeRef.current.max, '+', dataOffset, '=', newMax);
+                } else {
+                    // 缩放：以鼠标位置为中心进行缩放，然后应用平移
+                    let mouseY = dimensions.height / 2;
+                    if (event.sourceEvent) {
+                        const rect = svg.getBoundingClientRect();
+                        mouseY = (event.sourceEvent as MouseEvent).clientY - rect.top;
+                    }
+
+                    // 将鼠标y坐标转换为数据值（基于基准范围）
+                    const mouseDataValue = baseYScale.invert(mouseY);
+
+                    // 以鼠标位置为中心计算新范围
+                    const mouseRatio = (mouseY - yRange[1]) / yHeight;
+                    // 向下拖拽（ty正值）→ dataOffset正值 → newMin增大（使用加法）
+                    newMin = mouseDataValue - mouseRatio * newRange + dataOffset;
+                    newMax = newMin + newRange;
+                    // console.log('缩放计算（反转后）:');
+                    // console.log('  mouseY:', mouseY);
+                    // console.log('  mouseDataValue:', mouseDataValue);
+                    // console.log('  mouseRatio:', mouseRatio);
+                    // console.log('  newRange:', newRange);
+                    // console.log('  newMin =', mouseDataValue, '-', mouseRatio, '*', newRange, '+', dataOffset, '=', newMin);
+                    // console.log('  newMax =', newMin, '+', newRange, '=', newMax);
+                }
+                // console.log('最终结果: newMin =', newMin, ', newMax =', newMax);
+                // console.log('==================');
 
                 // 限制在dateRange范围内
                 const dateRange = dateRangeRef.current;
