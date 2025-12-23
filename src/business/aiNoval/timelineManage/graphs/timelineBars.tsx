@@ -652,12 +652,74 @@ function PointerLayer(props: IPointerLayerProps) {
     }
 
     function plot() {
-        if (!g_line.current || !dimensions) {
+        if (!g_line.current || !dimensions || !svg) {
             return;
         }
 
+        // 确保 defs 和 filter 存在于 SVG 根元素中
+        const svgSelection = d3.select(svg);
+        let defs = svgSelection.select<SVGDefsElement>('defs');
+        if (defs.empty()) {
+            defs = svgSelection.insert<SVGDefsElement>('defs', ':first-child');
+        }
+        
+        let filter = defs.select<SVGFilterElement>('filter#shadow');
+        if (filter.empty()) {
+            filter = defs.append('filter')
+                .attr('id', 'shadow')
+                .attr('x', '-50%')
+                .attr('y', '-50%')
+                .attr('width', '200%')
+                .attr('height', '200%');
+            
+            // 使用 SourceGraphic 创建阴影（适用于 stroke）
+            filter.append('feGaussianBlur')
+                .attr('in', 'SourceGraphic')
+                .attr('stdDeviation', 2)
+                .attr('result', 'blur');
+            
+            filter.append('feOffset')
+                .attr('in', 'blur')
+                .attr('dx', 2)
+                .attr('dy', 2)
+                .attr('result', 'offsetBlur');
+            
+            // 调整阴影颜色为黑色半透明
+            filter.append('feColorMatrix')
+                .attr('in', 'offsetBlur')
+                .attr('type', 'matrix')
+                .attr('values', '0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0')
+                .attr('result', 'shadow');
+            
+            // 合并阴影和原始图形
+            const feMerge = filter.append('feMerge');
+            feMerge.append('feMergeNode')
+                .attr('in', 'shadow'); // 阴影
+            feMerge.append('feMergeNode')
+                .attr('in', 'SourceGraphic'); // 原始图形
+        }
+
+        // 先绘制阴影层
+        const lineShadow = d3.select(g_line.current)
+          .selectAll('line.shadow')
+          .data([pointerPosition]);
+
+        lineShadow.enter()
+          .append('line')
+          .attr('class', 'shadow')
+          .attr('stroke', 'rgba(0, 0, 0, 0.3)')
+          .attr('stroke-width', 5)
+          .merge(lineShadow as any)
+          .attr('x1', props.margin.left + 2)
+          .attr('y1', (d) => d.y + 2)
+          .attr('x2', dimensions.width - props.margin.right + 2)
+          .attr('y2', (d) => d.y + 2);
+
+        lineShadow.exit().remove();
+
+        // 再绘制原始 line
         const line = d3.select(g_line.current)
-          .selectAll('line')
+          .selectAll('line:not(.shadow)')
           .data([pointerPosition]);
 
         // 使用 merge 来更新已存在的元素
@@ -689,6 +751,7 @@ function PointerLayer(props: IPointerLayerProps) {
             .attr('stroke', 'black')
             .attr('stroke-width', 1)
             .attr('height', 14)
+            .attr('filter', 'url(#shadow)')
 
         // 创建文本
         textEnter.append('text')
@@ -721,14 +784,15 @@ function PointerLayer(props: IPointerLayerProps) {
             });
 
         textMerge.each(function(d, i, nodes) {
-            const textEl = d3.select(nodes[i]).select('text');
-            const textWidth = textEl?.node()?.getComputedTextLength();
+            const textEl = d3.select(nodes[i]).select<SVGTextElement>('text');
+            const textWidth = (textEl.node() as SVGTextElement)?.getComputedTextLength();
 
             const rectEl = d3.select(nodes[i]).select('rect');
             rectEl.attr('width', (textWidth ?? 0) + 10);
             rectEl.attr('height', 18);
             rectEl.attr('x', (x(i) ?? 0) - textWidth / 2 + x.bandwidth() / 2 - 5);
             rectEl.attr('y', pointerPosition.y - 23);
+            rectEl.attr('filter', 'url(#shadow)');
         });
 
 
