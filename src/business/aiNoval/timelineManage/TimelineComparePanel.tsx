@@ -1,5 +1,5 @@
 import { ITimelineDef } from "@/src/types/IAiNoval";
-import { Button, Card, Col, Form, Input, InputNumber, Row, Select, Space, Typography } from "antd"
+import { Button, Card, Col, Form, Input, InputNumber, Radio, Row, Select, Space, Typography } from "antd"
 import { useSimpleWorldviewContext } from "../common/SimpleWorldviewProvider";
 import { useSimpleTimelineProvider } from "../common/SimpleTimelineProvider";
 import { useState, useMemo, useEffect } from "react";
@@ -8,6 +8,7 @@ import _ from 'lodash';
 import { useSimpleFactionContext } from "../common/SimpleFactionProvider";
 import { useTimelineManageContext } from "./timelineManageProvider";
 import { TimelineDateFormatter } from "../common/novelDateUtils";
+import TimelineBars from "./graphs/timelineBars";
 
 const { Text } = Typography;
 
@@ -20,13 +21,13 @@ export default function TimelineComparePanel() {
     }, [sourceSeconds]);
 
     return (
-        <div className='f-flex-row'>
+        <div className='f-flex-row' style={{ gap: 16 }}>
             <Space direction="vertical" size={16}>
                 <SourceTimelineCard onChange={setSourceSeconds} />
                 <TargetTimelineCard sourceSeconds={sourceSeconds} />
             </Space>
             <div className='f-flex-1'>
-
+                <GraphViewContainer></GraphViewContainer>
             </div>
         </div>
     )
@@ -238,5 +239,32 @@ function CovertedTime({ seconds, refTimeline }: { seconds: number, refTimeline: 
             </Space.Addon>
             <Input value={dateText}/>
         </Space.Compact>
+    )
+}
+
+function GraphViewContainer() {
+
+    const [activeKey, setActiveKey] = useState<string>('bar');
+
+    const items = [
+        {
+            label: '柱形对比图',
+            value: 'bar',
+            children: <TimelineBars />,
+        }
+    ]
+
+    const title = <Radio.Group block value={activeKey} options={items} onChange={(e) => setActiveKey(e.target.value)}></Radio.Group>;
+
+    const Content = useMemo(() => {
+        return items.find(item => item.value === activeKey)?.children;
+    }, [activeKey]);
+
+    return (
+        <Card title={title}>
+            <div style={{ height: 'calc(100vh - 265px)', overflow: 'hidden' }}>
+                {Content}
+            </div>
+        </Card>
     )
 }
