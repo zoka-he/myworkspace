@@ -44,7 +44,12 @@ export default function TimelineBars() {
     return (
         <div className="f-fit-content">
             <SimpleSvgProvider>
-                <ZoomControl scaleRange={scaleRange} onZoomChange={setScaleRange}>
+                <ZoomControl 
+                    scaleRange={scaleRange} 
+                    onZoomChange={setScaleRange}
+                    dateRange={dateRange}
+                    margin={dataMargin}
+                >
                     <AxisLayout 
                         margin={dataMargin} 
                         dateRange={dateRange}
@@ -64,6 +69,7 @@ interface IZoomControlProps {
     onZoomChange: (scaleRange: { min: number; max: number }) => void;
     children?: React.ReactNode;
     margin?: { top?: number; right?: number; bottom?: number; left?: number };
+    dateRange: { min: number; max: number };
 }
 
 function ZoomControl(props: IZoomControlProps) {
@@ -73,24 +79,136 @@ function ZoomControl(props: IZoomControlProps) {
     }
 
     const { svg, dimensions } = svgContext;
+    const margin = props.margin || { top: 0, right: 0, bottom: 0, left: 0 };
+    const baseRangeRef = useRef<{ min: number; max: number } | null>(null);
+    const isZoomingRef = useRef(false);
+    const onZoomChangeRef = useRef(props.onZoomChange);
+    const dateRangeRef = useRef(props.dateRange);
+    const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
+    const isInitializedRef = useRef(false);
+    const isResettingTransformRef = useRef(false);
+
+    // 更新ref，避免在依赖数组中包含函数
+    useEffect(() => {
+        onZoomChangeRef.current = props.onZoomChange;
+        dateRangeRef.current = props.dateRange;
+    }, [props.onZoomChange, props.dateRange]);
+
+    // 初始化baseRangeRef
+    useEffect(() => {
+        if (!baseRangeRef.current && props.scaleRange.min !== 0 && props.scaleRange.max !== 0) {
+            baseRangeRef.current = { ...props.scaleRange };
+        }
+    }, [props.scaleRange]);
 
     useEffect(() => {
-        if (!svg) return;
+        if (!svg || (props.scaleRange.min === 0 && props.scaleRange.max === 0)) return;
+
+        const yRange = [dimensions.height - (margin.bottom || 0), margin.top || 0];
+        const yHeight = yRange[0] - yRange[1];
 
         // 清除之前的缩放行为
-        d3.select(svg).on('zoom', null);
+        d3.select(svg).on('.zoom', null);
 
-        // 创建新的缩放行为
-        d3.select(svg).call(
-            d3.zoom<SVGSVGElement, unknown>()
-            .scaleExtent([0.01, 40]) // 缩放范围：0.01x 到 40x
-            .translateExtent([[0, 0], [dimensions.width, dimensions.height]])
-            .on('zoom', (event) => {
-                const transform = event.transform;
-                console.debug('zoom', transform.k, transform.x, transform.y);
+        // 创建y轴缩放行为
+        const zoom = d3.zoom<SVGSVGElement, unknown>()
+            .scaleExtent([0.1, 100])
+            .on('start', () => {
+                isZoomingRef.current = true;
+                // 在开始缩放时，保存当前的scaleRange作为基准
+                baseRangeRef.current = { ...props.scaleRange };
+                // 在开始缩放时，如果transform不是identity，先重置为identity
+                // 这样每次缩放都从identity开始，但基于当前的scaleRange
+                const currentTransform = d3.zoomTransform(svg);
+                if (currentTransform.k !== 1 || currentTransform.x !== 0 || currentTransform.y !== 0) {
+                    isResettingTransformRef.current = true;
+                    // 使用requestAnimationFrame确保在事件处理完成后再重置
+                    requestAnimationFrame(() => {
+                        if (svg && zoomRef.current) {
+                            d3.select(svg).call(zoomRef.current.transform, d3.zoomIdentity);
+                            isResettingTransformRef.current = false;
+                        }
+                    });
+                }
             })
-        );
-    }, [svg, dimensions]);
+            .on('zoom', (event) => {
+                // 如果正在重置transform，跳过处理
+                if (isResettingTransformRef.current) return;
+                
+                if (!baseRangeRef.current) return;
+
+                const transform = event.transform;
+                const k = transform.k; // 缩放比例
+                const ty = transform.y; // 垂直平移（像素）
+
+                // 获取基准范围对应的y轴比例尺
+                const baseYScale = d3.scaleLinear()
+                    .domain([baseRangeRef.current.min, baseRangeRef.current.max])
+                    .range(yRange);
+
+                // 获取鼠标位置
+                let mouseY = dimensions.height / 2;
+                if (event.sourceEvent) {
+                    const rect = svg.getBoundingClientRect();
+                    mouseY = (event.sourceEvent as MouseEvent).clientY - rect.top;
+                }
+
+                // 将鼠标y坐标转换为数据值（基于基准范围）
+                const mouseDataValue = baseYScale.invert(mouseY);
+
+                // 计算新的范围：以鼠标位置为中心进行缩放
+                const baseRange = baseRangeRef.current.max - baseRangeRef.current.min;
+                const newRange = baseRange / k;
+
+                // 计算平移：将像素平移转换为数据域偏移
+                const pixelToData = baseRange / yHeight;
+                const dataOffset = -ty * pixelToData;
+
+                // 以鼠标位置为中心计算新范围
+                let newMin = mouseDataValue - (mouseY - yRange[1]) / yHeight * newRange + dataOffset;
+                let newMax = newMin + newRange;
+
+                // 限制在dateRange范围内
+                const dateRange = dateRangeRef.current;
+                if (newMin < dateRange.min) {
+                    const offset = dateRange.min - newMin;
+                    newMin = dateRange.min;
+                    newMax = Math.min(dateRange.max, newMax + offset);
+                }
+                if (newMax > dateRange.max) {
+                    const offset = newMax - dateRange.max;
+                    newMax = dateRange.max;
+                    newMin = Math.max(dateRange.min, newMin - offset);
+                }
+
+                // 确保范围有效
+                if (newMin >= newMax || newMax - newMin < (dateRange.max - dateRange.min) / 10000) {
+                    newMin = dateRange.min;
+                    newMax = dateRange.max;
+                }
+
+                // 使用ref调用，避免触发effect重新执行
+                onZoomChangeRef.current({ min: newMin, max: newMax });
+            })
+            .on('end', () => {
+                isZoomingRef.current = false;
+                // 缩放结束后，不重置transform，保持当前的缩放状态
+                // scaleRange已经通过onZoomChange更新，下次缩放时会基于新的scaleRange
+            });
+
+        zoomRef.current = zoom;
+
+        // 应用缩放行为
+        d3.select(svg).call(zoom);
+
+        // 只在首次初始化时，如果不在缩放状态，重置transform为identity
+        // 这确保每次新的缩放都从identity开始，但不会在缩放过程中重置
+        if (!isInitializedRef.current && !isZoomingRef.current) {
+            d3.select(svg).call(zoom.transform, d3.zoomIdentity);
+            isInitializedRef.current = true;
+        }
+
+    }, [svg, dimensions, margin]);
 
     return (
         props.children
@@ -138,9 +256,12 @@ function AxisLayout(props: IAxisLayoutProps) {
     }, [props.seriesLabels, margin, dimensions]);
 
     const y = useMemo(() => {
-        const yRange = [props.dateRange?.min || 0, props.dateRange?.max || 0];
-        return d3.scaleLinear().domain(yRange).range([dimensions.height - margin.bottom, margin.top]);
-    }, [props.dateRange, margin, dimensions]);
+        // 使用scaleRange如果存在，否则使用dateRange
+        const yDomain = props.scaleRange && (props.scaleRange.min !== 0 || props.scaleRange.max !== 0)
+            ? [props.scaleRange.min, props.scaleRange.max]
+            : [props.dateRange?.min || 0, props.dateRange?.max || 0];
+        return d3.scaleLinear().domain(yDomain).range([dimensions.height - margin.bottom, margin.top]);
+    }, [props.scaleRange, props.dateRange, margin, dimensions]);
 
     function handleDrawAxis() {
         if (!gx.current || !gy.current) {
@@ -164,7 +285,7 @@ function AxisLayout(props: IAxisLayoutProps) {
 
         handleDrawAxis();
         setIsInitialized(true);
-    }, [svg, gx, gy, dimensions]);
+    }, [svg, gx, gy, dimensions, x, y]);
 
     return (
         <>
@@ -203,8 +324,8 @@ function TimelineDataSeries(props: ITimelineDataSeriesProps) {
         const data = props.data || [];
         const groups = Array.from(d3.group(data, d => d.faction_id).values())
             .map(group => group.sort((a, b) => {
-                console.debug('a', a);
-                console.debug('b', b);
+                // console.debug('a', a);
+                // console.debug('b', b);
                 return (a.start_seconds ?? 0) - (b.start_seconds ?? 0);
             }))
             .sort((a, b) => (a[0]?.faction_id ?? 0) - (b[0]?.faction_id ?? 0))
@@ -261,7 +382,7 @@ function TimelineDataSeries(props: ITimelineDataSeriesProps) {
             return hsl.toString();
         };
 
-        console.debug('groups', groups);
+        // console.debug('groups', groups);
 
         // Flatten the nested array structure
         type BarData = { data: ITimelineDef; x: number | undefined; y: number; width: number; height: number; };
