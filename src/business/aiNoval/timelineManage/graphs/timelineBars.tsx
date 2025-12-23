@@ -785,14 +785,19 @@ function PointerLayer(props: IPointerLayerProps) {
 
         textMerge.each(function(d, i, nodes) {
             const textEl = d3.select(nodes[i]).select<SVGTextElement>('text');
-            const textWidth = (textEl.node() as SVGTextElement)?.getComputedTextLength();
+            const textWidth = (textEl.node() as SVGTextElement)?.getComputedTextLength() ?? 0;
 
             const rectEl = d3.select(nodes[i]).select('rect');
-            rectEl.attr('width', (textWidth ?? 0) + 10);
-            rectEl.attr('height', 18);
-            rectEl.attr('x', (x(i) ?? 0) - textWidth / 2 + x.bandwidth() / 2 - 5);
-            rectEl.attr('y', pointerPosition.y - 23);
-            rectEl.attr('filter', 'url(#shadow)');
+            if (textWidth === 0) {
+                rectEl.attr('display', 'none');
+            } else {
+                rectEl.attr('display', 'block')
+                    .attr('width', textWidth + 10)
+                    .attr('height', 18)
+                    .attr('x', (x(i) ?? 0) - textWidth / 2 + x.bandwidth() / 2 - 5)
+                    .attr('y', pointerPosition.y - 23)
+                    .attr('filter', 'url(#shadow)');
+            }
         });
 
 
