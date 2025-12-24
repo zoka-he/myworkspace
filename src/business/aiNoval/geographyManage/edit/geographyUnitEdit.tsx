@@ -121,8 +121,8 @@ class GeographyUnitEdit extends React.Component<IGeographyUnitEditProps, IGeogra
                 planet_id = target?.planet_id || null;
                 break;
             case 'geoUnit':
-                // 地理单元作为上级，parent_type 使用 geographicUnit
-                parent_type = 'geographicUnit';
+                // 地理单元作为上级，parent_type 使用 geoUnit
+                parent_type = 'geoUnit';
                 planet_id = target?.planet_id || null;
                 satellite_id = target?.satellite_id || null;
                 break;
