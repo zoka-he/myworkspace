@@ -60,8 +60,8 @@ export default function EditProvider({ children }: { children: React.ReactNode }
     }
 
     function panelDeleteStarSystem(data: IGeoStarSystemData) {
-        const title = '删除太阳系';
-        const objectName = (data?.name || '无名太阳系') + (data?.code ? `(${data?.code})` : '');
+        const title = '删除天体系统';
+        const objectName = (data?.name || '无名天体系统') + (data?.code ? `(${data?.code})` : '');
         confirmAndDelete(title, objectName, async () => {
             await deleteStarSystem(data);
             message.info('已删除' + objectName);

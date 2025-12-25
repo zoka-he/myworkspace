@@ -55,12 +55,12 @@ export class TimelineDateFormatter {
   secondsToDateData(seconds: number): ITimelineDateData {
     const seconds_fix_base = seconds - (this.baseSeconds || 0);
 
-    console.debug('config --> ', this.baseSeconds, this.startSeconds, this.hourLengthInSeconds, this.dayLengthInHours, this.monthLengthInDays, this.yearLengthInMonths);
+    // console.debug('config --> ', this.baseSeconds, this.startSeconds, this.hourLengthInSeconds, this.dayLengthInHours, this.monthLengthInDays, this.yearLengthInMonths);
 
     // const absSeconds = Math.abs(seconds)
     const isBC = seconds_fix_base < 0
 
-    console.debug('isBC: ', isBC);
+    // console.debug('isBC: ', isBC);
     
     // Calculate total seconds in a year
     const secondsInYear = this.yearLengthInMonths * this.monthLengthInDays * this.dayLengthInHours * this.hourLengthInSeconds
@@ -93,7 +93,7 @@ export class TimelineDateFormatter {
       second
     }
 
-    console.debug(seconds, ' --> ', dateData)
+    // console.debug(seconds, ' --> ', dateData)
 
     return dateData
   }

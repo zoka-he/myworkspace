@@ -58,7 +58,7 @@ export default function(props: IStarSystemEditProps) {
         {
             label: `LLM召回测试`,
             key: '2',
-            children: <GeoRecallTest worldViewId={worldviewId} recommandQuery={`太阳系 ${data?.name} 设定`} />,
+            children: <GeoRecallTest worldViewId={worldviewId} recommandQuery={`天体系统 ${data?.name} 设定`} />,
         }
     ];
 

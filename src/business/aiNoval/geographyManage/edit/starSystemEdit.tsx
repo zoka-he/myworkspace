@@ -128,15 +128,15 @@ class StarSystemEdit extends React.Component<IStarSystemEditProps, IStarSystemEd
     render() {
         return (
             <>
-                <Modal title={'太阳系信息'} open={this.state.modalOpen} onCancel={e => this.onCancel()} footer={null}>
+                <Modal title={'天体系统信息'} open={this.state.modalOpen} onCancel={e => this.onCancel()} footer={null}>
                     <Form ref={comp => this.onFormRef(comp)} labelCol={{ span: 6 }} wrapperCol={{ span: 16 }} initialValues={this.getDefaultFormData}
                           onFinish={e => this.onFinish(e)}
                           onFinishFailed={e => this.onFinishedFailed(e)}
                     >
-                        <Form.Item label={'太阳系名称'} name={'name'} rules={[{ required: true, message: '太阳系名称为必填！' }]}>
+                        <Form.Item label={'天体系统名称'} name={'name'} rules={[{ required: true, message: '天体系统名称为必填！' }]}>
                             <Input/>
                         </Form.Item>
-                        <Form.Item label={'太阳系编码'} name={'code'} rules={[{ required: true, message: '小说描述为必填！' }]}>
+                        <Form.Item label={'天体系统编码'} name={'code'} rules={[{ required: true, message: '小说描述为必填！' }]}>
                             <Input.TextArea/>
                         </Form.Item>
                         <Form.Item label={'是否在知识库中'} name={'described_in_llm'}>

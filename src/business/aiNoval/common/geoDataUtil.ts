@@ -142,13 +142,28 @@ function constructGeoTree(
     let starSystemMap = new Map<number, IGeoTreeItem<IGeoStarSystemData>>();
     starSystemData.forEach((starSystem: IGeoTreeItem<IGeoStarSystemData>) => {
         let id = starSystem?.data?.id;
-        if (id) {
+
+        let hasParent = false;
+        if (starSystem?.data?.parent_system_id) {
+            let parentStarSystem = starSystemData.find(sys => sys.data.id === starSystem?.data?.parent_system_id);
+            if (parentStarSystem) {
+                starSystem.parent = parentStarSystem;
+                if (!parentStarSystem.children) {
+                    parentStarSystem.children = [];
+                }
+                parentStarSystem.children.push(starSystem);
+                hasParent = true;
+            }
+        }
+
+        if (id && !hasParent) {
             starSystemMap.set(id, starSystem);
         }
 
         if (codeSet.has(starSystem?.data?.code)) {
             hasConflict = true;
         }
+
         codeSet.add(starSystem?.data?.code);
     });
 

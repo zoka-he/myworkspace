@@ -1,30 +1,21 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
-import fetch from '@/src/fetch';
-import { Button, Input, Select, Space, Table, message, Card, Divider, Modal } from 'antd';
-import { ExclamationCircleFilled } from '@ant-design/icons';
+import { useMemo, useState } from 'react';
+import { Button, Select, Space, message, Card, Radio } from 'antd';
 
-import { IWorldViewData, IGeoStarSystemData, IGeoStarData, IGeoPlanetData, IGeoSatelliteData, IGeoGeographyUnitData, IGeoUnionData } from '@/src/types/IAiNoval';
+import { IGeoStarSystemData, IGeoPlanetData, IGeoSatelliteData, IGeoGeographyUnitData } from '@/src/types/IAiNoval';
 import GeoTree, { type IGeoTreeItem } from './geoTree';
-import StarSystemEdit from './edit/starSystemEdit';
 import StarSystemPanel from './panel/starSystemPanel';
 import StarPanel from './panel/starPanel';
 import PlanetPanel from './panel/planetPanel';
 import SatellitePanel from './panel/satellitePanel';
 import GeographicUnitPanel from './panel/geographicUnitPanel';
 
-import StarEdit from './edit/starEdit';
-import PlanetEdit from './edit/planetEdit';
-import SatelliteEdit from './edit/satelliteEdit';
-import GeographyUnitEdit from './edit/geographyUnitEdit';
-import { deleteGeographicUnit, deletePlanet, deleteSatellite, deleteStar, deleteStarSystem } from './remove';
 import GeoDataProvider from './GeoDataProvider';
 import SimpleWorldviewProvider, { useSimpleWorldviewContext } from '../common/SimpleWorldviewProvider';
 import ManageStateProvider, { useManageState } from './ManageStateProvider';
 import EditProvider from './edit/EditProvider';
 
 import { useEditContext } from './edit/EditProvider';
-
-const { Column } = Table;
+import AreaCoefPanel from './panel/AreaCoefPanel';
 
 const LEFT_PANEL_WIDTH = 400; // 左侧面板宽度，必须大于320
 
@@ -111,6 +102,35 @@ interface RightPanelProps {
 }
 
 function RightPanel(prop: RightPanelProps) {
+    const [activePanel, setActivePanel] = useState('manage');
+
+    const title = (
+        <Radio.Group value={activePanel} onChange={e => setActivePanel(e.target.value)} size="small" buttonStyle="solid" optionType="button">
+            <Radio.Button value="manage">地理设定管理</Radio.Button>
+            <Radio.Button value="areas">面积设定</Radio.Button>
+            <Radio.Button value="faction_bind">阵营绑定</Radio.Button>
+        </Radio.Group>
+    )
+
+    let Content = <p>开发中...敬请期待.</p>;
+    if (activePanel === 'manage') {
+        Content = <RightPanelContentOfManage/>;
+    } else if (activePanel === 'areas') {
+        Content = <AreaCoefPanel/>;
+    }
+
+    return (
+        <Card
+            className='f-fit-height'
+            size="small"
+            title={title}
+        >
+            {Content}
+        </Card>
+    )
+}
+
+function RightPanelContentOfManage() {
     const { state: manageState } = useManageState();
     const { treeRaisedObject } = manageState;
 
@@ -137,13 +157,13 @@ function RightPanel(prop: RightPanelProps) {
         mainPanel = <p>未选取对象！</p>
     } else {
 
-        mainPanel = [];
+        mainPanel = <></>;
         
         // 提取关键信息
         switch (treeRaisedObject?.dataType) {
             case 'starSystem': 
                 // starSystemId = treeRaisedObject?.data?.id;
-                mainPanel.push(
+                mainPanel = (
                     <StarSystemPanel 
                         raiseAddStar={(data: IGeoStarSystemData) => panelAddStar({ ...data })}
                         raiseAddPlanet={(data: IGeoStarSystemData) => panelAddPlanet({ ...data })}
@@ -155,7 +175,7 @@ function RightPanel(prop: RightPanelProps) {
             
             // 恒星面板
             case 'star':
-                mainPanel.push(
+                mainPanel = (
                     <StarPanel 
                         raiseEditStar={(data => panelEditStar({ ...data }))}
                         raiseDeleteStar={(data => panelDeleteStar({ ...data }))}
@@ -165,7 +185,7 @@ function RightPanel(prop: RightPanelProps) {
 
             // 行星面板
             case 'planet':
-                mainPanel.push(
+                mainPanel = (
                     <PlanetPanel 
                         raiseAddSatellite={(data: IGeoPlanetData) => panelAddSatellite({ ...data })}
                         raiseAddGeographicUnit={(data: IGeoPlanetData) => panelAddGeographicUnit({ ...data, parent_type: 'planet' })}
@@ -177,7 +197,7 @@ function RightPanel(prop: RightPanelProps) {
 
             // 卫星面板
             case 'satellite':
-                mainPanel.push(
+                mainPanel = (
                     <SatellitePanel 
                         raiseAddGeographicUnit={(data: IGeoSatelliteData) => panelAddGeographicUnit({ ...data, parent_type: 'satellite' })}
                         raiseEditSatellite={(data => panelEditSatellite({ ...data }))}
@@ -188,7 +208,7 @@ function RightPanel(prop: RightPanelProps) {
 
             // 地理单元面板
             case 'geoUnit':
-                mainPanel.push(
+                mainPanel = (
                     <GeographicUnitPanel
                         raiseAddGeographicUnit={(data: IGeoGeographyUnitData) => panelAddGeographicUnit({ ...data, parent_type: 'geoUnit' })}
                         raiseEditGeographicUnit={(data => panelEditGeographicUnit({ ...data }))}
@@ -198,19 +218,11 @@ function RightPanel(prop: RightPanelProps) {
                 break;
 
             default: 
-                mainPanel.push(<p>未知对象类型：{ treeRaisedObject?.dataType }</p>);
+                mainPanel = (<p>未知对象类型：{ treeRaisedObject?.dataType }</p>);
         }
     }
 
 
-    return (
-        <Card
-            className='f-fit-height'
-            size="small"
-            title={<strong>地理设定管理</strong>}
-        >
-            {mainPanel}
-        </Card>
-    )
+    return mainPanel;
 }
 
