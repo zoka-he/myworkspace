@@ -53,6 +53,15 @@ export default function EditProvider({ children }: { children: React.ReactNode }
         }
     }
 
+    function panelAddStarSystem(data: IGeoStarSystemData) {
+        if (starSystemEditRef.current) {
+            starSystemEditRef.current.showAndEdit({
+                worldview_id: worldviewState.worldviewId,
+                parent_system_id: data?.id || null,
+            });
+        }
+    }
+
     function panelEditStarSystem(data: IGeoStarSystemData) {
         if (starSystemEditRef.current) {
             starSystemEditRef.current.showAndEdit(data);
@@ -203,6 +212,7 @@ export default function EditProvider({ children }: { children: React.ReactNode }
 
     const providerValue = useMemo(() => ({
         treeAddStarSystem,
+        panelAddStarSystem,
         panelEditStarSystem,
         panelDeleteStarSystem,
         panelAddStar,

@@ -25,18 +25,6 @@ export default function(props: IStarEditProps) {
     let data = treeRaisedObject?.data;
     let described_in_llm = data?.described_in_llm == 1;
 
-    // function onClickAddStar()  {
-    //     if (typeof props.raiseAddStar === 'function') {
-    //         props.raiseAddStar();
-    //     }
-    // }
-
-    // function onClickAddPlanet() {
-    //     if (typeof props.raiseAddPlanet === 'function') {
-    //         props.raiseAddPlanet();
-    //     }
-    // }
-
     function onClickEditStar() {
         if (typeof props.raiseEditStar === 'function' && data) {
             props.raiseEditStar(data);

@@ -6,6 +6,7 @@ import GeoDifyDocument from "../subPanel/geoDifyDocument";
 import { useSimpleWorldviewContext } from "../../common/SimpleWorldviewProvider";
 import { useManageState } from "../ManageStateProvider";
 interface IStarSystemEditProps {
+    raiseAddStarSystem: (data: IGeoStarSystemData) => void,
     raiseAddStar: (data: IGeoStarSystemData) => void,
     raiseAddPlanet: (data: IGeoStarSystemData) => void,
     raiseEditStarSystem: (data: IGeoStarSystemData) => void,
@@ -49,6 +50,12 @@ export default function(props: IStarSystemEditProps) {
         }
     }
 
+    function onClickAddStarSystem() {
+        if (typeof props.raiseAddStarSystem === 'function' && data) {
+            props.raiseAddStarSystem(data);
+        }
+    }
+
     let tabItems = [
         {
             label: `Dify文档`,
@@ -75,6 +82,7 @@ export default function(props: IStarSystemEditProps) {
                 <Col span={12}>
                     <Space>
                         <Button type="primary" size="small" onClick={e => onClickEditStarSystem()}>编辑本条目</Button>
+                        <Button onClick={e => onClickAddStarSystem()} size="small">添加子天体系统</Button>
                         <Button onClick={e => onClickAddStar()} size="small">添加恒星</Button>
                         <Button onClick={e => onClickAddPlanet()} size="small">添加行星</Button>
                         <Button onClick={e => onClickDeleteStarSystem()} danger size="small" disabled={isParent}>删除本条目</Button>

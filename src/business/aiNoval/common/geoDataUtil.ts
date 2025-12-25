@@ -171,7 +171,7 @@ function constructGeoTree(
     starData.forEach((star: IGeoTreeItem<IGeoStarData>) => {
         let parentId = star?.data?.star_system_id;
         if (parentId) {
-            let parentStarSystem = starSystemMap.get(parentId);
+            let parentStarSystem = starSystemData.find(sys => sys.data.id === parentId);
             if (parentStarSystem) {
                 star.parent = parentStarSystem;
                 if (!parentStarSystem.children) {
@@ -207,17 +207,17 @@ function constructGeoTree(
         codeSet.add(planet?.data?.code);
     })
 
-    // 组装卫星数据到行星数据，绑定关系是id、planet_id
+    // 组装卫星数据到行星数据，绑定关系是id、star_system_id
     satelliteData.forEach((satellite: IGeoTreeItem<IGeoSatelliteData>) => {
-        let parentId = satellite?.data?.planet_id;
+        let parentId = satellite?.data?.star_system_id;
         if (parentId) {
-            let parentPlanet = planetData.find(planet => planet.data.id === parentId);
-            if (parentPlanet) {
-                satellite.parent = parentPlanet;
-                if (!parentPlanet.children) {
-                    parentPlanet.children = [];
+            let parentStarSystem = starSystemData.find(sys => sys.data.id === parentId);
+            if (parentStarSystem) {
+                satellite.parent = parentStarSystem;
+                if (!parentStarSystem?.children) {
+                    parentStarSystem.children = [];
                 }
-                parentPlanet.children.push(satellite);
+                parentStarSystem.children.push(satellite);
             }
         }
 
@@ -263,7 +263,7 @@ function constructGeoTree(
         });
         return [];
     } else {
-        return starSystemData;
+        return starSystemMap.values().toArray();
     }
 }
 

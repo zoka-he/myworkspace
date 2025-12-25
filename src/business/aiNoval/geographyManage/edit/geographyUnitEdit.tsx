@@ -135,6 +135,7 @@ class GeographyUnitEdit extends React.Component<IGeographyUnitEditProps, IGeogra
             planet_id,
             satellite_id,
             star_system_id,
+            has_geo_area: 'N',
         });
     };
 
@@ -313,6 +314,12 @@ class GeographyUnitEdit extends React.Component<IGeographyUnitEditProps, IGeogra
                         </Form.Item>
                         <Form.Item label={'地理单元类型'} name={'type'} rules={[{ required: true, message: '地理单元类型为必填！' }]}>
                             <Select options={this.getGeoUnitOptions()}/>
+                        </Form.Item>
+                        <Form.Item label={'是否具有疆域意义'} name={'has_geo_area'}>
+                            <Radio.Group>
+                                <Radio value={"Y"}>是</Radio>
+                                <Radio value={"N"}>否</Radio>
+                            </Radio.Group>
                         </Form.Item>
                         {/* 上级节点选择（支持行星 / 卫星 / 地理单元） */}
                         <Form.Item label={'上级节点'} name={'parent_selector'}>

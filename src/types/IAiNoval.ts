@@ -92,7 +92,7 @@ export interface IGeoGeographyUnitData {
     dify_dataset_id?: string | null,
     area_coef?: number | null,
     children_area_coef?: number | null,
-    has_geo_area?: string
+    has_geo_area?: string,
 }
 
 export interface IGeoUnionData extends IGeoStarSystemData, IGeoStarData, IGeoPlanetData, IGeoSatelliteData, IGeoGeographyUnitData {

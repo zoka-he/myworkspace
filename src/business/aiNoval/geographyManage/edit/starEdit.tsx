@@ -1,13 +1,15 @@
 import React from "react";
-import {Form, Modal, Input, Button, message, FormInstance, Radio, Select} from "antd";
+import {Form, Modal, Input, Button, message, FormInstance, Radio, Select, TreeSelect} from "antd";
 import _ from 'lodash';
 import fetch from '@/src/fetch';
 import { IGeoStarData } from "@/src/types/IAiNoval";
 import DayJS from 'dayjs';
+import * as EditCommon from "./editCommon";
 
 interface IStarEditState {
     modalOpen: boolean,
     loading: boolean,
+    starSystemList: EditCommon.IGeoStarSystemDataWithChildren[] | null,
 }
 
 interface IStarEditProps {
@@ -18,6 +20,7 @@ class StarEdit extends React.Component<IStarEditProps, IStarEditState> {
 
     private mForm: FormInstance<any> | null;
     private oldData: IGeoStarData | null;
+    private starSystemList: EditCommon.IGeoStarSystemDataWithChildren[] | null;
 
     constructor(props: IStarEditProps) {
         super(props);
@@ -25,6 +28,7 @@ class StarEdit extends React.Component<IStarEditProps, IStarEditState> {
         this.state = {
             modalOpen: false,
             loading: false,
+            starSystemList: null,
         }
 
         this.mForm = null;
@@ -71,6 +75,7 @@ class StarEdit extends React.Component<IStarEditProps, IStarEditState> {
             ...data,
         }
         this.parseAndFixData(this.oldData);
+        this.loadStarSystemTree();
     }
 
     onFormRef(comp: FormInstance<any> | null) {
@@ -85,6 +90,14 @@ class StarEdit extends React.Component<IStarEditProps, IStarEditState> {
             modalOpen: false
         });
         this.mForm?.resetFields();
+    }
+
+    async loadStarSystemTree() {
+        let starSystemList = await EditCommon.loadStarSystemTree();
+
+        this.setState({
+            starSystemList
+        });
     }
 
     async onFinish(values: any) {
@@ -151,6 +164,14 @@ class StarEdit extends React.Component<IStarEditProps, IStarEditState> {
                           onFinish={e => this.onFinish(e)}
                           onFinishFailed={e => this.onFinishedFailed(e)}
                     >
+                        <Form.Item label={'天体系统'} name={'star_system_id'} rules={[{ required: true, message: '天体系统为必填！' }]}>
+                            <TreeSelect
+                                treeData={this.state.starSystemList || []}
+                                fieldNames={{ label: 'name', value: 'id', children: 'children' }}
+                                placeholder="请选择天体系统"
+                                allowClear
+                            />
+                        </Form.Item>
                         <Form.Item label={'恒星名称'} name={'name'} rules={[{ required: true, message: '恒星名称为必填！' }]}>
                             <Input/>
                         </Form.Item>

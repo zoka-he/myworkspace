@@ -12,6 +12,7 @@ import GeographicUnitPanel from './panel/geographicUnitPanel';
 import GeoDataProvider from './GeoDataProvider';
 import SimpleWorldviewProvider, { useSimpleWorldviewContext } from '../common/SimpleWorldviewProvider';
 import ManageStateProvider, { useManageState } from './ManageStateProvider';
+import SimpleFactionProvider from '../common/SimpleFactionProvider';
 import EditProvider from './edit/EditProvider';
 
 import { useEditContext } from './edit/EditProvider';
@@ -26,21 +27,23 @@ export default function GeoManage() {
     return (
         <SimpleWorldviewProvider>
             <GeoDataProvider>
-                <ManageStateProvider>
-                    <EditProvider>
-                        <div style={{ display: 'flex', height: '100%' }}>
-                            <div style={{ width: LEFT_PANEL_WIDTH, height: '100%', padding: '0 0 10px 0' }}>
-                                {/* 左面板卡片 */}
-                                <LeftPanel/>
-                            </div>
-                            <div style={{ flex: 1, height: '100%', padding: '0 0 10px 10px' }}>
-                                {/* 右面板卡片 */}
-                                <RightPanel/>
-                                
-                            </div>
+            <SimpleFactionProvider>
+            <ManageStateProvider>
+                <EditProvider>
+                    <div style={{ display: 'flex', height: '100%' }}>
+                        <div style={{ width: LEFT_PANEL_WIDTH, height: '100%', padding: '0 0 10px 0' }}>
+                            {/* 左面板卡片 */}
+                            <LeftPanel/>
                         </div>
-                    </EditProvider>
-                </ManageStateProvider>
+                        <div style={{ flex: 1, height: '100%', padding: '0 0 10px 10px' }}>
+                            {/* 右面板卡片 */}
+                            <RightPanel/>
+                            
+                        </div>
+                    </div>
+                </EditProvider>
+            </ManageStateProvider>
+            </SimpleFactionProvider>
             </GeoDataProvider>
         </SimpleWorldviewProvider>
     )
@@ -107,7 +110,7 @@ function RightPanel(prop: RightPanelProps) {
     const title = (
         <Radio.Group value={activePanel} onChange={e => setActivePanel(e.target.value)} size="small" buttonStyle="solid" optionType="button">
             <Radio.Button value="manage">地理设定管理</Radio.Button>
-            <Radio.Button value="areas">面积设定</Radio.Button>
+            <Radio.Button value="areas">疆域设定</Radio.Button>
             <Radio.Button value="faction_bind">阵营绑定</Radio.Button>
         </Radio.Group>
     )
@@ -135,6 +138,7 @@ function RightPanelContentOfManage() {
     const { treeRaisedObject } = manageState;
 
     const { 
+        panelAddStarSystem,
         panelAddStar, 
         panelAddPlanet, 
         panelAddSatellite, 
@@ -165,6 +169,7 @@ function RightPanelContentOfManage() {
                 // starSystemId = treeRaisedObject?.data?.id;
                 mainPanel = (
                     <StarSystemPanel 
+                        raiseAddStarSystem={(data: IGeoStarSystemData) => panelAddStarSystem({ ...data })}
                         raiseAddStar={(data: IGeoStarSystemData) => panelAddStar({ ...data })}
                         raiseAddPlanet={(data: IGeoStarSystemData) => panelAddPlanet({ ...data })}
                         raiseEditStarSystem={(data: IGeoStarSystemData) => panelEditStarSystem({ ...data })}
