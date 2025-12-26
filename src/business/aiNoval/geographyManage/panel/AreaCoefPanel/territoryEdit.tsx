@@ -19,15 +19,16 @@ interface ITerritoryEditProps {
 
 interface ITerritoryEditOptions {
     // initialValues: any;
+    onUpdateSuccess: () => void;
 }
 
 export default function useTerritoryEdit(options?: ITerritoryEditOptions) {
 
     const [form] = Form.useForm();
-    const [visible, setVisible] = useState(true);
+    const [visible, setVisible] = useState(false);
     const { state: worldviewState } = useSimpleWorldviewContext();
 
-    const open = useCallback((value: ITerritoryDef) => {
+    const open = useCallback((value?: ITerritoryDef) => {
         setVisible(true);
 
         if (value) {
@@ -90,6 +91,8 @@ export default function useTerritoryEdit(options?: ITerritoryEditOptions) {
                 message.success('操作成功！');
                 setVisible(false);
 
+                options?.onUpdateSuccess?.();
+
             } catch(e) {
                 console.error(e);
                 message.error('操作失败！');
@@ -126,7 +129,7 @@ export default function useTerritoryEdit(options?: ITerritoryEditOptions) {
                 </Modal>
             </>
         )
-    }, [visible, onCancel, onOk]);
+    }, [visible, onCancel, options]);
 
     return {
         Modal: TerritoryEdit,

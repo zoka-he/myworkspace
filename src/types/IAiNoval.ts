@@ -99,7 +99,7 @@ export interface IGeoUnionData extends IGeoStarSystemData, IGeoStarData, IGeoPla
     data_type?: string | null,
 }
 
-export interface IGeoTerritoryData {
+export interface IFactionTerritory {
     id?: number | null,
     worldview_id: number | null,
     faction_id?: number | null,

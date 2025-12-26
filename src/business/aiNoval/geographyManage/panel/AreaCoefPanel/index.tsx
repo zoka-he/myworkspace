@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSimpleWorldviewContext } from "../../../common/SimpleWorldviewProvider";
 import { useGeoData } from "../../GeoDataProvider";
-import { IGeoUnionData } from "@/src/types/IAiNoval";
+import { IFactionTerritory, IGeoUnionData } from "@/src/types/IAiNoval";
 import { IGeoTreeItem } from "../../geoTree";
 import { Button, Divider, Form, Input, Space, TreeSelect, Typography } from "antd";
 import { FlatGeoData, FlatGeoDataTree } from "./FlatGeoData";
@@ -12,6 +12,9 @@ import { TimelineDateFormatter } from "../../../common/novelDateUtils";
 import { useSimpleFactionContext } from "../../../common/SimpleFactionProvider";
 import useTerritoryEdit from "./territoryEdit";
 import SimpleTimelineProvider, { useSimpleTimelineProvider } from "../../../common/SimpleTimelineProvider";
+import { ReloadOutlined } from "@ant-design/icons";
+import fetch from "@/src/fetch";
+import _ from "lodash";
 
 const { Text, Paragraph } = Typography;
 
@@ -24,35 +27,69 @@ interface IFlatGeoData {
 }
 
 export default function AreaCoefPanel() {
-    // const { state: worldviewState } = useSimpleWorldviewContext();
+    const { state: worldviewState } = useSimpleWorldviewContext();
     // const { state: geoDataState } = useGeoData();
     const { state: timelineState } = useSimpleTimelineProvider();
 
+    const TerritoryEdit = useTerritoryEdit({
+        onUpdateSuccess: () => {
+            onRequestUpdate();
+        },
+    });
 
-    const TerritoryEdit = useTerritoryEdit();
+    const [territoryList, setTerritoryList] = useState<IFactionTerritory[]>([]);
 
-    // 简化的分层结构，清除了不必要的属性，只保留了name和area_coef
-    // const flatGeoDataTree = useMemo(() => {
-    //     return FlatGeoDataTree.fromGeoTree(geoDataState.geoTree || []);
-    // }, [geoDataState.geoTree]);
+    async function onRequestUpdate() {
+        console.debug('onRequestUpdate --->> ');
+        const response = await fetch.get('/api/aiNoval/faction/territory/list', {
+            params: {
+                worldview_id: worldviewState.worldviewId,
+            },
+        });
 
+        setTerritoryList(response.data);
+    }
+
+    function onGeoDataClick(geoData: IFlatGeoData) {
+        const data = {
+            id: null,
+            worldview_id: worldviewState.worldviewId,
+            geo_code: geoData.code,
+            faction_id: null,
+            alias_name: null,
+            start_date: null,
+            end_date: null,
+            description: null,
+        }
+        TerritoryEdit.open(data);
+    }
+
+    async function onTerritoryClick(territory: IFactionTerritory) {
+        const data = await fetch.get('/api/aiNoval/faction/territory', {
+            params: {
+                id: territory.id,
+            },
+        });
+        TerritoryEdit.open(data);
+    }
     
+    useEffect(() => {
+        onRequestUpdate();
+    }, []);
 
     return (
         <SimpleTimelineProvider>
         <div>
-            {/* <h1>阵营影响力设定</h1> */}
-            {/* <Paragraph>共{ flatGeoDataTree.length }个地理单元树，{ FlatGeoDataTree.getDeep(flatGeoDataTree) }个层次</Paragraph> */}
-            {/* <TerritoryEdit.Modal/> */}
             <Space>
                 <Button type="primary" onClick={() => TerritoryEdit.open()}>添加疆域信息</Button>
+                <Button icon={<ReloadOutlined />} onClick={() => onRequestUpdate()}>刷新</Button>
             </Space>
 
             <Divider orientation="center" size="small">疆域示意图</Divider>
 
             <div className="f-fit-height" style={{ height: 'calc(100vh - 240px)' }}>
                 <SimpleSvgProvider>
-                    <Plot />
+                    <Plot territoryList={territoryList} onTerritoryClick={onTerritoryClick} onGeoDataClick={onGeoDataClick} />
                 </SimpleSvgProvider>
             </div>
 
@@ -62,50 +99,21 @@ export default function AreaCoefPanel() {
     )
 }
 
-// function TerritoryEdit() {
-//     const { state: geoDataState } = useGeoData();
-//     const { state: factionState } = useSimpleFactionContext();
-//     const flatGeoDataTree = useMemo(() => {
-//         return FlatGeoDataTree.fromGeoTree(geoDataState.geoTree || []);
-//     }, [geoDataState.geoTree]);
 
-//     return (
-//         <Form size="small" layout="inline">
-//             <Form.Item label="地理单元" name="geo_code">
-//                 <TreeSelect
-//                     treeData={flatGeoDataTree}
-//                     fieldNames={{ label: 'name', value: 'code', children: 'children' }}
-//                     placeholder="请选择地理单元"
-//                     allowClear
-//                 />
-//             </Form.Item>
-//             <Form.Item label="所属阵营" name="faction_id">
-//                 <TreeSelect
-//                     treeData={factionState.factionTree}
-//                     fieldNames={{ label: 'title', value: 'value', children: 'children' }}
-//                     placeholder="请选择所属阵营"
-//                     allowClear
-//                 />
-//             </Form.Item>
-//             <Form.Item label="持续时间">
-//                 <Text>YYYY-MM-DD ~ YYYY-MM-DD</Text>
-//             </Form.Item>
-//             <Form.Item label="曾用别名" name="alias">
-//                 <Input/>
-//             </Form.Item>
-//             <Button type="primary" htmlType="submit">提交</Button>
-//         </Form>
-//     )
-// }
+interface IPlotProps {
+    territoryList: IFactionTerritory[];
+    onTerritoryClick: (territory: IFactionTerritory) => void;
+    onGeoDataClick: (geoData: IFlatGeoData) => void;
+}
 
-
-function Plot() {
+function Plot(props: IPlotProps) {
     const svgContext = useSimpleSvg();
     if (!svgContext) return null;
     const { dimensions, svg } = svgContext;
 
     const { state: worldviewState } = useSimpleWorldviewContext();
     const { state: geoDataState } = useGeoData();
+    const { state: factionState } = useSimpleFactionContext();
 
     // const svgRef = useRef<SVGSVGElement>(null);
     const xAxisContainerRef = useRef<SVGGElement>(null);
@@ -113,6 +121,13 @@ function Plot() {
     const factionLayerContainerRef = useRef<SVGGElement>(null);
     const pointerLayerContainerRef = useRef<SVGGElement>(null);
     const retryRenderRef = useRef(0);
+
+    let CONFIG = {
+        rectHeight: 28,
+        leafRectExtraHeight: 40,
+        dataViewHeight: 0,
+        dataViewLeftMargin: 120,
+    }
 
     // 简化的分层结构，清除了不必要的属性，只保留了name和area_coef，并去除掉没有统计意义的节点
     const flatGeoDataTree = useMemo(() => {
@@ -163,7 +178,7 @@ function Plot() {
             .size([dimensions.width - CONFIG.dataViewLeftMargin, (d3GeoTreeData.height) * CONFIG.rectHeight])
 
         const data = partitionCalculator(d3GeoTreeData);
-        console.debug('d3PartitionData changed --->> ', data);
+        // console.debug('d3PartitionData changed --->> ', data);
         return data;
     }
 
@@ -181,7 +196,7 @@ function Plot() {
             }, 100);
             return;
         } else {
-            console.debug('dimensions changed --->> ', dimensions);
+            // console.debug('dimensions changed --->> ', dimensions);
         }
 
         retryRenderRef.current = 0;
@@ -272,7 +287,11 @@ function Plot() {
         const rects = cells.selectAll('rect').data(d => d)
             .attr('width', d => Math.max(d.x1 - d.x0 - 2, 0))   // 减去1是为了让方块之间有空隙
             .attr('height', d => Math.max(rectHeight(d), 0))   // 减去1是为了让方块之间有空隙
-            .attr('fill', 'url(#rectGradient)');
+            .attr('fill', 'url(#rectGradient)')
+            .on('click', (event, d) => {
+                console.debug('x axis rect click --->> ', d);
+                props.onGeoDataClick(d.data);
+            });
 
         const text = cells.selectAll('text').data(d => d)
             .attr('x', d => 5)
@@ -290,6 +309,7 @@ function Plot() {
                     return 'rotate(0)';
                 }
             })
+            .attr('pointer-events', 'none')
             .text(d => d.data.name);
 
         text.exit().remove();
@@ -307,32 +327,24 @@ function Plot() {
         }
 
         const container = d3.select(yAxisContainerRef.current);
+
+        // 原始坐标轴范围
         const dateMin = worldviewState.worldviewData?.tl_start_seconds || 0;
         const dateMax = worldviewState.worldviewData?.te_max_seconds || 0;
 
-        // const dateRangeMin = dateMin + (y / k / CONFIG.dataViewHeight) * (dateMax - dateMin);
-        // const dataRangeMax = (1 / k) * (dateMax - dateMin) + dateRangeMin;
-
+        // 线性变换求视口坐标轴范围
         const dateRangeMax = (dateMin - dateMax) / (k * CONFIG.dataViewHeight) * (0 - y) + dateMax;
         const dateRangeMin = (dateMin - dateMax) / (k * CONFIG.dataViewHeight) * (CONFIG.dataViewHeight - y) + dateMax;
 
-        // console.debug('k', k, 'y', y, 'CONFIG.dataViewHeight', CONFIG.dataViewHeight);
-        // console.debug('old ymin', 0, 'old ymax', CONFIG.dataViewHeight);
-        // console.debug('new ymin', y, 'new ymax', y + k * CONFIG.dataViewHeight);
-        // console.debug('new dayMin', (-y) / k * (dateMax - dateMin) / CONFIG.dataViewHeight)
-        // console.debug('new dayMax', (1 - y) / k * (dateMax - dateMin)  / CONFIG.dataViewHeight)
-
-        // console.debug('dateMin', dateMin, 'dateMax', dateMax, )
-        // console.debug('dateRangeMin', dateRangeMin,'dataRangeMax', dateRangeMax,);
-        
-        // const intervalSize = getIntervalSize({ min: dateMin, max: dateMax }, worldviewState.worldviewData);
+        // 计算刻度间隔
         const intervalSize = getIntervalSize({ min: dateRangeMin, max: dateRangeMax }, worldviewState.worldviewData);
 
+        // 创建y轴比例尺
         const yScale = d3.scaleLinear()
-            // .domain([dateMax, dateMin])
             .domain([dateRangeMax, dateRangeMin])
             .range([0, CONFIG.dataViewHeight]);
 
+        // 创建y轴刻度
         const yAxis = d3.axisLeft(yScale)
             .tickValues(getTickValues({ min: dateRangeMin, max: dateRangeMax }, intervalSize))
             .tickFormat(d => {
@@ -356,7 +368,8 @@ function Plot() {
     // 绘制数据
     function plotFactionData(
         CONFIG: { dataViewLeftMargin: number, dataViewHeight: number }, 
-        d3PartitionData: d3.HierarchyRectangularNode<FlatGeoDataTree>
+        d3PartitionData: d3.HierarchyRectangularNode<FlatGeoDataTree>,
+        { yScale }: { yScale: d3.ScaleLinear<number, number> }
     ) {
         if (!factionLayerContainerRef.current) return;
 
@@ -364,20 +377,104 @@ function Plot() {
             .attr('transform', `translate(${CONFIG.dataViewLeftMargin},0)`)
             .attr('width', dimensions.width - CONFIG.dataViewLeftMargin)
             .attr('height', CONFIG.dataViewHeight);
+
+        const factionIds = _.uniq(props.territoryList.map(territory => territory.faction_id));
+        const colorScale = d3.scaleOrdinal(d3.quantize(d3.interpolateRainbow, factionIds.length + 1));
+
+        const territoryData = props.territoryList.map(territory => {
+
+            let faction_name = factionState.factionList?.find(faction => faction.id === territory.faction_id)?.name || '未知';
+
+            let start_date = territory.start_date || worldviewState.worldviewData?.tl_start_seconds || 0;
+            let end_date = territory.end_date || worldviewState.worldviewData?.te_max_seconds || 0;
+            // console.debug('start_date --->> ', start_date, 'end_date --->> ', end_date);
+
+            let partitionData = d3PartitionData.find(i => territory.geo_code === i.data.code);
+            let gx = partitionData?.x0 || 0;  // 从区位数据获取矩形左边距
+            let gy = yScale(end_date) || 0;  // 从时间轴获取矩形上边距，不能超过时间轴最大值
+            if (gy < 0) gy = 0;
+            if (gy > CONFIG.dataViewHeight) gy = CONFIG.dataViewHeight;
+
+            let rectWidth = (partitionData?.x1 || 0) - (partitionData?.x0 || 0); // 从区位数据获取矩形宽度
+            let rectY0 = yScale(end_date);
+            let rectY1 = yScale(start_date);
+            if (rectY0 < 0) rectY0 = 0;
+            if (rectY0 > CONFIG.dataViewHeight) rectY0 = CONFIG.dataViewHeight;
+            if (rectY1 < 0) rectY1 = 0;
+            if (rectY1 > CONFIG.dataViewHeight) rectY1 = CONFIG.dataViewHeight;
+
+            let rectHeight = rectY1 - rectY0;
+
+            let isShow = rectHeight > 0;
+
+            return {
+                id: territory.id,
+                name: territory.alias_name,
+                faction_id: territory.faction_id,
+                faction_name: faction_name,
+                code: territory.geo_code,
+                geo_type: territory.geo_type,
+                // 补齐没有明确开头的时间区间，默认不能超过世界观的开始时间
+                start_date, 
+                // 补齐没有明确结尾的时间区间，默认不能超过世界观最后一个事件设定的时间
+                end_date,
+                description: territory.description,
+                gx,
+                gy,
+                rectWidth,
+                rectHeight,
+                isShow,
+                color: territory.faction_id ? colorScale(territory.faction_id.toString()) : '#ccc',
+            }
+        });
+
+        // console.debug('final territoryData --->> ', territoryData);
+
+        const cells = container.selectAll('g')
+            .data(territoryData)
+            .join(
+                enter => {
+                    let g = enter.append('g')
+                    g.append('rect')
+                    // g.append('text').attr('font-size', '10px').attr('fill', '#000').text(d => d.name);
+                    return g;
+                },
+                update => update,
+                exit => exit.remove()
+            )
+            .attr('transform', d => `translate(${d.gx},${d.gy})`);
+
+        const rects = cells.selectAll('rect').data(d => [d])
+            .attr('width', d => Math.max(d.rectWidth, 0))
+            .attr('height', d => Math.max(d.rectHeight, 0))
+            .attr('fill', d => d.color)
+            .on('click', (event, d) => {
+                console.debug('rect click --->> ', d);
+                props.onTerritoryClick(d as unknown as IFactionTerritory);
+            });
     }
 
     
     function onZoom(
         event: d3.D3ZoomEvent<SVGSVGElement, unknown>, 
-        CONFIG: { 
-            dataViewHeight: number,
-            dataViewLeftMargin: number
-        }
+        // CONFIG: { 
+        //     dataViewHeight: number,
+        //     dataViewLeftMargin: number
+        // }
     ) {
         // console.debug('onDrag --->> ', event.transform, event.transform.applyY);
+        const d3PartitionData = calculateD3PartitionData(CONFIG);
+        // 补充数据视图的最大高度限制
+        let CONFIG_NEW = {
+            ...CONFIG,
+            dataViewHeight: dimensions.height - d3PartitionData.height * CONFIG.rectHeight - CONFIG.leafRectExtraHeight - 5,
+        }
 
         // 重新计算y轴比例尺
-        plotY(CONFIG, event.transform);
+        const { yScale } = plotY(CONFIG_NEW, event.transform);
+
+        // 重新绘制疆域数据
+        plotFactionData(CONFIG_NEW, d3PartitionData, { yScale });
     }
 
     function onMouseMove(event: React.MouseEvent<SVGRectElement, MouseEvent>) {
@@ -388,30 +485,25 @@ function Plot() {
         // console.debug('dimensions changed --->> ', dimensions);
         retryRenderRef.current = 0;
 
-        let CONFIG = {
-            rectHeight: 28,
-            leafRectExtraHeight: 40,
-            dataViewHeight: 0,
-            dataViewLeftMargin: 120,
-        }
+        
 
         const d3PartitionData = calculateD3PartitionData(CONFIG);
         
         // 补充数据视图的最大高度限制
-        CONFIG = {
+        let CONFIG_NEW = {
             ...CONFIG,
             dataViewHeight: dimensions.height - d3PartitionData.height * CONFIG.rectHeight - CONFIG.leafRectExtraHeight - 5,
         }
 
 
-        plotX(CONFIG, d3PartitionData);
-        const { yScale } = plotY(CONFIG);
-        plotFactionData(CONFIG, d3PartitionData, { yScale });
+        plotX(CONFIG_NEW, d3PartitionData);
+        const { yScale } = plotY(CONFIG_NEW);
+        plotFactionData(CONFIG_NEW, d3PartitionData, { yScale });
         
         
         if (svg) {
             const zoom = d3.zoom<SVGSVGElement, unknown>();
-            zoom.on('zoom', event => onZoom(event, CONFIG))
+            zoom.on('zoom', event => onZoom(event))
                 .scaleExtent([1, 100])
                 .translateExtent([[0, 0], [0, dimensions.height]]);
             d3.select<SVGSVGElement, unknown>(svg).call(zoom as any);
@@ -423,7 +515,7 @@ function Plot() {
             d3.select(svg).on('.zoom', null);
             // d3.select(svg).on('mousemove', null);
         };
-    }, [svg, dimensions, worldviewState.worldviewData]);
+    }, [svg, dimensions, worldviewState.worldviewData, props.territoryList]);
 
     return <>
         <g className="pointer_layer" ref={pointerLayerContainerRef}></g>
