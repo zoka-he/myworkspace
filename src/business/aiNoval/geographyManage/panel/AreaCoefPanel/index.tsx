@@ -3,13 +3,15 @@ import { useSimpleWorldviewContext } from "../../../common/SimpleWorldviewProvid
 import { useGeoData } from "../../GeoDataProvider";
 import { IGeoUnionData } from "@/src/types/IAiNoval";
 import { IGeoTreeItem } from "../../geoTree";
-import { Button, Divider, Form, Input, TreeSelect, Typography } from "antd";
+import { Button, Divider, Form, Input, Space, TreeSelect, Typography } from "antd";
 import { FlatGeoData, FlatGeoDataTree } from "./FlatGeoData";
 import * as d3 from "d3";
 import SimpleSvgProvider, { useSimpleSvg } from "../../../common/SimpleSvgProvider";
 import { getIntervalSize, getTickValues } from "../../../common/axisUtils";
 import { TimelineDateFormatter } from "../../../common/novelDateUtils";
 import { useSimpleFactionContext } from "../../../common/SimpleFactionProvider";
+import useTerritoryEdit from "./territoryEdit";
+import SimpleTimelineProvider, { useSimpleTimelineProvider } from "../../../common/SimpleTimelineProvider";
 
 const { Text, Paragraph } = Typography;
 
@@ -22,66 +24,79 @@ interface IFlatGeoData {
 }
 
 export default function AreaCoefPanel() {
-    const { state: worldviewState } = useSimpleWorldviewContext();
-    const { state: geoDataState } = useGeoData();
+    // const { state: worldviewState } = useSimpleWorldviewContext();
+    // const { state: geoDataState } = useGeoData();
+    const { state: timelineState } = useSimpleTimelineProvider();
+
+
+    const TerritoryEdit = useTerritoryEdit();
 
     // 简化的分层结构，清除了不必要的属性，只保留了name和area_coef
-    const flatGeoDataTree = useMemo(() => {
-        return FlatGeoDataTree.fromGeoTree(geoDataState.geoTree || []);
-    }, [geoDataState.geoTree]);
+    // const flatGeoDataTree = useMemo(() => {
+    //     return FlatGeoDataTree.fromGeoTree(geoDataState.geoTree || []);
+    // }, [geoDataState.geoTree]);
 
     
 
     return (
+        <SimpleTimelineProvider>
         <div>
             {/* <h1>阵营影响力设定</h1> */}
             {/* <Paragraph>共{ flatGeoDataTree.length }个地理单元树，{ FlatGeoDataTree.getDeep(flatGeoDataTree) }个层次</Paragraph> */}
-            <TerritoryEdit />
-            <Divider orientation="center">疆域示意图</Divider>
+            {/* <TerritoryEdit.Modal/> */}
+            <Space>
+                <Button type="primary" onClick={() => TerritoryEdit.open()}>添加疆域信息</Button>
+            </Space>
+
+            <Divider orientation="center" size="small">疆域示意图</Divider>
+
             <div className="f-fit-height" style={{ height: 'calc(100vh - 240px)' }}>
                 <SimpleSvgProvider>
                     <Plot />
                 </SimpleSvgProvider>
             </div>
+
+            <TerritoryEdit.Modal/>
         </div>
+        </SimpleTimelineProvider>
     )
 }
 
-function TerritoryEdit() {
-    const { state: geoDataState } = useGeoData();
-    const { state: factionState } = useSimpleFactionContext();
-    const flatGeoDataTree = useMemo(() => {
-        return FlatGeoDataTree.fromGeoTree(geoDataState.geoTree || []);
-    }, [geoDataState.geoTree]);
+// function TerritoryEdit() {
+//     const { state: geoDataState } = useGeoData();
+//     const { state: factionState } = useSimpleFactionContext();
+//     const flatGeoDataTree = useMemo(() => {
+//         return FlatGeoDataTree.fromGeoTree(geoDataState.geoTree || []);
+//     }, [geoDataState.geoTree]);
 
-    return (
-        <Form size="small" layout="inline">
-            <Form.Item label="地理单元" name="geo_code">
-                <TreeSelect
-                    treeData={flatGeoDataTree}
-                    fieldNames={{ label: 'name', value: 'code', children: 'children' }}
-                    placeholder="请选择地理单元"
-                    allowClear
-                />
-            </Form.Item>
-            <Form.Item label="所属阵营" name="faction_id">
-                <TreeSelect
-                    treeData={factionState.factionTree}
-                    fieldNames={{ label: 'title', value: 'value', children: 'children' }}
-                    placeholder="请选择所属阵营"
-                    allowClear
-                />
-            </Form.Item>
-            <Form.Item label="持续时间">
-                <Text>YYYY-MM-DD ~ YYYY-MM-DD</Text>
-            </Form.Item>
-            <Form.Item label="曾用别名" name="alias">
-                <Input/>
-            </Form.Item>
-            <Button type="primary" htmlType="submit">提交</Button>
-        </Form>
-    )
-}
+//     return (
+//         <Form size="small" layout="inline">
+//             <Form.Item label="地理单元" name="geo_code">
+//                 <TreeSelect
+//                     treeData={flatGeoDataTree}
+//                     fieldNames={{ label: 'name', value: 'code', children: 'children' }}
+//                     placeholder="请选择地理单元"
+//                     allowClear
+//                 />
+//             </Form.Item>
+//             <Form.Item label="所属阵营" name="faction_id">
+//                 <TreeSelect
+//                     treeData={factionState.factionTree}
+//                     fieldNames={{ label: 'title', value: 'value', children: 'children' }}
+//                     placeholder="请选择所属阵营"
+//                     allowClear
+//                 />
+//             </Form.Item>
+//             <Form.Item label="持续时间">
+//                 <Text>YYYY-MM-DD ~ YYYY-MM-DD</Text>
+//             </Form.Item>
+//             <Form.Item label="曾用别名" name="alias">
+//                 <Input/>
+//             </Form.Item>
+//             <Button type="primary" htmlType="submit">提交</Button>
+//         </Form>
+//     )
+// }
 
 
 function Plot() {

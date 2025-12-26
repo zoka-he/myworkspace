@@ -99,6 +99,18 @@ export interface IGeoUnionData extends IGeoStarSystemData, IGeoStarData, IGeoPla
     data_type?: string | null,
 }
 
+export interface IGeoTerritoryData {
+    id?: number | null,
+    worldview_id: number | null,
+    faction_id?: number | null,
+    geo_code?: string | null,
+    geo_type?: string | null,
+    alias_name?: string | null,
+    start_date?: number | null,
+    end_date?: number | null,
+    description?: string | null,
+}
+
 export interface IFactionDefData {
     id?: number | null,
     worldview_id?: number | null,

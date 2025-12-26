@@ -104,7 +104,7 @@ export class TimelineDateFormatter {
    * @returns 对应的秒数，负数表示公元前
    */
   dateDataToSeconds(dateData: ITimelineDateData): number {
-    const { isBC, year, month, day, hour, minute, second } = dateData
+    let { isBC, year, month, day, hour, minute, second } = dateData
 
     // Calculate seconds for a full year
     const secondsInYear = this.yearLengthInMonths * this.monthLengthInDays * this.dayLengthInHours * this.hourLengthInSeconds
@@ -112,6 +112,11 @@ export class TimelineDateFormatter {
     const secondsInDay = this.dayLengthInHours * this.hourLengthInSeconds
 
     let totalSeconds: number
+
+    if (!isBC && year < 0) {
+      year = -year;
+      isBC = true;
+    }
 
     if (isBC) {
       // For BC dates: subtract full year seconds and add back remaining time
@@ -124,7 +129,7 @@ export class TimelineDateFormatter {
                     this.baseSeconds
     } else {
       // For AD dates: calculate normally
-      totalSeconds = ((year - 1) * secondsInYear) + 
+      totalSeconds = (Math.max(year - 1, 0) * secondsInYear) + 
                     ((month - 1) * secondsInMonth) +
                     ((day - 1) * secondsInDay) +
                     (hour * this.hourLengthInSeconds) +
