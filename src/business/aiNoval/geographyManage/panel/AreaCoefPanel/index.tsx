@@ -305,6 +305,10 @@ function Plot(props: IPlotProps) {
             .on('click', (event, d) => {
                 // console.debug('x axis rect click --->> ', d);
                 props.onGeoDataClick(d.data);
+            }).on('mouseenter', (event, d) => {
+                plotGeoHint(event, d.data);
+            }).on('mouseleave', (event, d) => {
+                clearGeoHint();
             });
 
         const text = cells.selectAll('text').data(d => d)
