@@ -21,7 +21,7 @@ interface TimelineManageContextRef {
 
 function getDefaultTimelineManageState(): TimelineManageState {
     return {
-        mode: 'edit',
+        mode: 'compare',
         compare_ids: [],
         selectedTimelineId: null,
         dateCalculatorOpen: false // for test

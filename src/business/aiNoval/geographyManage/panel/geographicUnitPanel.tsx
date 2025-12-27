@@ -1,13 +1,11 @@
 import { IGeoGeographyUnitData } from "@/src/types/IAiNoval";
 import { Col, Row, Button, Space, Divider, Tabs } from "antd";
-import { type IGeoTreeItem } from "../geoTree";
 import GeoRecallTest from "../subPanel/geoRecallTest";
 import GeoDifyDocument from "../subPanel/geoDifyDocument";
+import { useSimpleWorldviewContext } from "../../common/SimpleWorldviewProvider";
+import { useManageState } from "../ManageStateProvider";
 
 interface IGeographyUnitPanelProps {
-    worldViewId: number | null,
-    updateTimestamp: number,
-    node: IGeoTreeItem<IGeoGeographyUnitData> | null,
     raiseAddGeographicUnit: (data: IGeoGeographyUnitData) => void,
     raiseEditGeographicUnit: (data: IGeoGeographyUnitData) => void,
     raiseDeleteGeographicUnit: (data: IGeoGeographyUnitData) => void,
@@ -16,10 +14,15 @@ interface IGeographyUnitPanelProps {
 
 export default function(props: IGeographyUnitPanelProps) {
 
-    let data = props?.node?.data;
+    const { state: worldviewState } = useSimpleWorldviewContext();
+    const { worldviewId } = worldviewState;
 
+    const { state: manageState } = useManageState();
+    const { treeRaisedObject } = manageState;
+
+    let data = treeRaisedObject?.data;
     let described_in_llm = data?.described_in_llm == 1;
-    let isParent = (props?.node?.children?.length || 0) > 0;
+    let isParent = (treeRaisedObject?.children?.length || 0) > 0;
 
 
     function onClickAddGeographicUnit() {
@@ -44,12 +47,12 @@ export default function(props: IGeographyUnitPanelProps) {
         {
             label: `Dify文档`,
             key: '1',
-            children: <GeoDifyDocument worldViewId={props.worldViewId} geoDataType="geographicUnit" geoData={data} onRequestUpdate={props.onRequestUpdate} />,
+            children: <GeoDifyDocument worldViewId={worldviewId} geoDataType="geoUnit" geoData={data} onRequestUpdate={props.onRequestUpdate} />,
         },
         {
             label: `LLM召回测试`,
             key: '2',
-            children: <GeoRecallTest worldViewId={props.worldViewId} recommandQuery={`${data?.name} 设定`} />,
+            children: <GeoRecallTest worldViewId={worldviewId} recommandQuery={`${data?.name} 设定`} />,
         }
     ];
 

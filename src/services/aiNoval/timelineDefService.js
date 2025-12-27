@@ -15,7 +15,8 @@ export default class TimelineDefService extends MysqlNovalService {
             'month_length_in_days',
             'year_length_in_months',
             'faction_id',
-            'description'
+            'description',
+            'base_seconds'
         ]);
     }
 

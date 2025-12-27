@@ -1,14 +1,13 @@
-import { Button, Tree, message, Input } from 'antd';
+import { Button, Tree, message, Input, Tag, Space } from 'antd';
 import { IGeoStarSystemData } from '@/src/types/IAiNoval';
 import React, { Key, useEffect, useRef, useState, useMemo } from 'react';
 import { type IGeoTreeItem, loadGeoTree } from '../common/geoDataUtil';
 import { CheckOutlined, CheckCircleOutlined, IssuesCloseOutlined, SearchOutlined } from '@ant-design/icons';
+import { useGeoData } from './GeoDataProvider';
+import { useManageState } from './ManageStateProvider';
 
 interface IGeoTreeProps {
-    worldViewId: null | number;
-    updateTimestamp: any;
-
-    onRaiseObject(data: IGeoTreeItem<IGeoStarSystemData>): void;
+    
 }
 
 
@@ -16,70 +15,14 @@ export type { IGeoTreeItem };
 
 export default function(props: IGeoTreeProps) {
 
-    let [treeData, setTreeData] = useState<IGeoTreeItem<IGeoStarSystemData>[]>([]);
-    let [originalTreeData, setOriginalTreeData] = useState<IGeoTreeItem<IGeoStarSystemData>[]>([]);
+    const { state: geoDataState } = useGeoData();
+    const { geoTree } = geoDataState;
+
+    const { state: manageState, setTreeRaisedObject } = useManageState();
+    const { treeRaisedObject } = manageState;
 
     let [expandedKeys, setExpandedKeys] = useState<Key[]>([]);
     let [searchValue, setSearchValue] = useState<string>('');
-
-    let lastRaiseObject = useRef<IGeoTreeItem<IGeoStarSystemData> | null>(null);
-
-
-    /**
-     * 更新地理资源树：
-     * 1.加载星系数据
-     * 2.加载恒星数据
-     * 3.加载行星数据
-     * 4.加载卫星数据
-     * 5.加载行星地貌数据
-     */
-    async function loadTree() {
-        if (!props.worldViewId) {
-            setTreeData([]);
-            message.info('请选择世界观！');
-            return;
-        }
-
-        let starSystemData = [];
-        try {
-            starSystemData = await loadGeoTree(props.worldViewId);
-            if (starSystemData.length === 0) {
-                message.info('该世界观没有星系数据！');
-                return;
-            }
-        } catch (e: any) {
-            message.error(e?.message || '加载地理资源树失败！');
-            return;
-        }
-
-        setTreeData(starSystemData);
-        setOriginalTreeData(starSystemData);
-        return starSystemData;
-    }
-
-    /**
-     * 侦测世界观更新：
-     * 1.更新地理资源树
-     */
-    useEffect(() => {
-        console.log('侦测到世界观更新');
-
-        if (props.worldViewId === null) {
-            setTreeData([]);
-
-            message.info('请选择世界观！');
-            return;
-        }
-
-        loadTree().then((starSystemData) => {
-            // 先重置展开状态，如果正在搜索，搜索逻辑会在数据更新后自动处理
-            resetExpandedKeys(starSystemData);
-        }).then(() => {
-            if (lastRaiseObject.current && lastRaiseObject.current.data.worldview_id === props.worldViewId && typeof props.onRaiseObject === 'function') {
-                props.onRaiseObject(lastRaiseObject.current);
-            }
-        });
-    }, [props.worldViewId, props.updateTimestamp]);
 
     function handleExpand(expandedKeys: Key[]) {
         console.log('expandedKeys', expandedKeys);
@@ -127,7 +70,7 @@ export default function(props: IGeoTreeProps) {
         data: IGeoTreeItem<IGeoStarSystemData>[],
         searchValue: string
     ): IGeoTreeItem<IGeoStarSystemData>[] {
-        if (!searchValue) {
+        if (!(typeof searchValue === 'string') || searchValue.length === 0) {
             return data;
         }
 
@@ -241,27 +184,23 @@ export default function(props: IGeoTreeProps) {
 
     // 根据搜索值过滤树数据
     const filteredTreeData = useMemo(() => {
-        return filterTreeData(originalTreeData, searchValue);
-    }, [originalTreeData, searchValue]);
+        console.log('geoTree', geoTree);
+
+        return filterTreeData(geoTree || [], searchValue);
+    }, [geoTree, searchValue]);
 
     // 当搜索值变化时，自动展开包含匹配项的节点
     useEffect(() => {
         if (searchValue) {
-            const keys = getExpandedKeysForSearch(originalTreeData, searchValue);
+            const keys = getExpandedKeysForSearch(geoTree || [], searchValue);
             setExpandedKeys(keys);
         } else {
             // 如果没有搜索值，恢复默认展开状态
-            resetExpandedKeys(originalTreeData);
+            resetExpandedKeys(geoTree || []);
         }
-    }, [searchValue, originalTreeData]);
-
-    // 更新显示的树数据
-    useEffect(() => {
-        setTreeData(filteredTreeData);
-    }, [filteredTreeData]);
+    }, [searchValue, geoTree]);
 
     function renderNode(nodeData: any) {
-        // let hasChildren = nodeData?.children && nodeData?.children.length > 0;
         let hasDocument = nodeData?.data?.dify_document_id && nodeData?.data?.dify_dataset_id;
 
         let hasRefDocument = !hasDocument && nodeData?.data?.described_in_llm;
@@ -270,18 +209,16 @@ export default function(props: IGeoTreeProps) {
         const highlightedTitle = searchValue ? highlightText(titleText, searchValue) : titleText;
 
         return (
-            <>
+            <Space>
                 <span>{highlightedTitle}</span>
-                {hasDocument ? <span style={{color: 'green', marginLeft: 10}}>
+                <Tag>{nodeData.data.code}</Tag>
+                {hasDocument ? <span style={{color: 'green'}}>
                     <CheckCircleOutlined />
                 </span> : null}
-                {hasRefDocument ? <span style={{color: 'orange', marginLeft: 10}}>
+                {hasRefDocument ? <span style={{color: 'orange'}}>
                     <IssuesCloseOutlined />
                 </span> : null}
-                {/* <span>
-                    { !hasChildren && <Button type="text" danger size="small">删除</Button> }
-                </span> */}
-            </>
+            </Space>
         );
     }
 
@@ -306,15 +243,12 @@ export default function(props: IGeoTreeProps) {
             </div>
             <Tree
                 showLine
-                treeData={treeData}
+                treeData={filteredTreeData}
                 titleRender={renderNode}
                 expandedKeys={expandedKeys}
                 onExpand={handleExpand}
                 onSelect={(selectedKeys, info) => {
-                    if (typeof props.onRaiseObject === 'function') {
-                        lastRaiseObject.current = info.node;
-                        props.onRaiseObject(info.node);
-                    }
+                    setTreeRaisedObject(info.node);
                 }}
             >
             </Tree>

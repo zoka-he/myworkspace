@@ -14,7 +14,10 @@ export default class GeoPlanetService extends MysqlNovalService {
             'description',
             'described_in_llm',
             'dify_document_id',
-            'dify_dataset_id'
+            'dify_dataset_id',
+            'area_coef',
+            'children_area_coef',
+            'has_geo_area'
         ]);
     }
 

@@ -1,12 +1,14 @@
 import React from "react";
-import {Form, Modal, Input, Button, message, FormInstance, Radio, Select} from "antd";
+import {Form, Modal, Input, Button, message, FormInstance, Radio, Select, TreeSelect} from "antd";
 import _ from 'lodash';
 import fetch from '@/src/fetch';
 import { IGeoPlanetData } from "@/src/types/IAiNoval";
+import * as EditCommon from "./editCommon";
 
 interface IPlanetEditState {
     modalOpen: boolean,
     loading: boolean,
+    starSystemList: EditCommon.IGeoStarSystemDataWithChildren[] | null,
 }
 
 interface IPlanetEditProps {
@@ -24,6 +26,7 @@ class PlanetEdit extends React.Component<IPlanetEditProps, IPlanetEditState> {
         this.state = {
             modalOpen: false,
             loading: false,
+            starSystemList: null,
         }
 
         this.mForm = null;
@@ -70,6 +73,7 @@ class PlanetEdit extends React.Component<IPlanetEditProps, IPlanetEditState> {
             ...data,
         }
         this.parseAndFixData(this.oldData);
+        this.loadStarSystemTree();
     }
 
     onFormRef(comp: FormInstance<any> | null) {
@@ -84,6 +88,13 @@ class PlanetEdit extends React.Component<IPlanetEditProps, IPlanetEditState> {
             modalOpen: false
         });
         this.mForm?.resetFields();
+    }
+
+    async loadStarSystemTree() {
+        let starSystemList = await EditCommon.loadStarSystemTree();
+        this.setState({
+            starSystemList
+        });
     }
 
     async onFinish(values: any) {
@@ -152,6 +163,14 @@ class PlanetEdit extends React.Component<IPlanetEditProps, IPlanetEditState> {
                           onFinish={e => this.onFinish(e)}
                           onFinishFailed={e => this.onFinishedFailed(e)}
                     >
+                        <Form.Item label={'天体系统'} name={'star_system_id'} rules={[{ required: true, message: '天体系统为必填！' }]}>
+                            <TreeSelect
+                                treeData={this.state.starSystemList || []}
+                                fieldNames={{ label: 'name', value: 'id', children: 'children' }}
+                                placeholder="请选择天体系统"
+                                allowClear
+                            />
+                        </Form.Item>
                         <Form.Item label={'行星名称'} name={'name'} rules={[{ required: true, message: '行星名称为必填！' }]}>
                             <Input/>
                         </Form.Item>

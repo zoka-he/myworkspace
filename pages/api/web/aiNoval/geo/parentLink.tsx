@@ -31,7 +31,7 @@ async function queryGeoUnit(geoUnitType: string, geoUnitId: string | number) {
         service = planetService;
     } else if (geoUnitType === 'satellite') {
         service = satelliteService;
-    } else if (geoUnitType === 'geographicUnit') {
+    } else if (geoUnitType === 'geoUnit') {
         service = geographyService;
     }
 
@@ -67,7 +67,7 @@ async function queryParentGeoUnit(geoObj: any) {
             parentGeoUnitType = 'planet';
             parentGeoUnitId = geoObj.planet_id;
             break;
-        case 'geographicUnit':
+        case 'geoUnit':
             console.debug(`子级为${geoObj.geoUnitType}，父级为${geoObj.parent_type}`);
             if (geoObj.parent_type === 'planet') {
                 parentGeoUnitType = 'planet';
@@ -75,8 +75,8 @@ async function queryParentGeoUnit(geoObj: any) {
             } else if (geoObj.parent_type === 'satellite') {
                 parentGeoUnitType = 'satellite';
                 parentGeoUnitId = geoObj.satellite_id;
-            } else if (geoObj.parent_type === 'geographicUnit') {
-                parentGeoUnitType = 'geographicUnit';
+            } else if (geoObj.parent_type === 'geoUnit') {
+                parentGeoUnitType = 'geoUnit';
                 parentGeoUnitId = geoObj.parent_id;
             }
             break;

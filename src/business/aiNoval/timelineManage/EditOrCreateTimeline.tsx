@@ -1,4 +1,4 @@
-import { Form, Input, InputNumber, Select, Button, Space, message, TreeSelect, Col, Row } from "antd";
+import { Form, Input, InputNumber, Typography, Button, Space, message, TreeSelect, Col, Row } from "antd";
 import { useSimpleFactionContext } from "../common/SimpleFactionProvider";
 import { useSimpleWorldviewContext } from "../common/SimpleWorldviewProvider";
 import { useSimpleTimelineProvider } from "../common/SimpleTimelineProvider";
@@ -8,6 +8,8 @@ import { useEffect } from "react";
 import fetch from "@/src/fetch";
 import styles from './EditOrCreateTimeline.module.scss';
 import DateCalculator from "./DateCalculator";
+
+const { Text } = Typography;
 
 export default function EditOrCreateTimeline() {
     const { state: factionState } = useSimpleFactionContext();
@@ -99,24 +101,28 @@ export default function EditOrCreateTimeline() {
         }
     }
 
+    if (timelineManageState.mode === 'edit' && !timelineState.timelineData) {
+        return <Text>未选择时间线</Text>;
+    }
+
     return (
         <>
             
             <Form form={form} layout="vertical" className={styles.editOrCreateTimelineForm}>
                 <Row gutter={16}>
-                    <Col span={12}>
+                    <Col span={8}>
                         <Form.Item
                             name="epoch"
-                            label="时间线基准点名称"
-                            rules={[{ required: true, message: '请输入时间线基准点名称' }]}
+                            label="时间线起始点名称"
+                            rules={[{ required: true, message: '请输入时间线起始点名称' }]}
                         >
                             <Input placeholder="例如：创世纪元年" />
                         </Form.Item>
                     </Col>
-                    <Col span={12}>
+                    <Col span={8}>
                         <Form.Item
                             name="start_seconds"
-                            label="时间线基准点（秒）"
+                            label="时间线起始点（秒）"
                             rules={[{ required: true, message: '请输入起始时间（秒），负值表示公元前' }]}
                             tooltip="起始时间以秒为单位，负值表示公元前"
                         >
@@ -125,6 +131,25 @@ export default function EditOrCreateTimeline() {
                                     <InputNumber style={{ width: '100%' }} placeholder="例如：0 表示公元0年，-31536000 表示公元前1年" />
                                 </Form.Item>
                                 <Button onClick={() => openDateCalculator()}>计算器</Button>
+                            </Space.Compact>
+                        </Form.Item>
+                    </Col>
+                    <Col span={8}>
+                        <Form.Item
+                            name="base_seconds"
+                            label="时间线基准点（秒）"
+                            rules={[{ required: true, message: '请输入时间线基准点（秒）' }]}
+                        >
+                            <Space.Compact style={{ width: '100%' }}>
+                                <Form.Item name="base_seconds" noStyle rules={[{ required: true, message: '请输入时间线基准点（秒）' }]}>
+                                    <InputNumber style={{ width: '100%' }} placeholder="请输入时间线基准点（秒）" />
+                                </Form.Item>
+                                <Button onClick={() => {
+                                    const values = form.getFieldsValue();
+                                    form.setFieldsValue({
+                                        base_seconds: values.start_seconds
+                                    });
+                                }}>同起始点</Button>
                             </Space.Compact>
                         </Form.Item>
                     </Col>
