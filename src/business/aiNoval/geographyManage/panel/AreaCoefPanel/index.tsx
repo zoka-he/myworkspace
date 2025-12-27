@@ -120,6 +120,15 @@ function Plot(props: IPlotProps) {
     const yAxisContainerRef = useRef<SVGGElement>(null);
     const factionLayerContainerRef = useRef<SVGGElement>(null);
     const pointerLayerContainerRef = useRef<SVGGElement>(null);
+    const legendLayerContainerRef = useRef<SVGGElement>(null);
+    const tooltipLayerContainerRef = useRef<SVGGElement>(null);
+
+    // 存储颜色比例尺
+    const colorScaleRef = useRef<d3.ScaleOrdinal<string, string>>(null);
+
+    // 存储绘图数据
+    const territoryDataRef = useRef<any[]>([]);
+
     const retryRenderRef = useRef(0);
 
     let CONFIG = {
@@ -380,6 +389,7 @@ function Plot(props: IPlotProps) {
 
         const factionIds = _.uniq(props.territoryList.map(territory => territory.faction_id));
         const colorScale = d3.scaleOrdinal(d3.quantize(d3.interpolateRainbow, factionIds.length + 1));
+        colorScaleRef.current = colorScale;
 
         const territoryData = props.territoryList.map(territory => {
 
@@ -428,6 +438,8 @@ function Plot(props: IPlotProps) {
             }
         });
 
+        territoryDataRef.current = territoryData;
+
         // console.debug('final territoryData --->> ', territoryData);
 
         const cells = container.selectAll('g')
@@ -451,16 +463,202 @@ function Plot(props: IPlotProps) {
             .on('click', (event, d) => {
                 console.debug('rect click --->> ', d);
                 props.onTerritoryClick(d as unknown as IFactionTerritory);
+            })
+            .on('mouseenter', (event, d) => {
+                // console.debug('rect mouseenter --->> ', d);
+                onMouseEnter(event, d);
+            })
+            .on('mouseleave', (event, d) => {
+                // console.debug('rect mouseleave --->> ', d);
+                onMouseLeave(event, d);
+            })
+            .on('mousemove', (event, d) => {
+                // console.debug('rect mousemove --->> ', d);
+                onMouseMove(event, d);
             });
+
+        return {
+            territoryData,
+        }
     }
 
+    function plotLegend(
+        territoryData: { faction_id: number, faction_name: string, color: string }[],
+        CONFIG: { dataViewHeight: number, dataViewLeftMargin: number }
+    ) {
+        if (!legendLayerContainerRef.current) return;
+        // const colorScale = colorScaleRef.current;
+
+        const container = d3.select(legendLayerContainerRef.current);
+        const legendData = _.uniqBy(territoryData.map(d => {
+            return {
+                faction_id: d.faction_id,
+                faction_name: d.faction_name,
+                color: d.color,
+            }
+        }), d => d.faction_id);
+
+
+        container.attr('transform', `translate(5, ${CONFIG.dataViewHeight + 5})`);
+        container.selectAll('.container')
+            .data([{}]).join(
+                enter => {
+                    let g = enter.append('rect').attr('class', 'container');
+                    return g;
+                },
+                update => update,
+                exit => exit.remove()
+            )
+            .attr('transform', 'translate(0, 0)')
+            .attr('height', legendData.length * 16 + 5)
+            .attr('width', CONFIG.dataViewLeftMargin - 10)
+            .attr('fill', '#fff')
+            .attr('stroke', '#000')
+            .attr('stroke-width', 0.5)
+            .attr('shape-rendering', 'crispEdges');
+
+        const cells = container.selectAll('.legend_item')
+            .data(legendData)
+            .join(
+                enter => {
+                    let g = enter.append('g').attr('class', 'legend_item');
+                    g.append('rect');
+                    g.append('text');
+                        
+                    return g;
+                },
+                update => update,
+                exit => exit.remove()
+            )
+            .attr('transform', (d, index) => `translate(5, ${5 + index * 16})`);
+
+        const rects = cells.selectAll('rect').data(d => [d])
+            .attr('width', 12)
+            .attr('height', 12)
+            .attr('fill', d => d.color)
+
+        const text = cells.selectAll('text').data(d => [d])
+            .attr('font-size', '12px')
+            .attr('fill', '#000')
+            .attr('transform', 'translate(14, 10)')
+            .text(d => d.faction_name);
+    }
+
+    function plotTooltip(event: React.MouseEvent<SVGRectElement, MouseEvent>, d: any) {
+        const tooltipLayer = d3.select(tooltipLayerContainerRef.current);
+
+        const nodesData = d ? [d] : [];
+        
+        const boxText = d ? [
+            { title: '名称', value: d?.alias_name || geoDataState.geoData?.find(item => item.code === d.code)?.name || '' },
+            { title: '所属势力', value: d?.faction_name || '' },
+            { title: '开始时间', value: '' + d?.start_date || '' },
+            { title: '结束时间', value: '' + d?.end_date || '' },
+            { title: '描述', value: d?.description || '' },
+        ] : [];
+
+        function getTextItemWidth(item: { title: string, value: string }) {
+            const str = item.title + item.value;
+
+            // 中文汉字（包括基本汉字和扩展汉字）
+            const chineseHanzi = (str.match(/[\u4e00-\u9fff]/g) || []).length;
+            // 中文标点符号
+            const chinesePunctuation = (str.match(/[\u3000-\u303f\uff00-\uffef]/g) || []).length;
+            // 全角字符（包括中文全角字符和标点）
+            // const fullWidthChars = (str.match(/[\uff01-\uff5e]/g) || []).length;
+            // 使用Unicode属性（ES6+）
+            // const usingUnicodeProperty = (str.match(/\p{Script=Han}/gu) || []).length;
+
+            return str.length + (chineseHanzi + chinesePunctuation) * 0.5;
+        }
+
+        console.debug('boxTextMaxLength --->> ', Math.max(...boxText.map(getTextItemWidth)));
+
+        const boxWidth = Math.max(...boxText.map(getTextItemWidth)) * 10 + 10;
+        const boxHeight = boxText.length * 20 + 10;
+
+
+        // 计算 tooltip 框的位置
+        let x = event.offsetX;
+        let y = event.offsetY + 5;
+
+        if (x + boxWidth > dimensions.width) {
+            x = x - boxWidth - 10;
+        }
+
+        if (y + boxHeight > dimensions.height) {
+            y = dimensions.height - boxHeight;
+        }
+
+        const transformDuration = 50;
+
+        // 为 tooltipLayer 的位置添加补间动画
+        tooltipLayer
+            .interrupt() // 中断当前动画，防止动画冲突
+            .transition()
+            .duration(transformDuration) // 动画时长 200ms
+            .ease(d3.easeCubicOut) // 缓动函数
+            .attr('transform', `translate(${x}, ${y})`);
+
+        // 绘制 tooltip 框（使用传统的 enter/update/exit 模式以便更好地控制动画）
+        const tooltipBoxSelection = tooltipLayer.selectAll('.tooltip_box')
+            .data(nodesData);
+
+        // 处理 exit：先缩小动画，然后移除
+        const tooltipBoxExit = tooltipBoxSelection.exit();
+        tooltipBoxExit
+            .interrupt()
+            .transition()
+            .duration(transformDuration)
+            .ease(d3.easeCubicIn)
+            .attr('width', 0)
+            .attr('height', 0)
+            .remove();
+
+        // 处理 enter：从0开始，然后动画到目标大小
+        const tooltipBoxEnter = tooltipBoxSelection.enter()
+            .append('rect')
+            .attr('class', 'tooltip_box')
+            .attr('width', 0)
+            .attr('height', 0)
+            .attr('transform', `translate(5, 0)`)
+            .attr('fill', '#fff')
+            .attr('stroke', '#000')
+            .attr('stroke-width', 1)
+            .attr('shape-rendering', 'crispEdges');
+
+        // 处理 update：合并 enter 和 update，然后添加动画
+        const tooltipBox = tooltipBoxEnter.merge(tooltipBoxSelection as any)
+            .attr('transform', `translate(5, 0)`)
+            .attr('fill', '#fff')
+            .attr('stroke', '#000')
+            .attr('stroke-width', 1)
+            .attr('shape-rendering', 'crispEdges');
+
+        // 为 tooltip_box 的大小添加补间动画
+        tooltipBox
+            .interrupt() // 中断当前动画
+            .transition()
+            .duration(transformDuration)
+            .ease(d3.easeCubicOut)
+            .attr('width', boxWidth)
+            .attr('height', boxHeight);
+
+        tooltipLayer.selectAll('.tooltip_text')
+            .data(boxText).join(
+                enter => {
+                    let g = enter.append('text').attr('class', 'tooltip_text');
+                    return g;
+                },
+                update => update,
+                exit => exit.remove()
+            )
+            .attr('transform', (d, index) => `translate(10, ${20 + index * 20})`)
+            .text(d => `${d.title}: ${d.value}`);
+    }
     
     function onZoom(
         event: d3.D3ZoomEvent<SVGSVGElement, unknown>, 
-        // CONFIG: { 
-        //     dataViewHeight: number,
-        //     dataViewLeftMargin: number
-        // }
     ) {
         // console.debug('onDrag --->> ', event.transform, event.transform.applyY);
         const d3PartitionData = calculateD3PartitionData(CONFIG);
@@ -477,8 +675,43 @@ function Plot(props: IPlotProps) {
         plotFactionData(CONFIG_NEW, d3PartitionData, { yScale });
     }
 
-    function onMouseMove(event: React.MouseEvent<SVGRectElement, MouseEvent>) {
-        console.debug('onMouseMove --->> ', event);
+    function onMouseEnter(event: React.MouseEvent<SVGRectElement, MouseEvent>, d_target: any) {
+        const dataLayer = d3.select(factionLayerContainerRef.current);
+        dataLayer.selectAll('g').selectAll('rect')
+            .attr('fill', (d, i, nodes) => {
+                if (nodes[i] === event.target) {
+                    const hsl = d3.hsl(d.color);
+                    hsl.s = 1;
+                    hsl.l = 0.5;
+                    return hsl.toString();
+                } else if (d.faction_id === d_target.faction_id) {
+                    // 将颜色变浅（降低饱和度）
+                    const color = d3.color(d.color);
+                    if (color) {
+                        const hsl = d3.hsl(color);
+                        hsl.l += 0.15; // 将亮度增加10%
+                        hsl.s *= 0.5; // 将饱和度降低到原来的70%
+                        return hsl.toString();
+                    }
+                    return d.color;
+                } else {
+                    return "#ccc";
+                }
+            });
+    }
+
+    function onMouseLeave(event: React.MouseEvent<SVGRectElement, MouseEvent>, d: any) {
+        // console.debug('onMouseLeave --->> ', event);
+        const dataLayer = d3.select(factionLayerContainerRef.current);
+        dataLayer.selectAll('g').selectAll('rect')
+            .attr('fill', d =>d.color);
+
+        plotTooltip(event, null);
+    }
+
+    function onMouseMove(event: React.MouseEvent<SVGRectElement, MouseEvent>, d: any) {
+        // console.debug('onMouseMove --->> ', event);
+        plotTooltip(event, d);
     }
 
     useEffect(() => {
@@ -498,7 +731,8 @@ function Plot(props: IPlotProps) {
 
         plotX(CONFIG_NEW, d3PartitionData);
         const { yScale } = plotY(CONFIG_NEW);
-        plotFactionData(CONFIG_NEW, d3PartitionData, { yScale });
+        const { territoryData } = plotFactionData(CONFIG_NEW, d3PartitionData, { yScale });
+        plotLegend(territoryData, CONFIG_NEW);
         
         
         if (svg) {
@@ -522,5 +756,7 @@ function Plot(props: IPlotProps) {
         <g className="faction_layer" ref={factionLayerContainerRef}></g>
         <g className="y_axis" ref={yAxisContainerRef}></g>
         <g className="x_locations" ref={xAxisContainerRef}></g>
+        <g className="legend_layer" ref={legendLayerContainerRef}></g>
+        <g className="tooltip_layer" ref={tooltipLayerContainerRef}></g>
     </>
 }
