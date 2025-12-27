@@ -8,8 +8,7 @@ import { useSimpleTimelineProvider } from '../../../common/SimpleTimelineProvide
 import { TimelineDateFormatter } from '../../../common/novelDateUtils';
 import _ from 'lodash';
 import fetch from '@/src/fetch';
-import { ITerritoryDef } from '@/src/types/IAiNoval';
-
+import { IFactionTerritory } from '@/src/types/IAiNoval';
 
 const { Text } = Typography;
 
@@ -28,7 +27,7 @@ export default function useTerritoryEdit(options?: ITerritoryEditOptions) {
     const [visible, setVisible] = useState(false);
     const { state: worldviewState } = useSimpleWorldviewContext();
 
-    const open = useCallback((value?: ITerritoryDef) => {
+    const open = useCallback((value?: IFactionTerritory) => {
         setVisible(true);
 
         if (value) {
@@ -37,6 +36,7 @@ export default function useTerritoryEdit(options?: ITerritoryEditOptions) {
             });
         } else {
             form.setFieldsValue({
+                id: null, // 新建时，id为null
                 worldview_id: worldviewState.worldviewId,
                 start_date: null,
                 end_date: null,
@@ -49,12 +49,6 @@ export default function useTerritoryEdit(options?: ITerritoryEditOptions) {
     }, [options]);
 
     const onCancel = useCallback(() => {
-        setVisible(false);
-    }, [options]);
-
-    const onOk = useCallback(async () => {
-        const values = await form.validateFields();
-        console.log(values);
         setVisible(false);
     }, [options]);
 
@@ -108,10 +102,22 @@ export default function useTerritoryEdit(options?: ITerritoryEditOptions) {
                             <Tag>{worldviewState.worldviewList?.find(w => w.id === worldviewState.worldviewId)?.title || '未知'}</Tag>
                         </Form.Item>
                         <Form.Item label="疆域区块" name="geo_code" rules={[{ required: true, message: '请输入疆域名称' }]}>
-                            <TreeSelect treeData={geoDataState.geoTree || []} fieldNames={{ label: 'title', value: 'key', children: 'children' }}/>
+                            <TreeSelect treeData={geoDataState.geoTree || []} 
+                                fieldNames={{ label: 'title', value: 'key', children: 'children' }}
+                                allowClear
+                                // treeDefaultExpandAll
+                                showSearch
+                                treeNodeFilterProp="title"
+                            />
                         </Form.Item>
                         <Form.Item label="所属阵营" name="faction_id" rules={[{ required: true, message: '请选择所属阵营' }]}>
-                            <TreeSelect treeData={factionState.factionTree || []} fieldNames={{ label: 'title', value: 'value', children: 'children' }}/>
+                            <TreeSelect treeData={factionState.factionTree || []} 
+                                fieldNames={{ label: 'title', value: 'value', children: 'children' }}
+                                allowClear
+                                // treeDefaultExpandAll
+                                showSearch
+                                treeNodeFilterProp="title"
+                            />
                         </Form.Item>
                         <Form.Item label="曾用地名" name="alias_name">
                             <Input allowClear/>
