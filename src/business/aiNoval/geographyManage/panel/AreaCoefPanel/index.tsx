@@ -548,14 +548,26 @@ function Plot(props: IPlotProps) {
         const tooltipLayer = d3.select(tooltipLayerContainerRef.current);
 
         const nodesData = d ? [d] : [];
+
+        const dateFormatter = TimelineDateFormatter.fromWorldViewWithExtra(worldviewState.worldviewData || {});
+        const formatDate = (date: number) => {
+            if (date < (worldviewState.worldviewData?.te_max_seconds ?? Infinity)) {
+                return dateFormatter.formatSecondsToDate(date)
+            } else {
+                return '持续占领中';
+            }
+        }
         
-        const boxText = d ? [
-            { title: '名称', value: d?.alias_name || geoDataState.geoData?.find(item => item.code === d.code)?.name || '' },
-            { title: '所属势力', value: d?.faction_name || '' },
-            { title: '开始时间', value: '' + d?.start_date || '' },
-            { title: '结束时间', value: '' + d?.end_date || '' },
-            { title: '描述', value: d?.description || '' },
-        ] : [];
+        const boxText = d ? 
+            [
+                { title: '名称', value: d?.alias_name || geoDataState.geoData?.find(item => item.code === d.code)?.name || '' },
+                { title: '所属势力', value: d?.faction_name || '' },
+                { title: '开始时间', value: formatDate(d?.start_date) || '' },
+                { title: '结束时间', value: formatDate(d?.end_date) || '' },
+                { title: '描述', value: d?.description || '' },
+            ].filter(item => item.value !== '')
+            : 
+            [];
 
         function getTextItemWidth(item: { title: string, value: string }) {
             const str = item.title + item.value;
