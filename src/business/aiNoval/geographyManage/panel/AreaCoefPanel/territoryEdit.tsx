@@ -56,6 +56,8 @@ export default function useTerritoryEdit(options?: ITerritoryEditOptions) {
         const { state: factionState } = useSimpleFactionContext();
         const { state: geoDataState } = useGeoData();
 
+        const isCreate = form.getFieldValue('id') === null;
+
         async function handleSubmit() {
             const values = await form.validateFields();
 
@@ -93,9 +95,19 @@ export default function useTerritoryEdit(options?: ITerritoryEditOptions) {
             }
         }
 
+        const title = isCreate ? '添加疆域单元' : '编辑疆域单元';
+
         return (
             <>
-                <Modal open={visible} onCancel={onCancel} onOk={handleSubmit} title="添加疆域单元" width={720}>
+                <Modal open={visible} onCancel={onCancel} title={title} 
+                    width={720} 
+                    footer={
+                        <div className="f-flex-two-side">
+                            <Button type="default" danger disabled>删除</Button>
+                            <Button type="primary" danger={!isCreate} onClick={handleSubmit}>{isCreate ? '添加' : '保存'}</Button>
+                        </div>
+                    }
+                >
                     <Form form={form} labelCol={{ span: 4 }} wrapperCol={{ span: 20 }}>
                         <Form.Item name="id" hidden></Form.Item>
                         <Form.Item label="世界观" name="worldview_id">

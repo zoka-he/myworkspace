@@ -111,7 +111,7 @@ function RightPanel(prop: RightPanelProps) {
         <Radio.Group value={activePanel} onChange={e => setActivePanel(e.target.value)} size="small" buttonStyle="solid" optionType="button">
             <Radio.Button value="manage">地理设定管理</Radio.Button>
             <Radio.Button value="areas">疆域设定</Radio.Button>
-            <Radio.Button value="faction_bind">阵营绑定</Radio.Button>
+            {/* <Radio.Button value="faction_bind">阵营绑定</Radio.Button> */}
         </Radio.Group>
     )
 
