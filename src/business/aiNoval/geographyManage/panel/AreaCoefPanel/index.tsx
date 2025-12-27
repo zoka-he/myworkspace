@@ -40,7 +40,7 @@ export default function AreaCoefPanel() {
     const [territoryList, setTerritoryList] = useState<IFactionTerritory[]>([]);
 
     async function onRequestUpdate() {
-        console.debug('onRequestUpdate --->> ');
+        // console.debug('onRequestUpdate --->> ');
         const response = await fetch.get('/api/aiNoval/faction/territory/list', {
             params: {
                 worldview_id: worldviewState.worldviewId,
@@ -119,6 +119,8 @@ function Plot(props: IPlotProps) {
     const xAxisContainerRef = useRef<SVGGElement>(null);
     const yAxisContainerRef = useRef<SVGGElement>(null);
     const yScaleRef = useRef<d3.ScaleLinear<number, number>>(null);
+    const partitionDataRef = useRef<d3.HierarchyRectangularNode<FlatGeoDataTree>>(null);
+
     const factionLayerContainerRef = useRef<SVGGElement>(null);
     const pointerLayerContainerRef = useRef<SVGGElement>(null);
     const legendLayerContainerRef = useRef<SVGGElement>(null);
@@ -301,7 +303,7 @@ function Plot(props: IPlotProps) {
             .attr('height', d => Math.max(rectHeight(d), 0))   // 减去1是为了让方块之间有空隙
             .attr('fill', 'url(#rectGradient)')
             .on('click', (event, d) => {
-                console.debug('x axis rect click --->> ', d);
+                // console.debug('x axis rect click --->> ', d);
                 props.onGeoDataClick(d.data);
             });
 
@@ -466,16 +468,18 @@ function Plot(props: IPlotProps) {
             .attr('height', d => Math.max(d.rectHeight, 0))
             .attr('fill', d => d.color)
             .on('click', (event, d) => {
-                console.debug('rect click --->> ', d);
+                // console.debug('rect click --->> ', d);
                 props.onTerritoryClick(d as unknown as IFactionTerritory);
             })
             .on('mouseenter', (event, d) => {
                 // console.debug('rect mouseenter --->> ', d);
                 onMouseEnterTerritoryRect(event, d);
+                plotGeoHint(event, d);
             })
             .on('mouseleave', (event, d) => {
                 // console.debug('rect mouseleave --->> ', d);
                 onMouseLeaveTerritoryRect(event, d);
+                clearGeoHint();
             })
             .on('mousemove', (event, d) => {
                 // console.debug('rect mousemove --->> ', d);
@@ -575,7 +579,7 @@ function Plot(props: IPlotProps) {
             [];
 
 
-        console.debug('boxTextMaxLength --->> ', Math.max(...boxText.map(d => getTextWidth(d.title + d.value))));
+        // console.debug('boxTextMaxLength --->> ', Math.max(...boxText.map(d => getTextWidth(d.title + d.value))));
 
         const boxWidth = Math.max(...boxText.map(d => getTextWidth(d.title + d.value))) * 10 + 10;
         const boxHeight = boxText.length * 20 + 10;
@@ -659,12 +663,75 @@ function Plot(props: IPlotProps) {
             .attr('transform', (d, index) => `translate(10, ${20 + index * 20})`)
             .text(d => `${d.title}: ${d.value}`);
     }
+
+    function plotGeoHint(event: React.MouseEvent<SVGRectElement, MouseEvent>, d: any) {
+        if (!geoHintLayerContainerRef.current) {
+            console.debug('geoHintLayerContainerRef.current is null');
+            return;
+        }
+
+        if (!yScaleRef.current) {
+            console.debug('yScaleRef.current is null');
+            return;
+        }
+
+        if (!partitionDataRef.current) {
+            console.debug('partitionDataRef.current is null');
+            return;
+        }
+
+        
+        const partitionData = partitionDataRef.current.find(p => p.data.code === d.code);
+        let data: any[] = [];
+        if (partitionData) {
+            data = [{
+                x: partitionData.x0 + CONFIG.dataViewLeftMargin,
+                y: 0,
+                width: partitionData.x1 - partitionData.x0,
+                height: yAxisContainerRef.current?.getBBox().height || 0,
+            }];
+        }
+
+        console.debug('data --->> ', data);
+
+        const container = d3.select(geoHintLayerContainerRef.current);
+        const g = container.selectAll('g').data(data).join(
+            enter => {
+                let g = enter.append('g');
+                g.append('rect').attr('fill', '#f8f8f8');
+                return g;
+            },
+            update => update,
+            exit => exit.remove()
+        );
+        
+        // 在 rect 子元素上设置属性，数据从父元素 g 继承
+        g.selectAll('rect')
+            .data(d => [d]) // 从父元素 g 获取数据
+            .attr('x', d => d.x)
+            .attr('y', d => d.y)
+            .attr('width', d => d.width)
+            .attr('height', d => d.height);
+    }
+
+    function clearGeoHint() {
+        if (!geoHintLayerContainerRef.current) return;
+
+        const container = d3.select(geoHintLayerContainerRef.current);
+        container.selectAll('g').data([]).join(
+            enter => enter,
+            update => update,
+            exit => exit.remove()
+        );
+    }
     
     function onZoom(
         event: d3.D3ZoomEvent<SVGSVGElement, unknown>, 
     ) {
         // console.debug('onDrag --->> ', event.transform, event.transform.applyY);
         const d3PartitionData = calculateD3PartitionData(CONFIG);
+        partitionDataRef.current = d3PartitionData;
+
         // 补充数据视图的最大高度限制
         let CONFIG_NEW = {
             ...CONFIG,
@@ -816,7 +883,8 @@ function Plot(props: IPlotProps) {
         
 
         const d3PartitionData = calculateD3PartitionData(CONFIG);
-        
+        partitionDataRef.current = d3PartitionData;
+
         // 补充数据视图的最大高度限制
         let CONFIG_NEW = {
             ...CONFIG,
