@@ -16,7 +16,7 @@ interface ChapterContinueModalProps {
   selectedChapterId: number | undefined
   isVisible: boolean
   onClose: () => void
-  onChapterChange: () => void
+  // onChapterChange: () => void
 }
 
 
@@ -65,7 +65,7 @@ function ContentViewModal({ isVisible, onClose, content, chapterInfo, type }: Co
   )
 }
 
-function ChapterContinueModal({ selectedChapterId, isVisible, onClose, onChapterChange }: ChapterContinueModalProps) {
+function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: ChapterContinueModalProps) {
   const [continuedContent, setContinuedContent] = useState('')
   const [isContinuing, setIsContinuing] = useState(false)
   const [isLoading, setIsLoading] = useState(false)

@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { Space, Typography, Button, Input, message, Form, Tag, Select, TreeSelect, Row, Col, GetRef } from 'antd'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { Space, Typography, Button, Input, message, Form, Tag, Select, TreeSelect, Row, Col, GetRef, Divider, Affix } from 'antd'
 import { ReloadOutlined, EditOutlined, CopyOutlined, SortAscendingOutlined, RobotOutlined, InfoCircleOutlined } from '@ant-design/icons'
 import { IChapter, IWorldViewDataWithExtra, IGeoUnionData, IFactionDefData, IRoleData, ITimelineEvent, IGeoStarSystemData, IGeoGeographyUnitData, IGeoPlanetData, IGeoSatelliteData, IGeoStarData } from '@/src/types/IAiNoval'
 import styles from './ChapterSkeletonPanel.module.scss'
@@ -7,24 +7,21 @@ import { getTimelineEventByIds, updateChapter, getChapterById, getChapterList } 
 import _, { divide } from 'lodash'
 import { TimelineDateFormatter } from '@/src/business/aiNoval/common/novelDateUtils'
 import * as apiCalls from '../apiCalls'
-import { loadGeoTree, type IGeoTreeItem } from '../../common/geoDataUtil'
+import { loadGeoTree, transfromGeoUnionToGeoTree, type IGeoTreeItem } from '../../common/geoDataUtil'
 import { ModalProvider, showGenSkeletonModal, useGenSkeletonModal } from './GenSkeletonModal'
 import GenRolePanel from './GenRolePanel'
 import copyToClip from '@/src/utils/common/copy'
 import PromptTools from './PromptTools'
 import AttentionRefModal from './AttentionRefModal'
+import { useWorldViewContext } from '../WorldViewContext'
+import { useChapterContext } from '../chapterContext'
 
 const { Text } = Typography
 const { TextArea } = Input
 const { Option } = Select
 
 interface ChapterSkeletonPanelProps {
-  selectedChapterId?: number | null
-  novelId?: number | null
-  onChapterChange: () => void
-  onRefresh: () => void
   onEditEventPool: () => void
-  onUpdateWorldView: (worldViewId?: number | null) => void
 }
 
 interface ISkeletonItem {
@@ -34,159 +31,142 @@ interface ISkeletonItem {
 }
 
 function ChapterSkeletonPanel({ 
-  selectedChapterId, 
-  novelId,
-  onChapterChange,
+  // selectedChapterId, 
+  // novelId,
+  // onChapterChange,
   onEditEventPool,
-  onUpdateWorldView
+  // onUpdateWorldView
 }: ChapterSkeletonPanelProps) {
+  const { state: chapterContext, forceUpdateChapter } = useChapterContext();
+  const { worldViewData, geoUnionList, factionList, roleList } = useWorldViewContext();
+
   const [form] = Form.useForm()
-  const [skeletonItems, setSkeletonItems] = useState<ISkeletonItem[]>([])
-  const [loading, setLoading] = useState(false)
+  
   const [refreshing, setRefreshing] = useState(false)
   const [isReordering, setIsReordering] = useState(false)
 
-  const [selectedChapter, setSelectedChapter] = useState<IChapter | null>(null)
   const [eventList, setEventList] = useState<ITimelineEvent[]>([])
 
-  const [relatedEventFactionIds, setRelatedEventFactionIds] = useState<number[]>([])
-  const [relatedEventCharacterIds, setRelatedEventCharacterIds] = useState<number[]>([])
-  const [relatedEventLocationIds, setRelatedEventLocationIds] = useState<string[]>([])
-
-  const [worldViewId, setWorldViewId] = useState<number | null>(null)
-  const [worldViewList, setWorldViewList] = useState<IWorldViewDataWithExtra[]>([])
-  const [geoUnionList, setGeoUnionList] = useState<IGeoUnionData[]>([])
   const [geoTree, setGeoTree] = useState<IGeoTreeItem<IGeoStarSystemData | IGeoStarData | IGeoPlanetData | IGeoSatelliteData | IGeoGeographyUnitData>[]>([])
-  const [factionList, setFactionList] = useState<IFactionDefData[]>([])
   const [factionTree, setFactionTree] = useState<IFactionDefData[]>([])
-  const [roleList, setRoleList] = useState<IRoleData[]>([])
 
   const [chapterList, setChapterList] = useState<IChapter[]>([])
   const [isGenRoleModalVisible, setIsGenRoleModalVisible] = useState(false)
   const [isAttentionRefModalVisible, setIsAttentionRefModalVisible] = useState(false)
 
   const promptTextAreaRef = useRef<GetRef<typeof Input.TextArea> | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLElement | null>(null)
 
-  // 初始化数据
-  useEffect(() => {
-    reloadChapter();
-    apiCalls.getWorldViewList().then((res) => {
-      setWorldViewList(res.data);
-    })
-    reloadChapterList();
-  }, [])
-  
-  useEffect(() => {
-    reloadChapter();
-  }, [selectedChapterId])
-
-  useEffect(() => {
-    if (worldViewId) {
-      Promise.all([
-        // loadGeoUnionList(worldViewId),
-        loadGeoTree(worldViewId),
-        apiCalls.loadFactionList(worldViewId),
-        apiCalls.loadRoleList(worldViewId)
-      ]).then(([geoTree, factionRes, roleRes]) => {
-        // setGeoUnionList(geoUnionRes);
-        setGeoTree(geoTree);
-        setFactionList(factionRes);
-        setRoleList(roleRes);
-      })
+  // 获取事件关联信息
+  const locations = useMemo(() => {
+    if (!eventList?.length) {
+      return chapterContext?.geo_ids || []
     }
-  }, [worldViewId])
+
+    let locations = _.uniq(_.flatten(eventList.map(event => event.location)))
+    return locations
+
+  }, [chapterContext?.geo_ids, eventList])
+
+  const factions = useMemo(() => {
+    if (!eventList?.length) {
+      return chapterContext?.faction_ids || []
+    }
+
+    let factions = _.uniq(_.flatten(eventList.map(event => event.faction_ids)))
+    return factions
+  }, [chapterContext?.faction_ids, eventList])
+
+  const characters = useMemo(() => {
+    if (!eventList?.length) {
+      return chapterContext?.role_ids || []
+    }
+
+    let characters = _.uniq(_.flatten(eventList.map(event => event.role_ids)))
+    return characters
+  }, [chapterContext?.role_ids, eventList])
+
+  // 查找滚动容器（Card 的 body）
+  useEffect(() => {
+    if (containerRef.current) {
+      // 向上查找最近的 .ant-card-body 元素
+      let parent = containerRef.current.parentElement
+      while (parent) {
+        if (parent.classList.contains('ant-card-body')) {
+          scrollContainerRef.current = parent
+          break
+        }
+        parent = parent.parentElement
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (geoUnionList) {
+      setGeoTree(transfromGeoUnionToGeoTree(geoUnionList)); 
+    } else {
+      setGeoTree([]);
+    }
+  }, [geoUnionList])
 
   // 重新加载章节
-  const reloadChapter = async () => {
-    let chapter = null;
-
-    if (selectedChapterId) {
-      chapter = await getChapterById(selectedChapterId)
-      // console.debug('Loaded chapter:', chapter);
+  const reloadCurrentChapter = async () => {
+    if (chapterContext?.id) {
+      await forceUpdateChapter(chapterContext.id);
     }
-
-    setSelectedChapter(chapter)
-    if (chapter?.worldview_id) {
-      setWorldViewId(chapter.worldview_id);
-    }
-
-    return chapter;
   }
 
   useEffect(() => {
-    reloadChapterList();
-  }, [novelId])
+    reloadFullChapterList();
+  }, [chapterContext?.novel_id])
 
   // 获取章节列表
-  const reloadChapterList = async () => {
-    if (novelId) {
-      // console.debug('call reloadChapterList', novelId);
-      const res = await getChapterList(novelId, 1, 500)
-      // console.debug('reloadChapterList res', res);
+  const reloadFullChapterList = async () => {
+    if (chapterContext?.novel_id) {
+      const res = await getChapterList(chapterContext.novel_id, 1, 500)
       setChapterList(res.data)
     } else {
       setChapterList([])
     }
   }
 
-  // 章节更新事件
+  
+  // 当章节数据变更时，获取事件关联信息
   useEffect(() => {
-    // 填充事件相关信息
-    const fillRelatedEventRelatedInfo = async () => {
-      let relatedEventFactionIds = []
-      let relatedEventCharacterIds = []
-      let relatedEventLocationIds = []
-
-      if (!selectedChapter?.event_ids) {
-        setRelatedEventFactionIds([])
-        setRelatedEventCharacterIds([])
-        setRelatedEventLocationIds([])
+    (async () => {
+      if (!chapterContext?.event_ids?.length) {
         setEventList([]);
-        return
+        return;
       }
 
-      let timelineEvents = (await getTimelineEventByIds(selectedChapter.event_ids)).data || []
-      setEventList(timelineEvents)
-
-      relatedEventLocationIds = _.uniq(timelineEvents.map(event => event.location).filter(Boolean) as string[])
-      relatedEventFactionIds = _.uniq(timelineEvents.map(event => event.faction_ids).flat().filter(Boolean) as number[])
-      relatedEventCharacterIds = _.uniq(timelineEvents.map(event => event.role_ids).flat().filter(Boolean) as number[])
-
-      setRelatedEventLocationIds(relatedEventLocationIds)
-      setRelatedEventFactionIds(relatedEventFactionIds)
-      setRelatedEventCharacterIds(relatedEventCharacterIds)
-    }
-
-    fillRelatedEventRelatedInfo()
-
-    if (selectedChapter?.worldview_id && selectedWorldView?.id !== selectedChapter?.worldview_id) {
-      onUpdateWorldView(selectedChapter?.worldview_id || null)
-    } 
-
-  }, [selectedChapter])
+      let timelineEvents = (await getTimelineEventByIds(chapterContext.event_ids)).data || []
+      setEventList(timelineEvents);
+    })();
+  }, [chapterContext])
 
   // 监听关联信息变化，更新表单
   useEffect(() => {
-    if (selectedChapter) {
-      console.debug('Updating form with chapter data:', selectedChapter);
+    if (chapterContext) {
+      console.debug('Updating form with chapter data:', chapterContext);
 
+      // 应用章节数据
       form.setFieldsValue({
-        // geo_ids: (selectedChapter.geo_ids || []).map(item => { value: item }),
-        geo_ids: selectedChapter.geo_ids || [],
-        faction_ids: selectedChapter.faction_ids || [],
-        role_ids: selectedChapter.role_ids || [],
-        seed_prompt: selectedChapter.seed_prompt || '',
-        related_chapter_ids: selectedChapter.related_chapter_ids || [],
-        skeleton_prompt: selectedChapter.skeleton_prompt || '',
-        extra_settings: selectedChapter.extra_settings || '',
-        attension: selectedChapter.attension || ''
+        geo_ids: chapterContext.geo_ids || [],
+        faction_ids: chapterContext.faction_ids || [],
+        role_ids: chapterContext.role_ids || [],
+        seed_prompt: chapterContext.seed_prompt || '',
+        related_chapter_ids: chapterContext.related_chapter_ids || [],
+        skeleton_prompt: chapterContext.skeleton_prompt || '',
+        extra_settings: chapterContext.extra_settings || '',
+        attension: chapterContext.attension || ''
       })
     }
-  }, [selectedChapter])
+  }, [chapterContext])
 
   // 当阵营列表更新时，自动构建阵营树
   useEffect(() => {
-    if (!factionList.length) {
+    if (!factionList || !factionList.length) {
       setFactionTree([]);
       return;
     }
@@ -212,68 +192,17 @@ function ChapterSkeletonPanel({
 
     setFactionTree(result);
 
-  }, [factionList])
+  }, [])
 
-  const findGeoTree = (codes: string[]): (IGeoStarSystemData | IGeoStarData | IGeoPlanetData | IGeoSatelliteData | IGeoGeographyUnitData)[] => {
-    let result: (IGeoStarSystemData | IGeoStarData | IGeoPlanetData | IGeoSatelliteData | IGeoGeographyUnitData)[] = [];
-
-    if (!codes.length) {
-      return result;
-    }
-
-    
-    function findInNodes(nodes?: IGeoTreeItem<IGeoStarSystemData | IGeoStarData | IGeoPlanetData | IGeoSatelliteData | IGeoGeographyUnitData>[]) {
-      if (!nodes ||!nodes.length) {
-        return;
-      }
-
-      for (const node of nodes) {
-        if (codes.includes(node.key)) {
-          result.push(node.data)
-        }
-
-        if (node.children) {
-          findInNodes(node.children)
-        }
-      }
-    }
-
-    findInNodes(geoTree);
-
-    return result;
-  }
-
-  // 获取当前世界观信息
-  const selectedWorldView = selectedChapter?.worldview_id 
-    ? worldViewList.find(wv => wv.id === selectedChapter.worldview_id)
-    : null
-
-  // 获取事件关联信息
-  // TODO: 修正地理位置的获取方式
-  const getRelatedInfo = () => {
-    // const locations = relatedEventLocationIds.map(id => 
-    //   geoUnionList.find(geo => geo.code === id)?.name
-    // ).filter(Boolean) || []
-
-    const locations = findGeoTree(relatedEventLocationIds);
-
-    const factions = relatedEventFactionIds.map(id => 
-      factionList.find(faction => faction.id === id)?.name
-    ).filter(Boolean) || []
-
-    const characters = relatedEventCharacterIds.map(id => 
-      roleList.find(role => role.id === id)?.name
-    ).filter(Boolean) || []
-
-    return { locations, factions, characters }
-  }
+  
+  
 
   // 处理刷新
   const handleRefresh = async () => {
     try {
       setRefreshing(true)
-      await reloadChapter()
-      await reloadChapterList()
+      await reloadCurrentChapter()
+      await reloadFullChapterList()
       message.success('刷新成功')
     } catch (error) {
       message.error('刷新失败')
@@ -284,7 +213,7 @@ function ChapterSkeletonPanel({
 
   // 从关联信息复制
   const copyFromWorldView = (type: 'geo' | 'faction' | 'role') => {
-    if (!selectedWorldView) {
+    if (!worldViewData) {
       message.warning('请先选择世界观')
       return
     }
@@ -294,15 +223,15 @@ function ChapterSkeletonPanel({
 
     switch (type) {
       case 'geo':
-        sourceData = relatedEventLocationIds
+        sourceData = Array.from(locations)
         emptyMessage = '世界观中暂无关联地点'
         break
       case 'faction':
-        sourceData = relatedEventFactionIds
+        sourceData = Array.from(factions)
         emptyMessage = '世界观中暂无关联阵营'
         break
       case 'role':
-        sourceData = relatedEventCharacterIds
+        sourceData = Array.from(characters)
         emptyMessage = '世界观中暂无关联角色'
         break
     }
@@ -335,7 +264,7 @@ function ChapterSkeletonPanel({
   const handleSaveChapterInfo = async () => {
     try {
       const values = await form.validateFields()
-      if (!selectedChapter?.id) {
+      if (!chapterContext?.id) {
         message.warning('请先选择章节')
         return
       }
@@ -367,7 +296,7 @@ function ChapterSkeletonPanel({
       }
 
       let updateObject: IChapter = {
-        id: selectedChapter.id,
+        id: chapterContext.id,
         geo_ids: processIds<string>(values.geo_ids),
         faction_ids: processIds<number>(values.faction_ids),
         role_ids: values.role_ids,
@@ -384,22 +313,20 @@ function ChapterSkeletonPanel({
 
       // TODO: 调用API保存章节信息
       message.success('保存成功')
-      onChapterChange()
+      // onChapterChange()
     } catch (error) {
       console.error('保存失败', error);
       message.error('保存失败：' + (error instanceof Error ? error.message : 'Unknown error'))
     }
   }
 
-  const { locations, factions, characters } = getRelatedInfo()
-
   // 格式化小说时间
   const formatDate = (date: number) => {
-    if (!selectedWorldView) {
+    if (!worldViewData) {
       return '时间点 ' + date
     }
 
-    const timelineDateFormatter = TimelineDateFormatter.fromWorldViewWithExtra(selectedWorldView)
+    const timelineDateFormatter = TimelineDateFormatter.fromWorldViewWithExtra(worldViewData)
     return timelineDateFormatter.formatSecondsToDate(date)
   }
 
@@ -410,8 +337,8 @@ function ChapterSkeletonPanel({
       return
     }
 
-    let currentChapterNumber = selectedChapter?.chapter_number;
-    let currentChaoterVersion = selectedChapter?.version;
+    let currentChapterNumber = chapterContext?.chapter_number;
+    let currentChaoterVersion = chapterContext?.version;
 
     if (!currentChapterNumber || !currentChaoterVersion) {
       message.warning('当前章节号或版本号缺失，请检查数据或代码')
@@ -474,22 +401,17 @@ function ChapterSkeletonPanel({
 
 
   return (
-    <div className={styles.container}>
+    <div ref={containerRef} className={styles.container}>
       <ModalProvider>
         {/* 世界观信息展示 */}
         <div className={styles.worldViewInfo}>
-          {selectedWorldView ? (
+          {worldViewData ? (
             <>
               <div className={styles.worldViewTitle}>
                 <Space>
                   <Text strong>世界观：</Text>
-                  <Text>{selectedWorldView.title}</Text>
-                  <Button
-                    type="link"
-                    icon={<ReloadOutlined />}
-                    onClick={handleRefresh}
-                    loading={refreshing}
-                  >
+                  <Text>{worldViewData.title}</Text>
+                  <Button type="link" icon={<ReloadOutlined />} onClick={handleRefresh} loading={refreshing}>
                     刷新
                   </Button>
                 </Space>
@@ -500,8 +422,8 @@ function ChapterSkeletonPanel({
                   <Text strong>关联地点：</Text>
                   <div className={styles.tagsContainer}>
                     {locations.length > 0 ? (
-                      locations.map((location) => (
-                        <Tag key={location.code} color="blue">{location.name}</Tag>
+                      locations.map((code) => (
+                        <LocationTag key={code} code={code} />
                       ))
                     ) : (
                       <Text type="secondary">暂无关联地点</Text>
@@ -514,7 +436,7 @@ function ChapterSkeletonPanel({
                   <div className={styles.tagsContainer}>
                     {factions.length > 0 ? (
                       factions.map((faction, index) => (
-                        <Tag key={index} color="green">{faction}</Tag>
+                        <FactionTag key={index} faction={faction} />
                       ))
                     ) : (
                       <Text type="secondary">暂无关联阵营</Text>
@@ -526,7 +448,7 @@ function ChapterSkeletonPanel({
                   <div className={styles.tagsContainer}>
                     {characters.length > 0 ? (
                       characters.map((character, index) => (
-                        <Tag key={index} color="purple">{character}</Tag>
+                        <CharacterTag key={index} character={character} />
                       ))
                     ) : (
                       <Text type="secondary">暂无关联角色</Text>
@@ -534,47 +456,18 @@ function ChapterSkeletonPanel({
                   </div>
                 </div>
 
-                <div className={styles.relatedInfoItem}>
+                {/* <div className={styles.relatedInfoItem}>
                   <Text strong>关联事件：</Text>
                   <div className={styles.eventsContainer}>
                     {eventList.length > 0 ? (
                       eventList.map((event, index) => (
-                        <div key={index} className={styles.eventCard}>
-                          <div className={styles.eventCardHeader}>
-                            <div className={styles.eventCardTitle}>{event.title}</div>
-                            <div className={styles.eventCardTimestamp}>
-                              {formatDate(event.date)}
-                            </div>
-                          </div>
-                          <div className={styles.eventCardDescription}>
-                            <Space>
-                              {event.description}
-                              <Button
-                                type="text"
-                                size="small"
-                                icon={<CopyOutlined />}
-                                onClick={() => {
-                                  const formattedDate = formatDate(event.date)
-                                  const copyText = `${formattedDate}\n${event.title}\n${event.description}`
-                                  try {
-                                    copyToClip(copyText)
-                                    message.success('已复制到剪贴板')
-                                  } catch (error) {
-                                    console.error('handleCopyEvent error -> ', error)
-                                    message.error('复制失败')
-                                  }
-                                }}
-                                title="复制事件内容"
-                              />
-                            </Space>
-                          </div>
-                        </div>
+                        <EventTag key={index} event={event} />
                       ))
                     ) : (
                       <Text type="secondary">暂无关联事件</Text>
                     )}
                   </div>
-                </div>
+                </div> */}
               </div>
             </>
           ) : (
@@ -655,7 +548,7 @@ function ChapterSkeletonPanel({
                   type="link"
                   icon={<CopyOutlined />}
                   onClick={() => copyFromWorldView('geo')}
-                  disabled={!relatedEventLocationIds.length}
+                  disabled={!locations?.length}
                 >
                   从关联信息复制
                 </Button>
@@ -687,7 +580,7 @@ function ChapterSkeletonPanel({
                   type="link"
                   icon={<CopyOutlined />}
                   onClick={() => copyFromWorldView('faction')}
-                  disabled={!relatedEventFactionIds.length}
+                  disabled={!factions?.length}
                 >
                   从关联信息复制
                 </Button>
@@ -719,7 +612,7 @@ function ChapterSkeletonPanel({
                   type="link"
                   icon={<CopyOutlined />}
                   onClick={() => copyFromWorldView('role')}
-                  disabled={!relatedEventCharacterIds.length}
+                  disabled={!characters?.length}
                 >
                   从关联信息复制
                 </Button>
@@ -740,7 +633,7 @@ function ChapterSkeletonPanel({
               optionFilterProp="children"
               className={styles.multiSelect}
             >
-              {roleList.map(role => (
+              {(roleList || []).map(role => (
                 <Option key={role.id} value={role.id}>
                   {role.name}
                 </Option>
@@ -765,98 +658,66 @@ function ChapterSkeletonPanel({
             <TextArea autoSize={{ minRows: 1 }} />
           </Form.Item>
 
-          <div className="f-flex-two-side f-fit-width" style={{marginBottom: 12}}>
-            <Text strong>章节提示词（在生成面板中，会根据双换行进行切分）</Text>
-            <Space>
-              <Button size="small" type="primary" onClick={handleSaveChapterInfo}>保存</Button>
-              <Button size="small" type="primary" danger onClick={() => handleSaveChapterInfo()}>保存并覆盖实际配置</Button>
-            </Space>
-          </div>
-          
-          <div className="f-flex-row">
-            <div className="f-flex-1">
-              <Form.Item
-                label={null}
-                name="seed_prompt"
-              >
-                <TextArea
-                  ref={promptTextAreaRef}
-                  placeholder="请输入章节根提示词"
-                  autoSize={{ minRows: 22 }}
-                  className={styles.promptTextArea}
-                  showCount
-                />
-              </Form.Item>
-            </div>
-            <div style={{ marginLeft: 10 }}>
-              <PromptTools
-                promptTextArea={promptTextAreaRef?.current}
-                layout="vertical"
-                onChange={(prompt) => {
-                  form.setFieldsValue({
-                    seed_prompt: prompt
-                  });
-                }}
-              />
-            </div>
-          </div>
-          
-
-
-          {/* <div className="f-flex-two-side f-fit-width" style={{marginBottom: 8}}>
-            <Space>
-              <Text strong>章节细纲（对应细纲生成工作流）</Text>
-              <Button
-                type="link"
-                icon={<CopyOutlined />}
-                disabled={!worldViewId}
-                onClick={() => {
-                  const formValues = form.getFieldsValue();
-                  
-                  const locations = findGeoTree(formValues.geo_ids);
-
-                  const factions = formValues.faction_ids.map((id: number) => 
-                    factionList.find(faction => faction.id === id)?.name
-                  ).filter(Boolean) || []
-
-                  const characters = formValues.role_ids.map((id: number) => 
-                    roleList.find(role => role.id === id)?.name
-                  ).filter(Boolean) || []
-                  
-
-
-                  showGenSkeletonModal({
-                    worldviewId: worldViewId!,
-                    seedPrompt: formValues.seed_prompt,
-                    savedSeedPrompt: selectedChapter?.seed_prompt,
-                    actualSeedPrompt: selectedChapter?.actual_seed_prompt,
-                    relativeChapters: formValues.related_chapter_ids,
-                    characters: characters.join(','),
-                    factions: factions.join(','),
-                    locations: locations.map(item => item.name).join(','),
-                    skeletonPrompt: formValues.skeleton_prompt,
-                    savedSkeletonPrompt: selectedChapter?.skeleton_prompt,
-                    actualSkeletonPrompt: selectedChapter?.actual_skeleton_prompt,
-                    chapterId: selectedChapter?.id
-                  });
-                }}
-              >
-                AI生成{worldViewId ? '' : '(请先设置世界观)'}
-              </Button>
-            </Space>
-
-            <Button size="small" type="primary" onClick={handleSaveChapterInfo}>保存</Button>
-          </div>
-          <Form.Item
-            label={null}
-            name="skeleton_prompt"
-          >
-            <TextArea
-              placeholder="请输入章节细纲"
-              autoSize={{ minRows: 8 }}
-              showCount
-            />
-          </Form.Item> */}
+          <Divider size='large'/>
+          <Row gutter={8}>
+            <Col span={6}>
+              <Affix offsetTop={12} target={() => scrollContainerRef.current || window}>
+                <div>
+                  <div style={{ marginBottom: 12 }}>
+                    <Text strong>关联事件</Text>
+                  </div>
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    {eventList.length > 0 ? (
+                      eventList.map((event, index) => (
+                        <EventTag key={index} event={event} />
+                      ))
+                    ) : (
+                      <Text type="secondary">暂无关联事件</Text>
+                    )}
+                  </Space>
+                </div>
+              </Affix>
+            </Col>
+            <Col span={18}>
+              <div className="f-flex-two-side f-fit-width" style={{marginBottom: 12}}>
+                <Text strong>章节提示词</Text>
+                <Space>
+                  <Button size="small" type="primary" onClick={handleSaveChapterInfo}>保存</Button>
+                  <Button size="small" type="primary" danger onClick={() => handleSaveChapterInfo()}>保存并覆盖实际配置</Button>
+                </Space>
+              </div>
+              
+              <div className="f-flex-row">
+                <div className="f-flex-1">
+                  <Form.Item
+                    label={null}
+                    name="seed_prompt"
+                  >
+                    <TextArea
+                      ref={promptTextAreaRef}
+                      placeholder="请输入章节根提示词"
+                      autoSize={{ minRows: 22 }}
+                      className={styles.promptTextArea}
+                      showCount
+                    />
+                  </Form.Item>
+                </div>
+                <div style={{ marginLeft: 10 }}>
+                  <Affix offsetTop={12} target={() => scrollContainerRef.current || window}>
+                    <PromptTools
+                      promptTextArea={promptTextAreaRef?.current}
+                      layout="vertical"
+                      onChange={(prompt) => {
+                        form.setFieldsValue({
+                          seed_prompt: prompt
+                        });
+                      }}
+                    />
+                  </Affix>
+                </div>
+              </div>
+            </Col>
+          </Row>
         </Form>
 
       </ModalProvider>
@@ -865,7 +726,7 @@ function ChapterSkeletonPanel({
           open={isGenRoleModalVisible}
           onCancel={() => setIsGenRoleModalVisible(false)}
           onOk={() => {}}
-          worldviewId={worldViewId}
+          worldviewId={worldViewData?.id}
           title="生成角色人设建议"
           width="80vw"
           rootPrompt={() => form.getFieldsValue()['seed_prompt']}
@@ -877,6 +738,71 @@ function ChapterSkeletonPanel({
         content={''}
       />
 
+    </div>
+  )
+}
+
+function FactionTag({ faction }: { faction: number }) {
+  const { factionList } = useWorldViewContext();
+  const factionItem = factionList?.find(item => item.id === faction);
+  return <Tag color="green">{factionItem?.name}</Tag>
+}
+
+function CharacterTag({ character }: { character: number }) {
+  const { roleList } = useWorldViewContext();
+  const characterItem = roleList?.find(item => item.id === character);
+  return <Tag color="purple">{characterItem?.name}</Tag>
+}
+
+function LocationTag({ code }: { code: string }) {
+  const { geoUnionList } = useWorldViewContext();
+  const locationItem = geoUnionList?.find(item => item.code === code);
+  return <Tag color="blue">{locationItem?.name}</Tag>
+}
+
+function formatDate(date: number, worldViewData?: IWorldViewDataWithExtra | null) {
+  if (!worldViewData) {
+    return '时间点 ' + date
+  }
+
+  const timelineDateFormatter = TimelineDateFormatter.fromWorldViewWithExtra(worldViewData)
+  return timelineDateFormatter.formatSecondsToDate(date)
+}
+
+function EventTag({ event }: { event: ITimelineEvent }) {
+
+  const { worldViewData } = useWorldViewContext();
+
+  return (
+    <div className={styles.eventCard}>
+      <div className={styles.eventCardHeader}>
+        <div className={styles.eventCardTitle}>{event.title}</div>
+        <div className={styles.eventCardTimestamp}>
+          {formatDate(event.date, worldViewData)}
+        </div>
+      </div>
+      <div className={styles.eventCardDescription}>
+        <Space>
+          {event.description}
+          <Button
+            type="text"
+            size="small"
+            icon={<CopyOutlined />}
+            onClick={() => {
+              const formattedDate = formatDate(event.date, worldViewData)
+              const copyText = `${formattedDate}\n${event.title}\n${event.description}`
+              try {
+                copyToClip(copyText)
+                message.success('已复制到剪贴板')
+              } catch (error) {
+                console.error('handleCopyEvent error -> ', error)
+                message.error('复制失败')
+              }
+            }}
+            title="复制事件内容"
+          />
+        </Space>
+      </div>
     </div>
   )
 }

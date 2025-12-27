@@ -3,11 +3,10 @@ import { Col, Row, Button, Space, Divider, Tabs } from "antd";
 import { type IGeoTreeItem } from "../geoTree";
 import GeoRecallTest from "../subPanel/geoRecallTest";
 import GeoDifyDocument from "../subPanel/geoDifyDocument";
+import { useSimpleWorldviewContext } from "../../common/SimpleWorldviewProvider";
+import { useManageState } from "../ManageStateProvider";
 
 interface IStarEditProps {
-    worldViewId: number | null,
-    updateTimestamp: number,
-    node: IGeoTreeItem<IGeoStarData> | null,
     // raiseAddStar: () => void,
     // raiseAddPlanet: () => void,
     raiseEditStar: (data: IGeoStarData) => void,
@@ -17,20 +16,14 @@ interface IStarEditProps {
 
 export default function(props: IStarEditProps) {
 
-    let data = props?.node?.data;
+    const { state: worldviewState } = useSimpleWorldviewContext();
+    const { worldviewId } = worldviewState;
+
+    const { state: manageState } = useManageState();
+    const { treeRaisedObject } = manageState;
+
+    let data = treeRaisedObject?.data;
     let described_in_llm = data?.described_in_llm == 1;
-
-    // function onClickAddStar()  {
-    //     if (typeof props.raiseAddStar === 'function') {
-    //         props.raiseAddStar();
-    //     }
-    // }
-
-    // function onClickAddPlanet() {
-    //     if (typeof props.raiseAddPlanet === 'function') {
-    //         props.raiseAddPlanet();
-    //     }
-    // }
 
     function onClickEditStar() {
         if (typeof props.raiseEditStar === 'function' && data) {
@@ -48,12 +41,12 @@ export default function(props: IStarEditProps) {
         {
             label: `Dify文档`,
             key: '1',
-            children: <GeoDifyDocument worldViewId={props.worldViewId} geoDataType="star" geoData={data} onRequestUpdate={props.onRequestUpdate} />,
+            children: <GeoDifyDocument worldViewId={worldviewId} geoDataType="star" geoData={data} onRequestUpdate={props.onRequestUpdate} />,
         },
         {
             label: `LLM召回测试`,
             key: '2',
-            children: <GeoRecallTest worldViewId={props.worldViewId} recommandQuery={`恒星 ${data?.name} 设定`} />,
+            children: <GeoRecallTest worldViewId={worldviewId} recommandQuery={`恒星 ${data?.name} 设定`} />,
         }
     ];
 

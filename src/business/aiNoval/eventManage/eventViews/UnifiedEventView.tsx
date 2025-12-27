@@ -76,7 +76,8 @@ function formatTimestamp(timestamp: number, worldViews: IWorldViewDataWithExtra[
     hour_length_in_seconds: worldView?.tl_hour_length_in_seconds || 3600,
     day_length_in_hours: worldView?.tl_day_length_in_hours || 24,
     month_length_in_days: worldView?.tl_month_length_in_days || 30,
-    year_length_in_months: worldView?.tl_year_length_in_months || 12
+    year_length_in_months: worldView?.tl_year_length_in_months || 12,
+    base_seconds: worldView?.tl_base_seconds ?? 0
   })
   return formatter.formatSecondsToDate(timestamp)
 }

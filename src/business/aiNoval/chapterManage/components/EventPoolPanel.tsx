@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Select, Space, Row, Col, Typography, Slider, Tag, Button, Modal, Form, Radio, Input, InputNumber, message, Alert, Divider } from 'antd'
+import { Select, Space, Row, Col, Typography, Slider, Tag, Button, Modal, Form, Radio, Input, InputNumber, message, Alert, Divider, Checkbox } from 'antd'
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
 import { EventPool } from '../types'
 import styles from './EventPoolPanel.module.scss'
@@ -7,40 +7,30 @@ import { IChapter, IStoryLine, IWorldViewDataWithExtra, ITimelineEvent, IGeoUnio
 import { TimelineDateFormatter } from '../../common/novelDateUtils'
 import { EditOutlined, ReloadOutlined, SaveOutlined, CopyOutlined } from '@ant-design/icons'
 import * as apiCalls from '../apiCalls'
-import { loadGeoUnionList } from '../../common/geoDataUtil'
+import { useChapterContext } from '../chapterContext'
+import { useWorldViewContext } from '../WorldViewContext'
 
 const { Text } = Typography
 
 type Event = ITimelineEvent
-
-interface EventPoolPanelProps {
-  // selectedWorldContext: string
-  worldViewList: IWorldViewDataWithExtra[],
-  // selectedWorldViewId?: number | null
-  selectedChapterId?: number | null,
-  geoUnionList: IGeoUnionData[],
-  factionList: IFactionDefData[],
-  roleList: IRoleData[],
-  // onWorldViewChange: (value?: number | null) => void
-  onChapterChange: (value?: IChapter | null) => void
-}
 
 // 新增：时间线范围编辑 Modal 组件
 const TimelineRangeModal = React.forwardRef(({
   onOk,
   onCancel,
   form,
-  selectedWorldView,
   onChangeTimeline,
   eventPool
 }: {
   onOk: () => void
   onCancel: () => void
   form: any
-  selectedWorldView: IWorldViewDataWithExtra | null
+  // selectedWorldView: IWorldViewDataWithExtra | null
   onChangeTimeline: (type: 'start' | 'end', value: number | null) => void
   eventPool: EventPool
 }, ref) => {
+  const { worldViewData } = useWorldViewContext();
+
   const [visible, setVisible] = useState(false)
   const [type, setType] = useState<'start' | 'end'>('start')
   const [initialSeconds, setInitialSeconds] = useState<number | null>(null)
@@ -63,8 +53,8 @@ const TimelineRangeModal = React.forwardRef(({
     let day = null
     if (initialSeconds) {
       isBC = initialSeconds < 0
-      if (selectedWorldView) {
-        const timeUtil = TimelineDateFormatter.fromWorldViewWithExtra(selectedWorldView)
+      if (worldViewData) {
+        const timeUtil = TimelineDateFormatter.fromWorldViewWithExtra(worldViewData)
         let dateStruct = timeUtil.secondsToDateData(initialSeconds)
         isBC = dateStruct.isBC
         year = dateStruct.year
@@ -84,7 +74,7 @@ const TimelineRangeModal = React.forwardRef(({
       month,
       day
     })
-  }, [visible, initialSeconds, selectedWorldView, form])
+  }, [visible, initialSeconds, worldViewData, form])
 
   async function handleOk() {
     let { era, year, month, day } = form.getFieldsValue()
@@ -99,8 +89,8 @@ const TimelineRangeModal = React.forwardRef(({
     await form.validateFields()
 
     let totalSeconds = 0
-    if (selectedWorldView) {
-      const timeUtil = TimelineDateFormatter.fromWorldViewWithExtra(selectedWorldView)
+    if (worldViewData) {
+      const timeUtil = TimelineDateFormatter.fromWorldViewWithExtra(worldViewData)
       totalSeconds = timeUtil.dateDataToSeconds({
         isBC: era === 'BC',
         year,
@@ -146,9 +136,9 @@ const TimelineRangeModal = React.forwardRef(({
 
   function handleSetByLastDays(days: number) {
     let lastDateSeconds;
-    if (selectedWorldView) {
-      if (selectedWorldView.te_max_seconds) {
-        lastDateSeconds = selectedWorldView.te_max_seconds - days * 24 * 3600
+    if (worldViewData) {
+      if (worldViewData.te_max_seconds) {
+        lastDateSeconds = worldViewData.te_max_seconds - days * 24 * 3600
       } else {
         lastDateSeconds = null
       }
@@ -173,11 +163,11 @@ const TimelineRangeModal = React.forwardRef(({
     
     let lastDateSeconds: number = 0;
     let secondsOfUnit = 0;
-    if (selectedWorldView) {
-      let secondsPerHour = selectedWorldView.tl_hour_length_in_seconds || 3600;
-      let hoursPerDay = selectedWorldView.tl_day_length_in_hours || 24;
-      let daysPerMonth = selectedWorldView.tl_month_length_in_days || 30;
-      let monthsPerYear = selectedWorldView.tl_year_length_in_months || 12;
+    if (worldViewData) {
+      let secondsPerHour = worldViewData.tl_hour_length_in_seconds || 3600;
+      let hoursPerDay = worldViewData.tl_day_length_in_hours || 24;
+      let daysPerMonth = worldViewData.tl_month_length_in_days || 30;
+      let monthsPerYear = worldViewData.tl_year_length_in_months || 12;
       switch (_userDiffUnit) {
         case 'day':
           secondsOfUnit = hoursPerDay * secondsPerHour
@@ -192,7 +182,7 @@ const TimelineRangeModal = React.forwardRef(({
           secondsOfUnit = monthsPerYear * daysPerMonth * hoursPerDay * secondsPerHour
           break
       }
-      lastDateSeconds = (selectedWorldView.te_max_seconds || 0) - userDiffValue * secondsOfUnit;
+      lastDateSeconds = (worldViewData.te_max_seconds || 0) - userDiffValue * secondsOfUnit;
     } else {
       switch (_userDiffUnit) {
         case 'day':
@@ -219,7 +209,7 @@ const TimelineRangeModal = React.forwardRef(({
 
   function handleSetUserDiffUnitAndApply(unit: 'day' | 'week' | 'month' | 'year') {
     setUserDiffUnit(unit)
-    handleApplyUserDiff()
+    handleApplyUserDiff(unit)
   }
 
   return (
@@ -251,9 +241,6 @@ const TimelineRangeModal = React.forwardRef(({
             <Button onClick={() => handleSetUserDiffUnitAndApply('week')}>周</Button>
             <Button onClick={() => handleSetUserDiffUnitAndApply('month')}>月</Button>
             <Button onClick={() => handleSetUserDiffUnitAndApply('year')}>年</Button>
-          {/* </Space.Compact> */}
-          {/* <Text>-&gt;</Text> */}
-          {/* <Button onClick={handleApplyUserDiff}>应用</Button> */}
         </Space>
       </div>
       <Divider />
@@ -269,11 +256,11 @@ const TimelineRangeModal = React.forwardRef(({
             <Form.Item name="year" rules={[{ required: true, type: 'number', min: 0 }]} noStyle>
               <InputNumber type="number" min={0} placeholder="年" style={{ width: 80 }} />
             </Form.Item>
-            <Form.Item name="month" rules={[{ required: true, type: 'number', min: 1, max: selectedWorldView?.tl_year_length_in_months || 12 }]} noStyle>
-              <InputNumber type="number" min={1} max={selectedWorldView?.tl_year_length_in_months || 12} placeholder="月" style={{ width: 60 }} />
+            <Form.Item name="month" rules={[{ required: true, type: 'number', min: 1, max: worldViewData?.tl_year_length_in_months || 12 }]} noStyle>
+              <InputNumber type="number" min={1} max={worldViewData?.tl_year_length_in_months || 12} placeholder="月" style={{ width: 60 }} />
             </Form.Item>
-            <Form.Item name="day" rules={[{ required: true, type: 'number', min: 1, max: selectedWorldView?.tl_month_length_in_days || 30 }]} noStyle>
-              <InputNumber type="number" min={1} max={selectedWorldView?.tl_month_length_in_days || 30} placeholder="日" style={{ width: 60 }} />
+            <Form.Item name="day" rules={[{ required: true, type: 'number', min: 1, max: worldViewData?.tl_month_length_in_days || 30 }]} noStyle>
+              <InputNumber type="number" min={1} max={worldViewData?.tl_month_length_in_days || 30} placeholder="日" style={{ width: 60 }} />
             </Form.Item>
           </Space>
         </Form.Item>
@@ -298,17 +285,16 @@ const TimelineRangeModal = React.forwardRef(({
 
 */
 
-function EventPoolPanel({
-  // selectedWorldContext,
-  // worldViewList,
-  // selectedWorldViewId,
-  selectedChapterId,
-  // geoUnionList,
-  // factionList,
-  // roleList,
-  // onWorldViewChange,
-  onChapterChange
-}: EventPoolPanelProps) {
+function EventPoolPanel() {
+  const { state: chapterContext } = useChapterContext();
+  const { 
+    worldViewList, 
+    worldViewId, 
+    setContextWorldViewId,
+    worldViewData, 
+    checkWorldViewDataAndRetry,
+  } = useWorldViewContext();
+
   // 时间线开始时间
   const [timelineStart, setTimelineStart] = useState<number | null>(null)
 
@@ -324,38 +310,15 @@ function EventPoolPanel({
   // 当前选中的故事线ID列表
   const [selectedStoryLineIds, setSelectedStoryLineIds] = useState<number[]>([])
 
-  // 时间线范围（微调）
-  const [timelineAdjustment, setTimelineAdjustment] = useState<[number, number]>([0, 100])
-
   // 是否加载中
   const [loading, setLoading] = useState(false)
 
   // 事件池
   const [eventPool, setEventPool] = useState<EventPool>({ selected: [], candidate: [] })
 
-  // 是否是第一次加载
-  const [isFirstLoad, setIsFirstLoad] = useState(true)
-
-  // 世界观列表
-  const [worldViewList, setWorldViewList] = useState<IWorldViewDataWithExtra[]>([])
-
-  // 当前选中的世界观
-  const [selectedWorldView, setSelectedWorldView] = useState<IWorldViewDataWithExtra | null>(null)
-
-  // 当前选中的世界观ID，选择器专用，fuck antd
-  const [selectedWorldViewId, setSelectedWorldViewId] = useState<number | null>(null)
-
-  // 当前选中的章节
-  const [selectedChapter, setSelectedChapter] = useState<IChapter | null>(null)
-
-  // 关联地点列表
-  const [geoUnionList, setGeoUnionList] = useState<IGeoUnionData[]>([])
-
-  // 关联阵营列表
-  const [factionList, setFactionList] = useState<IFactionDefData[]>([])
-
-  // 关联角色列表
-  const [roleList, setRoleList] = useState<IRoleData[]>([])
+  const [showLocations, setShowLocations] = useState(true)
+  const [showFactions, setShowFactions] = useState(false)
+  const [showCharacters, setShowCharacters] = useState(true)
 
   // 新增：时间线范围编辑 Modal 组件
   const timelineModalRef = React.useRef<{ open: (type: 'start' | 'end', seconds: number | null) => void }>(null)
@@ -366,35 +329,24 @@ function EventPoolPanel({
   // 初始加载，加载完毕后触发isFirstLoad完成事件
   useEffect(() => {
     initData();
-    setIsFirstLoad(false);
+    // setIsFirstLoad(false);
   }, [])
-
-  // 监听世界观ID变更（选择器专属事件）
-  useEffect(() => {
-    if (!selectedWorldViewId) {
-      setSelectedWorldView(null);
-      return;
-    }
-
-    const selectedWorldView = worldViewList.find(worldView => worldView.id === selectedWorldViewId);
-    setSelectedWorldView(selectedWorldView || null);
-  }, [selectedWorldViewId]);
 
   // 监听世界观变更
   useEffect(() => {
-    if (selectedWorldView?.te_max_seconds) {
-      setTimelineStart(selectedWorldView?.te_max_seconds - 7 * 24 * 3600);
-      setTimelineEnd(selectedWorldView?.te_max_seconds);
+    if (worldViewData?.te_max_seconds) {
+      setTimelineStart(worldViewData?.te_max_seconds - 7 * 24 * 3600);
+      setTimelineEnd(worldViewData?.te_max_seconds);
     } else {
       setTimelineStart(0);
       setTimelineEnd(100);
     }
 
     // 加载故事线列表
-    if (selectedWorldView?.id) {
-      apiCalls.getStoryLineList(selectedWorldView.id).then(res => {
+    if (worldViewData?.id) {
+      apiCalls.getStoryLineList(worldViewData.id).then(res => {
         setStoryLineList(res.data)
-        if (!selectedChapter?.storyline_ids?.length) {
+        if (!chapterContext?.storyline_ids?.length) {
           setSelectedStoryLineIds(res.data.map(line => line.id))
         }
       })
@@ -403,162 +355,124 @@ function EventPoolPanel({
       setSelectedStoryLineIds([])
     }
 
-    // // 如果当前有选中的章节，重新加载事件
-    // if (selectedChapter?.id && selectedWorldView?.id) {
-    //   const [timelineAdjustmentStart, timelineAdjustmentEnd] = calculateAndSyncChapterDateRange(selectedChapter);
-    //   loadChapterEvents(selectedChapter.event_ids);
-    // }
-
-    // 加载备选地点
-    if (selectedWorldView?.id) {
-      loadGeoUnionList(selectedWorldView.id).then(res => {
-        setGeoUnionList(res);
-      })
-    } else {
-      setGeoUnionList([]);
-    }
-
-    // 加载备选阵营
-    if (selectedWorldView?.id) {
-      apiCalls.loadFactionList(selectedWorldView.id).then(res => {
-        setFactionList(res);
-      })
-    } else {
-      setFactionList([]);
-    }
-
-    // 加载备选角色
-    if (selectedWorldView?.id) {
-      apiCalls.loadRoleList(selectedWorldView.id).then(res => {
-        setRoleList(res);
-      })
-    } else {
-      setRoleList([]);
-    }
-
-
-  }, [selectedWorldView])
+  }, [worldViewData])
 
   // 监听章节变更，包括初始化
   useEffect(() => {
-    if (selectedChapterId) {
-      loadChapterData();
-    } else {
-      // 清空事件池
-      setEventPool({ selected: [], candidate: [] });
-      setSelectedChapter(null);
-    }
-  }, [selectedChapterId])
-
-  useEffect(() => {
-    console.debug('selectedChapter?.event_ids: ', selectedChapter?.event_ids);
-    loadChapterEvents(selectedChapter?.event_ids)
-  }, [timelineStart, timelineEnd, selectedChapter])
+    if (chapterContext?.id) {
+      checkWorldViewDataAndRetry();
+      applyChapterData();
+    } 
+  }, [chapterContext?.id, worldViewData?.id])
 
   // 初始化数据
   const initData = async () => {
-    const worldViewList = (await apiCalls.getWorldViewList())?.data;
 
-    // 加载关联地点
-    setWorldViewList(worldViewList);
-
-    if (selectedChapterId) {
-      const chapterData = await apiCalls.getChapterById(selectedChapterId);
+    if (chapterContext?.id) {
+      const chapterData = await apiCalls.getChapterById(chapterContext.id);
       if (chapterData?.worldview_id) {
-        const selectedWorldView = worldViewList.find(worldView => worldView.id === chapterData.worldview_id);
-        setSelectedWorldView(selectedWorldView || null);
-        setSelectedWorldViewId(selectedWorldView?.id || null);
+        const selectedWorldView = worldViewList?.find(worldView => worldView.id === chapterData.worldview_id);
+        setContextWorldViewId(selectedWorldView?.id || null);
       }
     } else {
-      setSelectedWorldView(null);
-      setSelectedWorldViewId(null);
+      setContextWorldViewId(null);
     } 
   }
 
-  const loadChapterData = async () => {
-    console.debug('loadChapterData --> ', selectedChapter);
+  // 注意：TS参数不能同时有"?"和默认值，需用"="并在函数内处理默认
+  const applyChapterData = async (chapterData?: IChapter | null) => {
+    if (chapterData === undefined || chapterData === null) {
+      chapterData = chapterContext;
+    }
+    // console.debug('applyChapterData --> 第一步', chapterData);
 
-    if (!selectedChapterId) {
-      console.debug('selectedChapterId is null');
-      setSelectedChapter(null);
+    // 检查章节ID，如果为空，则清除事件表
+    if (!chapterData?.id) {
+      console.debug('chapterData?.id is null')
       setEventPool({ selected: [], candidate: [] });
       return;
     }
 
-    const chapterData = await apiCalls.getChapterById(selectedChapterId);
-    setSelectedChapter(chapterData);
-    
-    if (!chapterData) {
-      console.debug('chapterData is null')
-      setEventPool({ selected: [], candidate: [] });
-      return
-    }
+    // console.debug('applyChapterData --> 第二步', chapterData);
 
-    // 设置关联世界观，注意还要设置ID，antd专用
-    if (!chapterData?.worldview_id) {
-      console.debug('chapterData?.worldview_id is null')
-      setSelectedWorldView(null)
-      setSelectedWorldViewId(null)
+    // 检查关联世界观，如果为空，则清除事件表
+    if (!chapterData?.worldview_id && !worldViewData?.id) {
+      console.debug('chapterData?.worldview_id and worldViewData?.id is null')
       setEventPool({ selected: [], candidate: [] })
-    } else {
-      console.debug('chapterData?.worldview_id is not null')
-      const newWorldView = worldViewList.find(worldView => worldView.id === chapterData.worldview_id) || null;
-      setSelectedWorldView(newWorldView)
-      setSelectedWorldViewId(chapterData.worldview_id)
+      return;
+    } 
 
-      // 设置关联故事线
-      if (chapterData?.storyline_ids?.length) {
-        setSelectedStoryLineIds(chapterData.storyline_ids)
-      } else {
-        setSelectedStoryLineIds(storyLineList.map(line => line.id))
-      }
+    // console.debug('applyChapterData --> 第三步', chapterData);
 
-      if (chapterData.event_line_start1) {
-        setTimelineStart(chapterData.event_line_start1)
-      }
-
-      if (chapterData.event_line_end1) {
-        setTimelineEnd(chapterData.event_line_end1)
-      }
-
-      setEventPool({
-        selected: [],
-        candidate: []
-      })
-
-      // 加载章节事件
-      // loadChapterEvents(chapterData.event_ids)
+    if (chapterData.worldview_id !== worldViewData?.id) {
+      setContextWorldViewId(chapterData.worldview_id || worldViewData?.id || null)
     }
+
+    // console.debug('applyChapterData --> 第四步', chapterData);
+
+    // 设置关联故事线
+    if (chapterContext?.storyline_ids?.length) {
+      setSelectedStoryLineIds(chapterContext.storyline_ids)
+    } else {
+      setSelectedStoryLineIds(storyLineList.map(line => line.id))
+    }
+
+    // console.debug('applyChapterData --> 第五步', chapterData);
+
+    if (chapterData.event_line_start1) {
+      setTimelineStart(chapterData.event_line_start1)
+    }
+
+    if (chapterData.event_line_end1) {
+      setTimelineEnd(chapterData.event_line_end1)
+    }
+
+    // console.debug('applyChapterData --> 第六步', chapterData);
+
+    // 联动章节更新事件，防止重复更新，延时10ms等待世界观context完成更新
+    loadChapterEvents(chapterData.worldview_id, chapterData?.event_ids, chapterData.event_line_start1, chapterData.event_line_end1)
+
+    // console.debug('applyChapterData --> 第七步', chapterData);
   }
 
   // 加载章节事件
-  const loadChapterEvents = async (chapterEventIds?: number[]) => {
-    if (!selectedWorldView?.id) {
-      // message.warning('请先选择世界观')
-      return
+  const loadChapterEvents = async (worldViewId?: number | null, chapterEventIds?: number[], _timelineStart?: number | null, _timelineEnd?: number | null) => {
+
+    if (!worldViewId) {
+      if (chapterContext?.worldview_id) { // 首先尝试获取章节的世界观id
+        worldViewId = chapterContext.worldview_id;
+      } else if (worldViewData?.id) { // 其次尝试获取世界观context的世界观id
+        worldViewId = worldViewData.id;
+      } else { // 最后提示选择世界观
+        message.warning('请先选择世界观')
+        return
+      }
     }
 
-    // if (!requestDateRange) {
-    //   // 如果未指定请求日期范围，则使用时间线范围
-    //   console.debug('requestDateRange is null, use timelineAdjustment: ', timelineAdjustment)
-    //   requestDateRange = [timelineAdjustment[0], timelineAdjustment[1]]
-    // }
+    if (!chapterEventIds) {
+      chapterEventIds = chapterContext?.event_ids || [];
+    }
+
+    if (!_timelineStart) {
+      _timelineStart = timelineStart || 0;
+    }
+    if (!_timelineEnd) {
+      _timelineEnd = timelineEnd || new Date().getTime() / 1000;
+    }
 
     try {
       setLoading(true)
 
       // 如果时间线范围小于24小时，则将时间线范围设置为24小时
-      let realEnd = timelineEnd;
-      if (timelineEnd && timelineStart && timelineEnd - timelineStart < 24 * 3600) {
-        realEnd = timelineStart + 24 * 3600;
+      let realEnd = _timelineEnd;
+      if (_timelineEnd && _timelineStart && _timelineEnd - _timelineStart < 24 * 3600) {
+        realEnd = _timelineStart + 24 * 3600;
       }
 
       const response = await apiCalls.getTimelineEventList(
-        selectedWorldView.id,
-        timelineStart,
+        worldViewId,
+        _timelineStart,
         realEnd
-        // requestDateRange[0],
-        // requestDateRange[1]
       )
 
       if (response.data) {
@@ -590,50 +504,37 @@ function EventPoolPanel({
     }
   }
 
-  const calculateAndSyncChapterDateRange = (chapterData: IChapter) => {
-    if (!chapterData) {
-      setTimelineStart(0)
-      setTimelineEnd(100)
-
-      setTimelineAdjustment([0, 100])
-
-      return [0, 100];
+  const loadByNovelIdAndChapterId = async (novel_id?: number | null, chapter_number?: number | null) => {
+    const chapterData = await apiCalls.getChapter({ novel_id, chapter_number });
+    if (chapterData) {
+      applyChapterData(chapterData);
+    } else {
+      message.error('章节数据不存在，请检查章节编号是否严格按照顺序！')
     }
-
-    let timelineStart = 0;
-    let timelineEnd = 100;
-
-    if (chapterData.event_line_start1) {
-      timelineStart = chapterData.event_line_start1
-    } else if (selectedWorldView?.te_max_seconds) {
-      timelineStart = selectedWorldView.te_max_seconds - 7 * 24 * 3600;
-    }
-
-    if (chapterData.event_line_end1) {
-      timelineEnd = chapterData.event_line_end1
-    } else if (selectedWorldView?.te_max_seconds) {
-      timelineEnd = selectedWorldView.te_max_seconds;
-    }
-
-    setTimelineStart(timelineStart)
-    setTimelineEnd(timelineEnd)
-
-    let timelineAdjustmentStart = timelineStart;
-    let timelineAdjustmentEnd = timelineEnd;
-
-    if (chapterData.event_line_start2) {
-      timelineAdjustmentStart = chapterData.event_line_start2
-    }
-
-    if (chapterData.event_line_end2) {
-      timelineAdjustmentEnd = chapterData.event_line_end2
-    }
-
-    setTimelineAdjustment([timelineAdjustmentStart, timelineAdjustmentEnd])
-
-    return [timelineAdjustmentStart, timelineAdjustmentEnd];
-      
   }
+
+  const handleLoadFromPreviousChapter = async () => {
+    if (!chapterContext?.novel_id || !chapterContext?.chapter_number) {
+      message.error('章节基础数据存在问题，无法推算上一章节！')
+      return
+    }
+    const novelId = chapterContext.novel_id;
+    loadByNovelIdAndChapterId(novelId, chapterContext.chapter_number - 1);
+  }
+
+  const handleTimelineChange = (type: 'start' | 'end', value: number | null) => {
+    let _timelineStart = timelineStart;
+    let _timelineEnd = timelineEnd;
+    if (type === 'start' && typeof value === 'number') {
+      setTimelineStart(value)
+      _timelineStart = value;
+    } else if (type === 'end' && typeof value === 'number') {
+      setTimelineEnd(value)
+      _timelineEnd = value;
+    }
+    loadChapterEvents(chapterContext?.worldview_id, chapterContext?.event_ids, _timelineStart, _timelineEnd)
+  }
+
 
   const handleDragEnd = (result: any) => {
     const { source, destination } = result
@@ -669,109 +570,36 @@ function EventPoolPanel({
     }
   }
 
-  // 渲染时间点
-  const renderNovelDate = (date: number = 0) => {
-    if (!selectedWorldView) {
-      return '时间点：' + date;
-    }
-
-    const util = TimelineDateFormatter.fromWorldViewWithExtra(selectedWorldView);
-    return util.formatSecondsToDate(date);
-  }
-
-  // 获取所有关联信息
-  const getRelatedInfo = (events: Event[]) => {
-    const locations = new Set<string>()
-    const factions = new Set<number>()
-    const characters = new Set<number>()
-
-    events.forEach(event => {
-      // console.log('moved event ---> ', event)
-      if (event.location) locations.add(event.location)
-      if (event.faction_ids) {
-        event.faction_ids.forEach(id => factions.add(id))
-      }
-      if (event.role_ids) {
-        event.role_ids.forEach(id => characters.add(id))
-      }
-    })
-
-    return {
-      locations: Array.from(locations),
-      factions: Array.from(factions),
-      characters: Array.from(characters)
-    }
-  }
-
   const saveChapterSetting = async () => {
-    if (!selectedChapter) {
+    if (!chapterContext?.id) {
       message.warning('请先选择章节')
       return
     }
 
-    if (!selectedWorldView?.id) {
+    if (!worldViewData?.id) {
       message.warning('请先选择世界观')
       return
     }
 
     const settingParams = {
-      id: selectedChapter.id,
-      worldview_id: selectedWorldView.id,
+      id: chapterContext.id,
+      worldview_id: worldViewData.id,
       storyline_ids: selectedStoryLineIds,
       event_ids: eventPool.selected.map(event => event.id),
       event_line_start1: timelineStart === null ? undefined : timelineStart,
       event_line_end1: timelineEnd === null ? undefined : timelineEnd,
-      event_line_start2: timelineAdjustment[0],
-      event_line_end2: timelineAdjustment[1]
     }
 
     try {
       await apiCalls.updateChapter(settingParams);
+      // console.debug('saveChapterSetting --> settingParams', settingParams);
       message.success('保存章节参数成功')
-
-      // 通知父组件章节数据已更新
-      if (onChapterChange) {
-        onChapterChange(selectedChapter)
-      }
     } catch (error) {
       message.error('保存章节参数失败')
     }
   }
 
-  // 渲染关联信息预览
-  const renderRelatedInfo = (events: Event[]) => {
-    const { locations, factions, characters } = getRelatedInfo(events)
-    
-    return (
-      <div className={styles.relatedInfo}>
-        <div className={styles.relatedInfoItem}>
-          <Text strong>关联地点：</Text>
-          <Space wrap>
-            {locations.map(location => (
-              <Tag key={location} color="blue">{geoUnionList.find(geoUnion => geoUnion.code === location)?.name}</Tag>
-            ))}
-          </Space>
-        </div>
-        <div className={styles.relatedInfoItem}>
-          <Text strong>关联阵营：</Text>
-          <Space wrap>
-            {factions.map(faction => {
-              const factionItem = factionList.find(item => item.id === faction);
-              return <Tag key={faction} color="green">{factionItem?.name}</Tag>
-            })}
-          </Space>
-        </div>
-        <div className={styles.relatedInfoItem}>
-          <Text strong>关联角色：</Text>
-          <Space wrap>
-            {characters.map(character => (
-              <Tag key={character} color="purple">{roleList.find(role => role.id === character)?.name}</Tag>
-            ))}
-          </Space>
-        </div>
-      </div>
-    )
-  }
+  
 
   // 根据筛选条件过滤事件
   const filterEvents = (events: Event[]) => {
@@ -780,20 +608,6 @@ function EventPoolPanel({
       return storyLineMatch
     })
   }
-
-  // 渲染事件卡片
-  const renderEventCard = (event: Event) => (
-    <div className={styles.eventCard}>
-      <div style={{ display: 'flex', gap: 5 }}>
-        <Tag>{renderNovelDate(event.date)}</Tag>
-        <Text strong>{event.title}&nbsp;</Text>
-      </div>
-      <Text type="secondary" className="block">
-        {event.description}
-      </Text>
-      {renderRelatedInfo([event])}
-    </div>
-  )
 
   
 
@@ -806,36 +620,23 @@ function EventPoolPanel({
             <Select
               style={{ width: '100%' }}
               placeholder="选择世界观"
-              value={selectedWorldViewId}
+              value={worldViewId}
               allowClear
-              onClear={() => setSelectedWorldViewId(null)}
-              onChange={setSelectedWorldViewId}
+              onClear={() => setContextWorldViewId(null)}
+              onChange={setContextWorldViewId}
             >
-              {worldViewList.map(context => (
+              {worldViewList?.map(context => (
                 <Select.Option key={context.id} value={context.id}>
                   {context.title}
                 </Select.Option>
-              ))}
+              )) || []}
             </Select>
           </Col>
           <Col span={16}>
-            {/* <Select
-              mode="multiple"
-              style={{ width: '100%' }}
-              placeholder="选择故事线"
-              value={selectedStoryLineIds.map(id => id.toString())}
-              onChange={(values: string[]) => setSelectedStoryLineIds(values.map(v => parseInt(v)))}
-            >
-              {storyLineList.map(line => (
-                <Select.Option key={line.id} value={line.id.toString()}>
-                  {line.name}
-                </Select.Option>
-              ))}
-            </Select> */}
             <Space>
             <Text>时间线范围：</Text>
-              <Button icon={<EditOutlined />} type="link" onClick={() => showTimelineModal('start', timelineStart)}>{timelineStart !== null ? renderNovelDate(timelineStart) : '不限'}</Button> - 
-              <Button icon={<EditOutlined />} type="link" onClick={() => showTimelineModal('end', timelineEnd)}>{timelineEnd !== null ? renderNovelDate(timelineEnd) : '不限'}</Button>
+              <Button icon={<EditOutlined />} type="link" onClick={() => showTimelineModal('start', timelineStart)}>{timelineStart !== null ? renderNovelDate(timelineStart, worldViewData) : '不限'}</Button> - 
+              <Button icon={<EditOutlined />} type="link" onClick={() => showTimelineModal('end', timelineEnd)}>{timelineEnd !== null ? renderNovelDate(timelineEnd, worldViewData) : '不限'}</Button>
             </Space>
             
           </Col>
@@ -845,8 +646,19 @@ function EventPoolPanel({
 
         <div className="f-flex-row" style={{ width: '100%', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <Space>
+            <Space.Compact>
               <Button type="primary" icon={<ReloadOutlined />} onClick={() => loadChapterEvents()} loading={loading}>加载事件</Button>
-              <Button type="primary" icon={<CopyOutlined />} disabled>从上一章继承（未实现）</Button>
+              <Space.Addon>
+                <Checkbox checked={showLocations} onChange={() => setShowLocations(!showLocations)}>显示地点</Checkbox>
+              </Space.Addon>
+              <Space.Addon>
+                <Checkbox checked={showFactions} onChange={() => setShowFactions(!showFactions)}>显示阵营</Checkbox>
+              </Space.Addon>
+              <Space.Addon>
+                <Checkbox checked={showCharacters} onChange={() => setShowCharacters(!showCharacters)}>显示角色</Checkbox>
+              </Space.Addon>
+            </Space.Compact>
+            <Button type="default" icon={<CopyOutlined />} onClick={() => handleLoadFromPreviousChapter()}>从上一章继承</Button>
           </Space>
           
           {/* 章节基础信息操作 */}
@@ -854,6 +666,9 @@ function EventPoolPanel({
             <Button icon={<SaveOutlined />} onClick={saveChapterSetting} loading={loading}>保存配置和事件到章节</Button>
           </Space>
         </div>
+
+
+
 
         <Row gutter={16}>
           <Col span={12}>
@@ -878,7 +693,7 @@ function EventPoolPanel({
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
                           >
-                            {renderEventCard(event)}
+                            <EventCard event={event} showLocations={showLocations} showFactions={showFactions} showCharacters={showCharacters} />
                           </div>
                         )}
                       </Draggable>
@@ -887,7 +702,6 @@ function EventPoolPanel({
                   </div>
                 )}
               </Droppable>
-              {/* {renderRelatedInfo(eventPool.selected)} */}
             </div>
           </Col>
 
@@ -913,7 +727,7 @@ function EventPoolPanel({
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
                           >
-                            {renderEventCard(event)}
+                            <EventCard event={event} showLocations={showLocations} showFactions={showFactions} showCharacters={showCharacters} />
                           </div>
                         )}
                       </Draggable>
@@ -922,7 +736,6 @@ function EventPoolPanel({
                   </div>
                 )}
               </Droppable>
-              {/* {renderRelatedInfo(eventPool.candidate)} */}
             </div>
           </Col>
         </Row>
@@ -931,15 +744,9 @@ function EventPoolPanel({
         <TimelineRangeModal
           ref={timelineModalRef}
           onOk={() => {}}
-          onCancel={() => {
-            timelineForm.resetFields()
-          }}
+          onCancel={() => timelineForm.resetFields()}
           form={timelineForm}
-          selectedWorldView={selectedWorldView}
-          onChangeTimeline={(type, value) => {
-            if (type === 'start') setTimelineStart(value)
-            else setTimelineEnd(value)
-          }}
+          onChangeTimeline={(type, value) => handleTimelineChange(type, value)}
           eventPool={eventPool}
         />
       </Space>
@@ -947,7 +754,92 @@ function EventPoolPanel({
   )
 }
 
+export default EventPoolPanel;
 
 
+// 渲染时间点
+const renderNovelDate = (date?: number, worldViewData?: IWorldViewDataWithExtra | null) => {
 
-export default EventPoolPanel 
+  if (!date) {
+    date = 0;
+  }
+
+  if (!worldViewData) {
+    return '时间点：' + date;
+  }
+
+  const util = TimelineDateFormatter.fromWorldViewWithExtra(worldViewData);
+  return util.formatSecondsToDate(date);
+}
+
+interface EventCardProps {
+  event: Event
+  showLocations?: boolean
+  showFactions?: boolean
+  showCharacters?: boolean
+}
+
+function EventCard(props: EventCardProps) {
+  const { event, showLocations, showFactions, showCharacters } = props;
+  const { worldViewData } = useWorldViewContext();
+  const { geoUnionList, factionList, roleList } = useWorldViewContext();
+
+  let location: React.ReactNode = null;
+  let factions: React.ReactNode[] = [];
+  let characters: React.ReactNode[] = [];
+
+  if (event?.location) {
+    let name = geoUnionList?.find(geoUnion => geoUnion.code === event.location)?.name;
+    if (name) {
+      location = <Tag key={location} color="blue">{name}</Tag>
+    } else {
+      console.debug('location未找到对应地点：', geoUnionList, event.location)
+    }
+  }
+
+  if (event?.faction_ids.length > 0) {
+    factions = event.faction_ids.map(faction => {
+      const factionItem = factionList?.find(item => item.id === faction);
+      return <Tag key={faction} color="green">{factionItem?.name}</Tag>
+    })
+  }
+
+  if (event?.role_ids.length > 0) {
+    characters = event.role_ids.map(role => {
+      const roleItem = roleList?.find(item => item.id === role);
+      return <Tag key={role} color="purple">{roleItem?.name}</Tag>
+    })
+  }
+
+  const showRelatedInfo = showLocations || showFactions || showCharacters;
+
+  return (
+    <div className={styles.eventCard}>
+      <div style={{ display: 'flex', gap: 5 }}>
+        <Tag>{renderNovelDate(event.date, worldViewData)}</Tag>
+        <Text strong>{event.title}&nbsp;</Text>
+      </div>
+      <Text type="secondary" className="block">
+        {event.description}
+      </Text>
+      <div className={styles.relatedInfo} style={{ display: showRelatedInfo ? 'block' : 'none' }}>
+        <div className={styles.relatedInfoItem} style={{ display: showLocations ? 'block' : 'none' }}>
+          <Text strong>关联地点：</Text>
+          <Space wrap>{location}</Space>
+        </div>
+        <div className={styles.relatedInfoItem} style={{ display: showFactions ? 'block' : 'none' }}>
+          <Text strong>关联阵营：</Text>
+          <Space wrap>
+            {factions}
+          </Space>
+        </div>
+        <div className={styles.relatedInfoItem} style={{ display: showCharacters ? 'block' : 'none' }}>
+          <Text strong>关联角色：</Text>
+          <Space wrap>
+            {characters}
+          </Space>
+        </div>
+      </div>
+    </div>
+  )
+}
