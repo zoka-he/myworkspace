@@ -121,7 +121,6 @@ export default function(props: IProblemListProps) {
     });
 
 
-    // TODO 补充取数逻辑？
     async function onQueryList() {
         if (!props.taskId) {
             setPList([]);

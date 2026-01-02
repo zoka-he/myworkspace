@@ -328,7 +328,7 @@ function ChapterManage() {
       <div className={styles.rightLayout}>
           {/* 右方面板 */}
           <ChapterContextProvider novelId={selectedNovel} chapterId={selectedChapterId || null} userUpdateTime={userUpdateTime}>
-            <ChapterCard selectedNovelId={selectedNovel} selectedChapterId={selectedChapterId} />
+            <ChapterCard selectedNovelId={selectedNovel} selectedChapterId={selectedChapterId} onChapterChange={handleChapterChange} />
           </ChapterContextProvider>
       </div>
       {/* 添加章节modal */}
@@ -369,7 +369,8 @@ function ChapterManage() {
 
 interface ChapterCardProps {
   selectedNovelId: number | null
-  selectedChapterId: number | null
+  selectedChapterId: number | null,
+  onChapterChange: (chapterId: number | null) => void
 }
 
 function ChapterCard(props: ChapterCardProps) {
@@ -384,15 +385,15 @@ function ChapterCard(props: ChapterCardProps) {
     switch (activeModule) {
       case 'event-pool':  // 事件池管理对话框
         return (
-          <EventPoolPanel/>
+          <EventPoolPanel onChapterChange={(chapterId) => props?.onChapterChange(chapterId)}/>
         )
       case 'chapter-skeleton':  // 章节骨架对话框
         return (
-          <ChapterSkeletonPanel onEditEventPool={() => setActiveModule('event-pool')}/>
+          <ChapterSkeletonPanel onChapterChange={(chapterId) => props?.onChapterChange(chapterId)} onEditEventPool={() => setActiveModule('event-pool')}/>
         )
       case 'chapter-generate': // 章节生成对话框
         return (
-          <ChapterGeneratePanel/>
+          <ChapterGeneratePanel onChapterChange={(chapterId: number | null) => props?.onChapterChange(chapterId)}/>
         )
       default:
         return null

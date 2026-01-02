@@ -285,7 +285,11 @@ const TimelineRangeModal = React.forwardRef(({
 
 */
 
-function EventPoolPanel() {
+interface EventPoolPanelProps {
+  onChapterChange: (chapterId: number | null) => void
+}
+
+function EventPoolPanel(props: EventPoolPanelProps) {
   const { state: chapterContext } = useChapterContext();
   const { 
     worldViewList, 
@@ -594,6 +598,7 @@ function EventPoolPanel() {
       await apiCalls.updateChapter(settingParams);
       // console.debug('saveChapterSetting --> settingParams', settingParams);
       message.success('保存章节参数成功')
+      props.onChapterChange(chapterContext.id)
     } catch (error) {
       message.error('保存章节参数失败')
     }

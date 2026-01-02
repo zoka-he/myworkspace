@@ -320,7 +320,7 @@ export const nameChapterBlocking = async (chapterId: number): Promise<string> =>
     return response.data?.outputs?.output || '';
 }
 
-// TODO: 续写章节，待调正
+
 export const continueChapterBlocking = async (chapterId: number): Promise<string> => {
     const response = await fetch.post(`/api/aiNoval/chapters/continue`, 
         {},

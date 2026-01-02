@@ -53,6 +53,8 @@ export default function useTerritoryEdit(options?: ITerritoryEditOptions) {
     }, [options]);
 
     const TerritoryEdit = useCallback((props: ITerritoryEditProps) => {
+        //TODO:还要实现两个选项卡：1.按时间分解一个疆域区块，2.删除疆域区块
+
         const { state: factionState } = useSimpleFactionContext();
         const { state: geoDataState } = useGeoData();
 

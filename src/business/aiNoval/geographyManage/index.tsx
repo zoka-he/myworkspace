@@ -23,6 +23,7 @@ const LEFT_PANEL_WIDTH = 400; // 左侧面板宽度，必须大于320
 export default function GeoManage() {
 
     // 主渲染逻辑 -----------------------------------------------------------
+    // TODO: 连锁更新逻辑还是有问题，体现在：1.保存后，数据没有刷新；2.选项变更后，会触发旧数据回写
 
     return (
         <SimpleWorldviewProvider>

@@ -218,7 +218,6 @@ function GenRolePanel({ onOk, worldviewId, ...props }: GenRolePanelProps) {
 
   // 打开人物配置页
   const handleOpenRoleConfig = () => {
-    // TODO: 实现跳转到人物配置页面的逻辑
     message.info('即将跳转到人物配置页面')
 
     window.open('/novel/roleManage')

@@ -16,10 +16,10 @@ const { TextArea } = Input
 const { Text } = Typography
 
 interface ChapterGeneratePanelProps {
-  // onChapterChange: () => void
+  onChapterChange: (chapterId?: number | null) => void
 }
 
-function ChapterGeneratePanel({ }: ChapterGeneratePanelProps) {
+function ChapterGeneratePanel({ onChapterChange }: ChapterGeneratePanelProps) {
   const { state: chapterContext } = useChapterContext()
   const [isEditing, setIsEditing] = useState(false)
   const [content, setContent] = useState('')
@@ -82,7 +82,7 @@ function ChapterGeneratePanel({ }: ChapterGeneratePanelProps) {
                 })
                 message.success('内容已保存')
                 setIsEditing(false)
-                // onChapterChange()
+                onChapterChange(chapterContext.id)
               } catch (error) {
                 message.error('保存失败')
               } finally {

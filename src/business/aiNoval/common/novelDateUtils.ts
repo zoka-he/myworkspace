@@ -178,11 +178,12 @@ export class TimelineDateFormatter {
 
     if (standardMatch) {
       // 标准格式解析
-      const [, era, yearStr, monthStr, dayStr] = standardMatch
+      const [_, era1, era2, yearStr, monthStr, dayStr] = standardMatch
+      console.debug('standardMatch: ', standardMatch);
       year = parseInt(yearStr, 10)
       month = parseInt(monthStr, 10)
       day = parseInt(dayStr, 10)
-      isBC = era === '公元前'
+      isBC = era1 + era2 === '公元前' || era2 === '前'
     } else if (simpleMatch) {
       // 简化格式解析
       const [, yearStr, monthStr, dayStr] = simpleMatch
@@ -197,13 +198,13 @@ export class TimelineDateFormatter {
 
     // 验证年月日的有效性
     if (isNaN(year) || year < 1) {
-      throw new Error('年份必须为正整数')
+      throw new Error('年份必须为正整数，当前是' + year + '，日期输入是' + dateStr)
     }
     if (isNaN(month) || month < 1 || month > this.yearLengthInMonths) {
-      throw new Error(`月份必须在1-${this.yearLengthInMonths}之间`)
+      throw new Error(`月份必须在1-${this.yearLengthInMonths}之间，当前是${month}，日期输入是${dateStr}`)
     }
     if (isNaN(day) || day < 1 || day > this.monthLengthInDays) {
-      throw new Error(`日期必须在1-${this.monthLengthInDays}之间`)
+      throw new Error(`日期必须在1-${this.monthLengthInDays}之间，当前是${day}，日期输入是${dateStr}`)
     }
 
     return this.dateDataToSeconds({ isBC, year, month, day, hour: 0, minute: 0, second: 0 })

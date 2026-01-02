@@ -173,7 +173,6 @@ export default function NFTManage() {
                 limit: pagination.pageSize
             }
 
-            // TODO: 创建NFT API接口
             // @ts-ignore
             const { data, count } = await fetch.get('/api/eth/nft', { params })
 
@@ -818,7 +817,6 @@ export default function NFTManage() {
                     remark: values.remark || ''
                 };
 
-                // TODO: 创建NFT保存API
                 await fetch.post('/api/eth/nft', nftData);
 
                 message.success({ content: '铸造成功', key: 'mint' });
