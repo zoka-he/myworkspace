@@ -1,0 +1,17 @@
+.timelineManageLayout {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  height: 100%;
+  width: 100%;
+  overflow: auto;
+  padding-bottom: 10px;
+
+  .timelineListCard {
+    width: 350px;
+  }
+
+  .timelineEditCard {
+    flex: 1;
+  }
+}

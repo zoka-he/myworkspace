@@ -13,12 +13,13 @@ function getDefaultFrontHost() {
     let hostname = `${mysqlConfig.MYSQL_HOST}`;
 
     if (typeof window !== 'undefined') {
-        if (hostname.includes('localhost') && process.env.NODE_ENV === 'production') {   // 适应生产环境且本地访问
-            hostname = 'host.docker.internal';
-        } else if (process.env.NODE_ENV === 'production') {  // 适应生产环境且非本地访问
-            hostname = window.location.hostname;
+        if (process.env.NODE_ENV === 'production') {  // 适应生产环境且非本地访问
+            if (window.location.hostname !== 'localhost') {
+                hostname = window.location.hostname;
+            }
         }
     }
+
     return hostname;
 }
 

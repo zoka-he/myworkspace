@@ -15,26 +15,40 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
     const page = _.toNumber(req.query.page || 1);
     const limit = _.toNumber(req.query.limit || 20);
 
-    const dataType = req.query.dataType || 'base';
+    const mode = req.query.mode || 'base';
+    
+    if (mode === 'base') {
+        if (!req.query.novelId) {
+            res.status(500).json({ message: 'novelId is required in base mode, or set mode=anything' });
+            return;
+        }
+        let ret = await service.getChapterListBaseInfo(_.toNumber(req.query.novelId), page, limit);
+        res.status(200).json(ret);
+    } else {
+        let queryObject: ISqlCondMap = {};
+        for (let [k, v] of Object.entries(req.query)) {
+            if (v === undefined) {
+                continue;
+            }
 
-    // let queryObject: ISqlCondMap = {};
+            switch(k) {
+                case 'novel_id':
+                    queryObject.novel_id = v;
+                    break;
+                case 'chapter_number':
+                    queryObject.chapter_number = v;
+                    break;
+                case 'version':
+                    queryObject.version = v;
+                    break;
+                case 'title':
+                    queryObject.title = v;
+            }
+        }
 
-    // for (let [k, v] of Object.entries(req.query)) {
-    //     if (v === undefined) {
-    //         continue;
-    //     }
-
-    //     switch(k) {
-    //         case 'novel_id':
-    //             queryObject.novel_id = v;
-    //             break;
-    //     }
-    // }
-
-    // let ret = await service.query(queryObject, [], ['chapter_number asc', 'version asc'], page, limit);
-    let ret = await service.getChapterListBaseInfo(req.query.novelId, page, limit);
-
-    res.status(200).json(ret);
+        let ret = await service.query(queryObject, [], ['chapter_number asc', 'version asc'], page, limit);
+        res.status(200).json(ret);
+    }
 }
 
 export default function handler(

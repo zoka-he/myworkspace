@@ -108,6 +108,36 @@ function splitIds2String(ids?: number[] | string[]) {
     return ids.join(',');
 }
 
+function serializeChapter(chapter: IChapter) {
+
+    let _chapter = _.cloneDeep(chapter);
+    if (_chapter.storyline_ids) {
+        _chapter.storyline_ids = splitIds(_chapter.storyline_ids).map(Number);
+    }
+
+    if (_chapter.event_ids) {
+        _chapter.event_ids = splitIds(_chapter.event_ids).map(Number);
+    }
+
+    if (_chapter.geo_ids) {
+        _chapter.geo_ids = splitIds(_chapter.geo_ids).map(String);
+    }
+
+    if (_chapter.role_ids) {
+        _chapter.role_ids = splitIds(_chapter.role_ids).map(Number);
+    }
+
+    if (_chapter.faction_ids) {
+        _chapter.faction_ids = splitIds(_chapter.faction_ids).map(Number);
+    }
+
+    if (_chapter.related_chapter_ids) {
+        _chapter.related_chapter_ids = splitIds(_chapter.related_chapter_ids).map(Number);
+    }
+
+    return _chapter;
+}
+
 /**
  * 获取章节定义数据
  * @param id 章节ID
@@ -116,33 +146,23 @@ function splitIds2String(ids?: number[] | string[]) {
 export const getChapterById = async (id: number) => {
     const chapter = (await fetch.get<IChapter>('/api/aiNoval/chapters', {params: {id}})) as unknown as IChapter;
 
-    console.debug('chapter apicall -> ', chapter);
+    return serializeChapter(chapter);
+}
 
-    if (chapter.storyline_ids) {
-        chapter.storyline_ids = splitIds(chapter.storyline_ids).map(Number);
+export const getChapter = async (params: any) => {
+    let _params = {
+        ...params || {},
+        mode: 'full',
+        page: 1,
+        limit: 1
+    }
+    const response = await fetch.get<IChapter[]>('/api/aiNoval/chapters/list', {params: _params});
+    let chapter = response.data?.[0] || null;
+    if (!chapter) {
+        return null;
     }
 
-    if (chapter.event_ids) {
-        chapter.event_ids = splitIds(chapter.event_ids).map(Number);
-    }
-
-    if (chapter.geo_ids) {
-        chapter.geo_ids = splitIds(chapter.geo_ids).map(String);
-    }
-
-    if (chapter.role_ids) {
-        chapter.role_ids = splitIds(chapter.role_ids).map(Number);
-    }
-
-    if (chapter.faction_ids) {
-        chapter.faction_ids = splitIds(chapter.faction_ids).map(Number);
-    }
-
-    if (chapter.related_chapter_ids) {
-        chapter.related_chapter_ids = splitIds(chapter.related_chapter_ids).map(Number);
-    }
-
-    return chapter;
+    return serializeChapter(chapter);
 }
 
 /**
@@ -300,7 +320,7 @@ export const nameChapterBlocking = async (chapterId: number): Promise<string> =>
     return response.data?.outputs?.output || '';
 }
 
-// TODO: 续写章节，待调正
+
 export const continueChapterBlocking = async (chapterId: number): Promise<string> => {
     const response = await fetch.post(`/api/aiNoval/chapters/continue`, 
         {},

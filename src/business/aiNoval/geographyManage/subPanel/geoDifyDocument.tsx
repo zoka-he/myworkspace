@@ -377,7 +377,7 @@ function GeoDifyDocument({ worldViewId, geoDataType, geoData, onRequestUpdate, d
                     itemDesc.push("行星");
                 } else if (item.geoUnitType === "satellite") {
                     itemDesc.push("卫星");
-                } else if (item.geoUnitType === "geographicUnit") {
+                } else if (item.geoUnitType === "geoUnit") {
                     // if (item.type) {
                     //     itemDesc.unshift(GEO_UNIT_TYPES.find((obj) => obj.enName === item.type)?.cnName || "");
                     // }
