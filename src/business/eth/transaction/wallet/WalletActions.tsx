@@ -70,7 +70,7 @@ export default function WalletActions(props: WalletActionsProps) {
                     <Paragraph type="secondary">
                         钱包连接成功！您现在可以：
                     </Paragraph>
-                    <Row>
+                    {/* <Row>
                         <Col span={8}>
                             <ul className={styles.featureList}>
                                 <li>查看账户余额和交易历史</li>
@@ -83,7 +83,7 @@ export default function WalletActions(props: WalletActionsProps) {
                                 <li>管理NFT和代币（未开发）</li>
                             </ul>
                         </Col>
-                    </Row>
+                    </Row> */}
                     
                     
 
