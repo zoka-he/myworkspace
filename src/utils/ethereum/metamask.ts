@@ -59,48 +59,57 @@ export interface ITransactionFields {
 
 let G_METAMASK_INSTALLED = false;
 let G_METAMASK_FLASK_INSTALLED = false;
+let G_OKX_WALLET_INSTALLED = false;
 let G_PROVIDERS = new Map<string, { provider: any, info: IProviderInfo }>();
 let G_DETECTION_STARTED = false; // 标记是否已经启动检测
 
-export function startDetectBrowserWalletProvider() {
-  if (typeof window === 'undefined') {
-    return false;
-  }
+// export function startDetectBrowserWalletProvider() {
+//   if (typeof window === 'undefined') {
+//     return false;
+//   }
 
-  // 防止重复添加监听器
-  if (G_DETECTION_STARTED) {
-    console.debug('Provider detection already started, skipping...');
-    // 即使已经启动，也重新请求一次，以防有新的 provider 加入
-    window.dispatchEvent(new Event('eip6963:requestProvider'));
-    return true;
-  }
+//   // 防止重复添加监听器
+//   if (G_DETECTION_STARTED) {
+//     console.debug('Provider detection already started, skipping...');
+//     // 即使已经启动，也重新请求一次，以防有新的 provider 加入
+//     window.dispatchEvent(new Event('eip6963:requestProvider'));
+//     return true;
+//   }
 
-  G_DETECTION_STARTED = true;
+//   G_DETECTION_STARTED = true;
 
-  const handleAnnounceProvider = (event: any) => {
-    console.log('announceProvider', event);
-    const providerDetail = event.detail;
+//   const handleAnnounceProvider = (event: any) => {
+//     console.log('announceProvider', event);
+//     const providerDetail = event.detail;
 
-    if (providerDetail.info.rdns === 'io.metamask') {
-      console.log('使用eip6963方式检测到Metamask');
-      G_METAMASK_INSTALLED = true;
-      G_PROVIDERS.set('io.metamask', providerDetail);
-    }
+//     if (providerDetail.info.rdns === 'io.metamask') {
+//       console.log('使用eip6963方式检测到Metamask');
+//       G_METAMASK_INSTALLED = true;
+//       G_PROVIDERS.set('io.metamask', providerDetail);
+//     }
 
-    if (providerDetail.info.rdns === 'io.metamask.flask') {
-      console.log('使用eip6963方式检测到Metamask Flask');
-      G_METAMASK_FLASK_INSTALLED = true;
-      G_PROVIDERS.set('io.metamask.flask', providerDetail);
-    }
-  };
+//     if (providerDetail.info.rdns === 'io.metamask.flask') {
+//       console.log('使用eip6963方式检测到Metamask Flask');
+//       G_METAMASK_FLASK_INSTALLED = true;
+//       G_PROVIDERS.set('io.metamask.flask', providerDetail);
+//     }
+//   };
 
-  window.addEventListener("eip6963:announceProvider", handleAnnounceProvider);
+//   window.addEventListener("eip6963:announceProvider", handleAnnounceProvider);
 
-  // 请求已安装的 provider 宣布自己
-  window.dispatchEvent(new Event('eip6963:requestProvider'));
+//   // 请求已安装的 provider 宣布自己
+//   window.dispatchEvent(new Event('eip6963:requestProvider'));
 
-  return true;
-}
+//   // 探测非eip6963方式的provider
+//   if (window?.okxwallet) {
+//     console.log('使用okxwallet方式检测到Okx钱包');
+//     G_OKX_WALLET_INSTALLED = true;
+//     // console.debug('okxwallet', window?.okxwallet);
+//     G_PROVIDERS.set('okxwallet', window?.okxwallet);
+//   }
+
+//   return true;
+// }
 
 // 检查是否安装了MetaMask
 export function isMetaMaskInstalled(): boolean {
@@ -135,7 +144,7 @@ export function getProvider(rdns: string | null = null) {
 
 // 检查是否已连接
 export function isConnected(providerOrRdns: any = null): boolean {
-  console.debug('isConnected parameter:', arguments);
+  // console.debug('isConnected parameter:', arguments);
 
   let provider = null;
   if (typeof providerOrRdns === 'string') {
@@ -339,6 +348,20 @@ export const readableAmount = EtherConvertUtil.readableAmount;
 //   return EtherConvertUtil.readableAmount(value);
 // }
 
+// export abstract class WalletTool {
+//   abstract onChainChanged(callback: (chainId: string) => void): void;
+//   abstract onAccountsChanged(callback: (accounts: string[]) => void): void;
+//   abstract offAllListeners(): void;
+//   abstract requestAccountsAddress(): Promise<string[]>;
+//   abstract requestBalance(address?: string): Promise<string>;
+//   abstract requestChainId(): Promise<string>;
+//   abstract requestBlockNumber(): Promise<number>;
+//   abstract requestGasPrice(): Promise<string>;
+//   abstract requestWalletInfo(): Promise<IWalletAccount & INetworkInfo & { custom: boolean, isConnected: boolean }>;
+//   abstract sendTransaction(params: ITransactionFields): Promise<string | null>;
+//   abstract waitForTransactionReceipt(txHash: string): Promise<any>;
+// }
+
 // 钱包工具类（原生实现）
 export class MetamaskTool {
 
@@ -365,6 +388,28 @@ export class MetamaskTool {
     if (!provider) {
       throw new Error('provider is required');
     }
+  }
+
+  public async connect(): Promise<{ info: IProviderInfo | null, provider: any }> {
+    const accounts = await this.provider.request({
+      method: 'eth_requestAccounts'
+    });
+
+    if (accounts.length === 0) {
+      throw new Error('未获取到账户信息');
+    }
+
+    return {
+      info: this.provider.info,
+      provider: this.provider,
+    }
+  }
+
+  public async isConnected(): Promise<boolean> {
+    const accounts = await this.provider.request({
+      method: 'eth_requestAccounts'
+    });
+    return accounts.length > 0;
   }
 
   public onChainChanged(callback: (chainId: string) => void): void {
@@ -467,7 +512,7 @@ export class MetamaskTool {
     return gasPrice;
   }
 
-  public async requestWalletInfo(): Promise<IWalletAccount & INetworkInfo & { custom: boolean, isConnected: boolean }> {
+  public async requestWalletInfo(): Promise<(IWalletAccount & INetworkInfo & { custom: boolean, isConnected: boolean }) | null> {
     try {
       const [accounts, balance, chainId, blockNumber, gasPrice] = await Promise.all([
         this.requestAccountsAddress(),
@@ -526,3 +571,5 @@ export class MetamaskTool {
   }
 
 }
+
+

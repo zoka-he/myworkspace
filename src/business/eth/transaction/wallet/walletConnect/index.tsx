@@ -13,12 +13,19 @@ import {
   ClockCircleOutlined
 } from '@ant-design/icons';
 import { 
-  isMetaMaskInstalled, 
+  // isMetaMaskInstalled, 
   IProviderInfo,
-  listProviderInfos,
+  // listProviderInfos,
   readableAmount,
   // PREDEFINED_NETWORKS
 } from '@/src/utils/ethereum/metamask';
+import { 
+  isMetaMaskInstalled, 
+  // IProviderInfo,
+  listProviderInfos,
+  // readableAmount,
+  // PREDEFINED_NETWORKS
+} from '@/src/utils/ethereum';
 import copyToClip from '@/src/utils/common/copy';
 import styles from './index.module.scss';
 import { IWalletInfo } from '../../IWalletInfo';
