@@ -57,7 +57,18 @@ function detectOkxWalletProvider() {
         console.log('使用okxwallet方式检测到Okx钱包');
         G_OKX_WALLET_INSTALLED = true;
         // console.debug('okxwallet', window?.okxwallet);
-        G_PROVIDERS.set('okxwallet', { provider: window?.okxwallet, info: { rdns: 'okxwallet', name: 'Okx Wallet', icon: '', uuid: '' } });
+        G_PROVIDERS.set(
+            'okxwallet', 
+            { 
+                provider: window?.okxwallet, 
+                info: { 
+                    rdns: 'okxwallet', 
+                    name: 'Okx Wallet', 
+                    icon: '/imgs/OKX Wallet.ico', 
+                    uuid: '' 
+                } 
+            }
+        );
         return true;
     }
     return false;

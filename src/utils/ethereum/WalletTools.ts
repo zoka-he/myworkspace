@@ -15,6 +15,15 @@ export abstract class WalletTool {
     abstract sendTransaction(params: ITransactionFields): Promise<string | null>;
     abstract waitForTransactionReceipt(txHash: string): Promise<any>;
 
+    abstract addChain(chainId: string): Promise<void>;
+    abstract switchChain(chainId: string): Promise<void>;
+    abstract removeChain(chainId: string): Promise<void>;
+
+    abstract isSupportChain(chainId: string): Promise<boolean>;
+
+    abstract isSupportCoin(coin: string): boolean;
+    abstract isSupportToken(token: string): Promise<boolean>;
+
     public static from(provider: any): WalletTool {
         if (!provider) {
             throw new Error('provider is required');

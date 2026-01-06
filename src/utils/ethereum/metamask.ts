@@ -203,37 +203,37 @@ export async function disconnectWallet(rdns: string | null = null): Promise<void
 }
 
 // 获取当前钱包信息
-export async function getWalletInfo(): Promise<WalletInfo | null> {
+// export async function getWalletInfo(): Promise<WalletInfo | null> {
   
-  // if (!isMetaMaskInstalled() || !isConnected()) {
-  //   return null;
-  // }
+//   // if (!isMetaMaskInstalled() || !isConnected()) {
+//   //   return null;
+//   // }
 
-  try {
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    const signer = await provider.getSigner();
-    const address = await signer.getAddress();
-    const balance = await provider.getBalance(address);
-    const network = await provider.getNetwork();
-    const feeData = await provider.getFeeData();
-    const blockNumber = await provider.getBlockNumber();
+//   try {
+//     const provider = new ethers.BrowserProvider(window.ethereum);
+//     const signer = await provider.getSigner();
+//     const address = await signer.getAddress();
+//     const balance = await provider.getBalance(address);
+//     const network = await provider.getNetwork();
+//     const feeData = await provider.getFeeData();
+//     const blockNumber = await provider.getBlockNumber();
 
-    return {
-      address,
-      balance: ethers.formatEther(balance),
-      chainId: network.chainId.toString(),
-      networkName: network.name,
-      isConnected: true,
-      networkInfo: network,
-      feeData: feeData,
-      blockNumber: blockNumber,
-      custom: false
-    };
-  } catch (error) {
-    console.error('获取钱包信息失败:', error);
-    return null;
-  }
-}
+//     return {
+//       address,
+//       balance: ethers.formatEther(balance),
+//       chainId: network.chainId.toString(),
+//       networkName: network.name,
+//       isConnected: true,
+//       networkInfo: network,
+//       feeData: feeData,
+//       blockNumber: blockNumber,
+//       custom: false
+//     };
+//   } catch (error) {
+//     console.error('获取钱包信息失败:', error);
+//     return null;
+//   }
+// }
 
 // 切换网络
 export async function switchNetwork(chainId: string): Promise<void> {

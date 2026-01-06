@@ -7,6 +7,14 @@ export class OkxWalletTool extends WalletTool {
   private chainChangeHandler: ((chainId: string) => void) | null = null;
   private accountsChangedHandler: ((accounts: string[]) => void) | null = null;
 
+  public isSupportCoin(coin: string): boolean {
+    switch (coin.toLowerCase()) {
+      case 'eth':
+        return true;
+    }
+    return false;
+  }
+
   async connect(): Promise<{ info: IProviderInfo | null, provider: any }> {
     const accounts = await this.okxWallet.request({
       method: 'eth_requestAccounts'
