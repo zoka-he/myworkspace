@@ -398,6 +398,8 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
       faction_names: factionNames || '',
       geo_names: geoNames || '',
       llm_type: llmType,
+      attention: attention || '',
+      extra_settings: extraSettings || '',
     };
     console.info('auto write reqObj -> ', reqObj);
 
