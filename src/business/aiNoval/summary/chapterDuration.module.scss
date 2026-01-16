@@ -1,0 +1,23 @@
+.novelList {
+    width: 300px;
+    border: 1px solid var(--m-chapter-list-border);
+    height: 100%;
+}
+
+.summaryD3GraphContainer {
+    // border: 1px solid var(--m-chapter-list-border);
+
+    :global(* + .ant-row) {
+        margin-top: 10px;
+    }
+
+    :global(.ant-card) {
+        :global(.ant-card-head) {
+            background: var(--bg-lv1);
+        }
+    }
+
+    :global(.ant-row:nth-child(1) .ant-card-body) {
+        height: 300px;
+    }
+}

@@ -44,8 +44,10 @@ export default class ChaptersService extends MysqlNovalService {
 
     // 获取章节列表基础信息
     async getChapterListBaseInfo(novelId, page = 1, limit = 20) {
+        const columns = ['id', 'chapter_number', 'version', 'title', 'event_ids', 'created_at', 'updated_at'];
+
         const result = await this.query(
-            'SELECT id, chapter_number, version, title, event_ids FROM chapters WHERE novel_id = ?', [novelId],
+            `SELECT ${columns.join(',')} FROM chapters WHERE novel_id = ?`, [novelId],
             ['chapter_number asc', 'version asc'],
             page,
             limit
