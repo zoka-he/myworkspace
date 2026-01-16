@@ -343,29 +343,32 @@ export default function TransactionSend(props: WalletActionsProps) {
     };
 
     const setGasPrice = (gasPrice: number | string) => {
+        let result: number = 0;
+
         let gasPrice_standard = parseInt(networkInfo?.gasPrice) || null; 
         if (gasPrice_standard === null || gasPrice_standard === undefined || gasPrice_standard === 0) {
             if (typeof gasPrice === 'number') {
-                form.setFieldValue('gasPrice', gasPrice);
+                result = gasPrice;
             } else if (typeof gasPrice === 'string' && _.isNumber(gasPrice)) {
-                form.setFieldValue('gasPrice', Number(gasPrice));
+                result = Number(gasPrice);
             }
         } else {
             if (gasPrice === 'fast2') {
-                form.setFieldValue('gasPrice', gasPrice_standard * 2);
+                result = gasPrice_standard * 2;
             } else if (gasPrice === 'fast1') {
-                form.setFieldValue('gasPrice', gasPrice_standard * 1.5);
+                result = gasPrice_standard * 1.5;
             } else if (gasPrice === 'slow') {
-                form.setFieldValue('gasPrice', gasPrice_standard * 0.8);
+                result = gasPrice_standard * 0.8;
             } else if (gasPrice === 'standard') {
-                form.setFieldValue('gasPrice', gasPrice_standard);
+                result = gasPrice_standard;
             } else if (typeof gasPrice === 'number') {
-                form.setFieldValue('gasPrice', gasPrice);
+                result = gasPrice;
             } else if (typeof gasPrice === 'string' && _.isNumber(gasPrice)) {
-                form.setFieldValue('gasPrice', Number(gasPrice));
+                result = Number(gasPrice);
             }
         }
 
+        form.setFieldValue('gasPrice', Math.round(result));
         
     };
 
@@ -664,7 +667,25 @@ function TransactionPreview({ txData, eth2usd }: TransactionPreviewProps) {
             return null;
         }
 
-        return BigInt(txData.gasPrice) * BigInt(txData.gasLimit);
+        let safeGasPrice: number | bigint | string = txData.gasPrice;
+        let safeGasLimit: number | bigint | string = txData.gasLimit;
+        if (typeof safeGasPrice === 'string') {
+            safeGasPrice = Number(safeGasPrice);
+        }
+
+        if (typeof safeGasLimit === 'string') {
+            safeGasLimit = Number(safeGasLimit);
+        }
+
+        if (typeof safeGasPrice === 'number') {
+            safeGasPrice = BigInt(Math.round(safeGasPrice));
+        }
+
+        if (typeof safeGasLimit === 'number') {
+            safeGasLimit = BigInt(Math.round(safeGasLimit));
+        }
+
+        return safeGasPrice * safeGasLimit;
     }, [txData?.gasPrice, txData?.gasLimit]);
 
     const totalAmount = useMemo(() => {

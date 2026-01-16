@@ -78,6 +78,14 @@ async function forceUpdateChapter(chapterId: number, dispatch: (action: any) => 
     })
 }
 
+async function forceRefreshChapter(state: IChapter | null, dispatch: (action: any) => void) {
+    if (!state?.id) {
+        return;
+    }
+
+    await forceUpdateChapter(state.id, dispatch);
+}
+
 export function useChapterContext() {
     const context = useContext(ChapterContext)
     if (!context) {
@@ -85,6 +93,7 @@ export function useChapterContext() {
     }
     return {
         ...context,
-        forceUpdateChapter: (chapterId: number) => forceUpdateChapter(chapterId, context.dispatch)
+        forceUpdateChapter: (chapterId: number) => forceUpdateChapter(chapterId, context.dispatch),
+        forceRefreshChapter: () => forceRefreshChapter(context.state, context.dispatch)
     }
 }

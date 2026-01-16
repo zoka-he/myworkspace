@@ -8,8 +8,7 @@ import { useSimpleTimelineProvider } from '../../../common/SimpleTimelineProvide
 import { TimelineDateFormatter } from '../../../common/novelDateUtils';
 import _ from 'lodash';
 import fetch from '@/src/fetch';
-import { ITerritoryDef } from '@/src/types/IAiNoval';
-
+import { IFactionTerritory } from '@/src/types/IAiNoval';
 
 const { Text } = Typography;
 
@@ -28,7 +27,7 @@ export default function useTerritoryEdit(options?: ITerritoryEditOptions) {
     const [visible, setVisible] = useState(false);
     const { state: worldviewState } = useSimpleWorldviewContext();
 
-    const open = useCallback((value?: ITerritoryDef) => {
+    const open = useCallback((value?: IFactionTerritory) => {
         setVisible(true);
 
         if (value) {
@@ -37,6 +36,7 @@ export default function useTerritoryEdit(options?: ITerritoryEditOptions) {
             });
         } else {
             form.setFieldsValue({
+                id: null, // 新建时，id为null
                 worldview_id: worldviewState.worldviewId,
                 start_date: null,
                 end_date: null,
@@ -52,15 +52,13 @@ export default function useTerritoryEdit(options?: ITerritoryEditOptions) {
         setVisible(false);
     }, [options]);
 
-    const onOk = useCallback(async () => {
-        const values = await form.validateFields();
-        console.log(values);
-        setVisible(false);
-    }, [options]);
-
     const TerritoryEdit = useCallback((props: ITerritoryEditProps) => {
+        //TODO:还要实现两个选项卡：1.按时间分解一个疆域区块，2.删除疆域区块
+
         const { state: factionState } = useSimpleFactionContext();
         const { state: geoDataState } = useGeoData();
+
+        const isCreate = form.getFieldValue('id') === null;
 
         async function handleSubmit() {
             const values = await form.validateFields();
@@ -99,19 +97,41 @@ export default function useTerritoryEdit(options?: ITerritoryEditOptions) {
             }
         }
 
+        const title = isCreate ? '添加疆域单元' : '编辑疆域单元';
+
         return (
             <>
-                <Modal open={visible} onCancel={onCancel} onOk={handleSubmit} title="添加疆域单元" width={720}>
+                <Modal open={visible} onCancel={onCancel} title={title} 
+                    width={720} 
+                    footer={
+                        <div className="f-flex-two-side">
+                            <Button type="default" danger disabled>删除</Button>
+                            <Button type="primary" danger={!isCreate} onClick={handleSubmit}>{isCreate ? '添加' : '保存'}</Button>
+                        </div>
+                    }
+                >
                     <Form form={form} labelCol={{ span: 4 }} wrapperCol={{ span: 20 }}>
                         <Form.Item name="id" hidden></Form.Item>
                         <Form.Item label="世界观" name="worldview_id">
                             <Tag>{worldviewState.worldviewList?.find(w => w.id === worldviewState.worldviewId)?.title || '未知'}</Tag>
                         </Form.Item>
                         <Form.Item label="疆域区块" name="geo_code" rules={[{ required: true, message: '请输入疆域名称' }]}>
-                            <TreeSelect treeData={geoDataState.geoTree || []} fieldNames={{ label: 'title', value: 'key', children: 'children' }}/>
+                            <TreeSelect treeData={geoDataState.geoTree || []} 
+                                fieldNames={{ label: 'title', value: 'key', children: 'children' }}
+                                allowClear
+                                // treeDefaultExpandAll
+                                showSearch
+                                treeNodeFilterProp="title"
+                            />
                         </Form.Item>
                         <Form.Item label="所属阵营" name="faction_id" rules={[{ required: true, message: '请选择所属阵营' }]}>
-                            <TreeSelect treeData={factionState.factionTree || []} fieldNames={{ label: 'title', value: 'value', children: 'children' }}/>
+                            <TreeSelect treeData={factionState.factionTree || []} 
+                                fieldNames={{ label: 'title', value: 'value', children: 'children' }}
+                                allowClear
+                                // treeDefaultExpandAll
+                                showSearch
+                                treeNodeFilterProp="title"
+                            />
                         </Form.Item>
                         <Form.Item label="曾用地名" name="alias_name">
                             <Input allowClear/>

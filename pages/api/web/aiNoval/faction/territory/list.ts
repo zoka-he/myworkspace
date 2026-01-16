@@ -30,7 +30,7 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
         }
     }
 
-    let ret = await service.query(queryObject, [], ['id asc'], page, limit);
+    let ret = await service.query(queryObject, [], ['start_date asc'], page, limit);
     res.status(200).json(ret);
 }
 

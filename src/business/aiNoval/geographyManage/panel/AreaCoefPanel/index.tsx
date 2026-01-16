@@ -40,7 +40,7 @@ export default function AreaCoefPanel() {
     const [territoryList, setTerritoryList] = useState<IFactionTerritory[]>([]);
 
     async function onRequestUpdate() {
-        console.debug('onRequestUpdate --->> ');
+        // console.debug('onRequestUpdate --->> ');
         const response = await fetch.get('/api/aiNoval/faction/territory/list', {
             params: {
                 worldview_id: worldviewState.worldviewId,
@@ -118,10 +118,15 @@ function Plot(props: IPlotProps) {
     // const svgRef = useRef<SVGSVGElement>(null);
     const xAxisContainerRef = useRef<SVGGElement>(null);
     const yAxisContainerRef = useRef<SVGGElement>(null);
+    const yScaleRef = useRef<d3.ScaleLinear<number, number>>(null);
+    const partitionDataRef = useRef<d3.HierarchyRectangularNode<FlatGeoDataTree>>(null);
+
     const factionLayerContainerRef = useRef<SVGGElement>(null);
     const pointerLayerContainerRef = useRef<SVGGElement>(null);
     const legendLayerContainerRef = useRef<SVGGElement>(null);
     const tooltipLayerContainerRef = useRef<SVGGElement>(null);
+    const geoHintLayerContainerRef = useRef<SVGGElement>(null);
+    const timeHintLayerContainerRef = useRef<SVGGElement>(null);
 
     // 存储颜色比例尺
     const colorScaleRef = useRef<d3.ScaleOrdinal<string, string>>(null);
@@ -298,8 +303,12 @@ function Plot(props: IPlotProps) {
             .attr('height', d => Math.max(rectHeight(d), 0))   // 减去1是为了让方块之间有空隙
             .attr('fill', 'url(#rectGradient)')
             .on('click', (event, d) => {
-                console.debug('x axis rect click --->> ', d);
+                // console.debug('x axis rect click --->> ', d);
                 props.onGeoDataClick(d.data);
+            }).on('mouseenter', (event, d) => {
+                plotGeoHint(event, d.data);
+            }).on('mouseleave', (event, d) => {
+                clearGeoHint();
             });
 
         const text = cells.selectAll('text').data(d => d)
@@ -352,6 +361,8 @@ function Plot(props: IPlotProps) {
         const yScale = d3.scaleLinear()
             .domain([dateRangeMax, dateRangeMin])
             .range([0, CONFIG.dataViewHeight]);
+
+        yScaleRef.current = yScale;
 
         // 创建y轴刻度
         const yAxis = d3.axisLeft(yScale)
@@ -461,20 +472,22 @@ function Plot(props: IPlotProps) {
             .attr('height', d => Math.max(d.rectHeight, 0))
             .attr('fill', d => d.color)
             .on('click', (event, d) => {
-                console.debug('rect click --->> ', d);
+                // console.debug('rect click --->> ', d);
                 props.onTerritoryClick(d as unknown as IFactionTerritory);
             })
             .on('mouseenter', (event, d) => {
                 // console.debug('rect mouseenter --->> ', d);
-                onMouseEnter(event, d);
+                onMouseEnterTerritoryRect(event, d);
+                plotGeoHint(event, d);
             })
             .on('mouseleave', (event, d) => {
                 // console.debug('rect mouseleave --->> ', d);
-                onMouseLeave(event, d);
+                onMouseLeaveTerritoryRect(event, d);
+                clearGeoHint();
             })
             .on('mousemove', (event, d) => {
                 // console.debug('rect mousemove --->> ', d);
-                onMouseMove(event, d);
+                onMouseMoveTerritoryRect(event, d);
             });
 
         return {
@@ -560,7 +573,7 @@ function Plot(props: IPlotProps) {
         
         const boxText = d ? 
             [
-                { title: '名称', value: d?.alias_name || geoDataState.geoData?.find(item => item.code === d.code)?.name || '' },
+                { title: '名称', value: d?.name || geoDataState.geoData?.find(item => item.code === d.code)?.name || '' },
                 { title: '所属势力', value: d?.faction_name || '' },
                 { title: '开始时间', value: formatDate(d?.start_date) || '' },
                 { title: '结束时间', value: formatDate(d?.end_date) || '' },
@@ -569,24 +582,10 @@ function Plot(props: IPlotProps) {
             : 
             [];
 
-        function getTextItemWidth(item: { title: string, value: string }) {
-            const str = item.title + item.value;
 
-            // 中文汉字（包括基本汉字和扩展汉字）
-            const chineseHanzi = (str.match(/[\u4e00-\u9fff]/g) || []).length;
-            // 中文标点符号
-            const chinesePunctuation = (str.match(/[\u3000-\u303f\uff00-\uffef]/g) || []).length;
-            // 全角字符（包括中文全角字符和标点）
-            // const fullWidthChars = (str.match(/[\uff01-\uff5e]/g) || []).length;
-            // 使用Unicode属性（ES6+）
-            // const usingUnicodeProperty = (str.match(/\p{Script=Han}/gu) || []).length;
+        // console.debug('boxTextMaxLength --->> ', Math.max(...boxText.map(d => getTextWidth(d.title + d.value))));
 
-            return str.length + (chineseHanzi + chinesePunctuation) * 0.5;
-        }
-
-        console.debug('boxTextMaxLength --->> ', Math.max(...boxText.map(getTextItemWidth)));
-
-        const boxWidth = Math.max(...boxText.map(getTextItemWidth)) * 10 + 10;
+        const boxWidth = Math.max(...boxText.map(d => getTextWidth(d.title + d.value))) * 10 + 10;
         const boxHeight = boxText.length * 20 + 10;
 
 
@@ -668,12 +667,75 @@ function Plot(props: IPlotProps) {
             .attr('transform', (d, index) => `translate(10, ${20 + index * 20})`)
             .text(d => `${d.title}: ${d.value}`);
     }
+
+    function plotGeoHint(event: React.MouseEvent<SVGRectElement, MouseEvent>, d: any) {
+        if (!geoHintLayerContainerRef.current) {
+            console.debug('geoHintLayerContainerRef.current is null');
+            return;
+        }
+
+        if (!yScaleRef.current) {
+            console.debug('yScaleRef.current is null');
+            return;
+        }
+
+        if (!partitionDataRef.current) {
+            console.debug('partitionDataRef.current is null');
+            return;
+        }
+
+        
+        const partitionData = partitionDataRef.current.find(p => p.data.code === d.code);
+        let data: any[] = [];
+        if (partitionData) {
+            data = [{
+                x: partitionData.x0 + CONFIG.dataViewLeftMargin,
+                y: 0,
+                width: partitionData.x1 - partitionData.x0,
+                height: yAxisContainerRef.current?.getBBox().height || 0,
+            }];
+        }
+
+        console.debug('data --->> ', data);
+
+        const container = d3.select(geoHintLayerContainerRef.current);
+        const g = container.selectAll('g').data(data).join(
+            enter => {
+                let g = enter.append('g');
+                g.append('rect').attr('fill', '#f8f8f8');
+                return g;
+            },
+            update => update,
+            exit => exit.remove()
+        );
+        
+        // 在 rect 子元素上设置属性，数据从父元素 g 继承
+        g.selectAll('rect')
+            .data(d => [d]) // 从父元素 g 获取数据
+            .attr('x', d => d.x)
+            .attr('y', d => d.y)
+            .attr('width', d => d.width)
+            .attr('height', d => d.height);
+    }
+
+    function clearGeoHint() {
+        if (!geoHintLayerContainerRef.current) return;
+
+        const container = d3.select(geoHintLayerContainerRef.current);
+        container.selectAll('g').data([]).join(
+            enter => enter,
+            update => update,
+            exit => exit.remove()
+        );
+    }
     
     function onZoom(
         event: d3.D3ZoomEvent<SVGSVGElement, unknown>, 
     ) {
         // console.debug('onDrag --->> ', event.transform, event.transform.applyY);
         const d3PartitionData = calculateD3PartitionData(CONFIG);
+        partitionDataRef.current = d3PartitionData;
+
         // 补充数据视图的最大高度限制
         let CONFIG_NEW = {
             ...CONFIG,
@@ -687,7 +749,7 @@ function Plot(props: IPlotProps) {
         plotFactionData(CONFIG_NEW, d3PartitionData, { yScale });
     }
 
-    function onMouseEnter(event: React.MouseEvent<SVGRectElement, MouseEvent>, d_target: any) {
+    function onMouseEnterTerritoryRect(event: React.MouseEvent<SVGRectElement, MouseEvent>, d_target: any) {
         const dataLayer = d3.select(factionLayerContainerRef.current);
         dataLayer.selectAll('g').selectAll('rect')
             .attr('fill', (d, i, nodes) => {
@@ -712,8 +774,8 @@ function Plot(props: IPlotProps) {
             });
     }
 
-    function onMouseLeave(event: React.MouseEvent<SVGRectElement, MouseEvent>, d: any) {
-        // console.debug('onMouseLeave --->> ', event);
+    function onMouseLeaveTerritoryRect(event: React.MouseEvent<SVGRectElement, MouseEvent>, d: any) {
+        // console.debug('onMouseLeaveTerritoryRect --->> ', event);
         const dataLayer = d3.select(factionLayerContainerRef.current);
         dataLayer.selectAll('g').selectAll('rect')
             .attr('fill', d =>d.color);
@@ -721,9 +783,101 @@ function Plot(props: IPlotProps) {
         plotTooltip(event, null);
     }
 
-    function onMouseMove(event: React.MouseEvent<SVGRectElement, MouseEvent>, d: any) {
-        // console.debug('onMouseMove --->> ', event);
+    function onMouseMoveTerritoryRect(event: React.MouseEvent<SVGRectElement, MouseEvent>, d: any) {
+        // console.debug('onMouseMoveTerritoryRect --->> ', event);
         plotTooltip(event, d);
+    }
+
+    function onMouseMoveSvg(event: React.MouseEvent<SVGSVGElement, MouseEvent>) {
+        if (!yScaleRef.current) return;
+        const { offsetY } = event;
+
+        let data = [{
+            date: yScaleRef.current.invert(offsetY),
+            y: offsetY,
+        }]
+
+        // console.debug(data[0].date);
+
+        if (offsetY < 0) data = [];
+
+        if (yAxisContainerRef.current) {
+            // console.debug('xAxisContainerRef.current --->> ', xAxisContainerRef.current.getBBox());
+            let yMax = yAxisContainerRef.current.getBBox().height;
+            if (offsetY > yMax) data = [];
+        }
+        
+
+        const g = d3.select(timeHintLayerContainerRef.current).selectAll('g').data(data)
+            .join(
+                enter => {
+                    let g = enter.append('g')
+                        .attr('pointer-events', 'none')
+
+                    g.append('rect')
+                        .attr('width', 12)
+                        .attr('height', 16)
+                        .attr('fill', '#fff')
+                        .attr('stroke', '#000')
+                        .attr('stroke-width', 1)
+                        .attr('shape-rendering', 'crispEdges')
+                        .attr('x', CONFIG.dataViewLeftMargin - 14)
+                        .attr('y', -8)
+                        // .attr('anchor', 'end')
+
+                    g.append('text')
+                        .attr('font-size', '10px')
+                        .attr('fill', '#000')
+                        .attr('text-anchor', 'end')
+                        .attr('dominant-baseline', 'middle')
+                        .attr('x', CONFIG.dataViewLeftMargin - 14)
+
+                    g.append('line')
+                        .attr('x1', CONFIG.dataViewLeftMargin)
+                        .attr('x2', dimensions.width)
+                        .attr('stroke', 'yellow')
+                        .attr('stroke-width', 2)
+                        .attr('pointer-events', 'none')
+
+                    return g;
+                },
+                update => {
+                    // update 时需要更新数据绑定，确保子元素能获取到最新的数据
+                    return update;
+                },
+                exit => exit.remove()
+            );
+
+        function formatDate(date?: number) {
+            if (!_.isNumber(date)) return '';
+            return TimelineDateFormatter.fromWorldViewWithExtra(worldviewState.worldviewData || {}).formatSecondsToDate(date);
+        }
+
+        // 更新 transform 和 text 内容
+        // 注意：join() 方法会自动更新数据绑定，所以这里可以直接使用 d
+        g.attr('transform', `translate(0, ${offsetY})`);
+        
+        g.selectAll('rect')
+            .data(d => [d])
+            .attr('x', d => CONFIG.dataViewLeftMargin - 10 - getTextWidth(formatDate(d?.date)) * 6.5)
+            .attr('y', -8)
+            .attr('width', d => getTextWidth(formatDate(d?.date)) * 6.5)
+            .attr('height', 16)
+            .attr('fill', '#fff')
+            .attr('stroke', '#000')
+            .attr('stroke-width', 1)
+            .attr('shape-rendering', 'crispEdges');
+        
+        // 显式重新绑定数据到 text 元素，确保获取最新的数据
+        g.selectAll('text')
+            .data(d => [d]) // 显式绑定数据，确保获取父元素的最新数据
+            .text(d => {
+                // console.debug('d --->> ', d);
+                if (!d) return '';
+                return formatDate(d.date);
+            });
+
+
     }
 
     useEffect(() => {
@@ -733,7 +887,8 @@ function Plot(props: IPlotProps) {
         
 
         const d3PartitionData = calculateD3PartitionData(CONFIG);
-        
+        partitionDataRef.current = d3PartitionData;
+
         // 补充数据视图的最大高度限制
         let CONFIG_NEW = {
             ...CONFIG,
@@ -753,6 +908,7 @@ function Plot(props: IPlotProps) {
                 .scaleExtent([1, 100])
                 .translateExtent([[0, 0], [0, dimensions.height]]);
             d3.select<SVGSVGElement, unknown>(svg).call(zoom as any);
+            d3.select<SVGSVGElement, unknown>(svg).on('mousemove', event => onMouseMoveSvg(event));
         } else {
             console.error('svg not found');
         }
@@ -765,10 +921,26 @@ function Plot(props: IPlotProps) {
 
     return <>
         <g className="pointer_layer" ref={pointerLayerContainerRef}></g>
+        <g className="geo_hint_layer" ref={geoHintLayerContainerRef}></g>
         <g className="faction_layer" ref={factionLayerContainerRef}></g>
         <g className="y_axis" ref={yAxisContainerRef}></g>
         <g className="x_locations" ref={xAxisContainerRef}></g>
         <g className="legend_layer" ref={legendLayerContainerRef}></g>
         <g className="tooltip_layer" ref={tooltipLayerContainerRef}></g>
+        <g className="time_hint_layer" ref={timeHintLayerContainerRef}></g>
     </>
+}
+
+function getTextWidth(str: string) {
+
+    // 中文汉字（包括基本汉字和扩展汉字）
+    const chineseHanzi = (str.match(/[\u4e00-\u9fff]/g) || []).length;
+    // 中文标点符号
+    const chinesePunctuation = (str.match(/[\u3000-\u303f\uff00-\uffef]/g) || []).length;
+    // 全角字符（包括中文全角字符和标点）
+    // const fullWidthChars = (str.match(/[\uff01-\uff5e]/g) || []).length;
+    // 使用Unicode属性（ES6+）
+    // const usingUnicodeProperty = (str.match(/\p{Script=Han}/gu) || []).length;
+
+    return str.length + (chineseHanzi + chinesePunctuation) * 0.5;
 }

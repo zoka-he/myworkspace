@@ -1,5 +1,6 @@
 import { IGeoUnionData } from "@/src/types/IAiNoval";
 import { IGeoTreeItem } from "../../geoTree";
+import _ from "lodash";
 
 export class FlatGeoData {
     public id: number;
@@ -58,6 +59,7 @@ export class FlatGeoDataTree extends FlatGeoData {
             if (item.data?.has_geo_area !== 'Y') return null;
 
             let children = FlatGeoDataTree.fromGeoTree(item.children) || [];
+            // children = _.sortBy(children, item => item.code);
             return new FlatGeoDataTree(item.data, children);
         }).filter(item => item !== null);
     }

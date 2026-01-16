@@ -22,6 +22,7 @@ const { Option } = Select
 
 interface ChapterSkeletonPanelProps {
   onEditEventPool: () => void
+  onChapterChange: (chapterId: number | null) => void
 }
 
 interface ISkeletonItem {
@@ -33,11 +34,11 @@ interface ISkeletonItem {
 function ChapterSkeletonPanel({ 
   // selectedChapterId, 
   // novelId,
-  // onChapterChange,
+  onChapterChange,
   onEditEventPool,
   // onUpdateWorldView
 }: ChapterSkeletonPanelProps) {
-  const { state: chapterContext, forceUpdateChapter } = useChapterContext();
+  const { state: chapterContext, forceUpdateChapter, forceRefreshChapter } = useChapterContext();
   const { worldViewData, geoUnionList, factionList, roleList } = useWorldViewContext();
 
   const [form] = Form.useForm()
@@ -310,10 +311,10 @@ function ChapterSkeletonPanel({
       // console.debug('updateObject', updateObject);
 
       await updateChapter(updateObject);
-
-      // TODO: 调用API保存章节信息
       message.success('保存成功')
-      // onChapterChange()
+
+      onChapterChange(chapterContext.id)
+      // await forceRefreshChapter();
     } catch (error) {
       console.error('保存失败', error);
       message.error('保存失败：' + (error instanceof Error ? error.message : 'Unknown error'))
@@ -736,6 +737,11 @@ function ChapterSkeletonPanel({
         isVisible={isAttentionRefModalVisible}
         onClose={() => setIsAttentionRefModalVisible(false)}
         content={''}
+        onApply={(str) => {
+          form.setFieldsValue({
+            attension: str
+          });
+        }}
       />
 
     </div>

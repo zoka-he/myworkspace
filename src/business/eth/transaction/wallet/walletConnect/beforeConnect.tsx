@@ -2,7 +2,9 @@ import { Card, Space, Select, Button, Modal, Typography, message } from "antd";
 import { WalletOutlined, RightOutlined } from "@ant-design/icons";
 import styles from './index.module.scss';
 import { useEffect, useMemo, useState } from "react";
-import { getInstalledProvider, IProviderInfo, isConnected, listProviderInfos } from "@/src/utils/ethereum/metamask";
+import { getInstalledProvider, IProviderInfo } from "@/src/utils/ethereum/metamask";
+import { WalletTool } from "@/src/utils/ethereum/WalletTools";
+import { listProviderInfos, isConnected, hasProviders, getProvider } from "@/src/utils/ethereum";
 import { useWalletContext } from "../../WalletContext";
 import { connectWallet, isMetaMaskInstalled } from "@/src/utils/ethereum/metamask";
 
@@ -28,7 +30,7 @@ export default function BeforeConnect() {
 
         // 如果只有一个钱包提供者，则自动选择
         if (providers.length === 1) {
-            setSelectedBrowserWalletProviderRdns(providers[0].info.rdns);
+            setSelectedBrowserWalletProviderRdns(providers[0].info?.rdns);
         }
 
         // 如果只有一个钱包建立了连接，则自动选择
@@ -44,7 +46,7 @@ export default function BeforeConnect() {
 
         if (connectedCount === 1) {
             setSelectedBrowserWalletProviderRdns(providerToConnect?.info.rdns ?? null);
-            switchRdns(providerToConnect?.info.rdns ?? null);
+            switchRdns(providerToConnect?.info?.rdns ?? null);
         }
         
     }, []);
@@ -98,30 +100,53 @@ export default function BeforeConnect() {
 
     function renderProviderOption(info: IProviderInfo ) {
         return (
-          <Space key={info.rdns} align='center'>
-            <img style={{ width: '1em', height: '1em', transform: 'translateY(-0.18em)' }} src={info.icon} alt={info.name} className={styles.providerIcon} />
-            <Text key={info.rdns} color="blue">{info.name}</Text>
+          <Space key={info?.rdns} align='center'>
+            <img style={{ width: '1em', height: '1em', transform: 'translateY(-0.18em)' }} src={info?.icon ?? ''} alt={info?.name ?? ''} className={styles.providerIcon} />
+            <Text key={info?.rdns} color="blue">{info?.name}</Text>
           </Space>
         )
     }
 
     // 尝试连接钱包，成功会设置钱包信息和钱包提供者
     const handleConnect = async () => {
+
+        if (!hasProviders()) {
+            message.error('未检测到钱包，请先安装钱包');
+            return;
+        }
+
         if (!selectedBrowserWalletProviderRdns) {
             message.error('请先选择钱包');
             return;
         }
         
-        if (selectedBrowserWalletProviderRdns.startsWith('io.metamask') && !isMetaMaskInstalled()) {
-            message.error('请先安装MetaMask钱包');
-            return;
-        }
+        // if (selectedBrowserWalletProviderRdns.startsWith('io.metamask') && !isMetaMaskInstalled()) {
+        //     message.error('请先安装MetaMask钱包');
+        //     return;
+        // }
 
         setLoading(true);
         try {
-            const {info, provider} = await connectWallet(selectedBrowserWalletProviderRdns);
-            switchRdns(info?.rdns ?? null);
-            message.success('钱包连接成功');
+            const provider = getProvider(selectedBrowserWalletProviderRdns);
+
+            if (!provider) {
+                message.error('未检测到钱包，请检查代码');
+                return;
+            }
+
+            const walletTool = WalletTool.from(provider);
+            if (walletTool.isConnected()) {
+                message.success('钱包已连接');
+                switchRdns(selectedBrowserWalletProviderRdns);
+            } else {
+                await walletTool.connect();
+                switchRdns(selectedBrowserWalletProviderRdns);
+                message.success('钱包连接成功');
+            }
+
+            // const {info, provider} = await connectWallet(selectedBrowserWalletProviderRdns);
+            
+            // message.success('钱包连接成功');
         } catch (error: any) {
         // console.error('连接钱包失败:', error, Object.keys(error));
             if (error.code === -32002) {
@@ -153,7 +178,7 @@ export default function BeforeConnect() {
                             onChange={(value) => setSelectedBrowserWalletProviderRdns(value)}
                             options={installedProviderInfos.map((info) => ({
                                 label: renderProviderOption(info),
-                                value: info.rdns
+                                value: info?.rdns
                             }))} 
                             placeholder="请选择钱包"
                             notFoundContent={installedProviderInfos.length === 0 ? "未检测到钱包" : undefined}
