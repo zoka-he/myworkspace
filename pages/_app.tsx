@@ -10,7 +10,7 @@ import '@/styles/myapp.scss';
 import type { AppProps } from 'next/app';
 import { useRouter } from 'next/router';
 import { SessionProvider, useSession } from 'next-auth/react';
-import { startDetectBrowserWalletProvider } from '@/src/utils/ethereum/metamask';
+import { startDetectBrowserWalletProvider } from '@/src/utils/ethereum';
 import { useEffect } from 'react';
 
 export default function App({ Component, pageProps }: AppProps) {

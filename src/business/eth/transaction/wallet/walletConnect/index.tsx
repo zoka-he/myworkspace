@@ -13,12 +13,19 @@ import {
   ClockCircleOutlined
 } from '@ant-design/icons';
 import { 
-  isMetaMaskInstalled, 
+  // isMetaMaskInstalled, 
   IProviderInfo,
-  listProviderInfos,
+  // listProviderInfos,
   readableAmount,
   // PREDEFINED_NETWORKS
 } from '@/src/utils/ethereum/metamask';
+import { 
+  isMetaMaskInstalled, 
+  // IProviderInfo,
+  listProviderInfos,
+  // readableAmount,
+  // PREDEFINED_NETWORKS
+} from '@/src/utils/ethereum';
 import copyToClip from '@/src/utils/common/copy';
 import styles from './index.module.scss';
 import { IWalletInfo } from '../../IWalletInfo';
@@ -36,7 +43,7 @@ export default function WalletConnect() {
   const { providerInfo, accountInfo, networkInfo, walletProvider, isWalletConnected, switchRdns, getWalletTool, refreshWalletInfo } = useWalletContext();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [installedBrowserWalletProviders, setInstalledBrowserWalletProviders] = useState<{ provider: any, info: IProviderInfo }[]>([]);
+  // const [installedBrowserWalletProviders, setInstalledBrowserWalletProviders] = useState<{ provider: any, info: IProviderInfo }[]>([]);
   const [selectedBrowserWalletProviderRdns, setSelectedBrowserWalletProviderRdns] = useState<any>(null);
 
   const installedProviderInfos = useMemo(() => {
@@ -59,14 +66,14 @@ export default function WalletConnect() {
   // 防止用户意外切换钱包提供者
   const allowChangeProvider = useMemo(() => {
     // 没有提供者，或只有1个提供者，没有必要切换
-    if (installedBrowserWalletProviders.length === 0) return false;
-    if (installedBrowserWalletProviders.length === 1) return false;
+    if (installedProviderInfos.length === 0) return false;
+    if (installedProviderInfos.length === 1) return false;
 
     // 没有切换的意义的情况
-    if (selectedBrowserWalletProviderRdns === walletProvider?.info.rdns) return false;
+    if (selectedBrowserWalletProviderRdns === walletProvider?.info?.rdns) return false;
 
     return true;
-  }, [installedBrowserWalletProviders, selectedBrowserWalletProviderRdns]);
+  }, [installedProviderInfos, selectedBrowserWalletProviderRdns]);
 
   useEffect(() => {
     // 首先更新选择的钱包提供者
@@ -86,10 +93,22 @@ export default function WalletConnect() {
   
 
   // 切换钱包提供者
-  const handleSwitchProvider = () => {
+  const handleSwitchProvider = async () => {
     if (!allowChangeProvider) return;
     switchRdns(selectedBrowserWalletProviderRdns);
-    message.success('切换钱包提供者成功');
+
+    // 等待react更新状态后再刷新钱包信息
+    setTimeout(() => {  
+      setRefreshing(true);
+      refreshWalletInfo().then(() => {
+        setRefreshing(false);
+        message.success('切换钱包提供者成功');
+      }).catch((error: any) => {
+        console.error('切换钱包提供者失败:', error);
+        setRefreshing(false);
+        message.error('切换钱包提供者失败');
+      });
+    }, 0);
   };
 
   const handleDisconnect = () => {

@@ -9,9 +9,11 @@ export default function WalletInfo() {
 
     const { accountInfo, networkInfo, refreshWalletInfo } = useWalletContext();
 
+    // 只在组件挂载时调用一次，避免循环触发
     useEffect(() => {
         refreshWalletInfo();
-    }, [refreshWalletInfo]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     console.log(accountInfo);
 
