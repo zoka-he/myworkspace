@@ -938,15 +938,15 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
         }
 
         const gridLines = d3.select(linesRef.current).selectAll<SVGLineElement, number>('line.grid_line')
-            .data([12, 24, 48, 72], (d) => d as any)
+            .data([12, 24, 36, 48, 72, 96], (d) => d as any)
             .join(
                 enter => enter.append('line').attr('class', 'grid_line'), 
                 update => update,
                 exit => exit.remove() 
             ).attr('x1', x(0))
-            .attr('x2', (_, i) => x([12, 24, 24, 24][i]))
-            .attr('y1', (_, i) => y([12, 24, 48, 72][i]))
-            .attr('y2', (_, i) => y([0, 0, 24, 48][i]))  // 改良，斜线代表跨日
+            .attr('x2', (_, i) => x([12, 24, 24, 24, 24, 24][i]))
+            .attr('y1', (_, i) => y([12, 24, 36, 48, 72, 96][i]))
+            .attr('y2', (_, i) => y([0, 0, 12, 24, 48, 72][i]))  // 改良，斜线代表跨日
             .attr('fill', 'none')
             .attr('stroke', '#ccc')
             .attr('stroke-width', 1)
@@ -1040,7 +1040,12 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
                 .attr('fill', '#000')
                 .attr('x', svgDimensions.current.width / 2)
                 .attr('y', 20)
-                .text(d => `当前时间是：${d?.format('HH:mm:ss') || '--'}`);
+                .text(d => {
+                    let dayjsData = dayjs(d);
+                    const time = dayjsData?.format('HH:mm:ss') || '--';
+                    const weekDay = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][dayjsData?.day()] || '';
+                    return `当前时间是：${weekDay} ${time}`;
+                });
         }
 
         if (allTextNodes[1]) {
