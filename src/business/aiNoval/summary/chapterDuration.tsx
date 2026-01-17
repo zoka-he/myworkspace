@@ -565,6 +565,7 @@ declare type WorkTimeSummaryGroupedData = {
     max: number;
     mid: number;
     avg: number;
+    std: number;
     count: number;
 }
 
@@ -597,17 +598,24 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
     const dotsRef = useRef<SVGGElement>(null);
     const axisLabelsRef = useRef<SVGGElement>(null);
     const linesRef = useRef<SVGGElement>(null);
+    const currentTimeLineRef = useRef<SVGGElement>(null);
+    const currentTimeTextRef = useRef<SVGGElement>(null);
+
+    const blinkRef = useRef<boolean>(false);
+    const now = useRef(dayjs());
 
     const svgDimensions = useRef({ width: 0, height: 0 });
     const lastProcessedDataRef = useRef<WorkTimeSummaryData | null>(null); // 保存上一次的有效数据，避免缩放时清空
 
     useEffect(() => {
         const resizeObserver = observeResize();
+        const timer = createTimer();
 
-        draw();
+        // draw();
 
         return () => {
             resizeObserver?.disconnect();
+            clearInterval(timer);
         };
     }, []);
 
@@ -631,6 +639,19 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
 
         resizeObserver.observe(divRef.current);
         return resizeObserver;
+    }
+
+    function createTimer() {
+        function handler() {
+            now.current = dayjs();
+            blinkRef.current = !blinkRef.current;
+
+            draw();
+        }
+
+        handler();
+
+        return setInterval(handler, 500);
     }
 
     function draw() {
@@ -663,13 +684,15 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
             .range([config.padding.left, width - config.padding.right]);
 
         const y = d3.scaleLinear()
-            .domain([0, 48]) // 存疑，可以采用不同的指标
+            .domain([0, 96]) // 存疑，可以采用不同的指标
             .range([height - config.padding.bottom, config.padding.top]);
 
         drawXAxis(config, data, x);
         drawYAxis(config, data, y);
         drawDots(config, data, x, y);
         drawLines(config, data, x, y);
+        drawCurrentTimeLine(config, data, x, y);
+        drawCurrentTimeText(config, data, x, y);    
     }
 
     // 显示分辨率，用于调试
@@ -743,6 +766,7 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
                 max: 0,
                 mid: 0,
                 avg: 0,
+                std: 0,
                 count: 0,
             }, groupedData.get(i) || {});
         });
@@ -792,8 +816,8 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
         yAxis.call(
             d3.axisLeft(y)
                 .tickSizeOuter(0)
-                .tickValues([0, 12, 24, 36, 48])
-                .tickFormat((_, i) => ['', '12h', '1d', '1.5d', '2d'][i]) as any
+                .tickValues([0, 12, 24, 36, 48, 72, 96])
+                .tickFormat((_, i) => ['', '12h', '1d', '1.5d', '2d', '3d', '4d'][i]) as any
         );
 
         const labelSelection = d3.select(axisLabelsRef.current).selectAll('text');
@@ -851,21 +875,28 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
             return;
         }
 
-        // const avgLine = d3.select(linesRef.current).selectAll<SVGPathElement, WorkTimeSummaryGroupedData[]>('path.avg_line')
-        //     .data([data.groupedData]);
-        // const avgLineNew = avgLine.enter().append('path').attr('class', 'avg_line');
-        // const avgLineExit = avgLine.exit();
+        const possibleArea = d3.select(linesRef.current).selectAll<SVGPathElement, WorkTimeSummaryGroupedData[]>('path.avg_line')
+            .data([data.groupedData]);
+        const possibleAreaNew = possibleArea.enter().append('path').attr('class', 'avg_line');
+        const possibleAreaExit = possibleArea.exit();
         
-        // avgLine.merge(avgLineNew)
-        //     .attr('d', d => d3.line<WorkTimeSummaryGroupedData>()
-        //         .curve(d3.curveBumpX)
-        //         .x(d => x(d.hour))
-        //         .y(d => y(d.avg))
-        //         (d)
-        //     )
-        //     .attr('fill', 'none')
-        //     .attr('stroke', '#ef7e00')
-        //     .attr('stroke-width', 1);
+        // 按照0.5倍标准差绘制可能的范围，置信度约为40%
+        possibleArea.merge(possibleAreaNew)
+            .attr('d', d => d3.area<WorkTimeSummaryGroupedData>()
+                .curve(d3.curveBumpX)
+                .x(d => x(d.hour))
+                .y0(d => y(d.avg + 0.5 * d.std))
+                .y1(d => y(Math.max(0, d.avg - 0.5 * d.std)))
+                (d)
+            )
+            .attr('fill', '#000777')
+            .attr('opacity', 0.05);
+            // .attr('stroke', '#ef7e00')
+            // .attr('stroke-width', 1);
+
+        if (data.groupedData.length > 0) {
+            possibleAreaExit.remove();
+        }
 
         const midLine = d3.select(linesRef.current).selectAll<SVGPathElement, WorkTimeSummaryGroupedData[]>('path.mid_line')
             .data([data.groupedData]);
@@ -888,6 +919,137 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
             // avgLineExit.remove();
             midLineExit.remove();
         }
+
+        const gridLines = d3.select(linesRef.current).selectAll<SVGLineElement, number>('line.grid_line')
+            .data([24, 48], d => d as any)
+            .join(
+                enter => enter.append('line').attr('class', 'grid_line'), 
+                update => update,
+                exit => exit.remove() 
+            ).attr('x1', x(0))
+            .attr('x2', x(24))
+            .attr('y1', d => y(d))
+            .attr('y2', d => y(d))
+            .attr('fill', 'none')
+            .attr('stroke', '#ccc')
+            .attr('stroke-width', 1)
+            .attr('stroke-dasharray', '2,2')
+            .attr('shape-rendering', 'crispEdges');
+            
+    }
+
+    function drawCurrentTimeLine(config: WorkTimeSummaryConfig, data: WorkTimeSummaryData, x: d3.ScaleLinear<number, number>, y: d3.ScaleLinear<number, number>) {
+        if (!svgRef.current) {
+            return;
+        }
+
+        const currentTime = [];
+        if (data.data.length > 0 && blinkRef.current) {
+            let t = (dayjs().unix() - dayjs().startOf('day').unix()) / 3600;
+            currentTime.push(t)
+        }
+
+        const currentTimeLine = d3.select(currentTimeLineRef.current).selectAll<SVGLineElement, number>('line.current_time_line')
+            .data(currentTime);
+        const currentTimeLineNew = currentTimeLine.enter().append('line').attr('class', 'current_time_line');
+        const currentTimeLineExit = currentTimeLine.exit();
+        
+        currentTimeLine.merge(currentTimeLineNew)
+            .attr('x1', d => x(d))
+            .attr('x2', d => x(d))
+            .attr('y1', y(0))
+            .attr('y2', y(96))
+            .attr('fill', 'none')
+            .attr('stroke', '#fb0')
+            .attr('stroke-width', 2);
+
+        currentTimeLineExit.remove();
+    }
+
+    function drawCurrentTimeText(config: WorkTimeSummaryConfig, data: WorkTimeSummaryData, x: d3.ScaleLinear<number, number>, y: d3.ScaleLinear<number, number>) {
+        if (!svgRef.current) {
+            return;
+        }
+
+        const currentTimeText = d3.select(currentTimeTextRef.current)
+            .selectAll<SVGGElement, typeof now.current>('g.current_time_text_group')
+            .data([now.current], d => d as any)
+            .join(
+                enter => {
+                    const g = enter.append('g').attr('class', 'current_time_text_group');
+                    g.append('rect').attr('class', 'current_time_text_bg');
+                    g.append('text').attr('class', 'current_time_text');
+                    g.append('text').attr('class', 'current_time_text');
+                    g.append('text').attr('class', 'current_time_text');
+                    return enter;
+                },
+                update => update,
+                exit => exit.remove()
+            )
+    
+        const bg_width = 168;
+        const bg_height = 54;
+
+        currentTimeText.selectAll('rect.current_time_text_bg')
+            .attr('x', svgDimensions.current.width / 2 - bg_width / 2)
+            .attr('y',9)
+            .attr('width', bg_width)
+            .attr('height', bg_height)
+            .attr('fill', '#fff')
+            .attr('fill-opacity', 0.8)
+            .attr('shape-rendering', 'crispEdges')
+            .attr('stroke', '#000')
+            .attr('stroke-width', 1);
+        
+
+        const allTextNodes = currentTimeText.selectAll<SVGTextElement, typeof now.current>('text.current_time_text').nodes();
+
+        const hour = now.current?.hour();
+        const avg = data.groupedData.find(d => d.hour === hour)?.avg || 0;
+        const std = data.groupedData.find(d => d.hour === hour)?.std || 0;
+        const mid = data.groupedData.find(d => d.hour === hour)?.mid || 0;
+
+        const mid_day = mid / 24;
+        const min_day = Math.max(0, (avg - std * 0.5) / 24);
+        const max_day = (avg + std * 0.5) / 24;
+
+        if (allTextNodes[0]) {
+            d3.select(allTextNodes[0])
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'middle')
+                .attr('font-size', '12px')
+                .attr('fill', '#000')
+                .attr('x', svgDimensions.current.width / 2)
+                .attr('y', 20)
+                .text(d => `当前时间是：${d?.format('HH:mm:ss') || '--'}`);
+        }
+
+        if (allTextNodes[1]) {
+            d3.select(allTextNodes[1])
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'middle')
+                .attr('font-size', '10px')
+                .attr('fill', '#555')
+                .attr('x', svgDimensions.current.width / 2)
+                .attr('y', 36)
+                .text(d => `预计完成一章工时为：${min_day.toFixed(1)} ~ ${max_day.toFixed(1)}天`);
+        }
+
+        if (allTextNodes[2]) {
+            d3.select(allTextNodes[2])
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'middle')
+                .attr('font-size', '10px')
+                .attr('font-weight', 'bold')
+                .attr('fill', '#555')
+                .attr('x', svgDimensions.current.width / 2)
+                .attr('y', 52)
+                .text(d => `中位数工时为：${mid_day.toFixed(1)}天`);
+        }
+
+        // 如果你需要操作所有 text，可以用下面这种方式
+        // currentTimeText.selectAll<SVGTextElement, typeof now.current>('text.current_time_text')
+        //     .attr(...)...
     }
 
     return (
@@ -901,7 +1063,15 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
                 <g className="y_axis" ref={yAxisRef}></g>
                 <g className="dots" ref={dotsRef}></g>
                 <g className="lines" ref={linesRef}></g>
+                <g className="current_time_line" ref={currentTimeLineRef}></g>
+                <g className="current_time_text" ref={currentTimeTextRef}></g>
             </svg>
+
+            {/* <div style={{ position: 'relative', top: '-100%', left: 0, width: '100%'}}>
+                <div style={{ textAlign: 'center', fontSize: '12px', color: '#000' }}>
+                    <p>当前时间是: { now.current?.format('HH:mm:ss') }</p>
+                </div>
+            </div> */}
         </div>
     )
 }
