@@ -89,20 +89,20 @@ function SummaryD3GraphContainer({ novelIds }: SummaryD3GraphContainerProps) {
         <div className={styles.summaryD3GraphContainer}>
 
             <Row gutter={10}>
-                <Col span={8}>
+                <Col span={7}>
                     <Card title="章节创建时点分析" size="small">
                         {/* TODO 24小时太阳图 */}
                         <Graph_ChapterCreateHour data={chapterList} />
                     </Card>
                 </Col>
-                <Col span={8}>
+                <Col span={10}>
                     <Card title="写作耗时分析" size="small">
                         {/* TODO 柱状图 */}
                         <Graph_ChapterWorkTime data={chapterList} />
                     </Card>
                 </Col>
-                <Col span={8}>
-                    <Card title="完成时点分析" size="small">
+                <Col span={7}>
+                    <Card title="最终变更时点分析" size="small">
                         {/* TODO 24小时太阳图 */}
                         <Graph_ChapterUpdateHour data={chapterList} />
                     </Card>
@@ -121,7 +121,7 @@ function SummaryD3GraphContainer({ novelIds }: SummaryD3GraphContainerProps) {
                 <Col span={12}>
                     <Card title={ 
                             <Space>
-                                <Typography.Text>章节完成日期分析（颜色表示：</Typography.Text>
+                                <Typography.Text>章节最终变更日期分析（颜色表示：</Typography.Text>
                                 <Radio.Group 
                                     // buttonStyle="solid"
                                     value={finishDateMode} 
@@ -183,7 +183,7 @@ function Graph_ChapterUpdateHour(props: IGraphProps) {
         // let percentage = total > 0 ? Math.round((count / total) * 100) : 0;
         return [
             '你在这段时间里',
-            `完成了(${count}/${total})的章节`,
+            `变更了(${count}/${total})的章节`,
         ]
     }
 
@@ -1022,9 +1022,9 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
         const min = Math.max(0, (avg - std * 0.5));
         const max = (avg + std * 0.5);
 
-        const mid_day = mid / 24;
-        const min_day = Math.max(0, (avg - std * 0.5) / 24);
-        const max_day = (avg + std * 0.5) / 24;
+        // const mid_day = mid / 24;
+        // const min_day = Math.max(0, (avg - std * 0.5) / 24);
+        // const max_day = (avg + std * 0.5) / 24;
 
         if (allTextNodes[0]) {
             d3.select(allTextNodes[0])
@@ -1046,7 +1046,7 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
                 .attr('fill', '#555')
                 .attr('x', svgDimensions.current.width / 2)
                 .attr('y', 36)
-                .text(d => `中位数工时为：${mid.toFixed(1)}h`);
+                .text(d => mid === 0 ? '缺少统计数据' : `中位数工时为：${mid.toFixed(1)}h`);
         }
 
         if (allTextNodes[2]) {
@@ -1081,7 +1081,7 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
                 .attr('fill', '#555')
                 .attr('x', svgDimensions.current.width / 2)
                 .attr('y', 52)
-                .text(d => `预计在${expectedFinishTimeString}完成一章`);
+                .text(d => mid === 0 ? '不知道多久能完成一章😳' : `预计在${expectedFinishTimeString}完成一章`);
         }
 
         
@@ -1132,12 +1132,17 @@ function Graph_ChapterCreatedDate(props: IGraph_ChapterDateProps) {
     const subGraphs = useMemo(() => {
         return years.map(year => {
             const subData = props.data.filter(d => dayjs(d.created_at).year() === year);
-            return <CalendarGraph data={subData} year={year} calculateValue={calculateValue} refProp="created_at" colorScheme={d3.interpolateBlues} />
+            return <CalendarGraph data={subData} year={year} calculateValue={calculateValue} refProp="created_at" colorScheme={d3.interpolateBlues} hoverText={hoverText} />
         });
     }, [years, props.data]);
 
     function calculateValue(data: any[]) {
         return data.length;
+    }
+
+    function hoverText(data: any) {
+        // console.debug(data);
+        return `${data.year} 年 ${data.month} 月 ${data.dayOfMonth} 日，共启动 ${data.value} 个章节的写作`;
     }
 
     return (
@@ -1166,7 +1171,7 @@ function Graph_ChapterUpdatedDate(props: Omit<IGraph_ChapterDateProps, 'mode'> &
     const subGraphs = useMemo(() => {
         return years.map(year => {
             const subData = props.data.filter(d => dayjs(d.updated_at).year() === year);
-            return <CalendarGraph data={subData} year={year} calculateValue={calculateValue} refProp="updated_at" colorScheme={colorScheme} />
+            return <CalendarGraph data={subData} year={year} calculateValue={calculateValue} refProp="updated_at" colorScheme={colorScheme} hoverText={hoverText} />
         });
     }, [years, props.data, props.mode]);
 
@@ -1174,8 +1179,32 @@ function Graph_ChapterUpdatedDate(props: Omit<IGraph_ChapterDateProps, 'mode'> &
         if (props.mode === 'count') {
             return data.length;
         } else {
-            return data.reduce((acc, d) => acc + (dayjs(d.updated_at).unix() - dayjs(d.created_at).unix()), 0) / data.length;
+            let durations = data.map(d => dayjs(d.updated_at).unix() - dayjs(d.created_at).unix())
+                .filter((d: number) => d > 0 && d < 10 * 24 * 3600); // 初筛，剔除跨越很多天变更导致的极端值
+
+            let std = d3.deviation(durations) || 0;
+            let avg = d3.mean(durations) || 0;
+            let min = avg - std * 1;
+            let max = avg + std * 1;
+
+            // 按1σ原则，剔除跨越很多天变更导致的极端值，保留68.27%的数据
+            let filteredData = durations.filter(d => d >= min && d <= max);
+
+            return d3.mean(filteredData) || 0;
         }
+    }
+
+    function hoverText(data: any) {
+        console.debug(data);
+        if (props.mode === 'count') {
+            return `${data.year} 年 ${data.month} 月 ${data.dayOfMonth} 日，共变更 ${data.value} 个章节`;
+        }
+
+        if (props.mode === 'duration') {
+            return `${data.year} 年 ${data.month} 月 ${data.dayOfMonth} 日，共变更 ${data.dataset.length} 个章节，平均耗时 ${(data.value / 3600).toFixed(1)} 小时`;
+        }
+
+        return '';
     }
 
     return (
@@ -1193,6 +1222,7 @@ interface ICalendarGraphProps {
     calculateValue: (data: any[]) => number;
     refProp: string;
     colorScheme: (value: number) => string;
+    hoverText?: (data: any) => string;
 }
 
 function CalendarGraph(props: ICalendarGraphProps) {
@@ -1201,6 +1231,7 @@ function CalendarGraph(props: ICalendarGraphProps) {
     const svgDimensionRef = useRef<SVGTextElement>(null);
     const dimensionRef = useRef<{ width: number, height: number }>({ width: 0, height: 0 });
     const labelsRef = useRef<SVGGElement>(null);
+    const hoverTextRef = useRef<SVGGElement>(null);
     
 
     useEffect(() => {
@@ -1313,7 +1344,7 @@ function CalendarGraph(props: ICalendarGraphProps) {
             d.value = props.calculateValue(d.dataset);
         });
 
-        console.debug('rectsData', rectsData);
+        // console.debug('rectsData', rectsData);
 
         return rectsData;
     }
@@ -1357,6 +1388,18 @@ function CalendarGraph(props: ICalendarGraphProps) {
                 }
                 return 'rgba(192,192,192,0.5)';
             })
+            .on('mouseenter', function (event, d) {
+
+                // 丢弃无效rect
+                if (!d.dataset.length) {
+                    return;
+                }
+
+                drawHoverText(config, d);
+            })
+            .on('mouseleave', function () {
+                drawHoverText(config, null);
+            });
     }
 
     function drawLabels(config: any, data: any[]) {
@@ -1375,8 +1418,9 @@ function CalendarGraph(props: ICalendarGraphProps) {
                 update => update,
                 exit => exit.remove()
             )
-            .attr('x', d => config.marginLeft + d.weekOfYear * (config.rectSize + config.rectMargin) + d.month * config.monthMargin + 2.5)
+            .attr('x', d => config.marginLeft + d.weekOfYear * (config.rectSize + config.rectMargin) + d.month * config.monthMargin + 5.5)
             .attr('y', config.labelMarginTop)
+            .attr('text-anchor', 'middle')
             .attr('font-size', '10px')
             .attr('fill', '#000')
             .text(d => d.month);
@@ -1411,11 +1455,42 @@ function CalendarGraph(props: ICalendarGraphProps) {
             .text(d => d);
     }
 
+    function drawHoverText(config: any, data: any) {
+        if (!props.hoverText || !hoverTextRef.current) {
+            return;
+        }
+
+        const text: string[] = [];
+        if (props.hoverText && data) {
+            let result = props.hoverText(data);
+            if (result) {
+                text.push(result);
+            }
+        }
+
+        d3.select(hoverTextRef.current).selectAll<SVGTextElement, any>('text')
+            .data(text)
+            .join(
+                enter => enter.append('text'),
+                update => update,
+                exit => exit.remove()
+            )
+            .attr('x', dimensionRef.current.width / 2)
+            .attr('y', config.labelMarginTop + 7 * (config.rectSize + config.rectMargin) + 20)
+            .attr('font-size', '10px')
+            .attr('fill', '#000')
+            .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'top')
+            .attr('font-weight', 'bold')
+            .text(d => d);
+    }
+
     return (
         <div ref={divRef}>
             <svg width="100%" height="100%">
                 <g ref={rectsRef}></g>
                 <g ref={labelsRef}></g>
+                <g ref={hoverTextRef}></g>
                 <text ref={svgDimensionRef}></text>
             </svg>
         </div>

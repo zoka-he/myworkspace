@@ -1,11 +1,13 @@
 .novelList {
-    width: 300px;
+    width: 240px;
     border: 1px solid var(--m-chapter-list-border);
     height: 100%;
 }
 
 .summaryD3GraphContainer {
     // border: 1px solid var(--m-chapter-list-border);
+    height: 100%;
+    overflow: hidden auto;
 
     :global(* + .ant-row) {
         margin-top: 10px;
