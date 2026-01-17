@@ -950,7 +950,7 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
             .attr('fill', 'none')
             .attr('stroke', '#ccc')
             .attr('stroke-width', 1)
-            .attr('stroke-dasharray', '2,2')
+            .attr('stroke-dasharray', (_, i) => ['2,6', '2,2', '2,6', '2,2', '2,2', '2,2'][i])
             .attr('shape-rendering', 'crispEdges');
             
     }
