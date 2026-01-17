@@ -610,6 +610,8 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
     const svgDimensions = useRef({ width: 0, height: 0 });
     const lastProcessedDataRef = useRef<WorkTimeSummaryData | null>(null); // 保存上一次的有效数据，避免缩放时清空
 
+    const { textColor } = useTheme();
+
     useEffect(() => {
         const resizeObserver = observeResize();
         const timer = createTimer();
@@ -624,7 +626,7 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
 
     useEffect(() => {
         draw();
-    }, [props.data]);
+    }, [props.data, textColor]);
 
     function observeResize() {
         const resizeObserver = new ResizeObserver((entries) => {
@@ -813,7 +815,7 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
             .attr('text-anchor', 'middle')
             .attr('dominant-baseline', 'middle')
             .attr('font-size', '12px')
-            .attr('fill', '#000')
+            // .attr('fill', textColor)
             .text('开始时间');
     }
 
@@ -850,7 +852,7 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
             .attr('text-anchor', 'middle')
             .attr('dominant-baseline', 'middle')
             .attr('font-size', '12px')
-            .attr('fill', '#000')
+            .attr('fill', textColor)
             .text('时长');
     }
 
@@ -872,8 +874,8 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
             .attr('cx', d => x(d.start))
             .attr('cy', d => y(d.duration))
             .attr('r', 2)
-            .attr('fill', '#000777')
-            .attr('opacity', 0.2);
+            .attr('fill', '#005cdf')
+            .attr('opacity', 0.8);
         
         // 只有在数据不为空时才移除 exit 的元素，避免缩放时清空数据
         if (data.data.length > 0) {
@@ -900,8 +902,8 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
                 .y1(d => y(Math.max(0, d.avg - 0.5 * d.std)))
                 (d)
             )
-            .attr('fill', '#000777')
-            .attr('opacity', 0.05);
+            .attr('fill', '#00cfff')
+            .attr('opacity', 0.25);
             // .attr('stroke', '#ef7e00')
             // .attr('stroke-width', 1);
 
@@ -1232,6 +1234,7 @@ function CalendarGraph(props: ICalendarGraphProps) {
     const dimensionRef = useRef<{ width: number, height: number }>({ width: 0, height: 0 });
     const labelsRef = useRef<SVGGElement>(null);
     const hoverTextRef = useRef<SVGGElement>(null);
+    const { textColor } = useTheme();
     
 
     useEffect(() => {
@@ -1247,7 +1250,7 @@ function CalendarGraph(props: ICalendarGraphProps) {
 
     useEffect(() => {
         draw();
-    }, [props.data, props.calculateValue, props.colorScheme]);
+    }, [props.data, props.calculateValue, props.colorScheme, textColor]);
 
     function observeResize(): ResizeObserver | null {
         if (!divRef.current) {
@@ -1305,7 +1308,7 @@ function CalendarGraph(props: ICalendarGraphProps) {
             .attr('y', 12)
             .attr('text-anchor', 'end')
             .attr('font-size', 12)
-            .attr('fill', '#000');
+            .attr('fill', textColor);
     }
 
     function processData() {
@@ -1422,7 +1425,7 @@ function CalendarGraph(props: ICalendarGraphProps) {
             .attr('y', config.labelMarginTop)
             .attr('text-anchor', 'middle')
             .attr('font-size', '10px')
-            .attr('fill', '#000')
+            .attr('fill', textColor)
             .text(d => d.month);
 
         const dayLabels = d3.select(labelsRef.current).selectAll<SVGTextElement, any>('text.days')
@@ -1436,7 +1439,7 @@ function CalendarGraph(props: ICalendarGraphProps) {
             .attr('y', (_, i) => config.marginTop + i * (config.rectSize + config.rectMargin) + 10)
             .attr('text-anchor', 'end')
             .attr('font-size', '10px')
-            .attr('fill', '#000')
+            .attr('fill', textColor)
             .text(d => d);
 
         const yearLabels = d3.select(labelsRef.current).selectAll<SVGTextElement, any>('text.years')
@@ -1451,7 +1454,7 @@ function CalendarGraph(props: ICalendarGraphProps) {
             .attr('text-anchor', 'end')
             .attr('font-size', '12px')
             .attr('font-weight', 'bold')
-            .attr('fill', '#000')
+            .attr('fill', textColor)
             .text(d => d);
     }
 
@@ -1478,7 +1481,7 @@ function CalendarGraph(props: ICalendarGraphProps) {
             .attr('x', dimensionRef.current.width / 2)
             .attr('y', config.labelMarginTop + 7 * (config.rectSize + config.rectMargin) + 20)
             .attr('font-size', '10px')
-            .attr('fill', '#000')
+            .attr('fill', textColor)
             .attr('text-anchor', 'middle')
             .attr('dominant-baseline', 'top')
             .attr('font-weight', 'bold')
