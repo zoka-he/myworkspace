@@ -97,7 +97,8 @@ function SummaryD3GraphContainer({ novelIds }: SummaryD3GraphContainerProps) {
                 </Col>
                 <Col span={8}>
                     <Card title="写作耗时分析" size="small">
-                        TODO 柱状图
+                        {/* TODO 柱状图 */}
+                        <Graph_ChapterWorkTime data={chapterList} />
                     </Card>
                 </Col>
                 <Col span={8}>
@@ -196,6 +197,7 @@ function HourCircleGraph(props: IHourCircleGraphProps) {
     const svgRef = useRef<SVGSVGElement>(null);
     const divRef = useRef<HTMLDivElement>(null);
     const arcBarsRef = useRef<SVGGElement>(null);
+    const arcTickRef = useRef<SVGGElement>(null);
 
     const svgDimensions = useRef({ width: 0, height: 0 });
 
@@ -259,6 +261,7 @@ function HourCircleGraph(props: IHourCircleGraphProps) {
             const now = dayjs();
             setHourText(now.hour().toString().padStart(2, '0'));
             setMinuteText(now.minute().toString().padStart(2, '0'));
+            // draw();
             blink();
         }, 500);
     }
@@ -266,6 +269,7 @@ function HourCircleGraph(props: IHourCircleGraphProps) {
     function draw() {
         drawDimensions();
         adjustClockText();
+        adjustArcTick();
         drawChart();
     }
 
@@ -274,8 +278,41 @@ function HourCircleGraph(props: IHourCircleGraphProps) {
             return;
         }
 
-        d3.select(svgRef.current).selectAll('g.clock_text, g.chapter_count_text, g.hovered_hour_text')
+        const groups = [
+            'g.clock_text',
+            'g.chapter_count_text',
+            'g.hovered_hour_text',
+        ]
+
+        d3.select(svgRef.current).selectAll(groups.join(', '))
             .attr('transform', `translate(${svgDimensions.current.width * 0.5}, ${svgDimensions.current.height * 0.48})`);
+
+        d3.select(svgRef.current).selectAll('g.arc_tick')
+            .attr('transform', `translate(${svgDimensions.current.width * 0.5}, ${svgDimensions.current.height * 0.5})`)
+            .selectAll('path')
+    }
+
+    function adjustArcTick(blinkState: boolean = true) {
+        if (!svgRef.current) {
+            return;
+        }
+
+        const centerX = svgDimensions.current.width * 0.5;
+        const centerY = svgDimensions.current.height * 0.5;
+        const radius = Math.min(svgDimensions.current.width, svgDimensions.current.height) * 0.21;
+        const angle = 2 * Math.PI / 24 * (parseInt(hourText) + 0.5);
+        const x = centerX + radius * Math.sin(angle);
+        const y = centerY - radius * Math.cos(angle);
+        const opacity = hourText === null ? 0 : (blinkState ? 0 : 1);
+
+        const trans = [
+            `translate(${x}, ${y})`,
+            // `translate(${centerX}, ${centerY})`,
+            `rotate(${angle * 180 / Math.PI})`,
+        ]
+
+        d3.select(svgRef.current).selectAll('g.arc_tick').attr('transform', trans.join(' ')) 
+            .attr('opacity', opacity);
     }
 
     // 显示分辨率，用于调试
@@ -332,7 +369,7 @@ function HourCircleGraph(props: IHourCircleGraphProps) {
             .unknown('#ccc');
 
         function debugResult(s: string, num: any) {
-            console.debug(`${s}: ${JSON.stringify(num)}`);
+            // console.debug(`${s}: ${JSON.stringify(num)}`);
             return num;
         }
 
@@ -410,9 +447,10 @@ function HourCircleGraph(props: IHourCircleGraphProps) {
 
     function blink() {
         isBlinking.current = !isBlinking.current;
+        const newState = !isBlinking.current;
 
         d3.select(svgRef.current).selectAll('text.separator')
-            .attr('opacity', isBlinking.current ? 0 : 1);
+            .attr('opacity', newState ? 0 : 1);
 
         // 只有当 hourText 有效时才执行闪烁
         if (!hourText || hourText === '') {
@@ -428,13 +466,22 @@ function HourCircleGraph(props: IHourCircleGraphProps) {
         // 由于已经通过 data-hour 属性筛选了，所以直接设置 opacity 即可
         d3.select(arcBarsRef.current).selectAll(`g.arc_node[data-hour="${currentHour}"]`)
             .selectAll('path.actual')
-            .attr('opacity', isBlinking.current ? 0 : 1);
+            .attr('opacity', newState ? 0 : 1);
+
+        adjustArcTick(newState);
+    }
+
+    function getArcTickData() {
+        
     }
 
     return (
         <div className="f-fit-content" ref={divRef}>
             <svg ref={svgRef} width="100%" height="100%">
                 <g ref={arcBarsRef} className="arc_bars"></g>
+                <g ref={arcTickRef} className="arc_tick">
+                    <path d="M 0 0 L -2 2 L -2 7 L 2 7 L 2 2 z" fill="red" />
+                </g>
                 <g className="clock_text" opacity={hoveredHour === null ? 1 : 0}>
                     <text x="0" y="-12" textAnchor="middle" dominantBaseline="middle" fontSize="10px" fontWeight="bold" fill={textColor}>现在是</text>
                     <text x="-12" y="3" textAnchor="middle" dominantBaseline="middle" fontSize="12px" fontWeight="bold" fill={textColor}>{hourText}</text>
@@ -451,6 +498,342 @@ function HourCircleGraph(props: IHourCircleGraphProps) {
                     <text x="0" y="17" textAnchor="middle" dominantBaseline="middle" fontSize="9px" fontWeight="normal" fill="#777">{chapterCountText[0]}</text>
                     <text x="0" y="28" textAnchor="middle" dominantBaseline="middle" fontSize="9px" fontWeight="normal" fill="#777">{chapterCountText[1]}</text>
                 </g>
+            </svg>
+        </div>
+    )
+}
+
+declare type WorkTimeSummaryDataItem = {
+    start: number;
+    duration: number;
+}
+
+declare type WorkTimeSummaryGroupedData = {
+    hour: number;
+    min: number;
+    max: number;
+    mid: number;
+    avg: number;
+    count: number;
+}
+
+declare type WorkTimeSummaryData = {
+    minX: number;
+    maxX: number;
+    minY: number;
+    midY: number;
+    avgY: number;
+    maxY: number;
+    groupedData: WorkTimeSummaryGroupedData[];
+    data: WorkTimeSummaryDataItem[];
+}
+
+declare type WorkTimeSummaryConfig = {
+    padding: {
+        top: number;
+        right: number;
+        bottom: number;
+        left: number;
+    },
+}
+
+function Graph_ChapterWorkTime(props: IGraphProps) {
+
+    const svgRef = useRef<SVGSVGElement>(null);
+    const divRef = useRef<HTMLDivElement>(null);
+    const xAxisRef = useRef<SVGGElement>(null);
+    const yAxisRef = useRef<SVGGElement>(null);
+    const dotsRef = useRef<SVGGElement>(null);
+    const axisLabelsRef = useRef<SVGGElement>(null);
+    const linesRef = useRef<SVGGElement>(null);
+
+    const svgDimensions = useRef({ width: 0, height: 0 });
+
+    useEffect(() => {
+        const resizeObserver = observeResize();
+
+        draw();
+
+        return () => {
+            resizeObserver?.disconnect();
+        };
+    }, []);
+
+    useEffect(() => {
+        draw();
+    }, [props.data]);
+
+    function observeResize() {
+        const resizeObserver = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                const { width, height } = entry.contentRect;
+                svgDimensions.current = { width, height };
+            }
+
+            draw();
+        });
+        
+        if (!divRef.current) {
+            return;
+        }
+
+        resizeObserver.observe(divRef.current);
+        return resizeObserver;
+    }
+
+    function draw() {
+        const data = processData();
+        drawDimensions();
+
+        const width = svgDimensions.current.width;
+        const height = svgDimensions.current.height;
+
+        const config: WorkTimeSummaryConfig = {
+            padding: {
+                top: 20,
+                right: 10,
+                bottom: 30,
+                left: 55,
+            },
+        }
+
+        const x = d3.scaleLinear()
+            .domain([data.minX, data.maxX])
+            .range([config.padding.left, width - config.padding.right]);
+
+        const y = d3.scaleLinear()
+            .domain([0, 48]) // 存疑，可以采用不同的指标
+            .range([height - config.padding.bottom, config.padding.top]);
+
+        drawXAxis(config, data, x);
+        drawYAxis(config, data, y);
+        drawDots(config, data, x, y);
+        drawLines(config, data, x, y);
+    }
+
+    // 显示分辨率，用于调试
+    function drawDimensions() {
+        if (!svgRef.current) {
+            return;
+        }
+
+        let textNode = d3.select(svgRef.current).selectAll('text.dimension').data([svgDimensions.current]);
+        textNode.enter()
+            .append('text').attr('class', 'dimension')
+            .merge(textNode as any)
+            .text(d => `${d.width}x${d.height}`)
+            .attr('x', d => d.width)
+            .attr('y', 12)
+            .attr('text-anchor', 'end')
+            .attr('font-size', 12)
+            .attr('fill', '#000');
+        textNode.exit().remove();
+    }
+
+    function processData() {
+        const ret: WorkTimeSummaryData = {
+            data: [],
+            groupedData: [],
+            minX: 0,
+            maxX: 24,
+            minY: 0,
+            midY: 0,
+            avgY: 0,
+            maxY: 0,
+
+        }
+
+        if (props.data && props.data.length > 0) {
+            ret.data = props.data.map(item => {
+                let start = dayjs(item.created_at).unix() - dayjs(item.created_at).startOf('day').unix();
+                let duration = dayjs(item.updated_at).unix() - dayjs(item.created_at).unix();
+
+                return {
+                    start: start / 3600,
+                    duration: duration / 3600,
+                }
+            })
+
+            ret.minY = d3.min(ret.data, d => d.duration) || 0;
+            ret.maxY = d3.max(ret.data, d => d.duration) || 0;
+            ret.midY = d3.median(ret.data, d => d.duration) || 0;
+            ret.avgY = d3.mean(ret.data, d => d.duration) || 0;
+        }
+
+        let groupedData = d3.rollup(
+            ret.data,
+            v => {
+                return {
+                    min: d3.min(v, d => d.duration) || 0,
+                    max: d3.max(v, d => d.duration) || 0,
+                    mid: d3.median(v, d => d.duration) || 0,
+                    avg: d3.mean(v, d => d.duration) || 0,
+                    std: d3.deviation(v, d => d.duration) || 0,
+                    count: v.length,
+                }
+            },
+            d => Math.floor(d.start)
+        );
+
+        ret.groupedData = Array.from({ length: 24 }, (_, i) => {
+            return Object.assign<WorkTimeSummaryGroupedData, Partial<WorkTimeSummaryGroupedData>>({
+                hour: i,
+                min: 0,
+                max: 0,
+                mid: 0,
+                avg: 0,
+                count: 0,
+            }, groupedData.get(i) || {});
+        });
+
+        console.debug('processData', ret);
+
+        return ret;
+    }
+
+    
+
+    function drawXAxis(config: WorkTimeSummaryConfig, data: WorkTimeSummaryData, x: d3.ScaleLinear<number, number>) {
+        if (!svgRef.current) {
+            return;
+        }
+
+        const xAxis = d3.select(xAxisRef.current);
+        xAxis.attr('transform', `translate(0, ${svgDimensions.current.height - config.padding.bottom})`);
+        xAxis.call(d3.axisBottom(x).tickSizeOuter(0) as any);
+
+        const labelSelection = d3.select(axisLabelsRef.current).selectAll('text');
+        let xAxisLabel: SVGTextElement | null = labelSelection.nodes()[0] as SVGTextElement | undefined || null;
+        if (!xAxisLabel) {
+            xAxisLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            const axisLabelsNode = axisLabelsRef.current as SVGGElement | null;
+            if (axisLabelsNode) {
+                axisLabelsNode.appendChild(xAxisLabel);
+            }
+        }
+        d3.select(xAxisLabel)
+            .attr('x', svgDimensions.current.width / 2 + (config.padding.left - config.padding.right) / 2)
+            .attr('y', svgDimensions.current.height - config.padding.bottom + 25)
+            .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'middle')
+            .attr('font-size', '12px')
+            .attr('fill', '#000')
+            .text('开始时间');
+    }
+
+    function drawYAxis(config: WorkTimeSummaryConfig, data: WorkTimeSummaryData, y: d3.ScaleLinear<number, number>) {
+        if (!svgRef.current) {
+            return;
+        }
+
+        const yAxis = d3.select(yAxisRef.current);
+        yAxis.attr('transform', `translate(${config.padding.left}, 0)`);
+        yAxis.call(
+            d3.axisLeft(y)
+                .tickSizeOuter(0)
+                .tickValues([0, 12, 24, 36, 48])
+                .tickFormat((_, i) => ['', '12h', '1d', '1.5d', '2d'][i]) as any
+        );
+
+        const labelSelection = d3.select(axisLabelsRef.current).selectAll('text');
+        let yAxisLabel: SVGTextElement | null = labelSelection.nodes()[1] as SVGTextElement | undefined || null;
+
+        if (!yAxisLabel) {
+            // Create the second <text> element if missing (assume need to append to parent)
+            yAxisLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            const axisLabelsNode = axisLabelsRef.current as SVGGElement | null;
+            if (axisLabelsNode) {
+                axisLabelsNode.appendChild(yAxisLabel);
+            }
+        }
+
+        // d3.select(yAxisLabel) is type-safe since yAxisLabel is SVGTextElement
+        d3.select(yAxisLabel)
+            .attr('x', config.padding.left - 20)
+            .attr('y', 10)
+            .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'middle')
+            .attr('font-size', '12px')
+            .attr('fill', '#000')
+            .text('时长');
+    }
+
+    function drawDots(config: WorkTimeSummaryConfig, data: WorkTimeSummaryData, x: d3.ScaleLinear<number, number>, y: d3.ScaleLinear<number, number>) {
+        if (!svgRef.current) {
+            return;
+        }
+
+        const g_dots = d3.select(dotsRef.current).selectAll<SVGGElement, WorkTimeSummaryDataItem>('g.dot-group')
+            .data(data.data);
+        const g_dots_new = g_dots.enter().append('g').attr('class', 'dot-group');
+        const g_dots_exit = g_dots.exit();
+
+        g_dots_new.append('circle').attr('class', 'dot')
+
+        g_dots.merge(g_dots_new)
+            .selectAll<SVGCircleElement, WorkTimeSummaryDataItem>('circle.dot')
+            .data(d => [d])
+            .attr('cx', d => x(d.start))
+            .attr('cy', d => y(d.duration))
+            .attr('r', 2)
+            .attr('fill', '#000777')
+            .attr('opacity', 0.2);
+        
+        g_dots_exit.remove();
+    }
+
+    function drawLines(config: WorkTimeSummaryConfig, data: WorkTimeSummaryData, x: d3.ScaleLinear<number, number>, y: d3.ScaleLinear<number, number>) {
+        if (!svgRef.current) {
+            return;
+        }
+
+        // const avgLine = d3.select(linesRef.current).selectAll<SVGPathElement, WorkTimeSummaryGroupedData[]>('path.avg_line')
+        //     .data([data.groupedData]);
+        // const avgLineNew = avgLine.enter().append('path').attr('class', 'avg_line');
+        // const avgLineExit = avgLine.exit();
+        
+        // avgLine.merge(avgLineNew)
+        //     .attr('d', d => d3.line<WorkTimeSummaryGroupedData>()
+        //         .curve(d3.curveBumpX)
+        //         .x(d => x(d.hour))
+        //         .y(d => y(d.avg))
+        //         (d)
+        //     )
+        //     .attr('fill', 'none')
+        //     .attr('stroke', '#ef7e00')
+        //     .attr('stroke-width', 1);
+
+        const midLine = d3.select(linesRef.current).selectAll<SVGPathElement, WorkTimeSummaryGroupedData[]>('path.mid_line')
+            .data([data.groupedData]);
+        const midLineNew = midLine.enter().append('path').attr('class', 'mid_line');
+        const midLineExit = midLine.exit();
+        
+        midLine.merge(midLineNew)
+            .attr('d', d => d3.line<WorkTimeSummaryGroupedData>()
+                .curve(d3.curveBumpX)
+                .x(d => x(d.hour))
+                .y(d => y(d.mid))
+                (d)
+            )
+            .attr('fill', 'none')
+            .attr('stroke', '#00d05f')
+            .attr('stroke-width', 1);
+
+        // avgLineExit.remove();
+        midLineExit.remove();
+    }
+
+    return (
+        <div className="f-fit-content" ref={divRef}>
+            <svg ref={svgRef} width="100%" height="100%">
+                <g className="axis_labels" ref={axisLabelsRef}>
+                    <text></text>
+                    <text></text>
+                </g>
+                <g className="x_axis" ref={xAxisRef}></g>
+                <g className="y_axis" ref={yAxisRef}></g>
+                <g className="dots" ref={dotsRef}></g>
+                <g className="lines" ref={linesRef}></g>
             </svg>
         </div>
     )
