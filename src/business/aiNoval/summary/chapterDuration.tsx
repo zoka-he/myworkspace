@@ -728,20 +728,28 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
         }
 
         if (props.data && props.data.length > 0) {
-            ret.data = props.data.map(item => {
+            const baseData = props.data.map(item => {
                 let start = dayjs(item.created_at).unix() - dayjs(item.created_at).startOf('day').unix();
                 let duration = dayjs(item.updated_at).unix() - dayjs(item.created_at).unix();
+                let weekDay = dayjs(item.created_at).day();
 
                 return {
                     start: start / 3600,
                     duration: duration / 3600,
+                    weekDay: weekDay,
                 }
             })
 
-            ret.minY = d3.min(ret.data, d => d.duration) || 0;
-            ret.maxY = d3.max(ret.data, d => d.duration) || 0;
-            ret.midY = d3.median(ret.data, d => d.duration) || 0;
-            ret.avgY = d3.mean(ret.data, d => d.duration) || 0;
+            const avgY = d3.mean(baseData, d => d.duration) || 0;
+            const stdY = d3.deviation(baseData, d => d.duration) || 0;
+
+            // 清理异常值，按6σ原则，保留99.73%的数据，并保留当前工作日的数据（作同比计算）
+            const filteredData = baseData.filter(d => d.duration < avgY + 3 * stdY && d.duration > avgY - 3 * stdY).filter(d => d.weekDay === dayjs().day());
+            ret.data = filteredData;
+            ret.minY = d3.min(filteredData, d => d.duration) || 0;
+            ret.maxY = d3.max(filteredData, d => d.duration) || 0;
+            ret.midY = d3.median(filteredData, d => d.duration) || 0;
+            ret.avgY = d3.mean(filteredData, d => d.duration) || 0;
         }
 
         let groupedData = d3.rollup(
@@ -987,7 +995,7 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
                 exit => exit.remove()
             )
     
-        const bg_width = 168;
+        const bg_width = 180;
         const bg_height = 54;
 
         currentTimeText.selectAll('rect.current_time_text_bg')
@@ -1008,6 +1016,8 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
         const avg = data.groupedData.find(d => d.hour === hour)?.avg || 0;
         const std = data.groupedData.find(d => d.hour === hour)?.std || 0;
         const mid = data.groupedData.find(d => d.hour === hour)?.mid || 0;
+        const min = Math.max(0, (avg - std * 0.5));
+        const max = (avg + std * 0.5);
 
         const mid_day = mid / 24;
         const min_day = Math.max(0, (avg - std * 0.5) / 24);
@@ -1029,23 +1039,49 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
                 .attr('text-anchor', 'middle')
                 .attr('dominant-baseline', 'middle')
                 .attr('font-size', '10px')
+                .attr('font-weight', 'bold')
                 .attr('fill', '#555')
                 .attr('x', svgDimensions.current.width / 2)
                 .attr('y', 36)
-                .text(d => `预计完成一章工时为：${min_day.toFixed(1)} ~ ${max_day.toFixed(1)}天`);
+                .text(d => `中位数工时为：${mid.toFixed(1)}h`);
         }
 
         if (allTextNodes[2]) {
+
+            const now_hour = (dayjs().unix() - dayjs().startOf('day').unix()) / 3600;
+            const expecedHourString = (hour: number) => {
+                let expectedDay = Math.floor(hour / 24);
+                let expectedHour = Math.ceil(hour - expectedDay * 24);
+                if (expectedHour >= 24) {
+                    expectedHour -= 24;
+                    expectedDay += 1;
+                }
+                
+                let result = '';
+                if (expectedDay < 3) {
+                    result = ['今天', '明天', '后天'][expectedDay] + expectedHour + '点';
+                } else {
+                    result += `${expectedDay}天后`;
+                }
+                return result;
+            }
+
+            const expectedFinishTimeString = [
+                expecedHourString(now_hour + min),
+                expecedHourString(now_hour + max),
+            ].join(' ~ ');
+
             d3.select(allTextNodes[2])
                 .attr('text-anchor', 'middle')
                 .attr('dominant-baseline', 'middle')
                 .attr('font-size', '10px')
-                .attr('font-weight', 'bold')
                 .attr('fill', '#555')
                 .attr('x', svgDimensions.current.width / 2)
                 .attr('y', 52)
-                .text(d => `中位数工时为：${mid_day.toFixed(1)}天`);
+                .text(d => `预计在${expectedFinishTimeString}完成一章`);
         }
+
+        
 
         // 如果你需要操作所有 text，可以用下面这种方式
         // currentTimeText.selectAll<SVGTextElement, typeof now.current>('text.current_time_text')
