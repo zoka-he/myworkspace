@@ -208,6 +208,7 @@ function HourCircleGraph(props: IHourCircleGraphProps) {
     const [hoveredHour, setHoveredHour] = useState<number | null>(null);
 
     const isBlinking = useRef(false);
+    const currentHourRef = useRef<number | null>(null); // 用于存储当前小时，避免状态更新延迟
 
     // 获取主题颜色
     const { textColor } = useTheme();
@@ -257,13 +258,27 @@ function HourCircleGraph(props: IHourCircleGraphProps) {
     }
 
     function createTimer() {
-        return setInterval(() => {
+        // 立即执行一次，确保初始加载时 hourText 就有值
+        const updateTime = () => {
             const now = dayjs();
-            setHourText(now.hour().toString().padStart(2, '0'));
-            setMinuteText(now.minute().toString().padStart(2, '0'));
-            // draw();
+            const hour = now.hour();
+            const hourStr = hour.toString().padStart(2, '0');
+            const minuteStr = now.minute().toString().padStart(2, '0');
+            
+            // 更新 ref 和 state
+            currentHourRef.current = hour;
+            setHourText(hourStr);
+            setMinuteText(minuteStr);
+            
+            // 如果元素已经创建，立即应用 blink 效果
             blink();
-        }, 500);
+        };
+        
+        // 立即执行一次
+        updateTime();
+        
+        // 然后设置定时器
+        return setInterval(updateTime, 500);
     }
 
     function draw() {
@@ -297,13 +312,22 @@ function HourCircleGraph(props: IHourCircleGraphProps) {
             return;
         }
 
+        // 优先使用 ref 的值，如果 ref 为空则尝试解析 hourText
+        const hour = currentHourRef.current !== null ? currentHourRef.current : (hourText ? parseInt(hourText) : null);
+        
+        if (hour === null || isNaN(hour)) {
+            // 如果还没有小时值，隐藏 tick
+            d3.select(svgRef.current).selectAll('g.arc_tick').attr('opacity', 0);
+            return;
+        }
+
         const centerX = svgDimensions.current.width * 0.5;
         const centerY = svgDimensions.current.height * 0.5;
         const radius = Math.min(svgDimensions.current.width, svgDimensions.current.height) * 0.21;
-        const angle = 2 * Math.PI / 24 * (parseInt(hourText) + 0.5);
+        const angle = 2 * Math.PI / 24 * (hour + 0.5);
         const x = centerX + radius * Math.sin(angle);
         const y = centerY - radius * Math.cos(angle);
-        const opacity = hourText === null ? 0 : (blinkState ? 0 : 1);
+        const opacity = blinkState ? 0 : 1;
 
         const trans = [
             `translate(${x}, ${y})`,
@@ -435,7 +459,8 @@ function HourCircleGraph(props: IHourCircleGraphProps) {
             .attr('opacity', d => {
                 // 保持闪烁状态：如果当前小时匹配且正在闪烁，则设置 opacity 为 0，否则为 1
                 const data = d as [number, number];
-                const currentHour = parseInt(hourText);
+                // 优先使用 ref 的值，避免状态更新延迟导致的问题
+                const currentHour = currentHourRef.current !== null ? currentHourRef.current : (hourText ? parseInt(hourText) : NaN);
                 if (!isNaN(currentHour) && data[0] === currentHour && isBlinking.current) {
                     return 0;
                 }
@@ -443,32 +468,44 @@ function HourCircleGraph(props: IHourCircleGraphProps) {
             });
 
         exitArcNodeSet.remove();
+        
+        // drawChart 执行后，如果元素已创建，应用当前的 blink 状态
+        applyBlinkState();
     }
 
-    function blink() {
-        isBlinking.current = !isBlinking.current;
+    // 应用 blink 状态到 DOM 元素
+    function applyBlinkState() {
+        if (!arcBarsRef.current || !svgRef.current) {
+            return;
+        }
+
+        // 优先使用 ref 的值
+        const currentHour = currentHourRef.current !== null ? currentHourRef.current : (hourText ? parseInt(hourText) : null);
+        
+        if (currentHour === null || isNaN(currentHour)) {
+            return;
+        }
+
         const newState = !isBlinking.current;
 
+        // 更新分隔符的 opacity
         d3.select(svgRef.current).selectAll('text.separator')
             .attr('opacity', newState ? 0 : 1);
 
-        // 只有当 hourText 有效时才执行闪烁
-        if (!hourText || hourText === '') {
-            return;
-        }
-
-        const currentHour = parseInt(hourText);
-        if (isNaN(currentHour)) {
-            return;
-        }
-
         // 选择当前小时的 arc_node，然后选择其下的 path.actual
-        // 由于已经通过 data-hour 属性筛选了，所以直接设置 opacity 即可
         d3.select(arcBarsRef.current).selectAll(`g.arc_node[data-hour="${currentHour}"]`)
             .selectAll('path.actual')
             .attr('opacity', newState ? 0 : 1);
 
         adjustArcTick(newState);
+    }
+
+    function blink() {
+        // 切换 blink 状态
+        isBlinking.current = !isBlinking.current;
+        
+        // 应用到 DOM
+        applyBlinkState();
     }
 
     function getArcTickData() {
