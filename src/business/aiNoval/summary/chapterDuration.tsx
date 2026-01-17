@@ -23,7 +23,7 @@ export default function ChapterDuration() {
         }
 
         return selectedNovelIds;
-    }, [selectedNovelIds]);
+    }, [selectedNovelIds, novelList]);
 
     const columns = [
         {
@@ -72,9 +72,9 @@ function SummaryD3GraphContainer({ novelIds }: SummaryD3GraphContainerProps) {
         queryChapters();
     }, [novelIds]);
 
-    useEffect(() => {
-        queryChapters();
-    }, []);
+    // useEffect(() => {
+    //     queryChapters();
+    // }, []);
 
     async function queryChapters() {
         if (novelIds.length === 0) {
@@ -209,6 +209,7 @@ function HourCircleGraph(props: IHourCircleGraphProps) {
 
     const isBlinking = useRef(false);
     const currentHourRef = useRef<number | null>(null); // 用于存储当前小时，避免状态更新延迟
+    const lastDataGroupByHourRef = useRef<Map<number, number>>(new Map()); // 保存上一次的有效数据，避免缩放时清空
 
     // 获取主题颜色
     const { textColor } = useTheme();
@@ -374,6 +375,14 @@ function HourCircleGraph(props: IHourCircleGraphProps) {
             v => v.length,
             d => dayjs(d.date).hour()
         );
+        
+        // 如果新数据为空，使用上一次的有效数据，避免缩放时清空元素
+        if (dataGroupByHour.size === 0 && lastDataGroupByHourRef.current.size > 0) {
+            dataGroupByHour = lastDataGroupByHourRef.current;
+        } else if (dataGroupByHour.size > 0) {
+            // 保存当前有效数据
+            lastDataGroupByHourRef.current = new Map(dataGroupByHour);
+        }
 
         let x = d3.scaleBand()
             .domain(Array.from({ length: 24 }, (_, i) => i.toString()))
@@ -424,6 +433,11 @@ function HourCircleGraph(props: IHourCircleGraphProps) {
         // 更新所有节点（包括已存在的）的 transform 和 data-hour，因为分辨率改变时中心点会变化
         arcNodeSet.attr('transform', `translate(${svgDimensions.current.width / 2}, ${svgDimensions.current.height / 2})`)
             .attr('data-hour', d => (d as [number, number])[0]);
+        
+        // 只有在数据不为空时才移除 exit 的元素，避免缩放时清空数据
+        if (dataGroupByHour.size > 0) {
+            exitArcNodeSet.remove();
+        }
 
         arcNodeSet.selectAll('path.shadow')
             .attr('d', d => {
@@ -467,7 +481,7 @@ function HourCircleGraph(props: IHourCircleGraphProps) {
                 return 1;
             });
 
-        exitArcNodeSet.remove();
+        // exitArcNodeSet.remove() 已经在上面条件判断中处理了
         
         // drawChart 执行后，如果元素已创建，应用当前的 blink 状态
         applyBlinkState();
@@ -585,6 +599,7 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
     const linesRef = useRef<SVGGElement>(null);
 
     const svgDimensions = useRef({ width: 0, height: 0 });
+    const lastProcessedDataRef = useRef<WorkTimeSummaryData | null>(null); // 保存上一次的有效数据，避免缩放时清空
 
     useEffect(() => {
         const resizeObserver = observeResize();
@@ -619,7 +634,16 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
     }
 
     function draw() {
-        const data = processData();
+        let data = processData();
+        
+        // 如果新数据为空，使用上一次的有效数据，避免缩放时清空元素
+        if (data.data.length === 0 && lastProcessedDataRef.current) {
+            data = lastProcessedDataRef.current;
+        } else if (data.data.length > 0) {
+            // 保存当前有效数据
+            lastProcessedDataRef.current = { ...data };
+        }
+        
         drawDimensions();
 
         const width = svgDimensions.current.width;
@@ -816,7 +840,10 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
             .attr('fill', '#000777')
             .attr('opacity', 0.2);
         
-        g_dots_exit.remove();
+        // 只有在数据不为空时才移除 exit 的元素，避免缩放时清空数据
+        if (data.data.length > 0) {
+            g_dots_exit.remove();
+        }
     }
 
     function drawLines(config: WorkTimeSummaryConfig, data: WorkTimeSummaryData, x: d3.ScaleLinear<number, number>, y: d3.ScaleLinear<number, number>) {
@@ -856,8 +883,11 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
             .attr('stroke', '#00d05f')
             .attr('stroke-width', 1);
 
-        // avgLineExit.remove();
-        midLineExit.remove();
+        // 只有在数据不为空时才移除 exit 的元素，避免缩放时清空数据
+        if (data.groupedData.length > 0) {
+            // avgLineExit.remove();
+            midLineExit.remove();
+        }
     }
 
     return (
