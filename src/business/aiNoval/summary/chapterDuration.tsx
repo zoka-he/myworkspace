@@ -938,15 +938,15 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
         }
 
         const gridLines = d3.select(linesRef.current).selectAll<SVGLineElement, number>('line.grid_line')
-            .data([24, 48], d => d as any)
+            .data([12, 24, 48, 72], (d) => d as any)
             .join(
                 enter => enter.append('line').attr('class', 'grid_line'), 
                 update => update,
                 exit => exit.remove() 
             ).attr('x1', x(0))
-            .attr('x2', x(24))
-            .attr('y1', d => y(d))
-            .attr('y2', d => y(d))
+            .attr('x2', (_, i) => x([12, 24, 24, 24][i]))
+            .attr('y1', (_, i) => y([12, 24, 48, 72][i]))
+            .attr('y2', (_, i) => y([0, 0, 24, 48][i]))  // 改良，斜线代表跨日
             .attr('fill', 'none')
             .attr('stroke', '#ccc')
             .attr('stroke-width', 1)
