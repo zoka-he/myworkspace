@@ -7,7 +7,8 @@ const connPool = mysql.createPool({
     port: config.MYSQL_PORT,
     user: config.MYSQL_USER,
     password: config.MYSQL_PASSWORD,
-    connectionLimit: 30
+    connectionLimit: 30,
+    timezone: 'Asia/Shanghai'
 });
 
 const novalPool = mysql.createPool({
@@ -16,7 +17,8 @@ const novalPool = mysql.createPool({
     port: config.MYSQL_PORT,
     user: config.MYSQL_USER,
     password: config.MYSQL_PASSWORD,
-    connectionLimit: 30
+    connectionLimit: 30,
+    timezone: 'Asia/Shanghai'
 });
 
 

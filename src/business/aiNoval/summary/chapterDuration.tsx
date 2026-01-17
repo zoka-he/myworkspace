@@ -4,8 +4,12 @@ import { IChapter, INovalData } from '../chapterManage/types';
 import { Table, Col, Row, Typography, Card, Space, Radio } from 'antd';
 import styles from './chapterDuration.module.scss';
 import dayjs from 'dayjs';
+import timezone from 'dayjs/plugin/timezone';
 import * as d3 from 'd3';
 import { useTheme } from '@/src/utils/hooks/useTheme';
+
+dayjs.extend(timezone);
+dayjs.tz.setDefault('Asia/Shanghai');
 
 export default function ChapterDuration() {
     const [novelList, setNovelList] = useState<INovalData[]>([]);
