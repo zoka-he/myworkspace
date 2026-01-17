@@ -112,7 +112,9 @@ function SummaryD3GraphContainer({ novelIds }: SummaryD3GraphContainerProps) {
             <Row gutter={10}>
                 <Col span={12}>
                     <Card title="章节创建日期分析" size="small">
-                        TODO 日历图，颜色深度代表创建数量
+                        {/* TODO 日历图，颜色深度代表创建数量 */}
+                        {/* <CalendarGraph data={chapterList} year={dayjs().year()} /> */}
+                        <Graph_ChapterCreatedDate data={chapterList} />
                     </Card>
                 </Col>
 
@@ -126,14 +128,15 @@ function SummaryD3GraphContainer({ novelIds }: SummaryD3GraphContainerProps) {
                                     onChange={e => setFinishDateMode(e.target.value as 'count' | 'duration')}
                                 >
                                     <Radio value="count">数量</Radio>
-                                    <Radio value="duration">耗时</Radio>
+                                    <Radio value="duration">平均耗时</Radio>
                                 </Radio.Group>
                                 <Typography.Text>）</Typography.Text>
                             </Space> 
                         } 
                         size="small"
                     >
-                        TODO 日历图，颜色深度代表完成数量，或完成耗时
+                        {/* TODO 日历图，颜色深度代表完成数量，或完成耗时 */}
+                        <Graph_ChapterUpdatedDate data={chapterList} mode={finishDateMode} />
                     </Card>
                 </Col>
                 
@@ -779,7 +782,7 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
             }, groupedData.get(i) || {});
         });
 
-        console.debug('processData', ret);
+        // console.debug('processData', ret);
 
         return ret;
     }
@@ -1108,6 +1111,313 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
                     <p>当前时间是: { now.current?.format('HH:mm:ss') }</p>
                 </div>
             </div> */}
+        </div>
+    )
+}
+
+
+interface IGraph_ChapterDateProps {
+    data: any[];
+}
+
+function Graph_ChapterCreatedDate(props: IGraph_ChapterDateProps) {
+    
+    const years = useMemo(() => {
+        const max = Math.max(...props.data.map(d => dayjs(d.created_at).year()));
+        const min = Math.min(...props.data.map(d => dayjs(d.created_at).year()));
+        const years = Array.from({ length: max - min + 1 }, (_, i) => min + i);
+        return years;
+    }, [props.data]);
+
+    const subGraphs = useMemo(() => {
+        return years.map(year => {
+            const subData = props.data.filter(d => dayjs(d.created_at).year() === year);
+            return <CalendarGraph data={subData} year={year} calculateValue={calculateValue} refProp="created_at" colorScheme={d3.interpolateBlues} />
+        });
+    }, [years, props.data]);
+
+    function calculateValue(data: any[]) {
+        return data.length;
+    }
+
+    return (
+        <div>
+            {subGraphs}
+        </div>
+    )
+
+}
+
+function Graph_ChapterUpdatedDate(props: Omit<IGraph_ChapterDateProps, 'mode'> & { mode: 'count' | 'duration' }) {
+    
+    const colorScheme = useMemo(() => {
+        console.debug('props.mode', props.mode);
+        return props.mode === 'count' ? d3.interpolateGreens : d3.interpolateReds;
+    }, [props.mode]);
+
+
+    const years = useMemo(() => {
+        const max = Math.max(...props.data.map(d => dayjs(d.updated_at).year()));
+        const min = Math.min(...props.data.map(d => dayjs(d.updated_at).year()));
+        const years = Array.from({ length: max - min + 1 }, (_, i) => min + i);
+        return years;
+    }, [props.data]);
+
+    const subGraphs = useMemo(() => {
+        return years.map(year => {
+            const subData = props.data.filter(d => dayjs(d.updated_at).year() === year);
+            return <CalendarGraph data={subData} year={year} calculateValue={calculateValue} refProp="updated_at" colorScheme={colorScheme} />
+        });
+    }, [years, props.data, props.mode]);
+
+    function calculateValue(data: any[]) {
+        if (props.mode === 'count') {
+            return data.length;
+        } else {
+            return data.reduce((acc, d) => acc + (dayjs(d.updated_at).unix() - dayjs(d.created_at).unix()), 0) / data.length;
+        }
+    }
+
+    return (
+        <div>
+            {subGraphs}
+        </div>
+    )
+
+}
+
+
+interface ICalendarGraphProps {
+    data: any[];
+    year: number;
+    calculateValue: (data: any[]) => number;
+    refProp: string;
+    colorScheme: (value: number) => string;
+}
+
+function CalendarGraph(props: ICalendarGraphProps) {
+    const rectsRef = useRef<SVGGElement>(null);
+    const divRef = useRef<HTMLDivElement>(null);
+    const svgDimensionRef = useRef<SVGTextElement>(null);
+    const dimensionRef = useRef<{ width: number, height: number }>({ width: 0, height: 0 });
+    const labelsRef = useRef<SVGGElement>(null);
+    
+
+    useEffect(() => {
+        const resizeObserver = observeResize();
+        return () => {
+            resizeObserver?.disconnect();
+        };
+    }, []);
+
+    useEffect(() => {
+        draw();
+    }, []);
+
+    useEffect(() => {
+        draw();
+    }, [props.data, props.calculateValue, props.colorScheme]);
+
+    function observeResize(): ResizeObserver | null {
+        if (!divRef.current) {
+            return null;
+        }
+
+        const resizeObserver = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                const { width, height } = entry.contentRect;
+                dimensionRef.current = { width, height };
+            }
+            draw();
+        })
+        
+        resizeObserver.observe(divRef.current);
+
+        return resizeObserver;
+    }
+
+    function draw() {
+        if (!rectsRef.current) {
+            return;
+        }
+
+        const config = {
+            rectSize: 3,
+            rectMargin: 1,
+            monthMargin: 0,
+            marginLeft: 36,
+            marginTop: 18,
+            labelMarginTop: 12,
+        }
+
+        // drawDimensions();
+
+        const data = processData();
+        // drawRects(config, data);
+
+        config.rectSize = calculateRectSize(config, data);
+        console.debug('config.rectSize', config.rectSize);
+
+        drawRects(config, data);
+        drawLabels(config, data);
+    }
+
+    // 显示分辨率，用于调试
+    function drawDimensions() {
+        if (!dimensionRef.current) {
+            return;
+        }
+
+        let textNode = d3.select(svgDimensionRef.current)
+            .text(d => `${dimensionRef.current.width}x${dimensionRef.current.height}`)
+            .attr('x', dimensionRef.current.width)
+            .attr('y', 12)
+            .attr('text-anchor', 'end')
+            .attr('font-size', 12)
+            .attr('fill', '#000');
+    }
+
+    function processData() {
+        const totalDays = Math.round((dayjs((props.year + 1) + '-01-01').unix() - dayjs(props.year + '-01-01').unix()) / 86400);
+
+        let weekOfYear = 0;
+
+        const rectsData = Array.from({ length: totalDays }, (_, i) => {
+            let date = dayjs(props.year + '-01-01').add(i, 'day');
+            let dayOfweek = date.day();
+            if (dayOfweek === 0) {
+                weekOfYear++;
+            }
+
+            return {
+                index: i,
+                dayOfweek,
+                weekOfYear,
+                dayOfMonth: date.date(),
+                month: date.month() + 1,
+                year: date.year(),
+                dataset: [] as any[],
+                value: 0,
+            }
+        });
+
+        props.data.forEach(d => {
+            let ts = dayjs(d[props.refProp]).unix();
+            let year_ts = dayjs(props.year + '-01-01').unix();
+            let index = Math.floor((ts - year_ts) / 86400);
+            // console.debug('index', index);
+            rectsData[index].dataset.push(d);
+        });
+
+        rectsData.forEach(d => {
+            d.value = props.calculateValue(d.dataset);
+        });
+
+        console.debug('rectsData', rectsData);
+
+        return rectsData;
+    }
+
+    function calculateRectSize(config: any, data: any[]) {
+        let maxWeekOfYear = 1 + (d3.max(data, d => d.weekOfYear) || 0);
+
+        let availableWidth = dimensionRef.current.width 
+            - config.marginLeft
+            - maxWeekOfYear * config.rectMargin
+            - 12 * config.monthMargin;
+
+        let rectWidth = Math.floor(availableWidth / maxWeekOfYear * 10) / 10;
+        return rectWidth;
+    }
+
+    function drawRects(config: any, data: any[]) {
+        if (!rectsRef.current) {
+            return;
+        }
+
+        const color = d3.scaleSequential()
+            .domain([0, d3.max(data, d => d.value)])
+            .interpolator(props.colorScheme)
+            .unknown('rgba(192,192,192,0.5)');
+
+        const rects = d3.select(rectsRef.current).selectAll<SVGRectElement, any>('rect')
+            .data(data, d => d.index)
+            .join(
+                enter => enter.append('rect'),
+                update => update,
+                exit => exit.remove()
+            )
+            .attr('x', d => config.marginLeft + d.weekOfYear * (config.rectSize + config.rectMargin) + d.month * config.monthMargin)
+            .attr('y', d => config.marginTop + d.dayOfweek * (config.rectSize + config.rectMargin))
+            .attr('width', config.rectSize)
+            .attr('height', config.rectSize)
+            .attr('fill', d => {
+                if (d.dataset.length > 0) {
+                    return color(d.value);
+                }
+                return 'rgba(192,192,192,0.5)';
+            })
+    }
+
+    function drawLabels(config: any, data: any[]) {
+
+        if (!labelsRef.current) {
+            return;
+        }
+
+        const firstDaysOfMonth = data.filter(d => d.dayOfMonth === 1);
+    
+
+        const monthLabels = d3.select(labelsRef.current).selectAll<SVGTextElement, any>('text.months')
+            .data(firstDaysOfMonth, d => d.index)
+            .join(
+                enter => enter.append('text').attr('class', 'months'),
+                update => update,
+                exit => exit.remove()
+            )
+            .attr('x', d => config.marginLeft + d.weekOfYear * (config.rectSize + config.rectMargin) + d.month * config.monthMargin + 2.5)
+            .attr('y', config.labelMarginTop)
+            .attr('font-size', '10px')
+            .attr('fill', '#000')
+            .text(d => d.month);
+
+        const dayLabels = d3.select(labelsRef.current).selectAll<SVGTextElement, any>('text.days')
+            .data(['Sun', '', '', 'Wed', '', '', 'Sat'])
+            .join(
+                enter => enter.append('text').attr('class', 'days'),
+                update => update,
+                exit => exit.remove()
+            )
+            .attr('x', config.marginLeft - 5)
+            .attr('y', (_, i) => config.marginTop + i * (config.rectSize + config.rectMargin) + 10)
+            .attr('text-anchor', 'end')
+            .attr('font-size', '10px')
+            .attr('fill', '#000')
+            .text(d => d);
+
+        const yearLabels = d3.select(labelsRef.current).selectAll<SVGTextElement, any>('text.years')
+            .data([props.year])
+            .join(
+                enter => enter.append('text').attr('class', 'years'),
+                update => update,
+                exit => exit.remove()
+            )
+            .attr('x', config.marginLeft - 5)
+            .attr('y', config.marginTop - 5)
+            .attr('text-anchor', 'end')
+            .attr('font-size', '12px')
+            .attr('font-weight', 'bold')
+            .attr('fill', '#000')
+            .text(d => d);
+    }
+
+    return (
+        <div ref={divRef}>
+            <svg width="100%" height="100%">
+                <g ref={rectsRef}></g>
+                <g ref={labelsRef}></g>
+                <text ref={svgDimensionRef}></text>
+            </svg>
         </div>
     )
 }
