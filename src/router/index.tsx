@@ -41,6 +41,7 @@ const AiNovalFactionManage = lazy(() => import('../business/aiNoval/factionManag
 const AiNovalEventManage = lazy(() => import('../business/aiNoval/eventManage'));
 const AiNovalChapterManage = lazy(() => import('../business/aiNoval/chapterManage'));
 const AiNovalTimelineManage = lazy(() => import('../business/aiNoval/timelineManage'));
+const AiNovalSummary = lazy(() => import('../business/aiNoval/summary'));
 
 // b2c爬虫
 const B2CScrapy = lazy(() => import('../business/b2c_scrapy'));
@@ -101,6 +102,7 @@ export default function () {
                         <Route path="novel/eventManage" element={<AiNovalEventManage/>}/>
                         <Route path="novel/chapterManage" element={<AiNovalChapterManage/>}/>
                         <Route path="novel/timelineManage" element={<AiNovalTimelineManage/>}/>
+                        <Route path="novel/summary" element={<AiNovalSummary/>}/>
 
                         <Route path="b2c-scrapy/*" element={<B2CScrapy />} />
 
