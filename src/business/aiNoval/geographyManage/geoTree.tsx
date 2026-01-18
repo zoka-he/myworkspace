@@ -44,21 +44,14 @@ export default function(props: IGeoTreeProps) {
         }
 
         let expandedKeys: Key[] = [];
-        function findParent(item: IGeoTreeItem<IGeoStarSystemData>) {
-            if (!item.children?.length) {
-                return;
-            }
 
-            expandedKeys.push(item.key);
+        // 添加根级
+        expandedKeys.push(...starSystemData.map((item) => item.key));
 
-            item.children.forEach((child) => {
-                findParent(child);
-            });
-        }
+        // 添加第一层
+        expandedKeys.push(...starSystemData.flatMap((item) => item.children?.map((child) => child.key) || []));
 
-        starSystemData.forEach((item) => {
-            findParent(item);
-        });
+        // 由于根级和第一层都展开，所以显示出来就是展开到第二层
 
         setExpandedKeys(expandedKeys);
     }
@@ -189,7 +182,7 @@ export default function(props: IGeoTreeProps) {
         return filterTreeData(geoTree || [], searchValue);
     }, [geoTree, searchValue]);
 
-    // 当搜索值变化时，自动展开包含匹配项的节点
+    // 当搜索值或者树数据变化时，自动展开包含匹配项的节点
     useEffect(() => {
         if (searchValue) {
             const keys = getExpandedKeysForSearch(geoTree || [], searchValue);

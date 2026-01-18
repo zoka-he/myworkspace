@@ -905,7 +905,7 @@ function Plot(props: IPlotProps) {
         if (svg) {
             const zoom = d3.zoom<SVGSVGElement, unknown>();
             zoom.on('zoom', event => onZoom(event))
-                .scaleExtent([1, 100])
+                .scaleExtent([1, 1000])
                 .translateExtent([[0, 0], [0, dimensions.height]]);
             d3.select<SVGSVGElement, unknown>(svg).call(zoom as any);
             d3.select<SVGSVGElement, unknown>(svg).on('mousemove', event => onMouseMoveSvg(event));
