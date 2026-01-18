@@ -16,6 +16,9 @@ import Dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 
+import { WagmiProvider } from 'wagmi';
+import { wagmiConfig } from '@/src/config/wagmi';
+
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
 
@@ -32,7 +35,9 @@ export default function App({ Component, pageProps }: AppProps) {
   
   return (
     <SessionProvider session={pageProps.session}>
+      <WagmiProvider config={wagmiConfig}>
         <Component  key={router.asPath} {...pageProps} />
+      </WagmiProvider>
     </SessionProvider>
   )
 }
