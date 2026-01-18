@@ -45,7 +45,7 @@ export default function WalletConnect() {
   const connectors = useConnectors();
   const connect = useConnect();
 
-  const address = useEnsAddress();
+  // const address = useEnsAddress();
   const balance = useBalance({ address: connection.address });
   const blockNumber = useBlockNumber(); 
   const gasPrice = useGasPrice();
