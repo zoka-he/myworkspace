@@ -224,7 +224,7 @@ function MainFrame(props: IMainFrameProps) {
             </Layout>
             <FloatButton.BackTop />
 
-            <Drawer title="状态" open={drawerVisible} onClose={() => toggleDrawerVisible()}>
+            <Drawer title="状态" open={drawerVisible} onClose={() => toggleDrawerVisible()} width={500}>
                 <AppState />
             </Drawer>
         </Layout>

@@ -5,7 +5,8 @@
   "module": "true",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "dotenv -e .env.prod -- next build",
+    "build:local": "next build",
     "start": "next start &",
     "lint": "eslint .",
     "cypress": "cypress run"
@@ -15,6 +16,7 @@
     "@metamask/snaps-sdk": "^10.2.0",
     "@next/font": "13.1.6",
     "@reduxjs/toolkit": "^1.9.2",
+    "@tanstack/react-query": "^5.90.19",
     "@types/crypto-js": "^4.2.1",
     "@types/d3": "^7.4.0",
     "@types/jsonwebtoken": "^9.0.5",
@@ -66,6 +68,7 @@
     "tls": "^0.0.1",
     "ts-node": "^10.9.1",
     "typescript": "^5.9.3",
+    "viem": "^2.44.4",
     "wagmi": "^3.1.0"
   },
   "resolutions": {
@@ -73,6 +76,7 @@
     "@types/react-dom": "19.2.3"
   },
   "devDependencies": {
+    "dotenv-cli": "^8.0.0",
     "eslint": "9",
     "eslint-config-next": "16.0.10"
   }

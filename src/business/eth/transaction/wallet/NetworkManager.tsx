@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, Select, Button, Space, Typography, Tag, message, Modal, Form, Input, InputNumber, Descriptions, Divider } from 'antd';
 import { 
   GlobalOutlined, 
@@ -17,6 +17,8 @@ import fetch from '@/src/fetch';
 import styles from './NetworkManager.module.scss';
 import { ethers } from 'ethers';
 import { useWalletContext } from '../WalletContext';
+import { useConnection, useChains, useChainId } from 'wagmi';
+import { Chain } from 'viem';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -27,54 +29,71 @@ interface NetworkManagerProps {
 }
 
 const NetworkManager: React.FC<NetworkManagerProps> = ({ onNetworkChange }) => {
-  const { networkInfo, isWalletConnected } = useWalletContext();
+  // const { networkInfo, isWalletConnected } = useWalletContext();
+  const connection = useConnection();
+  // const connector = useConnector();
+  const chains = useChains();
+  const currentChainId = useChainId();
+
   const [loading, setLoading] = useState(false);
-  const [networks, setNetworks] = useState<IEthNetwork[]>([]);
-  const [networksLoading, setNetworksLoading] = useState(false);
-  const [targetNetwork, setTargetNetwork] = useState<IEthNetwork | null>(null);
+  // const [networks, setNetworks] = useState<IEthNetwork[]>([]);
+  // const [networksLoading, setNetworksLoading] = useState(false);
+  // const [targetNetwork, setTargetNetwork] = useState<IEthNetwork | null>(null);
+  const [targetChainId, setTargetChainId] = useState<number | null>(null);
 
-  const [form] = Form.useForm();
+  const targetChain = useMemo(() => {
+    const chain = chains?.find(chain => chain.id === targetChainId) || null;
+    // console.debug('targetChainId', targetChainId, typeof targetChainId, 'chains', chains);
+    // console.debug('targetChain', chain);
+    return chain;
+  }, [targetChainId, chains]);
 
-  // 获取网络配置数据
-  useEffect(() => {
-    fetchNetworks();
-  }, []);
+  // const canAddNetwork = useMemo(() => {
+  //   const connectorChainsId = connection.connector..map((chain: Chain) => chain.id) || [];
+  //   return !connectorChainsId.includes(targetChainId!);
+  // }, [currentChainId, targetChainId]);
 
-  useEffect(() => {
-    if (networkInfo) {
-      let chainId = parseInt(networkInfo.chainId?.toString() || '0');
-      setTargetNetwork(networks.find(n => n.chain_id.toString() === chainId.toString()) || null);
-    }
-  }, [networkInfo]);
+  const canSwitchNetwork = useMemo(() => {
+    // if (canAddNetwork) { // 如果可以添加网络，则不能切换网络
+    //   return false;
+    // }
+    return currentChainId !== targetChainId;
+  }, [currentChainId, targetChainId]);
 
-  const fetchNetworks = async () => {
-    try {
-      setNetworksLoading(true);
-      const response = await fetch.get('/api/eth/network', {
-        params: { is_enable: 1, page: 1, limit: 100 } // 获取所有网络配置
-      });
-      setNetworks(response.data || []);
-    } catch (error: any) {
-      console.error('获取网络配置失败:', error);
-      message.error('获取网络配置失败');
-    } finally {
-      setNetworksLoading(false);
-    }
-  };
+  // const fetchNetworks = async () => {
+  //   try {
+  //     setNetworksLoading(true);
+  //     const response = await fetch.get('/api/eth/network', {
+  //       params: { is_enable: 1, page: 1, limit: 100 } // 获取所有网络配置
+  //     });
+  //     setNetworks(response.data || []);
+  //   } catch (error: any) {
+  //     console.error('获取网络配置失败:', error);
+  //     message.error('获取网络配置失败');
+  //   } finally {
+  //     setNetworksLoading(false);
+  //   }
+  // };
 
-  const handleNetworkChange = async (chainId: string) => {
-    if (!isWalletConnected) {
+  const handleNetworkChange = async () => {
+    if (!connection.isConnected || !connection.connector) {
       message.warning('请先连接钱包');
       return;
     }
 
-    setLoading(true);
+    if (!connection.connector.switchChain) {
+      message.warning('钱包不支持切换网络');
+      return;
+    }
 
-    const hexChainId = `0x${parseInt(chainId).toString(16)}`;
-    console.log('hexChainId', hexChainId);
+    if (!targetChain) {
+      message.warning('请选择网络');
+      return;
+    }
+
     try {
-      await switchNetwork(hexChainId);
-      onNetworkChange?.(hexChainId);
+      setLoading(true);
+      await connection.connector.switchChain({ chainId: targetChain.id });
       message.success('网络切换成功');
     } catch (error: any) {
       message.error(error.message || '网络切换失败');
@@ -83,45 +102,45 @@ const NetworkManager: React.FC<NetworkManagerProps> = ({ onNetworkChange }) => {
     }
   };
 
-  const getNetworkTagColor = (chainId: string | undefined) => {
-    if (!chainId) return 'default';
+  // const getNetworkTagColor = (chainId: string | undefined) => {
+  //   if (!chainId) return 'default';
 
-    const network = networks.find(n => n.chain_id.toString() === chainId);
-    if (!network) return 'default';
+  //   const network = networks.find(n => n.chain_id.toString() === chainId);
+  //   if (!network) return 'default';
     
-    // 根据是否为测试网设置颜色
-    return network.is_testnet ? 'orange' : 'blue';
-  };
+  //   // 根据是否为测试网设置颜色
+  //   return network.is_testnet ? 'orange' : 'blue';
+  // };
 
-  const addNetworkToMetamask = async (network: IEthNetwork) => {
+  const addNetworkToMetamask = async (network: Chain) => {
     if (!network) {
       message.warning('请选择网络');
       return;
     }
 
-    const networkInfo: NetworkInfo = {
-      chainId: `0x${network.chain_id.toString(16)}`,
-      name: network.name,
-      rpcUrl: network.rpc_url,
-      blockExplorerUrl: network.explorer_url,
-      nativeCurrency: {
-        name: network.unit_full || network.unit || 'ETH',
-        symbol: network.unit || 'ETH',
-        decimals: Number(network.decimals) || 18
-      }
-    };
+    // const networkInfo: NetworkInfo = {
+    //   chainId: `0x${network.chain_id.toString(16)}`,
+    //   name: network.name,
+    //   rpcUrl: network.rpc_url,
+    //   blockExplorerUrl: network.explorer_url,
+    //   nativeCurrency: {
+    //     name: network.unit_full || network.unit || 'ETH',
+    //     symbol: network.unit || 'ETH',
+    //     decimals: Number(network.decimals) || 18
+    //   }
+    // };
 
-    try {
-      await addNetwork(networkInfo);
-      message.success('网络添加成功');
-    } catch (error: any) {
-      // 忽略 MetaMask 内部的 RPC 错误，因为添加操作实际上是成功的
-      if (error.message && error.message.includes('f is not a function')) {
-        message.success('网络添加成功');
-      } else {
-        message.error(error.message || '网络添加失败');
-      }
-    }
+    // try {
+    //   await addNetwork(networkInfo);
+    //   message.success('网络添加成功');
+    // } catch (error: any) {
+    //   // 忽略 MetaMask 内部的 RPC 错误，因为添加操作实际上是成功的
+    //   if (error.message && error.message.includes('f is not a function')) {
+    //     message.success('网络添加成功');
+    //   } else {
+    //     message.error(error.message || '网络添加失败');
+    //   }
+    // }
   };
 
   return (
@@ -133,7 +152,7 @@ const NetworkManager: React.FC<NetworkManagerProps> = ({ onNetworkChange }) => {
             <Title level={5} className={styles.title}>网络管理</Title>
           </div>
           <Space>
-            <Button type="primary" size="small" icon={<ReloadOutlined />} onClick={() => fetchNetworks()}>刷新</Button>
+            {/* <Button type="primary" size="small" icon={<ReloadOutlined />} onClick={() => fetchNetworks()}>刷新</Button> */}
             
           </Space>
         </div>
@@ -143,24 +162,22 @@ const NetworkManager: React.FC<NetworkManagerProps> = ({ onNetworkChange }) => {
           <Space className={styles.networkSelector}>
             <Text type="secondary">选择网络：</Text>
             <Select
-              value={targetNetwork?.chain_id.toString() || undefined}
-              onChange={(value) => setTargetNetwork(networks.find(n => n.chain_id.toString() === value) || null)}
-              loading={loading || networksLoading}
-              disabled={!isWalletConnected}
+              value={targetChainId || undefined}
+              onChange={(value) => setTargetChainId(value)}
+              loading={loading}
+              disabled={!connection.isConnected}
               // className={styles.selector}
               placeholder="选择网络"
               style={{ width: 280 }}
             >
-              {networks.map((network) => (
-                <Option key={network.chain_id.toString()} value={network.chain_id.toString()}>
-                  <div className={styles.networkOption}>
-                    <Tag color={getNetworkTagColor(network.chain_id.toString())}>
-                      {network.name}
-                    </Tag>
+              {chains?.map((chain) => (
+                <Option key={chain.id} value={chain.id}>
+                  <Space className={styles.networkOption}>
+                    <Text>{chain.name}</Text>
                     <Text type="secondary" className={styles.chainId}>
-                      Chain ID: {network.chain_id}
+                      Chain ID: {chain.id}
                     </Text>
-                  </div>
+                  </Space>
                 </Option>
               ))}
             </Select>
@@ -173,30 +190,31 @@ const NetworkManager: React.FC<NetworkManagerProps> = ({ onNetworkChange }) => {
               {
                 key: 'networkName',
                 label: 'RPC地址',
-                children: <Text type="secondary">{targetNetwork?.rpc_url}</Text>
+                children: <Text type="secondary">{targetChain?.rpcUrls?.default?.http?.[0] || '--'}</Text>
               }, 
               {
                 key: 'explorerUrl',
                 label: '浏览器URL',
-                children: <Text type="secondary">{targetNetwork?.explorer_url}</Text>
+                children: <Text type="secondary">{targetChain?.blockExplorers?.default?.url || '--'}</Text>
               }
             ]} />
           </div>
           
           <div className={styles.networkSwitch}>
-            <Button 
+            {/* <Button 
               icon={<PlusOutlined />} 
-              disabled={!targetNetwork}
-              onClick={() => addNetworkToMetamask(targetNetwork!)}
+              disabled={!canAddNetwork}
+              onClick={() => addNetworkToMetamask(targetChain!)}
             >
               添加网络
-            </Button>
+            </Button> */}
 
             <Button 
               type="primary" 
               icon={<SwitcherOutlined />} 
-              onClick={() => handleNetworkChange(targetNetwork?.chain_id.toString() || '')}
-              disabled={!targetNetwork || parseInt(targetNetwork.chain_id.toString()) === parseInt(networkInfo?.chainId?.toString())}
+              onClick={() => handleNetworkChange()}
+              disabled={!canSwitchNetwork}
+              loading={loading}
             >切换网络</Button>
           </div>
         </div>

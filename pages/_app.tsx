@@ -17,7 +17,10 @@ import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 
 import { WagmiProvider } from 'wagmi';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { wagmiConfig } from '@/src/config/wagmi';
+
+const queryClient = new QueryClient();
 
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
@@ -36,7 +39,11 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <SessionProvider session={pageProps.session}>
       <WagmiProvider config={wagmiConfig}>
-        <Component  key={router.asPath} {...pageProps} />
+        <QueryClientProvider client={queryClient}>
+
+          <Component  key={router.asPath} {...pageProps} />
+
+        </QueryClientProvider>
       </WagmiProvider>
     </SessionProvider>
   )

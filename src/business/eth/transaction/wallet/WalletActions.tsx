@@ -10,6 +10,7 @@ import NftOfWallet from './NftOfWallet';
 import { useWalletContext } from '../WalletContext';
 import ErrorFallback from '@/src/components/ErrorFallbackBoundary/ErrorFallback';
 import WalletSign from './WalletSign';
+import { useConnection } from "wagmi";
 
 
 const { Title, Paragraph } = Typography;
@@ -19,7 +20,11 @@ export interface WalletActionsProps {
 }
 
 export default function WalletActions(props: WalletActionsProps) {
-    const { isWalletConnected } = useWalletContext();
+    // const { isWalletConnected } = useWalletContext();
+
+    const connection = useConnection();
+    const isWalletConnected = connection.isConnected;
+
     let tabs = [
         // {
         //     key: '0',
