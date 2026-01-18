@@ -16,6 +16,12 @@ import Dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 
+function initDayjs() {
+  Dayjs.extend(utc);
+  Dayjs.extend(timezone);
+  Dayjs.tz.setDefault('Asia/Shanghai');
+}
+
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
 
@@ -23,9 +29,7 @@ export default function App({ Component, pageProps }: AppProps) {
   useEffect(() => {
 
     // 初始化 dayjs
-    Dayjs.extend(utc);
-    Dayjs.extend(timezone);
-    Dayjs.tz.setDefault('Asia/Shanghai');
+    initDayjs();
 
     startDetectBrowserWalletProvider();
   }, []);

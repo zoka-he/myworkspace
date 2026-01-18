@@ -693,7 +693,7 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
             .range([config.padding.left, width - config.padding.right]);
 
         const y = d3.scaleLinear()
-            .domain([0, 96]) // 存疑，可以采用不同的指标
+            .domain([0, 48]) // 展示工时，使用48h作为最大值，全图可以看到3天内的工时预测
             .range([height - config.padding.bottom, config.padding.top]);
 
         drawXAxis(config, data, x);
