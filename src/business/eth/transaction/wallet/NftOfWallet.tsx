@@ -5,6 +5,7 @@ import EtherscanUtil from '../common/etherscanUtil';
 import { ReloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useWalletContext } from '../WalletContext';
+import { useConnection } from 'wagmi';
 
 export interface NftOfWalletProps {
     // walletInfo?: IWalletInfo | null;
@@ -12,7 +13,10 @@ export interface NftOfWalletProps {
 
 export default function NftOfWallet(props: NftOfWalletProps) {
 
-    const { accountInfo, networkInfo, isWalletConnected } = useWalletContext();
+    // const { accountInfo, networkInfo, isWalletConnected } = useWalletContext();
+    const connection = useConnection();
+
+
     const [nftList, setNftList] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
@@ -20,16 +24,17 @@ export default function NftOfWallet(props: NftOfWalletProps) {
         setNftList([]);
         // setLoading(true);
         fetchNftList();
-    }, [accountInfo, networkInfo]);
+    }, [connection.address, connection.chainId, connection.isConnected]);
 
     const fetchNftList = async () => {
         setLoading(true);
-        if (!isWalletConnected) {
+        if (!connection.isConnected) {
+            message.warning('请先连接钱包');
             return;
         } 
 
-        const chainId = parseInt(networkInfo?.chainId?.toString() || '0');
-        const address = accountInfo?.selectedAddress;
+        const chainId = connection.chainId;
+        const address = connection.address;
         if (!chainId || !address) {
             return;
         }
@@ -47,11 +52,12 @@ export default function NftOfWallet(props: NftOfWalletProps) {
     };
 
     const renderRecordType = (value: string, record: any) => {
-        if (!isWalletConnected) {
+        if (!connection.isConnected) {
+            message.warning('请先连接钱包');
             return;
         } 
 
-        const address = accountInfo?.selectedAddress;
+        const address = connection.address;
         if (/^0x[0]{40}$/.test(record.from)) {
             return <Tag color="orange">铸造</Tag>;
         } else if (address?.toLowerCase() === record.from?.toLowerCase()) {
@@ -68,11 +74,12 @@ export default function NftOfWallet(props: NftOfWalletProps) {
     };
 
     const renderConterparty = (value: string, record: any) => {
-        if (!isWalletConnected) {
+        if (!connection.isConnected) {
+            message.warning('请先连接钱包');
             return;
         } 
 
-        const address = accountInfo?.selectedAddress;
+        const address = connection.address;
 
         let ret = '';
         if (address?.toLowerCase() === record.from?.toLowerCase()) {
