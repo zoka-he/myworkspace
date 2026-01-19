@@ -26,8 +26,12 @@ export default function RabbitMqState() {
         connectState = <Tag color="red">连接错误</Tag>;
     }
 
-    function cueIt() {
+    function cueMq() {
         connection.sendMessage('/queue/test', 'Hello, RabbitMQ!');
+    }
+
+    function cueBackend() {
+        connection.sendMessage('/queue/ai_novel_tasks', 'Hello, RabbitMQ!');
     }
 
     async function handleFetchMqMessages() {
@@ -48,7 +52,10 @@ export default function RabbitMqState() {
                 {connectState} <Text>{connection.config.wsUrl}</Text> 
             </Descriptions.Item>
             <Descriptions.Item label="操作">
-                <Button type="primary" onClick={cueIt}>Cue它一下</Button>
+                <Space>
+                    <Button type="primary" onClick={cueMq}>Cue它一下</Button>
+                    <Button type="primary" onClick={cueBackend}>让它Cue后端一下</Button>
+                </Space>
             </Descriptions.Item>
         </Descriptions>
 

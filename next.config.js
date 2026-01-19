@@ -3,6 +3,10 @@ const nextConfig = {
   reactStrictMode: false,
   // output: 'standalone' 只在生产构建时使用，开发模式会导致构建清单文件缺失
   ...(process.env.NODE_ENV === 'production' ? { output: 'standalone' } : {}),
+  
+  // 启用 instrumentation 钩子，用于服务器启动时执行代码
+  // 如 RabbitMQ 消费者等后台服务
+  instrumentationHook: true,
 
   async rewrites() {
     console.debug('=============== >> rewrite called');

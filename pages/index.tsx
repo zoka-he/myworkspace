@@ -51,9 +51,9 @@ function AppCore() {
         <WagmiProvider config={wagmiConfig}>
         <QueryClientProvider client={queryClient}>
         <RabbitMQProvider config={mqConfig}>
-        {/* <AiNovelContextProvider> */}
-            
+
             <MyRouter/>
+
             <MQHolder
                 onMessage={onMessage}
                 onConnectionChange={onConnectionChange}
@@ -61,7 +61,7 @@ function AppCore() {
             >
                 <TestConsumer/>
             </MQHolder>
-        {/* </AiNovelContextProvider> */}
+
         </RabbitMQProvider>
         </QueryClientProvider>
         </WagmiProvider>

@@ -97,9 +97,11 @@ export class RabbitMQClient {
 
             // Connection successful callback
             onConnect: (frame) => {
-                this.log('Connected to RabbitMQ', frame);
+                // 首先标记已成功连接，确保后续的错误不会触发连接错误回调
+                this.hasConnectedOnce = true;
                 this.reconnectAttempts = 0;
-                this.hasConnectedOnce = true; // 标记已成功连接
+                
+                this.log('Connected to RabbitMQ', frame);
                 this.resubscribeAll();
                 // 使用 setTimeout 确保 STOMP client 内部状态完全更新后再触发回调
                 // 这解决了 client.active 和 onConnect 回调之间的竞态条件
@@ -316,13 +318,24 @@ export class RabbitMQClient {
 
         const messageBody = typeof body === 'string' ? body : JSON.stringify(body);
         
+        // 构建 headers，过滤掉 undefined 值
+        const finalHeaders: Record<string, string> = {
+            'content-type': 'application/json',
+        };
+        
+        // 安全地合并用户提供的 headers
+        if (headers) {
+            Object.entries(headers).forEach(([key, value]) => {
+                if (value !== undefined && value !== null) {
+                    finalHeaders[key] = String(value);
+                }
+            });
+        }
+        
         this.client.publish({
             destination,
             body: messageBody,
-            headers: {
-                'content-type': 'application/json',
-                ...headers,
-            },
+            headers: finalHeaders,
         });
 
         this.log(`Sent message to ${destination}`, body);
