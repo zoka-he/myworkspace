@@ -34,7 +34,7 @@ async function handleUpdateOne(req: NextApiRequest, res: NextApiResponse) {
         service = planetService;
     } else if (geoUnitType === 'satellite') {
         service = satelliteService;
-    } else if (geoUnitType === 'geographicUnit') {
+    } else if (geoUnitType === 'geoUnit') {
         service = geographyService;
     }
 

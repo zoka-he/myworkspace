@@ -9,6 +9,8 @@ import TransactionHistory from './TransactionHistory';
 import NftOfWallet from './NftOfWallet';
 import { useWalletContext } from '../WalletContext';
 import ErrorFallback from '@/src/components/ErrorFallbackBoundary/ErrorFallback';
+import WalletSign from './WalletSign';
+import { useConnection } from "wagmi";
 
 
 const { Title, Paragraph } = Typography;
@@ -18,13 +20,17 @@ export interface WalletActionsProps {
 }
 
 export default function WalletActions(props: WalletActionsProps) {
-    const { isWalletConnected } = useWalletContext();
+    // const { isWalletConnected } = useWalletContext();
+
+    const connection = useConnection();
+    const isWalletConnected = connection.isConnected;
+
     let tabs = [
-        {
-            key: '0',
-            label: '钱包指令日志',
-            children: <ErrorFallback><WalletLog/></ErrorFallback>,
-        },
+        // {
+        //     key: '0',
+        //     label: '钱包指令日志',
+        //     children: <ErrorFallback><WalletLog/></ErrorFallback>,
+        // },
         {
             key: '1',
             label: '交易发送',
@@ -47,9 +53,14 @@ export default function WalletActions(props: WalletActionsProps) {
         },
         {
             key: '5',
-            label: '合约监控',
-            children: <ErrorFallback><WatchContract/></ErrorFallback>,
-        }
+            label: "签名",
+            children: <ErrorFallback><WalletSign/></ErrorFallback>,
+        },
+        // {
+        //     key: '6',
+        //     label: '合约监控',
+        //     children: <ErrorFallback><WatchContract/></ErrorFallback>,
+        // }
     ];
 
 
@@ -64,7 +75,7 @@ export default function WalletActions(props: WalletActionsProps) {
                     <Paragraph type="secondary">
                         钱包连接成功！您现在可以：
                     </Paragraph>
-                    <Row>
+                    {/* <Row>
                         <Col span={8}>
                             <ul className={styles.featureList}>
                                 <li>查看账户余额和交易历史</li>
@@ -77,7 +88,7 @@ export default function WalletActions(props: WalletActionsProps) {
                                 <li>管理NFT和代币（未开发）</li>
                             </ul>
                         </Col>
-                    </Row>
+                    </Row> */}
                     
                     
 

@@ -64,7 +64,23 @@
   // background: #f0f2f5;
   height: 100%;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  gap: 10px;
+
+  .leftLayout {
+    // flex-basis: 28%;
+    flex-shrink: 0 !important;
+    flex-grow: 0;
+    // min-width: 200px !important;
+    // max-width: 600px !important;
+    height: 100%;
+    box-sizing: border-box;
+  }
+
+  .rightLayout {
+    flex: 1 1 72%;
+    height: 100%;
+  }
 }
 
 .chapterList {

@@ -5,11 +5,12 @@ import EtherscanUtil from '../common/etherscanUtil';
 import { ReloadOutlined, DollarOutlined, SwapOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { useWalletContext } from '../WalletContext';
 import styles from './MarketValue.module.scss';
+import { useConnection } from 'wagmi';
 
 const { Column } = Table;
 
 export default function MarketValue() {
-    const { networkInfo } = useWalletContext();
+    const connection = useConnection();
     const [updateTime, setUpdateTime] = useState('--');
     const [eth2usd, setEth2usd] = useState('--');
     const [eth2btc, setEth2btc] = useState('--');
@@ -22,15 +23,20 @@ export default function MarketValue() {
         fetchMarketValue();
         let timer = setInterval(() => fetchMarketValue(), 1000 * 30);
         return () => clearInterval(timer);
-    }, [networkInfo]);
+    }, [connection.chainId, connection.isConnected, connection.address]);
 
     const fetchMarketValue = async () => {
 
-        if (!networkInfo?.chainId) {
+        if (!connection.isConnected) {
+            message.warning('请先连接钱包');
             return;
         }
 
-        const chainId = parseInt(networkInfo?.chainId?.toString() || '0');
+        const chainId = connection.chainId;
+        if (!chainId) {
+            message.warning('请先选择网络');
+            return;
+        }
 
         try {
             const etherscanUtil = new EtherscanUtil(EtherscanUtil.EndPointUrl.MAINNET, chainId);

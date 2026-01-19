@@ -1,25 +1,26 @@
 import copyToClip from "@/src/utils/common/copy"
 import { message, Modal, Button, Tag, Card, Typography } from "antd"
-import { useState } from "react"
-import { CopyOutlined } from "@ant-design/icons"
+// import { useState } from "react"
+import { CheckOutlined, CopyOutlined } from "@ant-design/icons"
 
 // 注意事项快速复制 Modal
 interface AttentionRefModalProps {
     isVisible: boolean
     onClose: () => void
-    content: string
+    content: string,
+    onApply: (str: string) => void
 }
 
-export default function AttentionRefModal({ isVisible, onClose, content }: AttentionRefModalProps) {
-    const [copyStatus, setCopyStatus] = useState<'idle' | 'success' | 'error'>('idle')
+export default function AttentionRefModal({ isVisible, onClose, onApply }: AttentionRefModalProps) {
+    const hasApply = typeof onApply === 'function';
   
     const refList = [
       {
         title: 'Gemini3优化',
         color: 'green',
         content: '- 使用细腻流畅的行文风格，但不要堆砌形容词\n' +
-                 '- 使用优秀的，具有浪漫想象力情节的表达，可引入俚语和OOC，丰富情感\n' +
-                 '- 输出尽可能长的内容\n' +
+                 '- 使用奔放的情节的表达，可引入俚语和OOC，丰富情感\n' +
+                 '- 输出尽可能长的内容，约4000字左右\n' +
                  '- 避免刻板描写、减少负面形容词\n' +
                  '- 要符合中文的用词习惯和表达习惯\n' +
                  '- 注意与前文的衔接\n' +
@@ -67,12 +68,24 @@ export default function AttentionRefModal({ isVisible, onClose, content }: Atten
         message.error('复制失败')
       }
     }
+
+    function handleApply(content: string) {
+      if (typeof onApply === 'function') {
+        onApply(content)
+        onClose()
+      }
+    }
   
   
     function RefItem(props: { title: string, color: string, content: string }) {
       const title = <div className={'f-flex-two-side'}>
-        <Tag color={props.color}>{props.title}</Tag>
-        <Button type="link" size="small" icon={<CopyOutlined />} onClick={() => handleCopy(props.content)}>复制</Button>
+        <div>
+          <Tag color={props.color}>{props.title}</Tag>
+        </div>
+        <div>
+          <Button type="link" size="small" icon={<CopyOutlined />} onClick={() => handleCopy(props.content)}>复制</Button>
+          {hasApply && <Button type="link" size="small" icon={<CheckOutlined />} onClick={() => handleApply(props.content)}>应用</Button>}
+        </div>
       </div>
   
       return (

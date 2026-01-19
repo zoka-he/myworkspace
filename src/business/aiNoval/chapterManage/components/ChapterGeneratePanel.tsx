@@ -9,17 +9,18 @@ import ChapterContinueModal from './ChapterContinueModal'
 import GenChapterByDetailModal from './GenChapterByDetailModal'
 import * as apiCalls from '../apiCalls'
 import copyToClip from '@/src/utils/common/copy'
+import { useChapterContext } from '../chapterContext'
 
 
 const { TextArea } = Input
 const { Text } = Typography
 
 interface ChapterGeneratePanelProps {
-  selectedChapter: IChapter | null
-  onChapterChange: () => void
+  onChapterChange: (chapterId?: number | null) => void
 }
 
-function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGeneratePanelProps) {
+function ChapterGeneratePanel({ onChapterChange }: ChapterGeneratePanelProps) {
+  const { state: chapterContext } = useChapterContext()
   const [isEditing, setIsEditing] = useState(false)
   const [content, setContent] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -34,14 +35,14 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
 
   // 当选中章节改变时，更新内容
   React.useEffect(() => {
-    if (selectedChapter?.id) {
-      apiCalls.getChapterById(selectedChapter.id).then((res) => {
+    if (chapterContext?.id) {
+      apiCalls.getChapterById(chapterContext.id).then((res) => {
         setContent(res.content || '')
       })
     } else {
       setContent('');
     }
-  }, [selectedChapter])
+  }, [chapterContext])
 
   // 处理文件导入
   const handleFileImport: UploadProps['customRequest'] = async ({ file }) => {
@@ -72,16 +73,16 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
           <Button 
             type="primary" 
             onClick={async () => {
-              if (!selectedChapter) return
+              if (!chapterContext) return
               try {
                 setIsLoading(true)
                 await chapterApi.updateChapter({
-                  id: selectedChapter.id,
+                  id: chapterContext.id,
                   content
                 })
                 message.success('内容已保存')
                 setIsEditing(false)
-                onChapterChange()
+                onChapterChange(chapterContext.id)
               } catch (error) {
                 message.error('保存失败')
               } finally {
@@ -101,10 +102,10 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
   const renderContinueFeature = () => {
     return (
       <ChapterContinueModal
-        selectedChapterId={selectedChapter?.id}
+        selectedChapterId={chapterContext?.id}
         isVisible={isContinueModalVisible}
         onClose={() => setIsContinueModalVisible(false)}
-        onChapterChange={onChapterChange}
+        // onChapterChange={onChapterChange}
       />
     )
   }
@@ -113,13 +114,13 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
   const renderGenDetailFeature = () => {
     return (
       <GenChapterByDetailModal
-        selectedChapter={selectedChapter}
+        selectedChapter={chapterContext}
         open={isGenDetailModalVisible}
         onCancel={() => setIsGenDetailModalVisible(false)}
         onOk={(content) => {
           setContent(content)
           setIsGenDetailModalVisible(false)
-          onChapterChange()
+          // onChapterChange()
         }}
       />
     )
@@ -173,7 +174,7 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
                 try {
                   setIsSummarizing(true)
                   setSummarizedContent('')
-                  const text = await chapterApi.stripChapterBlocking(selectedChapter?.id || 0, stripLength)
+                  const text = await chapterApi.stripChapterBlocking(chapterContext?.id || 0, stripLength)
                   setSummarizedContent(text)
                 } catch (error) {
                   console.error('stripChapter error -> ', error)
@@ -198,7 +199,7 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
     )
   }
 
-  if (!selectedChapter) {
+  if (!chapterContext) {
     return (
       <div className={styles.emptyState}>
         <Text type="secondary">请先选择一个章节</Text>
@@ -339,11 +340,11 @@ function ChapterGeneratePanel({ selectedChapter, onChapterChange }: ChapterGener
             <Button
               type="primary"
               onClick={async () => {
-                if (!selectedChapter) return
+                if (!chapterContext) return
                 try {
                   setIsNaming(true)
                   setSuggestedName('')
-                  const text = await chapterApi.nameChapterBlocking(selectedChapter.id || 0)
+                  const text = await chapterApi.nameChapterBlocking(chapterContext.id || 0)
                   setSuggestedName(text)
                 } catch (error) {
                   console.error('nameChapter error -> ', error)

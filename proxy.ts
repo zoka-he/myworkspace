@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server'
-import type { NextFetchEvent, NextRequest } from 'next/server'
+import { NextResponse } from "next/server";
+import { NextFetchEvent, NextRequest } from "next/server";
 import { NextRequestWithAuth, withAuth } from 'next-auth/middleware';
 // import AUTH_SECRET from '@/src/utils/auth/secret.json';
 import appInterceptor from './interceptors/appInterceptor';
@@ -22,7 +22,7 @@ import appInterceptor from './interceptors/appInterceptor';
 //     }
 // )
 
-export default function middleware(request: NextRequestWithAuth, event: NextFetchEvent) {
+export default function proxy(request: NextRequestWithAuth, event: NextFetchEvent) {
 
     let pathname = request.nextUrl.pathname;
 
@@ -42,9 +42,9 @@ export default function middleware(request: NextRequestWithAuth, event: NextFetc
         return NextResponse.next();
     }
 
-    // llmTools相关页面直接放行
-    if (/^(\/llmTools)/.test(pathname)) {
-        console.debug('origin req ------->>>>>', request);
+    // mcp相关页面直接放行
+    if (/^(\/mcp)/.test(pathname)) {
+        console.debug('MCP req ------->>>>>', request);
         return NextResponse.next();
     }
 

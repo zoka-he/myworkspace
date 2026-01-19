@@ -1,7 +1,9 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { IWalletInfo } from './IWalletInfo';
-import { getInstalledProvider, INetworkInfo, IProviderInfo, IWalletAccount } from '@/src/utils/ethereum/metamask';
+import { INetworkInfo, IProviderInfo, IWalletAccount } from '@/src/utils/ethereum/metamask';
 import { MetamaskTool, isConnected } from '@/src/utils/ethereum/metamask';
+import { getInstalledProvider } from '@/src/utils/ethereum';
+import { WalletTool } from '@/src/utils/ethereum/WalletTools';
 
 declare type WalletContextType = {
     providerInfo: IProviderInfo | null;
@@ -9,7 +11,7 @@ declare type WalletContextType = {
     isWalletConnected: boolean;
     switchRdns: (rdns: string | null) => void;
     getWalletProvider: () => any;
-    getWalletTool: () => MetamaskTool | null;
+    getWalletTool: () => WalletTool | null;
     accountInfo: any;
     networkInfo: any;
     refreshWalletInfo: () => Promise<void>;
@@ -33,18 +35,16 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     const [networkInfo, setNetworkInfo] = useState<INetworkInfo | null>(null);
 
     const walletProviderRef = useRef<any>(null);
-    const walletToolRef = useRef<MetamaskTool | null>(null);
+    const walletToolRef = useRef<WalletTool | null>(null);
 
-    const isWalletConnected = isConnected(walletProviderRef.current);
+    // 使用 useMemo 缓存 isWalletConnected，依赖于 providerInfo 和 accountInfo
+    // 当 provider 或账户变化时，连接状态可能会变化
+    // 使用 accountInfo?.selectedAddress 来判断是否连接，这是同步的且可靠的
+    const isWalletConnected = useMemo(() => {
+        return walletProviderRef.current ? isConnected(walletProviderRef.current) : false;
+    }, [providerInfo, accountInfo?.selectedAddress]);
 
-    useEffect(() => {
-        return () => {
-            // 移除所有监听
-            if (walletToolRef.current) {
-                walletToolRef.current.offAllListeners();
-            }
-        }
-    }, [])
+
 
     const switchRdns = useCallback((rdns: string | null) => {
         if (!rdns) {
@@ -58,6 +58,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
             setWalletInfo(infoAndProvider.info);
             walletProviderRef.current = infoAndProvider.provider;
         } else {
+            console.debug('switchRdns provider not found', rdns);
             setWalletInfo(null);
             walletProviderRef.current = null;
         }
@@ -71,10 +72,77 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
         return walletToolRef.current;
     }, []);
 
-    // 监听钱包提供者变化
-    useEffect(() => {
-        console.debug('provider发生变化导致MetamaskTool需要更新');
+    // 刷新钱包信息
+    const refreshWalletInfo = useCallback(async () => {
+        console.debug('walletContext刷新钱包信息');
 
+        if (!walletToolRef.current) {
+            setAccountInfo((prev) => {
+                if (prev !== null) {
+                    return null;
+                }
+                return prev;
+            });
+            setNetworkInfo((prev) => {
+                if (prev !== null) {
+                    return null;
+                }
+                return prev;
+            });
+            console.error('执行异常：walletToolRef为空');
+            return;
+        }
+
+        const walletInfo = await walletToolRef.current?.requestWalletInfo();
+        if (walletInfo) {
+            setAccountInfo((prev) => {
+                const newAccountInfo = {
+                    accounts: walletInfo.accounts,
+                    selectedAddress: walletInfo.selectedAddress,
+                    balance: walletInfo.balance,
+                };
+                // 只有当数据真正变化时才更新状态
+                if (prev && 
+                    JSON.stringify(prev.accounts) === JSON.stringify(newAccountInfo.accounts) &&
+                    prev.selectedAddress === newAccountInfo.selectedAddress &&
+                    prev.balance === newAccountInfo.balance) {
+                    return prev;
+                }
+                return newAccountInfo;
+            });
+            setNetworkInfo((prev) => {
+                const newNetworkInfo = {
+                    chainId: walletInfo.chainId,
+                    blockNumber: walletInfo.blockNumber,
+                    gasPrice: walletInfo.gasPrice,
+                };
+                // 只有当数据真正变化时才更新状态
+                if (prev &&
+                    prev.chainId === newNetworkInfo.chainId &&
+                    prev.blockNumber === newNetworkInfo.blockNumber &&
+                    prev.gasPrice === newNetworkInfo.gasPrice) {
+                    return prev;
+                }
+                return newNetworkInfo;
+            });
+        } else {
+            setAccountInfo((prev) => {
+                if (prev !== null) {
+                    return null;
+                }
+                return prev;
+            });
+            setNetworkInfo((prev) => {
+                if (prev !== null) {
+                    return null;
+                }
+                return prev;
+            });
+            console.error('刷新钱包信息失败');
+        }
+    }, []);
+
+    const createWalletTool = useCallback(() => {
         // 移除旧的监听
         if (walletToolRef.current) {
             walletToolRef.current.offAllListeners();
@@ -82,37 +150,27 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
 
         // 创建新的监听
         if (walletProviderRef.current) {
-            let tool = new MetamaskTool(walletProviderRef.current);
-            tool.onChainChanged((chainId) => {
+            walletToolRef.current = WalletTool.from(walletProviderRef.current);
+            walletToolRef.current.onChainChanged((chainId) => {
                 console.debug('network发生变化导致钱包信息需要更新');
                 refreshWalletInfo();
             });
-            tool.onAccountsChanged((accounts) => {
+            walletToolRef.current.onAccountsChanged((accounts) => {
                 console.debug('accounts发生变化导致钱包信息需要更新');
                 refreshWalletInfo();
             });
-            walletToolRef.current = new MetamaskTool(walletProviderRef.current);
         } else {
             walletToolRef.current = null;
+            console.debug('provider未设置，未完成初始化');
         }
-    }, [walletProviderRef.current]);
+    }, [refreshWalletInfo]);
 
-    // 刷新钱包信息
-    async function refreshWalletInfo() {
-        const walletInfo = await getWalletTool()?.requestWalletInfo();
-        if (walletInfo) {
-            setAccountInfo({
-                accounts: walletInfo.accounts,
-                selectedAddress: walletInfo.selectedAddress,
-                balance: walletInfo.balance,
-            });
-            setNetworkInfo({
-                chainId: walletInfo.chainId,
-                blockNumber: walletInfo.blockNumber,
-                gasPrice: walletInfo.gasPrice,
-            });
-        }
-    }
+    // 监听钱包提供者变化
+    useEffect(() => {
+        console.debug('provider发生变化导致MetamaskTool需要更新');
+
+        createWalletTool();
+    }, [providerInfo, createWalletTool]);
 
     const sharedState = useMemo(() => {
         return {
@@ -126,9 +184,9 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
             networkInfo,
             refreshWalletInfo,
         }
-    }, [providerInfo, walletProviderRef.current, isWalletConnected, accountInfo, networkInfo]);
+    }, [providerInfo, isWalletConnected, switchRdns, getWalletProvider, getWalletTool, accountInfo, networkInfo, refreshWalletInfo]);
 
-    console.debug('sharedState changed:', sharedState);
+    // console.debug('sharedState changed:', sharedState);
     return <WalletContext.Provider value={sharedState}>{children}</WalletContext.Provider>;
 }
 
