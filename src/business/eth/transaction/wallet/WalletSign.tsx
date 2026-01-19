@@ -6,35 +6,10 @@ import { useWalletContext } from "../WalletContext";
 import { CheckOutlined, CloseOutlined, CopyOutlined, EditOutlined, SafetyCertificateOutlined, SnippetsOutlined } from "@ant-design/icons";
 import copyToClip from "@/src/utils/common/copy";
 import styles from './WalletSign.module.scss';
+import { useConnection, useEnsAddress, useSignMessage } from "wagmi";
 
 export default function WalletSign() {
 
-    // const [contractList, setContractList] = useState<IContract[]>([]);
-    // const [selectedContract, setSelectedContract] = useState<IContract | null>(null);
-
-    useEffect(() => {
-        // fetchContractList();
-    }, []);
-
-    // async function fetchContractList() {
-    //     const { data } = await fetch.get('/api/eth/contract', {
-    //         params: {
-    //             page: 1,
-    //             limit: 100,
-    //             status: 'deployed',
-    //         },
-    //     });
-    //     setContractList(data || []);
-    // }
-
-    function renderContractList(contractList: IContract[]) {
-        return contractList.map((contract) => {
-            return {
-                label: contract.name,
-                value: contract.address,
-            }
-        });
-    }
 
     return <div className={styles.walletSign}>
         <Row gutter={[16, 16]}>
@@ -48,17 +23,15 @@ export default function WalletSign() {
     </div>;
 }
 
-const ContractContext = createContext<{
-    contract: IContract | null;
-}>({
-    contract: null
-});
 
 function Signer() {
-    const { getWalletProvider, accountInfo } = useWalletContext();
+    // const { getWalletProvider, accountInfo } = useWalletContext();
     const [textToSign, setTextToSign] = useState('');
     const [signature, setSignature] = useState('');
     const [loading, setLoading] = useState(false);
+
+    const connection = useConnection();
+    const signMessage = useSignMessage();
 
     async function handlePaste(setter: (value: string) => void) {
         try {
@@ -77,8 +50,13 @@ function Signer() {
         //     return;
         // };
         
-        const walletProvider = getWalletProvider();
-        if (!walletProvider) {
+        if (!connection.isConnected) {
+            message.error('请连接钱包');
+            return;
+        }
+        
+        // const walletProvider = getWalletProvider();
+        if (!connection.connector) {
             message.error('请连接钱包');
             return;
         }
@@ -91,58 +69,17 @@ function Signer() {
         setLoading(true);
         try {
             console.log('开始签名流程...');
-            
-            // // 先确保账户已连接            
-            // if (!accountInfo?.selectedAddress) {
-            //     throw new Error('未获取到账户，请授权账户访问');
-            // }
-            
-            // const address = accountInfo?.selectedAddress;
-            
-            // // 创建 provider 和 signer
-            // const provider = new ethers.JsonRpcProvider(walletProvider);
-            // console.log('获取 signer...');
-            // const signer = await provider.getSigner();
-            // const signerAddress = await signer.getAddress();
-            // console.log('Signer 地址:', signerAddress);
-            
-            // if (signerAddress.toLowerCase() !== address.toLowerCase()) {
-            //     console.warn('账户地址不匹配，使用:', signerAddress);
-            // }
-            
-            // console.log('请求签名，请在钱包中确认...');
-            // message.info('请在钱包扩展中确认签名请求', 5);
-            
+
             // 添加超时处理
             const timeoutPromise = new Promise((_, reject) => {
                 setTimeout(() => reject(new Error('签名超时，请检查钱包扩展是否响应')), 60000); // 60秒超时
             });
             
-            // let signature: string;
             
-            // try {
-            //     // 方法1: 使用 ethers signMessage (推荐)
-            //     console.log('尝试使用 ethers signMessage...');
-            //     signature = await Promise.race([
-            //         signer.signMessage(textToSign),
-            //         timeoutPromise
-            //     ]) as string;
-            // } catch (ethersError: any) {
-            //     console.warn('ethers signMessage 失败，尝试使用 personal_sign:', ethersError);
-                
-                // 方法2: 使用原生的 personal_sign 方法（备选方案）
-                // personal_sign 会自动添加 Ethereum 消息前缀，所以直接传入文本的 hex
-                const messageHex = ethers.hexlify(ethers.toUtf8Bytes(textToSign));
-                
-                console.log('使用 personal_sign 方法，待签名消息:', messageHex);
-                let result = await Promise.race([
-                    walletProvider.request({
-                        method: 'personal_sign',
-                        params: [messageHex, accountInfo?.selectedAddress]
-                    }) as Promise<string>,
-                    timeoutPromise
-                ]) as string;
-            // }
+
+            const result = await signMessage.mutateAsync({
+                message: textToSign,
+            });
             
             console.log('签名成功:', result);
             setSignature(result);
@@ -247,7 +184,9 @@ function Signer() {
 
 function Verifier() {
     // const { contract } = useContext(ContractContext);
-    const { getWalletProvider, accountInfo } = useWalletContext();
+    // const { getWalletProvider, accountInfo } = useWalletContext();
+    const connection = useConnection();
+    const account = connection.address;
     
     const [textToSign, setTextToSign] = useState('');
     const [signature, setSignature] = useState('');
@@ -270,8 +209,7 @@ function Verifier() {
         //     return;
         // }
 
-        const provider = getWalletProvider();
-        if (!provider) {
+        if (!connection.isConnected || !connection.connector) {
             message.error('请连接钱包');
             return;
         }
@@ -280,13 +218,22 @@ function Verifier() {
             message.error('请输入签名');
             return;
         }
+
+        if (!textToSign) {
+            message.error('请输入原始消息');
+            return;
+        }
+
         const result = await ethers.verifyMessage(textToSign, signature);
         setResult(result);
     }
 
     let isCorrect = null;
     if (result) {
-        isCorrect = result?.toLowerCase() === accountInfo?.selectedAddress?.toLowerCase() ? <CheckOutlined/> : <CloseOutlined/>;
+        isCorrect = result?.toLowerCase() === account?.toLowerCase();
+        console.log('isCorrect', isCorrect);
+        console.log('result', result);
+        console.log('account', account);
     }
     
     return (
@@ -379,14 +326,14 @@ function Verifier() {
                                 <Space size="small">
                                     {isCorrect && (
                                         <Typography.Text 
-                                            type={result?.toLowerCase() === accountInfo?.selectedAddress?.toLowerCase() ? 'success' : 'danger'}
+                                            type={isCorrect ? 'success' : 'danger'}
                                             strong
                                             style={{ fontSize: '14px' }}
                                         >
-                                            {result?.toLowerCase() === accountInfo?.selectedAddress?.toLowerCase() ? '验证通过' : '验证失败'}
+                                            { isCorrect ? '验证通过' : '验证失败'}
                                         </Typography.Text>
                                     )}
-                                    {isCorrect}
+                                    {isCorrect ? <CheckOutlined/> : <CloseOutlined/> }
                                 </Space>
                             }
                         />

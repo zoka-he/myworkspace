@@ -1,4 +1,4 @@
-import { Breadcrumb, Layout, Menu, FloatButton, Button, Space, Switch, MenuTheme } from 'antd';
+import { Breadcrumb, Layout, Menu, FloatButton, Button, Space, Switch, MenuTheme, Drawer } from 'antd';
 import { connect } from 'react-redux';
 import React, { useEffect, useRef, useState } from 'react';
 import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
@@ -17,6 +17,8 @@ import mysqlConfig from "@/src/config/mysql";
 import _ from 'lodash';
 import { setShowAll } from '@/src/store/navigatorSlice';
 import { useSelector, useDispatch } from 'react-redux';
+import { useAppState } from '../utils/hooks/useAppState';
+import AppState from './appState';
 
 const { Sider, Header, Content } = Layout;
 
@@ -49,6 +51,8 @@ function MainFrame(props: IMainFrameProps) {
     let [normalOpenKeys, setNormalOpenKeys] = useState<string[]>([]);
     let [openKeys, setOpenKeys] = useState<string[]>([]);
     let [menu, setMenu] = useState<any[]>(props.navMenu);
+
+    let { drawerVisible, toggleDrawerVisible } = useAppState();
 
     useEffect(() => {
         loadInitData();
@@ -188,20 +192,24 @@ function MainFrame(props: IMainFrameProps) {
     return (
         <Layout className="f-fit-height">
             <Sider width={160} theme={themeMode === 'dark' ? 'dark' : 'light'}>
-                <AppHeader/>
-                <div style={{ padding: '12px', textAlign: 'center' }}>
-                    <Switch checked={showAll} unCheckedChildren="公共" checkedChildren="全部" onChange={e => dispatch(setShowAll(e))} />
+                <div className="f-flex-col f-fit-height">
+                    <AppHeader/>
+                    <div className="f-flex-1 f-vertical-scroll">
+                        <div style={{ padding: '12px', textAlign: 'center' }}>
+                            <Switch checked={showAll} unCheckedChildren="公共" checkedChildren="全部" onChange={e => dispatch(setShowAll(e))} />
+                        </div>
+                        <Menu
+                            className="f-flex-1"
+                            theme={themeMode === 'dark' ? 'dark' : 'light'}
+                            mode="inline"
+                            inlineIndent={16}
+                            items={(menu as ItemType[])}
+                            onClick={e => onMenuClick(e)}
+                            openKeys={openKeys}
+                            onOpenChange={onOpenChange}
+                        />
+                    </div>
                 </div>
-                <Menu
-                    className="f-flex-1"
-                    theme={themeMode === 'dark' ? 'dark' : 'light'}
-                    mode="inline"
-                    inlineIndent={16}
-                    items={(menu as ItemType[])}
-                    onClick={e => onMenuClick(e)}
-                    openKeys={openKeys}
-                    onOpenChange={onOpenChange}
-                />
             </Sider>
             <Layout>
                 <Content style={{ backgroundColor: 'white' }}>
@@ -215,6 +223,10 @@ function MainFrame(props: IMainFrameProps) {
                 </Content>
             </Layout>
             <FloatButton.BackTop />
+
+            <Drawer title="状态" open={drawerVisible} onClose={() => toggleDrawerVisible()} width={500}>
+                <AppState />
+            </Drawer>
         </Layout>
     );
 };

@@ -1,4 +1,4 @@
-import { Breadcrumb, Button, Select, Space, Switch, Tag, Typography } from "antd";
+import { Breadcrumb, Button, Select, Space, Switch, Tag, Typography, Drawer } from "antd";
 import { connect } from "react-redux";
 import store, { IRootState } from "../store";
 // import { useSession, signOut } from 'next-auth/react';
@@ -11,6 +11,7 @@ import _ from 'lodash';
 import mysqlConfig from "@/src/config/mysql";
 import { setFrontHost } from "@/src/store/difySlice";
 import { setTheme } from "@/src/store/themeSlice";
+import { useAppState } from "../utils/hooks/useAppState";
 
 const mapStateToProps = (state: IRootState) => {
     return {
@@ -41,6 +42,7 @@ interface IWorkspaceHeaderProps {
 function WorkspaceHeader(props: IWorkspaceHeaderProps) {
     // let session = useSession();
     let navigate = useNavigate();
+    let { toggleDrawerVisible } = useAppState();
 
     // let userLabel = null;
     // if (props?.loginUser?.nickname || session?.data?.user?.name) {
@@ -49,7 +51,8 @@ function WorkspaceHeader(props: IWorkspaceHeaderProps) {
     // }
 
     let settingLabel = (
-        <Button type="text" icon={<SettingOutlined />} onClick={() => navigate('/user/profile?tabKey=2')}>设置</Button>
+        // <Button type="text" icon={<SettingOutlined />} onClick={() => navigate('/user/profile?tabKey=2')}>设置</Button>
+        <Button type="text" icon={<SettingOutlined />} onClick={() => toggleDrawerVisible()}>查看状态</Button>
     )
 
     let pathname = location.pathname;
@@ -132,8 +135,8 @@ function WorkspaceHeader(props: IWorkspaceHeaderProps) {
                 </div>
             </div>
             <Space size={16}>
-                <Typography.Text strong>mysql主机: </Typography.Text>
-                <Tag>{`${mysqlConfig.MYSQL_HOST}:${mysqlConfig.MYSQL_PORT}`}</Tag>
+                {/* <Typography.Text strong>mysql主机: </Typography.Text>
+                <Tag>{`${mysqlConfig.MYSQL_HOST}:${mysqlConfig.MYSQL_PORT}`}</Tag> */}
 
                 <Typography.Text strong>dify主机: </Typography.Text>
                 <Select style={{ width: 130 }} options={props.difyFrontHostOptions.map(option => ({ label: option, value: option }))} value={props.difyFrontHost} onChange={e => store.dispatch(setFrontHost(e))} />

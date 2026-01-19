@@ -65,34 +65,40 @@ export default function () {
             <Suspense fallback={<LoadingFallback />}>
                 <Routes>
                     <Route path="/" element={<MainFrame />}>
+                        {/* 敏捷管理工具 */}
                         <Route path="taskManage/dashboard" element={<Dashboard />} />
                         <Route path="taskManage/taskManage" element={<TaskManage />} />
                         <Route path="taskManage/figure" element={<TaskFigure />} />
-
                         <Route path="taskManage/bugTrace" element={<BugTrace />} />
                         <Route path="taskManage/catfightLog" element={<CatfightLog />} />
                         <Route path="taskManage/uplineCheck" element={<UplineCheck />} />
                         <Route path="taskManage/weeklyReport" element={<WeekReport />} />
 
+                        {/* 路书 */}
                         <Route path="roadBook/planBoard" element={<RoadBookPlanBoard />} />
                         <Route path="roadBook/editor" element={<RoadBookEditor />} />
                         <Route path="roadBook/calendar" element={<RoadBookCalendar />} />
                         <Route path="roadBook/wishboard" element={<WishBoard />} />
                         <Route path="roadBook/countBoard" element={<CountBoard />} />
 
+                        {/* 信息管理 */}
                         <Route path="infos/accounts" element={<AccountManage />} />
                         <Route path="infos/employeeManage" element={<EmployeeManage />} />
 
+                        {/* 自行车 */}
                         <Route path="bike/wheelDev" element={<WheelDev />} />
                         <Route path="bike/bikeManage" element={<BikeManage />} />
 
+                        {/* 模块管理 */}
                         <Route path="user/permission" element={<Permission />} />
                         <Route path="user/account" element={<UserAccount />} />
                         <Route path="user/role" element={<UserRole />} />
                         <Route path="user/profile" element={<UserProfile />} />
 
+                        {/* 开发工具 */}
                         <Route path="devTools/encoding" element={<DevEncoding />} />
 
+                        {/* AI小说 */}
                         <Route path="novel/NovalManage" element={<AiNovalManager/>}/>
                         <Route path="novel/worldViewManage" element={<AiWorldViewManager/>}/>
                         <Route path="novel/geographyManage" element={<AiWorldGeoManager/>}/>
@@ -104,8 +110,10 @@ export default function () {
                         <Route path="novel/timelineManage" element={<AiNovalTimelineManage/>}/>
                         <Route path="novel/summary" element={<AiNovalSummary/>}/>
 
+                        {/* b2c爬虫 */}
                         <Route path="b2c-scrapy/*" element={<B2CScrapy />} />
 
+                        {/* ETH账户管理 */}
                         <Route path="eth/account" element={<EthAccountManage />} />
                         <Route path="eth/network" element={<EthNetworkManage />} />
                         <Route path="eth/transaction" element={<EthTransaction />} />
@@ -113,6 +121,7 @@ export default function () {
                         <Route path="eth/contractDeploy" element={<EthContractDeploy />} />
                         <Route path="eth/nftManage" element={<EthNFTManage />} />
                         
+                        {/* 兜底页面 */}
                         <Route path="*" element={<div><h1>此页面尚未实现！</h1></div>} />
                     </Route>
                 </Routes>

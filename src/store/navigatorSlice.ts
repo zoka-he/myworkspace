@@ -5,7 +5,8 @@ interface INavigatorState {
     menuSearchKey: string
     lastPathname: string
     historyTags: any[]
-    showAll: boolean
+    showAll: boolean,
+    drawerVisible: boolean
 }
 
 let defaultShowAll = false;
@@ -20,7 +21,8 @@ const navigatorSlice = createSlice({
         menuSearchKey: '',
         lastPathname: '',
         historyTags: [],
-        showAll: defaultShowAll
+        showAll: defaultShowAll,
+        drawerVisible: false
     },
     reducers: {
         setNavMenu: (state, { payload }) => {
@@ -44,6 +46,10 @@ const navigatorSlice = createSlice({
             if (typeof window !== 'undefined') {
                 window.localStorage.setItem('myworksite_show_mode', payload.toString());
             }
+        },
+
+        toggleDrawerVisible: (state) => {
+            state.drawerVisible = !state.drawerVisible;
         }
     }
 });
@@ -53,7 +59,8 @@ const {
     setMenuSearchKey, 
     setLastPathname,
     setHistoryTags,
-    setShowAll
+    setShowAll,
+    toggleDrawerVisible
 } = navigatorSlice.actions;
 
 export default navigatorSlice;
@@ -65,5 +72,6 @@ export {
     setMenuSearchKey,
     setLastPathname,
     setHistoryTags,
-    setShowAll
+    setShowAll,
+    toggleDrawerVisible
 };
