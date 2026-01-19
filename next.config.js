@@ -46,6 +46,7 @@ const nextConfig = {
   // },
   env: {
     ETHERSCAN_API_KEY: process.env.ETHERSCAN_API_KEY,
+    ALCHEMY_API_KEY: process.env.ALCHEMY_API_KEY,
     VITE_INFURA_API_KEY: process.env.VITE_INFURA_API_KEY,
   },
 

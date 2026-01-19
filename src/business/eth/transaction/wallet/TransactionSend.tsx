@@ -9,6 +9,8 @@ import { readableAmount } from '@/src/utils/ethereum/metamask';
 import { eth2wei, gwei2wei, wei2eth } from '../common/etherConvertUtil';
 import EtherscanUtil from '../common/etherscanUtil';
 import _ from 'lodash';
+import { useBalance, useChainId, useConnection, useConnectors, useEstimateFeesPerGas, useEstimateGas, useGasPrice, usePublicClient, useSendTransaction, useSendTransactionSync, useWaitForTransactionReceipt } from 'wagmi';
+import { parseEther, parseGwei, stringToHex, UserRejectedRequestError } from 'viem';
 
 interface WalletActionsProps {
     // walletInfo?: IWalletInfo | null;
@@ -16,10 +18,19 @@ interface WalletActionsProps {
 
 // 付款表单数据类型
 interface SendFormData {
+    amountUnit: 'wei' | 'eth' | 'gwei';
     to: string;
+    amount: string;
+    gasPrice: string;
+    gasLimit: string;
+    data?: string;
+}
+
+interface TxData {
     amount: bigint;
     gasPrice: bigint;
     gasLimit: bigint;
+    to: string;
     data?: string;
 }
 
@@ -50,8 +61,71 @@ const wei2usd = (amount?: bigint | string, eth2usd?: string | number) => {
     }
 }
 
+function processFormData(formData: SendFormData): TxData {
+
+    let txData: TxData = {
+        amount: BigInt(0),
+        gasPrice: BigInt(0),
+        gasLimit: BigInt(0),
+        to: '',
+        data: '',
+    };
+
+    if (!formData) {
+        return txData;
+    }
+
+    if (formData.amount && formData.amountUnit === 'eth') {
+        txData.amount = parseEther(formData.amount);
+    } else if (formData.amount && formData.amountUnit === 'gwei') {
+        txData.amount = parseGwei(formData.amount);
+    } else if (formData.amount && formData.amountUnit === 'wei') {
+        if (!/^\d+$/.test(formData.amount)) {
+            message.error('金额必须是有效的整数');
+        } else {
+            txData.amount = BigInt(formData.amount);
+        }
+    }
+
+    if (formData.gasPrice) {
+        if (!/^\d+$/.test(formData.gasPrice)) {
+            message.error('Gas Price必须是有效的整数');
+        } else {
+            txData.gasPrice = BigInt(formData.gasPrice);
+        }
+    }
+
+    if (formData.gasLimit) {
+        if (!/^\d+$/.test(formData.gasLimit)) {
+            message.error('Gas Limit必须是有效的整数');
+        } else {
+            txData.gasLimit = BigInt(formData.gasLimit);
+        }
+    }
+
+    if (formData.to) {
+        if (!/^0x[a-fA-F0-9]{40}$/.test(formData.to)) {
+            message.error('接收地址必须是有效的以太坊地址');
+        } else {
+            txData.to = formData.to.toLowerCase();
+        }
+    }
+
+    if (formData.data) {
+        txData.data = formData.data;
+    }
+
+    return txData;
+}
+
 export default function TransactionSend(props: WalletActionsProps) {
-    const { isWalletConnected, networkInfo, accountInfo, getWalletTool } = useWalletContext();
+    // const { isWalletConnected, networkInfo, accountInfo, getWalletTool } = useWalletContext();
+    const connection = useConnection();
+    const address = connection.address;
+    const chainId = connection.chainId;
+    const gasPrice = useGasPrice();
+    const sendTransaction = useSendTransaction();
+    const publicClient = usePublicClient();
 
     const [form] = Form.useForm<SendFormData>();
     const [loading, setLoading] = useState(false);
@@ -78,12 +152,8 @@ export default function TransactionSend(props: WalletActionsProps) {
     // 定期获取以太币/USD价格
     const [eth2usd, setEth2usd] = useState('--');
     const fetchMarketValue = async () => {
-        if (!networkInfo?.chainId) {
-            return;
-        }
 
-        const chainId = parseInt(networkInfo?.chainId?.toString() || '0');
-        if (chainId === 0) {
+        if (!chainId) {
             return;
         }
 
@@ -103,22 +173,7 @@ export default function TransactionSend(props: WalletActionsProps) {
 
     const formValues = Form.useWatch([], form);
     const txData = useMemo(() => {
-        let amount: bigint = BigInt(0);
-        switch (sendAmountUnit) {
-            case 'wei':
-                amount = BigInt(formValues.amount.toString().split('.')[0] || '0');
-                break;
-            case 'eth':
-                amount = eth2wei(formValues?.amount?.toString() || '0');
-                break;
-            case 'gwei':
-                amount = gwei2wei(formValues?.amount?.toString() || '0'  );
-        }
-
-        return {
-            ...formValues,
-            amount,
-        }
+        return processFormData(formValues);
     }, [formValues, sendAmountUnit])
 
     // 加载账户列表
@@ -130,24 +185,19 @@ export default function TransactionSend(props: WalletActionsProps) {
                 limit: 100
             };
 
-            if (networkInfo?.chainId) {
-                params.chain_id = parseInt(networkInfo.chainId).toString();
+            if (chainId) {
+                params.chain_id = chainId;
             }
 
             // @ts-ignore
             const { data } = await fetch.get('/api/eth/account', { params: params });
             let validReceivers = data.filter((item: any) => {
                 // 基础过滤：排除当前地址
-                const isNotCurrentAddress = item.address.toLowerCase() !== accountInfo?.selectedAddress.toLowerCase();
+                const isNotCurrentAddress = item.address.toLowerCase() !== address?.toLowerCase();
                 const hasPrivateKey = item.private_key !== null && item.private_key !== '';
                 
-                // 网络匹配
-                let networkMatch = false;
-                if (accountInfo?.custom) {
-                    networkMatch = item.network_id === networkInfo?.networkId;
-                } else {
-                    networkMatch = item.chain_id === Number(networkInfo?.chainId);
-                }
+                // 过滤网络匹配的对手方钱包地址
+                let networkMatch = item.chain_id === chainId;
                 
                 // 如果勾选了"仅限我的账户"，只显示有私钥的账户
                 if (onlyMyAccounts) {
@@ -173,13 +223,7 @@ export default function TransactionSend(props: WalletActionsProps) {
             loadAccounts();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [addressInputMode, accountInfo, onlyMyAccounts]);
-
-    // 计算交易费用
-    const calculateFee = (gasPrice: number, gasLimit: number) => {
-        const fee = (gasPrice * gasLimit) / 1e18;
-        return readableAmount(fee.toString(), 'eth');
-    };
+    }, [addressInputMode, connection.address, connection.chainId, onlyMyAccounts]);
 
     // 缩短地址显示
     const shortenAddress = (address: string) => {
@@ -189,8 +233,12 @@ export default function TransactionSend(props: WalletActionsProps) {
 
     // 显示二次确认对话框
     const showConfirmModal = (values: SendFormData) => {
-        const estimatedFee = BigInt(values.gasPrice) * BigInt(values.gasLimit);
-        const totalAmount = values.amount + estimatedFee;
+        let txData = processFormData(values);
+        const estimatedFee = BigInt(txData.gasPrice) * BigInt(txData.gasLimit);
+        const totalAmount = txData.amount + estimatedFee;
+
+        const feePercent = estimatedFee * BigInt(10000) / totalAmount;
+        const feePercentString = (Number(feePercent.toString()) / 100).toString() + '%';
         
         Modal.confirm({
             title: '确认发送交易',
@@ -199,18 +247,18 @@ export default function TransactionSend(props: WalletActionsProps) {
                 <div style={{ marginTop: 16 }}>
                     <Descriptions column={1} size="small" bordered>
                         <Descriptions.Item label="接收地址">
-                            <div style={{ wordBreak: 'break-all' }}>{values.to}</div>
+                            <div style={{ wordBreak: 'break-all' }}>{txData.to}</div>
                         </Descriptions.Item>
                         <Descriptions.Item label="发送金额">
                             <span style={{ fontSize: 16, fontWeight: 'bold', color: '#ff4d4f' }}>
-                                {readableAmount(values.amount.toString())}
+                                {readableAmount(txData.amount.toString())}
                             </span>
                         </Descriptions.Item>
                         <Descriptions.Item label="Gas Price">
-                            {readableAmount(values.gasPrice.toString())}
+                            {readableAmount(txData.gasPrice.toString())}
                         </Descriptions.Item>
                         <Descriptions.Item label="Gas Limit">
-                            {readableAmount(values.gasLimit.toString())}
+                            {readableAmount(txData.gasLimit.toString())}
                         </Descriptions.Item>
                         <Descriptions.Item label="预估费用">
                             {readableAmount(estimatedFee.toString())}
@@ -218,6 +266,9 @@ export default function TransactionSend(props: WalletActionsProps) {
                         <Descriptions.Item label="总计">
                             <span style={{ fontSize: 16, fontWeight: 'bold', color: '#1890ff' }}>
                                 {readableAmount(totalAmount.toString())}
+                            </span>
+                            <span style={{ fontSize: 12, color: '#999' }}>
+                                （交易费用占：{feePercentString}）
                             </span>
                         </Descriptions.Item>
                     </Descriptions>
@@ -237,94 +288,91 @@ export default function TransactionSend(props: WalletActionsProps) {
                 danger: true,
             },
             onOk: async () => {
-                await sendTransaction(values);
+                await handleSendTransaction(values);
             },
         });
     };
 
     // 发送交易
-    const sendTransaction = async (values: SendFormData) => {
+    const handleSendTransaction = async (values: SendFormData) => {
         try {
             setLoading(true);
             
             // 检查是否有钱包连接
-            if (!isWalletConnected) {
+            if (!connection.isConnected) {
                 message.error('请先连接钱包');
                 return;
             }
 
-            let fromAddress = accountInfo?.selectedAddress;
-
             message.loading({ content: '正在发送交易...', key: 'sendTx', duration: 0 });
 
-            let txHash = await getWalletTool()?.sendTransaction({
-                from: fromAddress,
-                to: values.to,
-                value: values.amount.toString(16),
-                gas: values.gasLimit.toString(16),
-                gasPrice: values.gasPrice.toString(16),
-                data: (values.data || '').trim(),
-            })
-
-            if (!txHash) {
-                message.error('发送交易失败');
-                return;
-            }
+            let result = await sendTransaction.mutateAsync({
+                to: txData.to as `0x${string}`,
+                value: txData.amount,
+                gas: txData.gasLimit,
+                gasPrice: txData.gasPrice,
+                data: stringToHex(txData.data || ''),
+            });
             
             message.loading({ 
-                content: `交易已发送，等待确认... (Hash: ${txHash.slice(0, 10)}...)`, 
+                content: `交易已发送，等待确认... (Hash: ${result.slice(0, 10)}...)`, 
                 key: 'sendTx',
                 duration: 0 
             });
 
-            const sleep = (seconds: number) => {
-                return new Promise(resolve => setTimeout(resolve, seconds * 1000));
-            }
-
-            let receipt: any = null;
-            for (let i = 60; i > 0; i-=2) {
-                await sleep(2);
-                receipt = await getWalletTool()?.waitForTransactionReceipt(txHash);
-                if (receipt) {
-                    break;
-                }
-            }
-
-            if (!receipt) {
-                message.error({ content: '交易超时', key: 'sendTx', duration: 5 });
+            
+            if (!publicClient) {
+                message.error('公共客户端未连接，这看起来是一个意外错误，请自行在钱包查看交易状态。');
                 return;
-            } else if (parseInt(receipt?.status) === 1) {
-                message.success({ 
-                    content: `交易成功! Hash: ${txHash}`,
-                    key: 'sendTx',
-                    duration: 5,
-                });
-                
-                // 复制交易哈希到剪贴板
-                copyToClip(txHash);
-                message.info('交易哈希已复制到剪贴板');
-                
-                // 重置表单
-                form.resetFields();
-                // setEstimatedFee('0.001');
+            }
+
+            let receipt = await publicClient.waitForTransactionReceipt({
+                hash: result,
+            });
+
+            if (receipt.status === 'success') {
+                message.success('交易成功');
             } else {
-                throw new Error('交易失败');
+                message.error('交易失败');
             }
             
         } catch (error: any) {
-            console.error('交易发送失败:', error);
-            
-            // 处理用户拒绝交易
-            if (error.code === 'ACTION_REJECTED' || error.code === 4001) {
-                message.warning({ content: '您已取消交易', key: 'sendTx' });
-            } else if (error.code === 'INSUFFICIENT_FUNDS') {
-                message.error({ content: '余额不足', key: 'sendTx' });
+            // console.error('交易发送失败:', error);
+            // console.debug(error.data);
+
+            // wagmi 的 error 结构通常有 code, message, cause, 和 details 字段。
+            // 可以输出所有的 error 结构方便排查，并针对常见的 code 做特殊处理，比如 4001（用户拒绝），-32000（可能余额不足）。
+            // 可以参考 wagmi 的官方文档: https://wagmi.sh/react/faq#how-are-errors-handled
+            // 你可以这样做更友好的适配和调试：
+
+            // 打印 error 的详细结构，方便诊断
+            // error 可能是一个对象，但其属性往往不可枚举，直接console.log(error)无法展开全部，推荐如下方式
+            if (typeof error === 'object' && error !== null) {
+                // 尝试输出所有属性和值（包括不可枚举属性和Symbol属性），而不是仅用 toString
+                const ownKeys = [
+                    ...Object.getOwnPropertyNames(error),
+                    ...Object.getOwnPropertySymbols(error) as any,
+                ];
+                const allProps: Record<string | symbol, any> = {};
+                for (const key of ownKeys) {
+                    // @ts-ignore
+                    allProps[key] = error[key];
+                }
+                console.debug('wagmi error object (full property map):', allProps);
             } else {
-                message.error({ 
-                    content: `交易失败: ${error.message || '未知错误'}`,
-                    key: 'sendTx',
-                    duration: 5,
-                });
+                // 如果不是对象直接打印
+                console.debug('wagmi error object:', error);
+            }
+
+            // 常见错误处理：code 4001 用户取消交易，-32000 余额不足/nonce 问题等
+            if (error.cause.code === 4001 || error.shortMessage === 'User rejected the request.') {
+                message.warning({ content: '您已取消交易', key: 'sendTx' });
+            } else if (error.cause.code === -32000) {
+                message.error({ content: '交易失败：可能余额不足或 Gas 设置过低', key: 'sendTx' });
+            } else if (error.message) {
+                message.error({ content: `交易失败: ${error.message}`, key: 'sendTx', duration: 8 });
+            } else {
+                message.error({ content: `交易失败: ${JSON.stringify(error)}`, key: 'sendTx', duration: 8 });
             }
         } finally {
             setLoading(false);
@@ -336,41 +384,31 @@ export default function TransactionSend(props: WalletActionsProps) {
         showConfirmModal(values);
     };
 
-    // 设置最大 Gas
-    const setMaxGas = () => {
-        form.setFieldsValue({ gasLimit: BigInt(21000) });
-        // handleFormChange();
-    };
+    const setGasPrice = (gasPriceLevel: string) => {
+        let result: bigint = BigInt(0);
 
-    const setGasPrice = (gasPrice: number | string) => {
-        let result: number = 0;
+        let gasPrice_standard = gasPrice.data || BigInt(0);
 
-        let gasPrice_standard = parseInt(networkInfo?.gasPrice) || null; 
-        if (gasPrice_standard === null || gasPrice_standard === undefined || gasPrice_standard === 0) {
-            if (typeof gasPrice === 'number') {
-                result = gasPrice;
-            } else if (typeof gasPrice === 'string' && _.isNumber(gasPrice)) {
-                result = Number(gasPrice);
-            }
-        } else {
-            if (gasPrice === 'fast2') {
-                result = gasPrice_standard * 2;
-            } else if (gasPrice === 'fast1') {
-                result = gasPrice_standard * 1.5;
-            } else if (gasPrice === 'slow') {
-                result = gasPrice_standard * 0.8;
-            } else if (gasPrice === 'standard') {
-                result = gasPrice_standard;
-            } else if (typeof gasPrice === 'number') {
-                result = gasPrice;
-            } else if (typeof gasPrice === 'string' && _.isNumber(gasPrice)) {
-                result = Number(gasPrice);
-            }
+        if (gasPriceLevel === 'fast2') {
+            result = gasPrice_standard * BigInt(2);
+        } else if (gasPriceLevel === 'fast1') {
+            result = gasPrice_standard * BigInt(3) / BigInt(2); // 1.5倍
+        } else if (gasPriceLevel === 'slow') {
+            result = gasPrice_standard * BigInt(4) / BigInt(5); // 0.8倍
+        } else if (gasPriceLevel === 'standard') {
+            result = gasPrice_standard;
+        } else if (typeof gasPriceLevel === 'string' && _.isNumber(gasPriceLevel)) {
+            result = BigInt(gasPriceLevel);
         }
 
-        form.setFieldValue('gasPrice', Math.round(result));
+        form.setFieldValue('gasPrice', result.toString());
         
     };
+
+    function setGasLimitByLevel(gasLimitLevel: string = 'default') {
+        let result: bigint = BigInt(21000); // 默认21000
+        form.setFieldValue('gasLimit', result.toString());
+    }
 
     // 验证地址格式
     const validateAddress = (_: any, value: string) => {
@@ -426,11 +464,12 @@ export default function TransactionSend(props: WalletActionsProps) {
                         <Form
                             form={form}
                             layout="vertical"
-                            onFinish={() => handleSend(txData)}
+                            onFinish={(values) => handleSend(values)}
                             // onValuesChange={handleFormChange}
                             initialValues={{
-                                gasPrice: networkInfo?.gasPrice ? gwei2wei(networkInfo?.gasPrice) : null,
-                                gasLimit: 21000,
+                                gasPrice: parseInt(gasPrice.data?.toString() || '0'),
+                                gasLimit: '21000',
+                                amountUnit: 'eth',
                             }}
                         >
                             <Form.Item label="接收地址">
@@ -527,16 +566,17 @@ export default function TransactionSend(props: WalletActionsProps) {
                                                     style={{ width: '100%' }}
                                                 />
                                             </Form.Item>
-                                            <Select
-                                                value={sendAmountUnit}
-                                                style={{ width: 80 }}
-                                                onChange={(value) => setSendAmountUnit(value as 'wei' | 'eth' | 'gwei')}
-                                                options={[
-                                                    { label: 'ETH', value: 'eth' },
-                                                    { label: 'Gwei', value: 'gwei' },
-                                                    { label: 'wei', value: 'wei' },
-                                                ]}
-                                            />
+                                            <Form.Item noStyle name="amountUnit">
+                                                <Select
+                                                    style={{ width: 80 }}
+                                                    onChange={(value) => setSendAmountUnit(value as 'wei' | 'eth' | 'gwei')}
+                                                    options={[
+                                                        { label: 'ETH', value: 'eth' },
+                                                        { label: 'Gwei', value: 'gwei' },
+                                                        { label: 'wei', value: 'wei' },
+                                                    ]}
+                                                />
+                                            </Form.Item>
                                         </Space.Compact>
                                     </Form.Item>
                                 </Col>
@@ -596,17 +636,17 @@ export default function TransactionSend(props: WalletActionsProps) {
                                         <Space.Compact style={{ width: '100%' }}>
                                             <Form.Item noStyle name="gasLimit">
                                                 <InputNumber
-                                                    placeholder="21000"
-                                                    min={21000}
-                                                    max={1000000}
+                                                    // placeholder="21000"
+                                                    // min={21000}
+                                                    // max={1000000}
                                                     style={{ width: '100%' }}
                                                 />
                                             </Form.Item>
                                             <Button 
                                                 type="default" 
-                                                onClick={setMaxGas}
+                                                onClick={() => setGasLimitByLevel('default')}
                                             >
-                                                最大
+                                                默认
                                             </Button>
                                         </Space.Compact>
                                     </Form.Item>
@@ -651,45 +691,40 @@ export default function TransactionSend(props: WalletActionsProps) {
 
 
 interface TransactionPreviewProps {
-    txData: SendFormData;
+    txData: TxData;
     eth2usd: string;
 }
 
 
 function TransactionPreview({ txData, eth2usd }: TransactionPreviewProps) {
 
-    const { accountInfo } = useWalletContext();
+    // const { accountInfo } = useWalletContext();
+    const chainId = useChainId();
+    const { address } = useConnection();
+    const balance = useBalance({ address: address });
+    // const gasEstimate = useEstimateGas({ 
+    //     to: txData.to as `0x${string}`,
+    //     chainId: chainId,
+    //     value: txData.amount,
+    // });
+    // const gasPrice = useEstimateFeesPerGas({
+    //     chainId: chainId,
+    // });
 
     // 计算交易费用
     const calculateFee = useMemo(() => {
 
-        if (!txData?.gasPrice || !txData?.gasLimit) {
-            return null;
-        }
+        let safeGasPrice = txData.gasPrice || BigInt(0);
+        let safeGasLimit = txData.gasLimit || BigInt(0);
+        
 
-        let safeGasPrice: number | bigint | string = txData.gasPrice;
-        let safeGasLimit: number | bigint | string = txData.gasLimit;
-        if (typeof safeGasPrice === 'string') {
-            safeGasPrice = Number(safeGasPrice);
-        }
+        return BigInt(safeGasPrice) * BigInt(safeGasLimit);
 
-        if (typeof safeGasLimit === 'string') {
-            safeGasLimit = Number(safeGasLimit);
-        }
 
-        if (typeof safeGasPrice === 'number') {
-            safeGasPrice = BigInt(Math.round(safeGasPrice));
-        }
-
-        if (typeof safeGasLimit === 'number') {
-            safeGasLimit = BigInt(Math.round(safeGasLimit));
-        }
-
-        return safeGasPrice * safeGasLimit;
     }, [txData?.gasPrice, txData?.gasLimit]);
 
     const totalAmount = useMemo(() => {
-        if (!txData?.amount || calculateFee === null) {
+        if (!txData?.amount || !calculateFee) {
             return null;
         }
 
@@ -697,11 +732,11 @@ function TransactionPreview({ txData, eth2usd }: TransactionPreviewProps) {
     }, [txData?.amount, calculateFee]);
 
     const showNotEnoughBalance = useMemo(() => {
-        if (!totalAmount || !accountInfo?.balance || calculateFee === null) {
+        if (!totalAmount || !balance.data?.value || !calculateFee) {
             return false; // 无法判断，不显示
         }
-        return totalAmount > accountInfo.balance;
-    }, [totalAmount, accountInfo?.balance]);
+        return totalAmount > balance.data?.value;
+    }, [totalAmount, balance.data?.value, calculateFee]);
 
     return (
         <Card size="small" title="交易预览" className={transactionSendStyles.previewCard}>
