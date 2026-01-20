@@ -1,5 +1,5 @@
 import { IMessage } from "@stomp/stompjs";
-import { message } from "antd";
+import { message, notification } from "antd";
 import { useMQ } from "../context/aiNovel";
 import { useEffect, useRef } from "react";
 
@@ -18,8 +18,13 @@ export default function TestConsumer() {
             return;
         }
 
-        const subId = subscribe({ destination: '/queue/test' }, (mqMessage: IMessage) => {
-            message.success(mqMessage.body);
+        // 订阅 fanout 交换机：/exchange/{exchange_name}/{routing_key}
+        // 对于 fanout 类型，routing_key 可以为空
+        const subId = subscribe({ destination: '/exchange/test.fanout' }, (mqMessage: IMessage) => {
+            notification.success({
+                message: '收到测试消息',
+                description: mqMessage.body
+            });
             mqMessage.ack();
             console.log(mqMessage);
         });

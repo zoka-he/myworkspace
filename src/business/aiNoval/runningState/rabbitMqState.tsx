@@ -1,7 +1,8 @@
-import { Button, Descriptions, Divider, Space, Table, Tag, Typography } from 'antd';
+import { Button, Descriptions, Divider, Space, Table, Tag, Typography, message } from 'antd';
 import { useState, useEffect } from 'react';
 import { useMQ } from '@/src/components/context/aiNovel';
 import { fetchMqMessages } from '@/src/api/rabbitMq';
+import fetch from '@/src/fetch';
 
 const { Text } = Typography;
 
@@ -27,11 +28,29 @@ export default function RabbitMqState() {
     }
 
     function cueMq() {
-        connection.sendMessage('/queue/test', 'Hello, RabbitMQ!');
+        connection.sendMessage('/exchange/test.fanout', 'Hello, RabbitMQ!');
     }
 
-    function cueBackend() {
-        connection.sendMessage('/queue/ai_novel_tasks', 'Hello, RabbitMQ!');
+    // function cueBackend() {
+    //     connection.sendMessage('/exchange/test.fanout', 'Hello, RabbitMQ!');
+    // }
+
+    async function cueAmqp() {
+        try {
+            let result = await fetch.post('/api/web/aiNoval/llm/once/ping', 
+                {
+                    persistent: false
+                }
+            );
+
+            if (result.success) {
+                message.success('发送成功');
+            } else {
+                message.error(result.error.message || '未知错误');
+            }
+        } catch (error) {
+            message.error(error.response?.data?.error || '未知错误');
+        }
     }
 
     async function handleFetchMqMessages() {
@@ -54,7 +73,8 @@ export default function RabbitMqState() {
             <Descriptions.Item label="操作">
                 <Space>
                     <Button type="primary" onClick={cueMq}>Cue它一下</Button>
-                    <Button type="primary" onClick={cueBackend}>让它Cue后端一下</Button>
+                    {/* <Button type="primary" onClick={cueBackend}>让它Cue后端一下</Button> */}
+                    <Button type="primary" onClick={cueAmqp}>让后端Cue它一下</Button>
                 </Space>
             </Descriptions.Item>
         </Descriptions>

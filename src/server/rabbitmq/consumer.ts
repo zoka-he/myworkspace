@@ -43,6 +43,8 @@ export interface RetryConfig {
     maxDelay: number;
     /** 是否启用死信队列 (default: true) */
     enableDLX: boolean;
+    /** 死信队列消息过期时间 ms (default: 259200000 = 3天)，过期后消息自动删除 */
+    dlqMessageTTL: number;
 }
 
 export interface QueueConfig {
@@ -58,6 +60,17 @@ export interface QueueConfig {
     prefetch?: number;
     /** 重试配置 */
     retry?: Partial<RetryConfig>;
+    /** 
+     * 广播模式配置
+     * 启用后，消息会通过 fanout 交换机广播到所有消费者
+     * 每个消费者会创建自己的独占队列来接收消息
+     */
+    broadcast?: {
+        /** 是否启用广播模式 */
+        enabled: boolean;
+        /** 交换机名称 (默认: {queueName}.fanout) */
+        exchangeName?: string;
+    };
 }
 
 export interface MessageContext {
@@ -94,11 +107,15 @@ interface ConsumerRegistration {
     isLegacy: boolean;
 }
 
+// 3 天的毫秒数
+const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000; // 259200000
+
 const DEFAULT_RETRY_CONFIG: RetryConfig = {
     maxRetries: 3,
     baseDelay: 1000,
     maxDelay: 60000,
     enableDLX: true,
+    dlqMessageTTL: THREE_DAYS_MS, // 死信队列消息 3 天后过期
 };
 
 // 消息头中存储重试次数的 key
@@ -302,12 +319,18 @@ class RabbitMQConsumer {
         // 声明重试交换机
         await this.channel.assertExchange(retryExchange, 'direct', { durable: true });
 
-        // 声明死信队列 (最终失败的消息)
+        // 声明死信队列 (最终失败的消息，带消息 TTL)
         await this.channel.assertQueue(dlqName, {
             durable: true,
             autoDelete: false,
+            arguments: {
+                // 队列中消息的 TTL，过期后自动删除
+                'x-message-ttl': retryConfig.dlqMessageTTL,
+            },
         });
         await this.channel.bindQueue(dlqName, dlxExchange, 'dead');
+        
+        this.log(`DLQ message TTL set to ${retryConfig.dlqMessageTTL}ms (${retryConfig.dlqMessageTTL / 1000 / 60 / 60 / 24} days)`);
 
         // 声明重试队列 (带 TTL，到期后重新发送到原队列)
         await this.channel.assertQueue(retryQueueName, {
@@ -401,6 +424,47 @@ class RabbitMQConsumer {
     }
 
     /**
+     * 获取广播交换机名称
+     */
+    private getBroadcastExchangeName(queueName: string, config?: QueueConfig['broadcast']): string {
+        return config?.exchangeName || `${queueName}.fanout`;
+    }
+
+    /**
+     * 设置广播模式的交换机和队列
+     * 每个消费者实例会创建自己的独占队列
+     */
+    private async setupBroadcastQueue(queue: QueueConfig): Promise<string> {
+        if (!this.channel) {
+            throw new Error('Channel not available');
+        }
+
+        const exchangeName = this.getBroadcastExchangeName(queue.name, queue.broadcast);
+
+        // 声明 fanout 交换机
+        await this.channel.assertExchange(exchangeName, 'fanout', {
+            durable: queue.durable ?? true,
+            autoDelete: false,
+        });
+
+        // 创建独占队列（每个消费者实例一个）
+        // 使用空字符串让 RabbitMQ 自动生成唯一队列名
+        const result = await this.channel.assertQueue('', {
+            exclusive: true,  // 独占队列，连接断开后自动删除
+            autoDelete: true, // 消费者断开后自动删除
+        });
+
+        const uniqueQueueName = result.queue;
+
+        // 将队列绑定到 fanout 交换机
+        await this.channel.bindQueue(uniqueQueueName, exchangeName, '');
+
+        this.log(`Broadcast queue setup: exchange=${exchangeName}, queue=${uniqueQueueName}`);
+
+        return uniqueQueueName;
+    }
+
+    /**
      * 设置消费者
      */
     private async setupConsumer(
@@ -417,21 +481,30 @@ class RabbitMQConsumer {
         // 设置 prefetch
         await this.channel.prefetch(queue.prefetch ?? 1);
 
-        // 设置 DLX 和重试队列
-        if (retryConfig.enableDLX) {
-            await this.setupDLXAndRetryQueue(queue.name, retryConfig);
-        }
+        // 确定实际消费的队列名
+        let actualQueueName = queue.name;
 
-        // 声明主队列
-        await this.channel.assertQueue(queue.name, {
-            durable: queue.durable ?? true,
-            autoDelete: queue.autoDelete ?? false,
-            exclusive: queue.exclusive ?? false,
-        });
+        // 广播模式：设置 fanout 交换机和独占队列
+        if (queue.broadcast?.enabled) {
+            actualQueueName = await this.setupBroadcastQueue(queue);
+            this.log(`Broadcast mode enabled for ${queue.name}, consuming from ${actualQueueName}`);
+        } else {
+            // 非广播模式：设置 DLX 和重试队列
+            if (retryConfig.enableDLX) {
+                await this.setupDLXAndRetryQueue(queue.name, retryConfig);
+            }
+
+            // 声明主队列
+            await this.channel.assertQueue(queue.name, {
+                durable: queue.durable ?? true,
+                autoDelete: queue.autoDelete ?? false,
+                exclusive: queue.exclusive ?? false,
+            });
+        }
 
         // 开始消费
         await this.channel.consume(
-            queue.name,
+            actualQueueName,
             async (msg) => {
                 if (!msg) return;
 
@@ -565,6 +638,11 @@ class RabbitMQConsumer {
 
     /**
      * 发送消息到队列
+     * 
+     * @param queue 队列名称
+     * @param content 消息内容
+     * @param persistent 是否持久化
+     * @returns 是否发送成功
      */
     async sendToQueue(queue: string, content: string | object, persistent = true): Promise<boolean> {
         if (!this.channel) {
@@ -625,15 +703,61 @@ class RabbitMQConsumer {
 
 // 单例实例
 let consumerInstance: RabbitMQConsumer | null = null;
+// 连接中的 Promise，用于确保多个调用者等待同一个连接过程
+let connectingPromise: Promise<RabbitMQConsumer> | null = null;
 
 /**
- * 获取或创建 RabbitMQ 消费者实例
+ * 获取或创建 RabbitMQ 消费者实例（同步版本，不等待连接）
+ * @deprecated 推荐使用 getRabbitMQConsumerAsync 以确保连接完成
  */
 export function getRabbitMQConsumer(config?: RabbitMQServerConfig): RabbitMQConsumer {
     if (!consumerInstance) {
         consumerInstance = new RabbitMQConsumer(config);
     }
     return consumerInstance;
+}
+
+/**
+ * 获取或创建 RabbitMQ 消费者实例（异步版本，等待连接完成）
+ * 
+ * @param config 配置项
+ * @returns 已连接的 RabbitMQConsumer 实例
+ * @throws 如果连接失败会抛出错误
+ */
+export async function getRabbitMQConsumerAsync(config?: RabbitMQServerConfig): Promise<RabbitMQConsumer> {
+    // 如果已经有实例且已连接，直接返回
+    if (consumerInstance && consumerInstance.isConnected) {
+        return consumerInstance;
+    }
+
+    // 如果正在连接中，等待连接完成
+    if (connectingPromise) {
+        return connectingPromise;
+    }
+
+    // 创建新的连接过程
+    connectingPromise = (async () => {
+        try {
+            if (!consumerInstance) {
+                consumerInstance = new RabbitMQConsumer(config);
+            }
+
+            // 等待连接完成
+            await consumerInstance.connect();
+
+            // 验证连接是否成功
+            if (!consumerInstance.isConnected) {
+                throw new Error('Failed to connect to RabbitMQ');
+            }
+
+            return consumerInstance;
+        } finally {
+            // 无论成功失败，都清除 connectingPromise
+            connectingPromise = null;
+        }
+    })();
+
+    return connectingPromise;
 }
 
 /**
