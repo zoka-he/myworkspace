@@ -29,4 +29,17 @@ export default class FactionDefService extends MysqlNovalService {
 
         return (ret.data || []).map(r => r.name).join(',');
     }
+
+    async getFactionDocumentByIds(ids) {
+        let sql = `
+            select 
+                id, 
+                name title, 
+                concat_ws('|', name, description) document, 
+                md5(concat_ws('|', name, description)) fingerprint
+            from Faction
+            where id in(${ids.join(',')})
+        `;
+        return this.query(sql, [], ['id asc'], 1, ids.length);
+    }
 }

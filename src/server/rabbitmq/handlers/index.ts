@@ -20,6 +20,7 @@ import {
 
 import { handleTestMessages } from './handleTestMessages';
 import handleAiNovelMessages from './handleAiNovelMessages';
+import handleAiNovelEmbedTasks from './handleAiNovelEmbedTasks';
 
 
 
@@ -40,12 +41,12 @@ export const queueRegistrations: QueueRegistration[] = [
     // 测试队列 - 用于前端简单确认 (广播模式)
     {
         queue: {
-            name: 'test',
+            name: 'frontend_notice',
             durable: true,
             prefetch: 1,
             broadcast: {
                 enabled: true,
-                // exchangeName: 'test.fanout', // 可选，默认为 {queueName}.fanout
+                // exchangeName: 'frontend_notice.fanout', // 可选，默认为 {queueName}.fanout
             },
         },
         handler: handleTestMessages,
@@ -65,6 +66,22 @@ export const queueRegistrations: QueueRegistration[] = [
             },
         },
         handler: handleAiNovelMessages,
+        enabled: true,
+    },
+    // rag嵌入任务队列
+    {
+        queue: {
+            name: 'ai_novel_embed_tasks',
+            durable: true,
+            prefetch: 1,
+            retry: {
+                maxRetries: parseInt(process.env.RABBITMQ_AI_NOVEL_EMBED_TASKS_MAX_RETRIES || '5', 10),
+                baseDelay: 10 * 1000,    // 10 秒起步
+                maxDelay: 20 * 60 * 1000,    // 最大 20 分钟（可能要等前面嵌入任务处理完）
+                enableDLX: true,
+            },
+        },
+        handler: handleAiNovelEmbedTasks,
         enabled: true,
     },
     // 在这里添加更多队列...

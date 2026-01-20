@@ -662,6 +662,44 @@ class RabbitMQConsumer {
     }
 
     /**
+     * 广播消息到所有订阅者 (fanout 模式)
+     * 
+     * @param queueName 队列名称（用于构建交换机名称: {queueName}.fanout）
+     * @param content 消息内容
+     * @param persistent 是否持久化
+     * @returns 是否发送成功
+     */
+    async broadcast(queueName: string, content: string | object, persistent = true): Promise<boolean> {
+        if (!this.channel) {
+            this.log('Cannot broadcast: channel not available');
+            return false;
+        }
+
+        try {
+            const exchangeName = `${queueName}.fanout`;
+            const message = typeof content === 'string' ? content : JSON.stringify(content);
+
+            // 确保 fanout 交换机存在
+            await this.channel.assertExchange(exchangeName, 'fanout', {
+                durable: true,
+                autoDelete: false,
+            });
+
+            // fanout 交换机忽略 routingKey，使用空字符串
+            const result = this.channel.publish(exchangeName, '', Buffer.from(message), {
+                persistent,
+                contentType: 'application/json',
+            });
+
+            this.log(`Message broadcast to: ${exchangeName}`);
+            return result;
+        } catch (error) {
+            this.log('Failed to broadcast message:', error instanceof Error ? error.message : String(error));
+            return false;
+        }
+    }
+
+    /**
      * 关闭连接
      */
     async close(): Promise<void> {

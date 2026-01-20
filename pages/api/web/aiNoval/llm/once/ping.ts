@@ -23,7 +23,7 @@ interface SendMessageResponse {
 }
 
 let count = 0;
-const queue = 'test';
+const queue = 'frontend_notice';
 function getReplyMessage() {
     return '这是后端，没事别扒拉！(' + (++count) + ')';
 }

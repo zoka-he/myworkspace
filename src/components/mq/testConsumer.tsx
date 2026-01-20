@@ -20,7 +20,7 @@ export default function TestConsumer() {
 
         // 订阅 fanout 交换机：/exchange/{exchange_name}/{routing_key}
         // 对于 fanout 类型，routing_key 可以为空
-        const subId = subscribe({ destination: '/exchange/test.fanout' }, (mqMessage: IMessage) => {
+        const subId = subscribe({ destination: '/exchange/frontend_notice.fanout' }, (mqMessage: IMessage) => {
             notification.success({
                 message: '收到测试消息',
                 description: mqMessage.body

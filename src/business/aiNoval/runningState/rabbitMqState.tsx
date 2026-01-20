@@ -28,7 +28,7 @@ export default function RabbitMqState() {
     }
 
     function cueMq() {
-        connection.sendMessage('/exchange/test.fanout', 'Hello, RabbitMQ!');
+        connection.sendMessage('/exchange/frontend_notice.fanout', 'Hello, RabbitMQ!');
     }
 
     // function cueBackend() {
