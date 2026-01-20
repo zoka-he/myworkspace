@@ -110,6 +110,10 @@ function checkArrayData(data: any): boolean {
 }
 
 async function prepareGeoDocument(codes: string[]) {
+    if (codes.length === 0) {
+        return [];
+    }
+
     const geoTables = ['geo_star_system', 'geo_star', 'geo_planet', 'geo_satellite', 'geo_geography_unit'];
     const geoColumns = (tableName: string) => {
 
@@ -142,21 +146,33 @@ async function prepareGeoDocument(codes: string[]) {
 }
 
 async function prepareCharacterDocument(characters: number[]) {
+    if (characters.length === 0) {
+        return [];
+    }
     let ret = await roleInfoService.getRoleDocumentByIds(characters);
     return ret.data;
 }
 
 async function prepareWorldviewDocument(worldviews: number[]) {
+    if (worldviews.length === 0) {
+        return [];
+    }
     let ret = await worldviewDefService.getWorldViewDocumentByIds(worldviews);
     return ret.data;
 }
 
 async function prepareFactionDocument(factions: number[]) {
+    if (factions.length === 0) {
+        return [];
+    }
     let ret = await factionDefService.getFactionDocumentByIds(factions);
     return ret.data;
 }
 
 async function prepareEventDocument(events: number[]) {
+    if (events.length === 0) {
+        return [];
+    }
     let ret = await timelineEventService.getEventDocumentByIds(events);
     return ret.data;
 }
