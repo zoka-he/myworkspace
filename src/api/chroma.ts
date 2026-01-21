@@ -49,3 +49,15 @@ export function deleteChromaDocument(collection: string, id: string) {
         params: { collection, id } 
     });
 }
+
+/**
+ * 查询文档（相似度搜索）
+ */
+export function queryChromaDocuments(params: {
+    collection: string;
+    queryText: string;
+    nResults?: number;
+    where?: Record<string, any>;
+}) {
+    return fetch.post('/api/web/chroma/query', params);
+}

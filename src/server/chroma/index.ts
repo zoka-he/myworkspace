@@ -75,11 +75,112 @@ export interface BatchResult {
 class ChromaService {
     private client: ChromaClient;
     private initialized: boolean = false;
+    private isConnected: boolean = false;
+    private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    private reconnectAttempts: number = 0;
+    private readonly maxReconnectAttempts: number = 10;
+    private readonly baseReconnectDelay: number = 1000; // 1秒
+    private readonly maxReconnectDelay: number = 60000; // 最大60秒
 
     constructor() {
         this.client = new ChromaClient({
             path: chromaConfig.CHROMA_URL,
         });
+        // 启动时尝试连接
+        this.startHealthCheck();
+    }
+
+    /**
+     * 启动健康检查和自动重连
+     */
+    private startHealthCheck() {
+        this.checkHealthAndReconnect();
+    }
+
+    /**
+     * 检查健康状态并在需要时重连
+     */
+    private async checkHealthAndReconnect(): Promise<void> {
+        const wasConnected = this.isConnected;
+        const healthy = await this.checkHealth();
+
+        if (healthy) {
+            this.isConnected = true;
+            this.reconnectAttempts = 0;
+            
+            if (!wasConnected) {
+                console.log("[ChromaService] 已成功连接到 ChromaDB");
+            }
+            
+            // 已连接，安排下次健康检查（每30秒）
+            this.scheduleHealthCheck(30000);
+        } else {
+            this.isConnected = false;
+            
+            if (wasConnected) {
+                console.warn("[ChromaService] 与 ChromaDB 的连接已断开，正在尝试重连...");
+            }
+            
+            // 未连接，尝试重连
+            this.scheduleReconnect();
+        }
+    }
+
+    /**
+     * 安排健康检查
+     */
+    private scheduleHealthCheck(delay: number) {
+        if (this.reconnectTimer) {
+            clearTimeout(this.reconnectTimer);
+        }
+        this.reconnectTimer = setTimeout(() => {
+            this.checkHealthAndReconnect();
+        }, delay);
+    }
+
+    /**
+     * 安排重连（使用指数退避策略）
+     */
+    private scheduleReconnect() {
+        if (this.reconnectTimer) {
+            clearTimeout(this.reconnectTimer);
+        }
+
+        // 计算延迟（指数退避）
+        const delay = Math.min(
+            this.baseReconnectDelay * Math.pow(2, this.reconnectAttempts),
+            this.maxReconnectDelay
+        );
+
+        this.reconnectAttempts++;
+
+        if (this.reconnectAttempts <= this.maxReconnectAttempts) {
+            console.log(`[ChromaService] 将在 ${delay / 1000} 秒后尝试第 ${this.reconnectAttempts} 次重连...`);
+            this.reconnectTimer = setTimeout(() => {
+                this.reconnect();
+            }, delay);
+        } else {
+            console.error(`[ChromaService] 重连失败次数已达上限 (${this.maxReconnectAttempts})，将继续定期尝试...`);
+            // 达到上限后，每60秒尝试一次
+            this.reconnectTimer = setTimeout(() => {
+                this.reconnectAttempts = 0; // 重置计数器，开始新的重连周期
+                this.reconnect();
+            }, this.maxReconnectDelay);
+        }
+    }
+
+    /**
+     * 执行重连
+     */
+    private async reconnect(): Promise<void> {
+        console.log("[ChromaService] 正在尝试重新连接...");
+        
+        // 创建新的客户端实例
+        this.client = new ChromaClient({
+            path: chromaConfig.CHROMA_URL,
+        });
+
+        await this.checkHealthAndReconnect();
     }
 
     /**
@@ -89,11 +190,84 @@ class ChromaService {
         try {
             await this.client.heartbeat();
             this.initialized = true;
+            this.isConnected = true;
             return true;
         } catch (error) {
             console.error("[ChromaService] 连接检查失败:", error);
+            this.isConnected = false;
             return false;
         }
+    }
+
+    /**
+     * 获取连接状态
+     */
+    getConnectionStatus(): { isConnected: boolean; reconnectAttempts: number } {
+        return {
+            isConnected: this.isConnected,
+            reconnectAttempts: this.reconnectAttempts,
+        };
+    }
+
+    /**
+     * 确保已连接（在执行操作前调用）
+     * 如果未连接，会尝试立即重连
+     */
+    private async ensureConnected(): Promise<void> {
+        if (!this.isConnected) {
+            const healthy = await this.checkHealth();
+            if (!healthy) {
+                throw new Error("[ChromaService] 无法连接到 ChromaDB 服务，请检查服务是否正常运行");
+            }
+        }
+    }
+
+    /**
+     * 带重试的操作执行器
+     */
+    private async executeWithRetry<T>(
+        operation: () => Promise<T>,
+        operationName: string,
+        maxRetries: number = 2
+    ): Promise<T> {
+        let lastError: Error | null = null;
+
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            try {
+                // 首次尝试或重试前检查连接
+                if (attempt > 0 || !this.isConnected) {
+                    await this.ensureConnected();
+                }
+                return await operation();
+            } catch (error: any) {
+                lastError = error;
+                
+                // 检查是否是连接错误
+                const isConnectionError = 
+                    error.code === 'ECONNREFUSED' ||
+                    error.code === 'ENOTFOUND' ||
+                    error.code === 'ETIMEDOUT' ||
+                    error.message?.includes('fetch failed') ||
+                    error.message?.includes('network') ||
+                    error.message?.includes('connect');
+
+                if (isConnectionError) {
+                    this.isConnected = false;
+                    console.warn(`[ChromaService] ${operationName} 失败 (尝试 ${attempt + 1}/${maxRetries + 1}):`, error.message);
+                    
+                    if (attempt < maxRetries) {
+                        // 等待一小段时间后重试
+                        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+                        continue;
+                    }
+                }
+                
+                // 非连接错误或已达到重试上限
+                throw error;
+            }
+        }
+
+        throw lastError;
     }
 
     /**
@@ -101,15 +275,15 @@ class ChromaService {
      * 使用 NoopEmbeddingFunction 来避免 DefaultEmbeddingFunction 警告
      */
     async getCollection(collectionName: string): Promise<Collection> {
-        try {
-            return await this.client.getOrCreateCollection({
-                name: collectionName,
-                embeddingFunction: noopEmbeddingFunction,
-            });
-        } catch (error) {
-            console.error(`[ChromaService] 获取集合 "${collectionName}" 失败:`, error);
-            throw error;
-        }
+        return this.executeWithRetry(
+            async () => {
+                return await this.client.getOrCreateCollection({
+                    name: collectionName,
+                    embeddingFunction: noopEmbeddingFunction,
+                });
+            },
+            `获取集合 "${collectionName}"`
+        );
     }
 
     // ==================== 增 (Create) ====================
@@ -513,8 +687,13 @@ class ChromaService {
      * 列出所有集合
      */
     async listCollections(): Promise<string[]> {
-        const collections = await this.client.listCollections();
-        return collections.map(c => c.name);
+        return this.executeWithRetry(
+            async () => {
+                const collections = await this.client.listCollections();
+                return collections.map(c => c.name);
+            },
+            "列出所有集合"
+        );
     }
 
     /**

@@ -1,13 +1,14 @@
-import { Button, Descriptions, Drawer, Empty, message, Modal, Popconfirm, Space, Table, Tag, Tooltip, Typography } from 'antd';
+import { Button, Descriptions, Drawer, Empty, message, Modal, Popconfirm, Space, Table, Tag, Tooltip, Typography, Input, InputNumber, Form, Spin } from 'antd';
 import { useState, useEffect } from 'react';
 import { 
     fetchChromaHealth, 
     fetchChromaCollections, 
     fetchChromaCollectionDetail,
     deleteChromaCollection,
-    deleteChromaDocument
+    deleteChromaDocument,
+    queryChromaDocuments
 } from '@/src/api/chroma';
-import { ReloadOutlined, DeleteOutlined, EyeOutlined, DatabaseOutlined } from '@ant-design/icons';
+import { ReloadOutlined, DeleteOutlined, EyeOutlined, DatabaseOutlined, SearchOutlined } from '@ant-design/icons';
 
 const { Text, Paragraph } = Typography;
 
@@ -20,6 +21,13 @@ interface DocumentInfo {
     id: string;
     content: string;
     metadata: Record<string, any>;
+}
+
+interface QueryResult {
+    id: string;
+    content: string;
+    metadata: Record<string, any> | null;
+    distance: number;
 }
 
 interface HealthInfo {
@@ -41,6 +49,13 @@ export default function ChromaState() {
     const [documentTotal, setDocumentTotal] = useState(0);
     const [documentPage, setDocumentPage] = useState(1);
     const [documentPageSize, setDocumentPageSize] = useState(10);
+
+    // 查询对话框
+    const [queryModalVisible, setQueryModalVisible] = useState(false);
+    const [queryCollection, setQueryCollection] = useState<string | null>(null);
+    const [queryLoading, setQueryLoading] = useState(false);
+    const [queryResults, setQueryResults] = useState<QueryResult[]>([]);
+    const [queryForm] = Form.useForm();
 
     useEffect(() => {
         handleRefresh();
@@ -160,6 +175,52 @@ export default function ChromaState() {
         }
     }
 
+    function handleOpenQueryModal(collectionName: string) {
+        setQueryCollection(collectionName);
+        setQueryModalVisible(true);
+        setQueryResults([]);
+        queryForm.resetFields();
+    }
+
+    function handleCloseQueryModal() {
+        setQueryModalVisible(false);
+        setQueryCollection(null);
+        setQueryResults([]);
+        queryForm.resetFields();
+    }
+
+    async function handleQuery() {
+        if (!queryCollection) return;
+
+        try {
+            const values = await queryForm.validateFields();
+            setQueryLoading(true);
+            
+            const res: any = await queryChromaDocuments({
+                collection: queryCollection,
+                queryText: values.queryText,
+                nResults: values.nResults || 10
+            });
+
+            if (res?.success) {
+                setQueryResults(res.data.results || []);
+                if (res.data.results?.length === 0) {
+                    message.info('未找到匹配的文档');
+                }
+            } else {
+                message.error(res?.error || '查询失败');
+            }
+        } catch (error: any) {
+            if (error.errorFields) {
+                // 表单验证错误，不显示消息
+                return;
+            }
+            message.error(error.response?.data?.error || '查询失败');
+        } finally {
+            setQueryLoading(false);
+        }
+    }
+
     const connectState = health?.status === 'connected' 
         ? <Tag color="green">已连接</Tag> 
         : <Tag color="red">未连接</Tag>;
@@ -188,7 +249,7 @@ export default function ChromaState() {
         {
             title: '操作',
             key: 'actions',
-            width: 160,
+            width: 200,
             render: (_: any, record: CollectionInfo) => (
                 <Space>
                     <Tooltip title="查看文档">
@@ -196,6 +257,13 @@ export default function ChromaState() {
                             type="link" 
                             icon={<EyeOutlined />} 
                             onClick={() => handleViewDocuments(record.name)}
+                        />
+                    </Tooltip>
+                    <Tooltip title="查询文档">
+                        <Button 
+                            type="link" 
+                            icon={<SearchOutlined />} 
+                            onClick={() => handleOpenQueryModal(record.name)}
                         />
                     </Tooltip>
                     <Popconfirm
@@ -301,6 +369,83 @@ export default function ChromaState() {
         }
     ];
 
+    const queryResultColumns = [
+        {
+            title: 'ID',
+            dataIndex: 'id',
+            key: 'id',
+            width: 180,
+            ellipsis: true,
+            render: (id: string) => (
+                <Tooltip title={id}>
+                    <Text copyable={{ text: id }} style={{ fontSize: 12 }}>
+                        {id.length > 20 ? `${id.slice(0, 20)}...` : id}
+                    </Text>
+                </Tooltip>
+            )
+        },
+        {
+            title: '内容',
+            dataIndex: 'content',
+            key: 'content',
+            ellipsis: true,
+            render: (content: string) => (
+                <Tooltip title={content} overlayStyle={{ maxWidth: 500 }}>
+                    <Paragraph 
+                        ellipsis={{ rows: 2 }} 
+                        style={{ marginBottom: 0, fontSize: 13 }}
+                    >
+                        {content || <Text type="secondary">(空内容)</Text>}
+                    </Paragraph>
+                </Tooltip>
+            )
+        },
+        {
+            title: '相似度',
+            dataIndex: 'distance',
+            key: 'distance',
+            width: 120,
+            render: (distance: number) => {
+                // 将距离转换为相似度百分比
+                // 使用公式: similarity = 1 / (1 + distance)，适用于 L2 距离
+                // 或者对于余弦距离: similarity = 1 - distance/2（余弦距离范围 0-2）
+                // 这里使用通用公式，确保结果在 0-100% 之间
+                const similarity = Math.max(0, Math.min(100, (1 / (1 + distance)) * 100));
+                return (
+                    <Tag color={similarity > 66 ? 'green' : similarity > 50 ? 'orange' : 'red'}>
+                        {similarity.toFixed(1)}%
+                    </Tag>
+                );
+            }
+        },
+        {
+            title: '元数据',
+            dataIndex: 'metadata',
+            key: 'metadata',
+            width: 160,
+            render: (metadata: Record<string, any> | null) => {
+                if (!metadata || Object.keys(metadata).length === 0) {
+                    return <Text type="secondary">-</Text>;
+                }
+                const metaStr = JSON.stringify(metadata);
+                return (
+                    <Tooltip 
+                        title={<pre style={{ margin: 0, fontSize: 12 }}>{JSON.stringify(metadata, null, 2)}</pre>}
+                        overlayStyle={{ maxWidth: 400 }}
+                    >
+                        <Text 
+                            copyable={{ text: metaStr }} 
+                            style={{ fontSize: 12 }}
+                            ellipsis
+                        >
+                            {metaStr.length > 20 ? `${metaStr.slice(0, 20)}...` : metaStr}
+                        </Text>
+                    </Tooltip>
+                );
+            }
+        }
+    ];
+
     return (
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
             <Descriptions title="ChromaDB 状态" bordered size="small" column={2}>
@@ -399,6 +544,87 @@ export default function ChromaState() {
                     }}
                 />
             </Drawer>
+
+            {/* 查询对话框 */}
+            <Modal
+                title={
+                    <Space>
+                        <SearchOutlined />
+                        <span>查询文档: {queryCollection}</span>
+                    </Space>
+                }
+                open={queryModalVisible}
+                onCancel={handleCloseQueryModal}
+                width={900}
+                footer={null}
+                destroyOnClose
+            >
+                <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                    <Form
+                        form={queryForm}
+                        layout="inline"
+                        onFinish={handleQuery}
+                        initialValues={{ nResults: 10 }}
+                    >
+                        <Form.Item
+                            name="queryText"
+                            rules={[{ required: true, message: '请输入查询文本' }]}
+                            style={{ flex: 1, marginRight: 8 }}
+                        >
+                            <Input 
+                                placeholder="输入要查询的文本..." 
+                                allowClear
+                                onPressEnter={() => queryForm.submit()}
+                            />
+                        </Form.Item>
+                        <Form.Item
+                            name="nResults"
+                            label="返回数量"
+                        >
+                            <InputNumber min={1} max={100} style={{ width: 80 }} />
+                        </Form.Item>
+                        <Form.Item>
+                            <Button 
+                                type="primary" 
+                                icon={<SearchOutlined />}
+                                loading={queryLoading}
+                                onClick={() => queryForm.submit()}
+                            >
+                                查询
+                            </Button>
+                        </Form.Item>
+                    </Form>
+
+                    <Spin spinning={queryLoading}>
+                        {queryResults.length > 0 ? (
+                            <>
+                                <div style={{ marginBottom: 8 }}>
+                                    <Text type="secondary">
+                                        找到 {queryResults.length} 条结果（按相似度排序，百分比越高越相似）
+                                    </Text>
+                                </div>
+                                <Table
+                                    dataSource={queryResults}
+                                    columns={queryResultColumns}
+                                    rowKey="id"
+                                    bordered
+                                    size="small"
+                                    pagination={{
+                                        pageSize: 5,
+                                        showSizeChanger: true,
+                                        showTotal: (total) => `共 ${total} 条`,
+                                    }}
+                                />
+                            </>
+                        ) : (
+                            <Empty 
+                                description={queryLoading ? "查询中..." : "输入文本开始查询"} 
+                                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                            />
+                        )}
+                    </Spin>
+                </Space>
+            </Modal>
         </Space>
     );
 }
