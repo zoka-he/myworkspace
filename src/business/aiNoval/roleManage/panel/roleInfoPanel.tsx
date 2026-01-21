@@ -5,7 +5,7 @@
 
 import { Card, Select, Button, Space, Typography, Descriptions, Dropdown, Alert, MenuProps, Modal, Divider, Row, Col, Radio, Pagination, message, Input, Form } from 'antd'
 import { PlusOutlined, DownOutlined, EditOutlined, DeleteOutlined, SafetyCertificateFilled, SearchOutlined, CopyOutlined, RetweetOutlined } from '@ant-design/icons'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { IRoleData, IRoleInfo, IWorldViewData, IFactionDefData } from '@/src/types/IAiNoval'
 import apiCalls from '../apiCalls'
 import factionApiCalls from '@/src/business/aiNoval/factionManage/apiCalls'
@@ -16,6 +16,7 @@ import { debounce } from 'lodash'
 import store from '@/src/store'
 import { setFrontHost } from '@/src/store/difySlice'
 import { connect } from 'react-redux'
+import { useFactionList, useRoleInfoId, useRoleInfoList } from '../roleManageContext'
 
 const { Title, Text } = Typography
 
@@ -64,14 +65,25 @@ export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
   difyFrontHostOptions
 }: RoleInfoPanelProps) {
 
+  const [roleInfoId, setRoleInfoId] = useRoleInfoId();
+  const [roleInfoList] = useRoleInfoList();
+  // 阵营数据
+  const [factionList] = useFactionList();
+  const [isLoading, setIsLoading] = useState(false)
+
   // 当前选中的角色版本信息
-  const [role, setRole] = useState<IRoleInfo | null>(null)
+  const role = useMemo(() => {
+    return roleInfoList.find(info => info.id === roleInfoId) || null;
+  }, [roleInfoId])
+
   // 加载状态
-  const [isLoading, setIsLoading] = useState(true)
+
   // 角色版本列表
-  const [roleVersions, setRoleVersions] = useState<IRoleInfo[]>([])
-  // 阵营数据映射
-  const [factionMap, setFactionMap] = useState<Map<number, IFactionDefData>>(new Map())
+  const roleVersions = useMemo(() => {
+    return roleInfoList.filter(info => info.role_id === role?.role_id) || [];
+  }, [roleInfoList, roleInfoId])
+
+  
   
   /**
    * 加载角色版本列表
@@ -130,27 +142,27 @@ export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
   }
 
   // 监听角色定义变化，重新加载版本数据
-  useEffect(() => {
-    console.debug('roleInfoPanel roleDef change --->> ', roleDef)
-    loadRoleVersions()
-  }, [roleDef])
+  // useEffect(() => {
+  //   console.debug('roleInfoPanel roleDef change --->> ', roleDef)
+  //   loadRoleVersions()
+  // }, [roleDef])
 
   /**
    * 处理版本切换
    * 当用户选择不同版本时更新当前角色信息
    */
-  const handleVersionChange = (version: IRoleInfo) => {
-    if (!roleDef?.id) return
-    setRole(version)
-    onVersionChange({
-      id: roleDef.id,
-      version: version.id
-    })
-    // 如果有世界观ID，加载阵营数据
-    if (version.worldview_id) {
-      loadFactionData(version.worldview_id)
-    }
-  }
+  // const handleVersionChange = (version: IRoleInfo) => {
+  //   if (!roleDef?.id) return
+  //   setRole(version)
+  //   onVersionChange({
+  //     id: roleDef.id,
+  //     version: version.id
+  //   })
+  //   // 如果有世界观ID，加载阵营数据
+  //   if (version.worldview_id) {
+  //     loadFactionData(version.worldview_id)
+  //   }
+  // }
 
   /**
    * 处理创建新版本
@@ -197,7 +209,7 @@ export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
   }
 
   // 未选择角色时显示提示
-  if (!roleDef) {
+  if (!role) {
     return (
       <div style={{ 
         height: '100%', 
@@ -207,7 +219,7 @@ export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
         color: '#999',
         fontSize: '14px'
       }}>
-        请选择角色
+        请选择一个角色查看详情
       </div>
     )
   }
@@ -218,7 +230,7 @@ export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
   }
 
   // 如果没有版本，显示简化版界面
-  if (!roleDef.version_count) {
+  if (!roleVersions.length) {
     return (
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '16px 0' }}>
@@ -257,7 +269,7 @@ export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
       {/* 顶部标题栏 - 显示角色名称、版本信息和操作按钮 */}
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Space>
-          <Title level={4} style={{ margin: 0 }}>{roleDef.name}</Title>
+          <Title level={4} style={{ margin: 0 }}>{role.name_in_worldview}</Title>
           {role && <Text type="secondary">v{role.version_name}</Text>}
           <Dropdown menu={{ items: versionItems }} trigger={['click']}>
             <a style={{ cursor: 'pointer' }}>
@@ -316,7 +328,7 @@ export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
                 {role.race_id}
               </Descriptions.Item>
               <Descriptions.Item label="角色阵营">
-                {role.faction_id ? factionMap.get(role.faction_id)?.name || '未知阵营' : '未设置阵营'}
+                {role.faction_id ? factionList.find(faction => faction.id === role.faction_id)?.name || '未知阵营ID' : '未设置阵营'}
               </Descriptions.Item>
               <Descriptions.Item label="角色背景">
                 <Typography.Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }} ellipsis={{ rows: 3 }}>

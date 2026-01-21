@@ -379,6 +379,118 @@ class EmbedService {
             return [];
         }
     }
+
+    // ==================== 获取 Collection 所有 Metadata ====================
+
+    /**
+     * 获取角色 collection 中所有文档的 metadata
+     * @param {number|string} worldview_id - 世界观 ID
+     * @param {number} [limit=1000] - 最大返回数量
+     * @returns {Promise<Array<{id: string, metadata: Object}>>}
+     */
+    async getCharacterMetadataList(worldview_id, limit = 1000) {
+        const chromaServer = ChromaServer.getInstance();
+        const collectionName = this.getCharacterCollectionName(worldview_id);
+        
+        try {
+            const exists = await chromaServer.collectionExists(collectionName);
+            if (!exists) {
+                return [];
+            }
+            return await chromaServer.listAllMetadata(collectionName, limit);
+        } catch (error) {
+            console.error(`[EmbedService] 获取角色 metadata 列表失败:`, error);
+            return [];
+        }
+    }
+
+    /**
+     * 获取事件 collection 中所有文档的 metadata
+     * @param {number|string} worldview_id - 世界观 ID
+     * @param {number} [limit=1000] - 最大返回数量
+     * @returns {Promise<Array<{id: string, metadata: Object}>>}
+     */
+    async getEventMetadataList(worldview_id, limit = 1000) {
+        const chromaServer = ChromaServer.getInstance();
+        const collectionName = this.getEventCollectionName(worldview_id);
+        
+        try {
+            const exists = await chromaServer.collectionExists(collectionName);
+            if (!exists) {
+                return [];
+            }
+            return await chromaServer.listAllMetadata(collectionName, limit);
+        } catch (error) {
+            console.error(`[EmbedService] 获取事件 metadata 列表失败:`, error);
+            return [];
+        }
+    }
+
+    /**
+     * 获取势力 collection 中所有文档的 metadata
+     * @param {number|string} worldview_id - 世界观 ID
+     * @param {number} [limit=1000] - 最大返回数量
+     * @returns {Promise<Array<{id: string, metadata: Object}>>}
+     */
+    async getFactionMetadataList(worldview_id, limit = 1000) {
+        const chromaServer = ChromaServer.getInstance();
+        const collectionName = this.getFactionCollectionName(worldview_id);
+        
+        try {
+            const exists = await chromaServer.collectionExists(collectionName);
+            if (!exists) {
+                return [];
+            }
+            return await chromaServer.listAllMetadata(collectionName, limit);
+        } catch (error) {
+            console.error(`[EmbedService] 获取势力 metadata 列表失败:`, error);
+            return [];
+        }
+    }
+
+    /**
+     * 获取地理 collection 中所有文档的 metadata
+     * @param {number|string} worldview_id - 世界观 ID
+     * @param {number} [limit=1000] - 最大返回数量
+     * @returns {Promise<Array<{id: string, metadata: Object}>>}
+     */
+    async getGeoMetadataList(worldview_id, limit = 1000) {
+        const chromaServer = ChromaServer.getInstance();
+        const collectionName = this.getGeoCollectionName(worldview_id);
+        
+        try {
+            const exists = await chromaServer.collectionExists(collectionName);
+            if (!exists) {
+                return [];
+            }
+            return await chromaServer.listAllMetadata(collectionName, limit);
+        } catch (error) {
+            console.error(`[EmbedService] 获取地理 metadata 列表失败:`, error);
+            return [];
+        }
+    }
+
+    /**
+     * 获取章节 collection 中所有文档的 metadata
+     * @param {number|string} worldview_id - 世界观 ID
+     * @param {number} [limit=1000] - 最大返回数量
+     * @returns {Promise<Array<{id: string, metadata: Object}>>}
+     */
+    async getChapterMetadataList(worldview_id, limit = 1000) {
+        const chromaServer = ChromaServer.getInstance();
+        const collectionName = this.getChapterCollectionName(worldview_id);
+        
+        try {
+            const exists = await chromaServer.collectionExists(collectionName);
+            if (!exists) {
+                return [];
+            }
+            return await chromaServer.listAllMetadata(collectionName, limit);
+        } catch (error) {
+            console.error(`[EmbedService] 获取章节 metadata 列表失败:`, error);
+            return [];
+        }
+    }
 }
 
 // 导出单例实例和类

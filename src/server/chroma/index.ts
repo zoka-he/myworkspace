@@ -681,6 +681,28 @@ class ChromaService {
         return { documents, total };
     }
 
+    /**
+     * 获取集合中所有文档的 metadata（不包含 content 和 embedding，节省传输）
+     * @param collectionName 集合名称
+     * @param limit 最大返回数量，默认 1000
+     */
+    async listAllMetadata(
+        collectionName: string,
+        limit: number = 1000
+    ): Promise<{ id: string; metadata: Record<string, any> }[]> {
+        const collection = await this.getCollection(collectionName);
+
+        const result = await collection.get({
+            limit,
+            include: [IncludeEnum.metadatas],
+        });
+
+        return result.ids.map((id, index) => ({
+            id,
+            metadata: result.metadatas?.[index] || {},
+        }));
+    }
+
     // ==================== 集合管理 ====================
 
     /**

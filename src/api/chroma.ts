@@ -61,3 +61,28 @@ export function queryChromaDocuments(params: {
 }) {
     return fetch.post('/api/web/chroma/query', params);
 }
+
+/**
+ * 获取 collection 中所有文档的 metadata
+ * @param type - 类型: character | event | faction | geo | chapter
+ * @param worldviewId - 世界观 ID
+ * @param limit - 最大返回数量，默认 1000
+ */
+export function fetchChromaMetadata(params: {
+    type: 'character' | 'event' | 'faction' | 'geo' | 'chapter';
+    worldview_id: number | string;
+    limit?: number;
+}) {
+    return fetch.get('/api/web/chroma/metadata', { params });
+}
+
+/**
+ * 获取自定义 collection 中所有文档的 metadata
+ * @param collection - collection 名称
+ * @param limit - 最大返回数量，默认 1000
+ */
+export function fetchChromaCollectionMetadata(collection: string, limit?: number) {
+    return fetch.get('/api/web/chroma/metadata', { 
+        params: { collection, limit } 
+    });
+}

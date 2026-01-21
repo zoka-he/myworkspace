@@ -6,6 +6,7 @@ import type { SimulationNodeDatum } from 'd3'
 import type { IRoleRelation, IRoleData, IRoleInfo } from '@/src/types/IAiNoval'
 import { RELATION_TYPES } from '@/src/types/IAiNoval'
 import apiCalls from '../../../aiNoval/roleManage/apiCalls'
+import { useWorldViewId } from '../roleManageContext'
 
 interface RoleNode extends SimulationNodeDatum {
   id: string
@@ -28,19 +29,20 @@ interface RoleGraphData {
 }
 
 interface D3RoleRelationGraphProps {
-  worldview_id: string
+  // worldview_id: string
   updateTimestamp?: number
   onNodeClick?: (roleId: string) => void
 }
 
 export function D3RoleRelationGraph({ 
-  worldview_id,
+  // worldview_id,
   updateTimestamp,
   onNodeClick
 }: D3RoleRelationGraphProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
+  const [worldViewId] = useWorldViewId();
 
   // Handle resize
   useEffect(() => {
@@ -65,7 +67,7 @@ export function D3RoleRelationGraph({
   // Handle graph rendering
   useEffect(() => {
     if (!svgRef.current || dimensions.width === 0 || dimensions.height === 0) return
-    console.debug('D3RoleRelationGraph useEffect --->> ', [worldview_id, dimensions.width, dimensions.height, updateTimestamp]);
+    console.debug('D3RoleRelationGraph useEffect --->> ', [worldViewId, dimensions.width, dimensions.height, updateTimestamp]);
 
     // Clear previous graph
     d3.select(svgRef.current).selectAll('*').remove()
@@ -97,9 +99,9 @@ export function D3RoleRelationGraph({
 
     // 获取数据
     Promise.all([
-      apiCalls.getRoleList(Number(worldview_id), 1, 2000),
-      apiCalls.getWorldViewRoleRelationList(Number(worldview_id), 1, 2000),
-      apiCalls.getWorldViewRoleInfoList(Number(worldview_id), 2000)
+      apiCalls.getRoleList(Number(worldViewId), 1, 2000),
+      apiCalls.getWorldViewRoleRelationList(Number(worldViewId), 1, 2000),
+      apiCalls.getWorldViewRoleInfoList(Number(worldViewId), 2000)
     ]).then(([roleRes, relationRes, roleInfoRes]) => {
       const data: RoleGraphData = {
         nodes: roleRes.data,
@@ -422,7 +424,7 @@ export function D3RoleRelationGraph({
     return () => {
       simulation.stop()
     }
-  }, [worldview_id, dimensions, updateTimestamp])
+  }, [worldViewId, dimensions, updateTimestamp])
 
   return (
     <div ref={containerRef} style={{ width: '100%', height: '100%' }}>

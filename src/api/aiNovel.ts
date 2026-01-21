@@ -56,3 +56,13 @@ export const getChapterList = async (novelId: number, page: number = 1, limit: n
 
     return response as unknown as {data: IChapter[], count: number};
 }
+
+export async function getFactionList(worldViewId: number, limit: number = 200) {
+    const response = await fetch.get(
+        '/api/aiNoval/faction/list', 
+        {
+            params: { worldViewId, limit }
+        }
+    );
+    return response;
+}

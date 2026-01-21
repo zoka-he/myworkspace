@@ -80,6 +80,7 @@
     "sm-crypto": "^0.3.12",
     "sockjs-client": "^1.6.1",
     "solc": "^0.8.30",
+    "spark-md5": "^3.0.2",
     "stompit": "^1.0.0",
     "tls": "^0.0.1",
     "ts-node": "^10.9.1",
@@ -93,6 +94,7 @@
   },
   "devDependencies": {
     "@types/amqplib": "^0.10.8",
+    "@types/spark-md5": "^3.0.5",
     "dotenv-cli": "^8.0.0",
     "eslint": "9",
     "eslint-config-next": "16.0.10",
