@@ -34,6 +34,7 @@ export default class FactionDefService extends MysqlNovalService {
         let sql = `
             select 
                 id, 
+                worldview_id,
                 name title, 
                 concat_ws('|', name, description) document, 
                 md5(concat_ws('|', name, description)) fingerprint

@@ -48,11 +48,11 @@ export default async function handler(
             prepareEventDocument(events),
         ]);
 
-        // console.info('characterData ----------------> ', characterData);
-        // console.info('worldviewData ----------------> ', worldviewData);
-        // console.info('locationData ----------------> ', locationData);
-        // console.info('factionData ----------------> ', factionData);
-        // console.info('eventData ----------------> ', eventData);
+        console.info('characterData ----------------> ', characterData);
+        console.info('worldviewData ----------------> ', worldviewData);
+        console.info('locationData ----------------> ', locationData);
+        console.info('factionData ----------------> ', factionData);
+        console.info('eventData ----------------> ', eventData);
 
         // const tasks: EmbedTaskData[] = Array.from(
         //     _.flatten([
@@ -127,6 +127,8 @@ async function prepareGeoDocument(codes: string[]) {
         }
 
         return [
+            'id',
+            'worldview_id',
             'code', 
             'name', 
             source_table_name,
@@ -135,8 +137,12 @@ async function prepareGeoDocument(codes: string[]) {
         ]
     }
 
+
     let data = await geoGeographyService.getGeoInfoByIds(codes, geoTables, geoColumns);
-    return data.map((r: { code: any; name: any; source_table_name: any; document: any; fingerprint: any; }) => ({
+
+    return data.map((r: { id: any; worldview_id: any; code: any; name: any; source_table_name: any; document: any; fingerprint: any; }) => ({
+        id: r.id,
+        worldview_id: r.worldview_id,
         code: r.code,
         title: r.name,
         source_table_name: r.source_table_name,

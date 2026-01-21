@@ -1,5 +1,6 @@
 export interface EmbedTaskMqData {
     type: string;
+    worldview_id?: string;
     document: string;
     fingerprint: string;
 }

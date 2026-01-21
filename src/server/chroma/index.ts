@@ -3,8 +3,27 @@
  * 提供基础的增删改查操作
  */
 
-import { ChromaClient, Collection, IncludeEnum } from "chromadb";
+import { ChromaClient, Collection, IncludeEnum, EmbeddingFunction } from "chromadb";
 import chromaConfig from "@/src/config/chroma";
+
+/**
+ * 空的 Embedding Function
+ * 用于禁用 chromadb 的默认 embedding 功能
+ * 因为我们自己提供 embedding 向量，不需要 chromadb 自动生成
+ */
+class NoopEmbeddingFunction implements EmbeddingFunction {
+    async generate(texts: string[]): Promise<number[][]> {
+        // 返回空数组，因为我们总是自己提供 embedding
+        // 这个方法实际上不会被调用，因为我们在 add/update/query 时都显式提供了 embeddings
+        throw new Error(
+            "NoopEmbeddingFunction.generate() should not be called. " +
+            "Please provide embeddings explicitly when adding/updating/querying documents."
+        );
+    }
+}
+
+// 单例 embedding function 实例
+const noopEmbeddingFunction = new NoopEmbeddingFunction();
 
 /**
  * 文档接口
@@ -79,11 +98,13 @@ class ChromaService {
 
     /**
      * 获取或创建集合
+     * 使用 NoopEmbeddingFunction 来避免 DefaultEmbeddingFunction 警告
      */
     async getCollection(collectionName: string): Promise<Collection> {
         try {
             return await this.client.getOrCreateCollection({
                 name: collectionName,
+                embeddingFunction: noopEmbeddingFunction,
             });
         } catch (error) {
             console.error(`[ChromaService] 获取集合 "${collectionName}" 失败:`, error);
@@ -214,7 +235,10 @@ class ChromaService {
         try {
             // 删除并重新创建集合是清空的最快方式
             await this.client.deleteCollection({ name: collectionName });
-            await this.client.createCollection({ name: collectionName });
+            await this.client.createCollection({ 
+                name: collectionName,
+                embeddingFunction: noopEmbeddingFunction,
+            });
             return true;
         } catch (error) {
             console.error(`[ChromaService] 清空集合 "${collectionName}" 失败:`, error);
@@ -510,10 +534,18 @@ class ChromaService {
         const collections = await this.listCollections();
         return collections.includes(collectionName);
     }
+
+    static getInstance() {
+        return getInstance();
+    }
 }
 
 // 导出单例实例
 export const chromaService = new ChromaService();
+
+function getInstance() {
+    return chromaService;
+}
 
 // 导出类以便需要时创建新实例
 export default ChromaService;

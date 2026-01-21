@@ -31,6 +31,7 @@ export default class RoleDefService extends MysqlNovalService {
         let sql = `
             select 
                 r.id, 
+                r.worldview_id,
                 role_id, 
                 name_in_worldview title, 
                 gender_in_worldview gender, 

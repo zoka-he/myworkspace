@@ -40,6 +40,14 @@ const handler: MessageHandler = async (ctx, ack, nack, reject) => {
         return;
     }
 
+    if (type !== 'worldview') {
+        if (!data.worldview_id) {
+            console.error('[AI Novel Embed Tasks] Invalid data (missing worldview_id):', data);
+            reject();
+            return;
+        }
+    }
+
     const metaData = _.omit(data, ['type', 'document']);
 
     const embedTaskData: EmbedTaskData = {
@@ -56,11 +64,35 @@ const handler: MessageHandler = async (ctx, ack, nack, reject) => {
     let embedding: number[] | null = null;
     try {
         embedding = await embedService.embedQuery(document);
-        console.info('[AI Novel Embed Tasks] Generated embedding:', { 
-            fingerprint, 
-            dimension: embedding.length,
-            preview: embedding.slice(0, 5) 
-        });
+        // console.info('[AI Novel Embed Tasks] Generated embedding:', { 
+        //     fingerprint, 
+        //     dimension: embedding.length,
+        //     preview: embedding.slice(0, 5) 
+        // });
+
+        let worldview_id: string | null = data.worldview_id || null;
+        let model = 'BAAI/bge-m3';
+
+        switch (type) {
+            case 'worldview':
+                await embedService.saveWorldviewDocument(worldview_id, document, metaData, model);
+                break;
+            case 'chapter':
+                await embedService.saveChapterDocument(worldview_id, document, metaData, model);
+                break;
+            case 'character':
+                await embedService.saveCharacterDocument(worldview_id, document, metaData, model);
+                break;
+            case 'event':
+                await embedService.saveEventDocument(worldview_id, document, metaData, model);
+                break;
+            case 'faction':
+                await embedService.saveFactionDocument(worldview_id, document, metaData, model);
+                break;
+            case 'location':
+                await embedService.saveGeoDocument(worldview_id, document, metaData, model);
+                break;
+        }
     } catch (error) {
         console.error('[AI Novel Embed Tasks] Failed to generate embedding:', error);
         

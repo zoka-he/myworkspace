@@ -25,6 +25,7 @@ export default class FactionDefService extends MysqlNovalService {
         let sql = `
             SELECT 
                 te.id,
+                te.worldview_id,
                 title, 
                 ${document_column_def} document, 
                 md5(${document_column_def}) fingerprint,
