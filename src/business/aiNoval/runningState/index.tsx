@@ -1,5 +1,6 @@
 import { Card, Radio } from "antd";
 import RabbitMqState from "./rabbitMqState";
+import ChromaState from "./chromaState";
 import { useState } from "react";
 
 export default function RunningState() {
@@ -10,6 +11,7 @@ export default function RunningState() {
         <div style={{ textAlign: 'center' }}>
         <Radio.Group value={activePanel} onChange={e => setActivePanel(e.target.value)} buttonStyle="solid" optionType="button" size="small">
             <Radio.Button value="rabbitMq">RabbitMQ状态</Radio.Button>
+            <Radio.Button value="chroma">Chroma状态</Radio.Button>
         </Radio.Group>
         </div>
     )
@@ -19,6 +21,9 @@ export default function RunningState() {
     switch (activePanel) {
         case 'rabbitMq':
             Content = <RabbitMqState />;
+            break;
+        case 'chroma':
+            Content = <ChromaState />;
             break;
     }
 

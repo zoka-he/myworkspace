@@ -49,3 +49,5 @@ async function startRabbitMQConsumer() {
         // 不抛出错误，允许应用继续运行
     }
 }
+
+
