@@ -259,6 +259,8 @@ export function useLoadRoleInfoList() {
     const dispatch = useContext(reducerDispatch);
 
     return async () => {
+        console.warn('[useLoadRoleInfoList] called, worldViewId:', worldViewId);
+        console.trace('[useLoadRoleInfoList] call stack');
         if (worldViewId === null) {
             dispatch({ type: 'SET_ROLE_INFO_LIST', payload: [] });
             return;

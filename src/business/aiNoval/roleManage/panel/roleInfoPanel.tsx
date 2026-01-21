@@ -57,7 +57,7 @@ const labelStyle = {
  */
 export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
   onOpenRoleInfoEditModal,
-  onDeleteRoleInfo,
+  // onDeleteRoleInfo,
 }: RoleInfoPanelProps) {
 
   const [roleDefId] = useRoleId();
@@ -154,7 +154,18 @@ export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
       okType: 'danger', 
       cancelText: '取消',
       onOk: async () => {
-        onDeleteRoleInfo(roleDef, version)
+        try {
+          await apiCalls.deleteRoleInfo(version);
+          await apiCalls.updateRole({ id: roleDef.id, version: null });
+          message.success('删除成功');
+
+          // 刷新角色列表
+          await loadRoleDefList() as IRoleData[];
+          console.debug('handleDeleteRoleInfo updateTimestamp --->> ', Date.now());
+          // setUpdateTimestamp(Date.now());
+        } catch (error) {
+            message.error('删除失败');
+        }
       }
     });
   }

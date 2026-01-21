@@ -113,46 +113,46 @@ export default function RoleManage() {
     // };
 
     // 创建或更新角色属性
-    const handleCreateOrUpdateRoleInfo = async (roleDef: IRoleData, data: IRoleInfo) => {
-        try {
-            let response = null;
+    // const handleCreateOrUpdateRoleInfo = async (roleDef: IRoleData, data: IRoleInfo) => {
+    //     try {
+    //         let response = null;
 
-            delete data.created_at;
+    //         delete data.created_at;
             
-            if (data.id) {
-                response = await apiCalls.updateRoleInfo(data);
-            } else {
-                response = await apiCalls.createRoleInfo(data);
-            }
+    //         if (data.id) {
+    //             response = await apiCalls.updateRoleInfo(data);
+    //         } else {
+    //             response = await apiCalls.createRoleInfo(data);
+    //         }
 
-            message.success(data.id ? '更新角色版本成功' : '创建角色版本成功');
-            setEditModalVisible(false);
+    //         message.success(data.id ? '更新角色版本成功' : '创建角色版本成功');
+    //         setEditModalVisible(false);
 
-            // 刷新角色列表
-            await loadRoleDefList() as IRoleData[];
-            console.debug('handleCreateOrUpdateRoleInfo updateTimestamp --->> ', Date.now());
-            setUpdateTimestamp(Date.now());
+    //         // 刷新角色列表
+    //         await loadRoleDefList() as IRoleData[];
+    //         console.debug('handleCreateOrUpdateRoleInfo updateTimestamp --->> ', Date.now());
+    //         setUpdateTimestamp(Date.now());
 
-        } catch (error) {
-            console.error('Failed to create role info:', error);
-            message.error('创建角色版本失败');
-        }
-    };
+    //     } catch (error) {
+    //         console.error('Failed to create role info:', error);
+    //         message.error('创建角色版本失败');
+    //     }
+    // };
 
-    const handleDeleteRoleInfo = async (roleDef: IRoleData, data: IRoleInfo) => {
-        try {
-            await apiCalls.deleteRoleInfo(data);
-            await apiCalls.updateRole({ id: roleDef.id, version: null });
-            message.success('删除成功');
+    // const handleDeleteRoleInfo = async (roleDef: IRoleData, data: IRoleInfo) => {
+    //     try {
+    //         await apiCalls.deleteRoleInfo(data);
+    //         await apiCalls.updateRole({ id: roleDef.id, version: null });
+    //         message.success('删除成功');
 
-            // 刷新角色列表
-            await loadRoleDefList() as IRoleData[];
-            console.debug('handleDeleteRoleInfo updateTimestamp --->> ', Date.now());
-            setUpdateTimestamp(Date.now());
-        } catch (error) {
-            message.error('删除失败');
-        }
-    }
+    //         // 刷新角色列表
+    //         await loadRoleDefList() as IRoleData[];
+    //         console.debug('handleDeleteRoleInfo updateTimestamp --->> ', Date.now());
+    //         setUpdateTimestamp(Date.now());
+    //     } catch (error) {
+    //         message.error('删除失败');
+    //     }
+    // }
 
     // 打开角色属性编辑模态框
     const handleOpenRoleInfoEditModal = (roleDef: IRoleData, data?: IRoleInfo) => {
@@ -208,7 +208,7 @@ export default function RoleManage() {
                             // updateTimestamp={updateTimestamp}
                             // onVersionChange={handleVersionChange}
                             onOpenRoleInfoEditModal={handleOpenRoleInfoEditModal}
-                            onDeleteRoleInfo={handleDeleteRoleInfo}
+                            // onDeleteRoleInfo={handleDeleteRoleInfo}
                             // worldviewMap={worldviewMap}
                         />
                       ) : (
@@ -220,7 +220,7 @@ export default function RoleManage() {
                             // worldViewId={worldViewId}
                             onUpdate={() => {
                                 console.debug('handleRelationUpdate updateTimestamp --->> ', Date.now());
-                                setUpdateTimestamp(Date.now())
+                                // setUpdateTimestamp(Date.now())
                             }}
                         />
                       )}
@@ -280,6 +280,7 @@ function RolePanel(props: RolePanelProps) {
     }, [factionList]);
 
     useEffect(() => {
+        console.warn('[RolePanel] useEffect triggered, worldViewId:', worldViewId);
         loadRoleDefList();
         loadRoleInfoList();
     }, [worldViewId])
