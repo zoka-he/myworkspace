@@ -16,7 +16,7 @@ import { debounce } from 'lodash'
 import store from '@/src/store'
 import { setFrontHost } from '@/src/store/difySlice'
 import { connect } from 'react-redux'
-import { useFactionList, useRoleInfoId, useRoleInfoList } from '../roleManageContext'
+import { useFactionList, useLoadRoleDefList, useRoleDefList, useRoleId, useRoleInfoId, useRoleInfoList, useWorldViewList } from '../roleManageContext'
 
 const { Title, Text } = Typography
 
@@ -56,113 +56,64 @@ const labelStyle = {
  * 负责显示角色信息、版本管理、阵营信息和Dify文档集成
  */
 export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
-  roleDef,
-  onVersionChange,
   onOpenRoleInfoEditModal,
   onDeleteRoleInfo,
-  worldviewMap,
-  difyFrontHost,
-  difyFrontHostOptions
 }: RoleInfoPanelProps) {
 
-  const [roleInfoId, setRoleInfoId] = useRoleInfoId();
+  const [roleDefId] = useRoleId();
+  const [roleDefList] = useRoleDefList();
+  const [roleInfoId] = useRoleInfoId();
   const [roleInfoList] = useRoleInfoList();
+  
+  const loadRoleDefList = useLoadRoleDefList();
+
   // 阵营数据
   const [factionList] = useFactionList();
   const [isLoading, setIsLoading] = useState(false)
 
+  // 当前选中的角色定义
+  const roleDef = useMemo(() => {
+    return roleDefList.find(info => info.id === roleDefId) || null;
+  }, [roleDefId, roleDefList])
+
   // 当前选中的角色版本信息
-  const role = useMemo(() => {
+  const roleInfo = useMemo(() => {
     return roleInfoList.find(info => info.id === roleInfoId) || null;
-  }, [roleInfoId])
+  }, [roleInfoId, roleInfoList])
 
   // 加载状态
 
   // 角色版本列表
   const roleVersions = useMemo(() => {
-    return roleInfoList.filter(info => info.role_id === role?.role_id) || [];
+    return roleInfoList.filter(info => info.role_id === roleInfo?.role_id) || [];
   }, [roleInfoList, roleInfoId])
 
-  
-  
-  /**
-   * 加载角色版本列表
-   * 获取指定角色的所有版本信息
-   */
-  async function loadRoleVersions() {
-    if (!roleDef?.id) {
-      setIsLoading(false)
-      return
+  // 更改角色属性的版本
+  const handleVersionChange = async (roleInfo: IRoleInfo) => {
+    if (!roleInfo?.id) {
+      return;
     }
-    
+
+    const newRowDef = {
+      id: roleDefId,
+      version: roleInfo.id
+    }
+
     try {
-      setIsLoading(true)
-      const res = await apiCalls.getRoleInfoList(roleDef.id)
-      setRoleVersions(res.data)
-      
-      // 如果当前有选中的版本ID，则设置对应的版本
-      if (roleDef.version) {
-        const selectedVersion = res.data.find((v: IRoleInfo) => v.id === roleDef.version)
-        if (selectedVersion) {
-          setRole(selectedVersion)
-          // 如果有世界观ID，加载阵营数据
-          if (selectedVersion.worldview_id) {
-            loadFactionData(selectedVersion.worldview_id)
-          }
-        }
-      } else {
-        setRole(null)
-      }
+        await apiCalls.updateRole(newRowDef);
+        message.success('更新角色版本成功');
 
+
+        // 刷新角色列表
+        await loadRoleDefList();
+        // console.debug('handleVersionChange updateTimestamp --->> ', Date.now());
+        // setUpdateTimestamp(Date.now());
     } catch (error) {
-      console.error('Failed to load role versions:', error)
-    } finally {
-      setIsLoading(false)
+        console.error('Failed to update role:', error);
+        message.error('更新角色版本失败');
     }
-  }
+  };
 
-  /**
-   * 加载阵营数据
-   * 根据世界观ID获取对应的阵营信息
-   */
-  async function loadFactionData(worldviewId: number) {
-    try {
-      const res = await factionApiCalls.getFactionList(worldviewId)
-      const factions = res.data as IFactionDefData[]
-      const newFactionMap = new Map<number, IFactionDefData>()
-      factions.forEach(faction => {
-        if (faction.id) {
-          newFactionMap.set(faction.id, faction)
-        }
-      })
-      setFactionMap(newFactionMap)
-    } catch (error) {
-      console.error('Failed to load faction data:', error)
-    }
-  }
-
-  // 监听角色定义变化，重新加载版本数据
-  // useEffect(() => {
-  //   console.debug('roleInfoPanel roleDef change --->> ', roleDef)
-  //   loadRoleVersions()
-  // }, [roleDef])
-
-  /**
-   * 处理版本切换
-   * 当用户选择不同版本时更新当前角色信息
-   */
-  // const handleVersionChange = (version: IRoleInfo) => {
-  //   if (!roleDef?.id) return
-  //   setRole(version)
-  //   onVersionChange({
-  //     id: roleDef.id,
-  //     version: version.id
-  //   })
-  //   // 如果有世界观ID，加载阵营数据
-  //   if (version.worldview_id) {
-  //     loadFactionData(version.worldview_id)
-  //   }
-  // }
 
   /**
    * 处理创建新版本
@@ -209,7 +160,7 @@ export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
   }
 
   // 未选择角色时显示提示
-  if (!role) {
+  if (!roleInfo) {
     return (
       <div style={{ 
         height: '100%', 
@@ -234,7 +185,7 @@ export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
     return (
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '16px 0' }}>
-          <Title level={4} style={{ margin: 0 }}>{roleDef.name}</Title>
+          <Title level={4} style={{ margin: 0 }}>{roleDef?.name}</Title>
         </div>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
           <Alert
@@ -269,8 +220,8 @@ export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
       {/* 顶部标题栏 - 显示角色名称、版本信息和操作按钮 */}
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Space>
-          <Title level={4} style={{ margin: 0 }}>{role.name_in_worldview}</Title>
-          {role && <Text type="secondary">v{role.version_name}</Text>}
+          <Title level={4} style={{ margin: 0 }}>{roleInfo.name_in_worldview}</Title>
+          {roleInfo && <Text type="secondary">v{roleInfo.version_name}</Text>}
           <Dropdown menu={{ items: versionItems }} trigger={['click']}>
             <a style={{ cursor: 'pointer' }}>
               切换 <DownOutlined />
@@ -288,7 +239,7 @@ export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
 
       {/* 版本详情卡片 - 显示当前版本的详细信息 */}
       <Card>
-        {!role ? (
+        {!roleInfo ? (
           <Alert
             message="提示"
             description="请从上方下拉菜单选择一个版本"
@@ -302,42 +253,42 @@ export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
 
               {/* 版本操作按钮 */}
               <Space style={{ marginBottom: 10}} align='center'>
-                <Button type="primary" icon={<EditOutlined />} onClick={() => handleEditRoleInfo(role)}>编辑版本</Button>
-                <Button type="primary" icon={<DeleteOutlined />} onClick={() => handleDeleteRoleInfo(role)} danger>删除版本</Button>
+                <Button type="primary" icon={<EditOutlined />} onClick={() => handleEditRoleInfo(roleInfo)}>编辑版本</Button>
+                <Button type="primary" icon={<DeleteOutlined />} onClick={() => handleDeleteRoleInfo(roleInfo)} danger>删除版本</Button>
               </Space>
             </div>
             
             {/* 版本详细信息展示 */}
-            <Descriptions size='small' bordered column={1} labelStyle={labelStyle}>
+            <Descriptions size='small' bordered column={3} labelStyle={labelStyle}>
               <Descriptions.Item label="版本名">
-                {role.version_name}
+                {roleInfo.version_name}
               </Descriptions.Item>
-              <Descriptions.Item label="世界观">
-                {role.worldview_id ? worldviewMap.get(role.worldview_id)?.title : '未设置世界观'}
-              </Descriptions.Item>
+              {/* <Descriptions.Item label="世界观">
+                {role.worldview_id ? worldViewList.find(w => w.id === role.worldview_id)?.title : '未设置世界观'}
+              </Descriptions.Item> */}
               <Descriptions.Item label="角色名称">
-                {role.name_in_worldview}
+                {roleInfo.name_in_worldview}
               </Descriptions.Item>
               <Descriptions.Item label="角色性别">
-                {role.gender_in_worldview}
+                {roleInfo.gender_in_worldview}
               </Descriptions.Item>
               <Descriptions.Item label="角色年龄">
-                {role.age_in_worldview}
+                {roleInfo.age_in_worldview}
               </Descriptions.Item>
               <Descriptions.Item label="角色种族">
-                {role.race_id}
+                {roleInfo.race_id}
               </Descriptions.Item>
               <Descriptions.Item label="角色阵营">
-                {role.faction_id ? factionList.find(faction => faction.id === role.faction_id)?.name || '未知阵营ID' : '未设置阵营'}
+                {roleInfo.faction_id ? factionList.find(faction => faction.id === roleInfo.faction_id)?.name || '未知阵营ID' : '未设置阵营'}
               </Descriptions.Item>
-              <Descriptions.Item label="角色背景">
+              <Descriptions.Item label="角色背景" span={3}>
                 <Typography.Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }} ellipsis={{ rows: 3 }}>
-                  {role.background}
+                  {roleInfo.background}
                 </Typography.Paragraph>
               </Descriptions.Item>
-              <Descriptions.Item label="角色详情">
-                <Typography.Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }} ellipsis={{ rows: 3 }}>
-                  {role.personality}
+              <Descriptions.Item label="角色详情" span={3}>
+                <Typography.Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }} ellipsis={{ rows: 10 }}>
+                  {roleInfo.personality}
                 </Typography.Paragraph>
               </Descriptions.Item>
             </Descriptions>
@@ -345,7 +296,7 @@ export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
             <Divider />
             
             {/* Dify文档管理组件 */}
-            <DifyDocumentForRole roleInfo={role} onRequestUpdate={loadRoleVersions} />
+            <DifyDocumentForRole roleInfo={roleInfo} onRequestUpdate={() => {}} />
           </>
         )}
       </Card>

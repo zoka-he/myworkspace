@@ -21,8 +21,8 @@ export default function RoleManage() {
     const [roleList, setRoleList] = useState<IRoleData[]>([]);
     const [selectedRole, setSelectedRole] = useState<IRoleData | undefined>(undefined);
     const [editModalVisible, setEditModalVisible] = useState(false);
-    const [updateTimestamp, setUpdateTimestamp] = useState(0);
-    const [figUpdateTimestamp, setFigUpdateTimestamp] = useState(0);
+    // const [updateTimestamp, setUpdateTimestamp] = useState(0);
+    // const [figUpdateTimestamp, setFigUpdateTimestamp] = useState(0);
 
     const roleInfoEditModalRef = useRef<RoleInfoEditModalRef>(null);
 
@@ -48,74 +48,69 @@ export default function RoleManage() {
         return res.data;
     }
 
-    async function reloadAll() {
-        let res = await getWorldViews()
-        setWorldViewList(res.data);
-        setWorldViewId(res.data?.[0].id || null);
+    // async function reloadAll() {
+    //     let res = await getWorldViews()
+    //     setWorldViewList(res.data);
+    //     setWorldViewId(res.data?.[0].id || null);
 
-        loadRoleDefList();
-    }
+    //     loadRoleDefList();
+    // }
 
-    useEffect(() => {
-        loadRoleDefList();
-    }, [worldViewId]);
+    // useEffect(() => {
+    //     loadRoleDefList();
+    // }, [worldViewId]);
 
-    useEffect(() => {
-        reloadAll();
-    }, []);
+    // useEffect(() => {
+    //     reloadAll();
+    // }, []);
 
-    
-
-    
-
-    
 
     /**
      * 渲染角色列表标题
      * @returns 
      */
-    const roleListTitle = (
-        <Space>
-            <label>世界观：</label>
-            <Select 
-                style={{ width: 170 }} 
-                allowClear value={worldViewId} 
-                onChange={(value) => setWorldViewId(value)}
-                onClear={() => setWorldViewId(null)}
-            >
-                {worldViewList.map((item) => (
-                    <Select.Option key={item.id} value={item.id}>{item.title}</Select.Option>
-                ))}
-            </Select>
-            <Button type="primary" onClick={reloadAll}>刷新</Button>
-        </Space>
-    );
+    // const roleListTitle = (
+    //     <Space>
+    //         <label>世界观：</label>
+    //         <Select 
+    //             style={{ width: 170 }} 
+    //             allowClear value={worldViewId} 
+    //             onChange={(value) => setWorldViewId(value)}
+    //             onClear={() => setWorldViewId(null)}
+    //         >
+    //             {worldViewList.map((item) => (
+    //                 <Select.Option key={item.id} value={item.id}>{item.title}</Select.Option>
+    //             ))}
+    //         </Select>
+    //         <Button type="primary" onClick={reloadAll}>刷新</Button>
+    //     </Space>
+    // );
 
     
 
-    const handleNodeClick = (roleId: string | number) => {
-        let role = roleList.find(item => item.id == Number(roleId));
-        if (role) {
-            setSelectedRole(role);
-        }
-    }
+    // const handleNodeClick = (roleId: string | number) => {
+    //     let role = roleList.find(item => item.id == Number(roleId));
+    //     if (role) {
+    //         setSelectedRole(role);
+    //     }
+    // }
 
     // 更改角色属性的版本
-    const handleVersionChange = async (roleDef: IRoleData) => {
-        try {
-            await apiCalls.updateRole(roleDef);
-            message.success('更新角色版本成功');
+    // const handleVersionChange = async (roleDef: IRoleData) => {
+    //     try {
+    //         await apiCalls.updateRole(roleDef);
+    //         message.success('更新角色版本成功');
 
 
-            // 刷新角色列表
-            await loadRoleDefList() as IRoleData[];
-            console.debug('handleVersionChange updateTimestamp --->> ', Date.now());
-            setUpdateTimestamp(Date.now());
-        } catch (error) {
-            console.error('Failed to update role:', error);
-            message.error('更新角色版本失败');
-        }
-    };
+    //         // 刷新角色列表
+    //         await loadRoleDefList() as IRoleData[];
+    //         console.debug('handleVersionChange updateTimestamp --->> ', Date.now());
+    //         setUpdateTimestamp(Date.now());
+    //     } catch (error) {
+    //         console.error('Failed to update role:', error);
+    //         message.error('更新角色版本失败');
+    //     }
+    // };
 
     // 创建或更新角色属性
     const handleCreateOrUpdateRoleInfo = async (roleDef: IRoleData, data: IRoleInfo) => {
@@ -167,15 +162,16 @@ export default function RoleManage() {
         }
     };
 
+
     return (
         <RoleManageContextProvider>
             <div className="f-fit-height" style={{ paddingBottom: 10 }}>
                 <Row className="f-fit-height" gutter={10}>
                     <Col className="f-fit-height" span={6}>
-                    <RolePanel/>
-                </Col>
-                <Col className="f-fit-height" span={11}>
-                    <Card className="f-fit-height" title={
+                        <RolePanel/>
+                    </Col>
+                {/* <Col className="f-fit-height" span={11}> */}
+                    {/* <Card className="f-fit-height" title={
                         <Space>
                             <span>角色关系图</span>
                             <Button type="primary" size="small" icon={<ReloadOutlined />} onClick={() => {
@@ -189,9 +185,9 @@ export default function RoleManage() {
                             updateTimestamp={updateTimestamp}
                             onNodeClick={handleNodeClick}
                         />
-                    </Card>
-                </Col>
-                <Col className="f-fit-height" span={7}>
+                    </Card> */}
+                {/* </Col> */}
+                <Col className="f-fit-height" span={18}>
                     <Card 
                       className="f-fit-height" 
                       title={
@@ -208,31 +204,25 @@ export default function RoleManage() {
                     >
                       {activePanel === 'attributes' ? (
                         <RoleInfoPanel
-                            roleDef={selectedRole}
-                            updateTimestamp={updateTimestamp}
-                            onVersionChange={handleVersionChange}
+                            // roleDef={selectedRole}
+                            // updateTimestamp={updateTimestamp}
+                            // onVersionChange={handleVersionChange}
                             onOpenRoleInfoEditModal={handleOpenRoleInfoEditModal}
                             onDeleteRoleInfo={handleDeleteRoleInfo}
-                            worldviewMap={worldviewMap}
+                            // worldviewMap={worldviewMap}
                         />
                       ) : (
-                        selectedRole ? (
-                          <RoleRelationPanel 
-                            roleId={selectedRole.id} 
-                            roleName={selectedRole.name!}
-                            candidateRoles={roleList}
-                            worldViews={worldViewList}
-                            worldViewId={worldViewId}
+                        <RoleRelationPanel 
+                            // roleId={selectedRole.id} 
+                            // roleName={selectedRole.name!}
+                            // candidateRoles={roleList}
+                            // worldViews={worldViewList}
+                            // worldViewId={worldViewId}
                             onUpdate={() => {
                                 console.debug('handleRelationUpdate updateTimestamp --->> ', Date.now());
                                 setUpdateTimestamp(Date.now())
                             }}
-                          />
-                        ) : (
-                          <div className="f-center">
-                            请选择一个角色查看关系
-                          </div>
-                        )
+                        />
                       )}
                     </Card>
                 </Col>
@@ -244,9 +234,9 @@ export default function RoleManage() {
                 ref={roleInfoEditModalRef}
                 open={editModalVisible}
                 onCancel={() => setEditModalVisible(false)}
-                onSubmit={handleCreateOrUpdateRoleInfo}
-                worldViewList={worldViewList}
-                roleData={selectedRole}
+                // onSubmit={handleCreateOrUpdateRoleInfo}
+                // worldViewList={worldViewList}
+                // roleData={selectedRole}
                 />
             </div>
         </RoleManageContextProvider>
@@ -271,7 +261,7 @@ function RolePanel(props: RolePanelProps) {
     
     const loadRoleDefList = useLoadRoleDefList();
     const loadRoleInfoList = useLoadRoleInfoList();
-    const loadFactionList = useLoadFactionList();
+    // const loadFactionList = useLoadFactionList();
     const [roleChromaMetadataList] = useRoleChromaMetadataList();
 
     const { isOpen, presetValues, openModal, closeModal } = useRoleDefModal();
@@ -295,7 +285,7 @@ function RolePanel(props: RolePanelProps) {
     }, [worldViewId])
 
     const roleManageTreeData = useMemo<TreeDataNode[]>(() => {
-        console.debug('roleManageTreeData --->> ', roleDefList, roleInfoList);
+        // console.debug('roleManageTreeData --->> ', roleDefList, roleInfoList);
 
         return roleDefList.map(role => {
             return {
@@ -435,7 +425,7 @@ function RolePanel(props: RolePanelProps) {
                                 (item: IRoleChromaMetadata) => item.metadata.id === info_id
                             )?.metadata.fingerprint || '';
                             
-                            console.debug('fingerprint compare --->> ', { info_id, localFingerprint, chromaFingerprint });
+                            // console.debug('fingerprint compare --->> ', { info_id, localFingerprint, chromaFingerprint });
 
                             if (chromaFingerprint) {
                                 if (chromaFingerprint === localFingerprint) {

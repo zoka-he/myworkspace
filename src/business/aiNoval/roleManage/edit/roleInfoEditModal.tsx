@@ -3,13 +3,15 @@ import { useState, useEffect, forwardRef, useImperativeHandle, useMemo } from 'r
 import { IRoleInfo, IRoleData, IWorldViewData, IFactionDefData } from '@/src/types/IAiNoval'
 import factionApiCalls from '@/src/business/aiNoval/factionManage/apiCalls'
 import { CopyOutlined } from '@ant-design/icons'
+import { useFactionList, useLoadRoleInfoList, useRoleDefList, useRoleId, useWorldViewList } from '../roleManageContext'
+import apiCalls from '../apiCalls'
 
 interface RoleInfoEditModalProps {
   open: boolean
   onCancel: () => void
-  onSubmit: (roleDef: IRoleData, data: IRoleInfo) => void | Promise<void>
-  roleData?: IRoleData
-  worldViewList: IWorldViewData[]
+  // onSubmit: (roleDef: IRoleData, data: IRoleInfo) => void | Promise<void>
+  // roleData?: IRoleData
+  // worldViewList: IWorldViewData[]
 }
 
 export interface RoleInfoEditModalRef {
@@ -19,15 +21,29 @@ export interface RoleInfoEditModalRef {
 export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditModalProps>(({
   open,
   onCancel,
-  onSubmit,
-  roleData,
-  worldViewList
+  // onSubmit,
+  // roleData,
+  // worldViewList
 }, ref) => {
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
-  const [roleDef, setRoleDef] = useState<IRoleData | undefined>()
+  // const [roleDef, setRoleDef] = useState<IRoleData | undefined>()
+
+  const [worldviewList] = useWorldViewList();
+
+  const [roleDefId] = useRoleId();
+  const [roleDefList] = useRoleDefList();
+  const roleDef = useMemo(() => {
+    return roleDefList.find(info => info.id === roleDefId) || null;
+  }, [roleDefId])
+
+
   const [presetValues, setPresetValues] = useState<IRoleInfo | undefined>()
-  const [factionList, setFactionList] = useState<IFactionDefData[]>([])
+  // const [factionList, setFactionList] = useState<IFactionDefData[]>([])
+
+  const [factionList] = useFactionList();
+
+  const loadRoleInfoList = useLoadRoleInfoList();
 
   // Transform faction data into tree structure using useMemo
   const factionTreeData = useMemo(() => {
@@ -58,7 +74,7 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
 
   useImperativeHandle(ref, () => ({
     openAndEdit: (roleDef: IRoleData, presetData?: IRoleInfo) => {
-      setRoleDef(roleDef)
+      // setRoleDef(roleDef)
       setPresetValues(presetData)
       form.setFieldsValue(presetData)
     }
@@ -72,24 +88,24 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
   }, [open, form])
 
   // Fetch faction data when worldview changes
-  useEffect(() => {
-    const fetchFactionData = async () => {
-      const worldviewId = form.getFieldValue('worldview_id')
-      if (worldviewId) {
-        try {
-          const response = await factionApiCalls.getFactionList(worldviewId)
-          setFactionList(response.data || [])
-        } catch (error) {
-          console.error('Failed to fetch faction data:', error)
-        }
-      }
-    }
+  // useEffect(() => {
+  //   const fetchFactionData = async () => {
+  //     const worldviewId = form.getFieldValue('worldview_id')
+  //     if (worldviewId) {
+  //       try {
+  //         const response = await factionApiCalls.getFactionList(worldviewId)
+  //         setFactionList(response.data || [])
+  //       } catch (error) {
+  //         console.error('Failed to fetch faction data:', error)
+  //       }
+  //     }
+  //   }
 
-    fetchFactionData()
-  }, [form.getFieldValue('worldview_id')])
+  //   fetchFactionData()
+  // }, [form.getFieldValue('worldview_id')])
 
   const copyName = () => {
-    const name = roleData?.name;
+    const name = roleDef?.name;
     if (!name) {
       message.error('没有可参考的角色名称！')
       return
@@ -106,24 +122,56 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
     })
   }
 
+
+  
+
   const handleSubmit = async () => {
+
+    let values = null;
     try {
       setLoading(true)
-      const values = await form.validateFields()
-      const factionId = values.faction_id
-      const rootFactionId = findRootFactionId(factionId)
-
-      await onSubmit(
-        roleDef || {}, 
-        {
-          ...presetValues,
-          ...values,
-          role_id: roleData?.id,
-          root_faction_id: rootFactionId
-        }
-      )
+      values = await form.validateFields()
+      
     } catch (error) {
       console.error('Form validation failed:', error)
+      setLoading(false)
+      return;
+    }
+
+    const factionId = values.faction_id
+    const rootFactionId = findRootFactionId(factionId)
+
+    const data = {
+      ...presetValues,
+      ...values,
+      role_id: roleDefId,
+      root_faction_id: rootFactionId
+    }
+
+
+    try {
+      let response = null;
+  
+      delete data.created_at;
+      
+      if (data.id) {
+          response = await apiCalls.updateRoleInfo(data);
+      } else {
+          response = await apiCalls.createRoleInfo(data);
+      }
+  
+      message.success(data.id ? '更新角色版本成功' : '创建角色版本成功');
+      // setEditModalVisible(false);
+      onCancel();
+  
+      // 刷新角色列表
+      loadRoleInfoList();
+      // console.debug('handleCreateOrUpdateRoleInfo updateTimestamp --->> ', Date.now());
+      // setUpdateTimestamp(Date.now());
+    
+    } catch (error) {
+        console.error('Failed to create role info:', error);
+        message.error('创建角色版本失败');
     } finally {
       setLoading(false)
     }
@@ -194,7 +242,7 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
               rules={[{ required: true, message: '请选择世界观' }]}
             >
               <Select placeholder="请选择世界观">
-                {(worldViewList || []).map(worldView => (
+                {(worldviewList || []).map(worldView => (
                   <Select.Option key={worldView.id} value={worldView.id}>
                     {worldView.title}
                   </Select.Option>

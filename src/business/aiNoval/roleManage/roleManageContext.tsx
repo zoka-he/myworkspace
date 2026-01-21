@@ -36,7 +36,7 @@ export function calculateRoleInfoFingerprint(
         .map(item => item || '')
         .join('|'); // 模拟 MySQL 的一致化行为
 
-    console.debug('documentStr ------------->> ', documentStr);
+    // console.debug('documentStr ------------->> ', documentStr);
     return SparkMD5.hash(documentStr);
 }
 

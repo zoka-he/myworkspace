@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Card, List, Button, message, Space, Modal, Form, Input, Select, Slider, DatePicker, Tag, Typography, Radio } from 'antd'
 import { PlusOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { IRoleData, IWorldViewData, IRoleRelation, RELATION_TYPES } from '@/src/types/IAiNoval'
 import apiCalls from '../apiCalls'
+import { useRoleDefList, useRoleId, useRoleInfoId, useWorldViewId, useWorldViewList } from '../roleManageContext'
 
 
 interface RoleRelationPanelProps {
@@ -17,13 +18,28 @@ interface RoleRelationPanelProps {
 
 
 export function RoleRelationPanel({ 
-  roleId, 
-  roleName, 
-  worldViews, 
-  worldViewId,
-  candidateRoles,
+  // roleId, 
+  // roleName, 
+  // worldViews, 
+  // worldViewId,
+  // candidateRoles,
   onUpdate
 }: RoleRelationPanelProps) {
+  const [roleId] = useRoleId();
+  const [roleList] = useRoleDefList();
+  const [roleInfoId] = useRoleInfoId();
+  const [worldViewId] = useWorldViewId();
+  const [worldViewList] = useWorldViewList();
+
+  const selectedRole = useMemo(() => {
+    return roleList.find(info => info.id === roleInfoId) || null;
+  }, [roleInfoId])
+
+  const currentWorldView = useMemo(() => {
+    return worldViewList.find(w => w.id === worldViewId) || null;
+  }, [worldViewId])
+
+
   const [relations, setRelations] = useState<IRoleRelation[]>([])
   const [loading, setLoading] = useState(false)
   const [isModalVisible, setIsModalVisible] = useState(false)
@@ -31,8 +47,6 @@ export function RoleRelationPanel({
   const [form] = Form.useForm()
   const [sliderColor, setSliderColor] = useState('#52c41a')
   const [relationStrength, setRelationStrength] = useState(50)
-
-  const currentWorldView = (worldViews || []).find(w => w.id === worldViewId)
 
   useEffect(() => {
     fetchIRoleRelations()
@@ -143,7 +157,7 @@ export function RoleRelationPanel({
   const renderRelationItem = (item: IRoleRelation) => {
     const relationType = RELATION_TYPES.find(t => t.value === item.relation_type)
 
-    let related_role_name = (candidateRoles || []).find(role => role.id === item.related_role_id)?.name || '未知角色';
+    let related_role_name = (roleList || []).find(role => role.id === item.related_role_id)?.name || '未知角色';
     let relation_strength = item.relation_strength || 50;
     
     return (
@@ -236,7 +250,7 @@ export function RoleRelationPanel({
             </div>
           )}
           <Card
-            title={`${roleName}的角色关系`}
+            title={`${selectedRole?.name}的角色关系`}
             extra={
               <Button
                 type="primary"
@@ -299,7 +313,7 @@ export function RoleRelationPanel({
                   <Select
                     placeholder="请选择关联角色"
                     showSearch
-                    options={(candidateRoles || []).filter(role => role.id !== roleId).map(role => ({
+                    options={(roleList || []).filter(role => role.id !== roleId).map(role => ({
                       value: role.id,
                       label: role.name
                     }))}
