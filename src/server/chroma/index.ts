@@ -624,12 +624,19 @@ class ChromaService {
     ): Promise<QueryResult[]> {
         const collection = await this.getCollection(collectionName);
 
-        const result = await collection.query({
+        // 构建查询参数，只在 where 存在且不为空时包含它
+        const queryParams: any = {
             queryEmbeddings: [embedding],
             nResults: k,
-            where,
             include: [IncludeEnum.documents, IncludeEnum.metadatas, IncludeEnum.distances],
-        });
+        };
+
+        // 只在 where 存在且不为空对象时才添加
+        if (where && Object.keys(where).length > 0) {
+            queryParams.where = where;
+        }
+
+        const result = await collection.query(queryParams);
 
         if (!result.ids || result.ids.length === 0 || !result.ids[0]) {
             return [];
