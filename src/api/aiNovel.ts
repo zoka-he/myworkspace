@@ -66,3 +66,29 @@ export async function getFactionList(worldViewId: number, limit: number = 200) {
     );
     return response;
 }
+
+interface PrepareTextEmbeddingRequest {
+    worldviews: number[];
+    characters: number[];
+    locations: string[];
+    factions: number[];
+    events: number[];
+}
+
+interface PrepareTextEmbeddingResponse {
+    pushed: {
+        worldviews: number;
+        characters: number;
+        locations: string;
+        factions: number;
+        events: number;
+    }
+}
+
+export async function prepareTextEmbedding(data: PrepareTextEmbeddingRequest): Promise<PrepareTextEmbeddingResponse> {
+    const response = await fetch.post(
+        '/api/aiNoval/llm/once/prepareEmbedding',
+        data
+    );
+    return response.data as PrepareTextEmbeddingResponse;
+}

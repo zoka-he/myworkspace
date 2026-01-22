@@ -1,4 +1,4 @@
-import { Row, Col, Card, Space, Button, Select, List, Modal, message, Alert, Table, Typography, Radio, Tree, TreeProps, TreeDataNode, Tag } from "antd";
+import { Row, Col, Card, Space, Button, Select, List, Modal, message, Alert, Table, Typography, Radio, Tree, TreeProps, TreeDataNode, Tag, notification } from "antd";
 import { useEffect, useState, useRef, useMemo, ReactNode } from "react";
 import { getWorldViews } from "../common/worldViewUtil";
 import { IRoleData, IWorldViewData, IRoleInfo } from "@/src/types/IAiNoval";
@@ -9,9 +9,11 @@ import { RoleInfoPanel } from "./panel/roleInfoPanel";
 import { RoleInfoEditModal, RoleInfoEditModalRef } from './edit/roleInfoEditModal';
 import { RoleRelationPanel } from "./panel/roleRelationPanel";
 import { D3RoleRelationGraph } from "./panel/d3RoleRelationGraph";
-import RoleManageContextProvider, { useFactionList, useLoadFactionList, useLoadRoleDefList, useLoadRoleInfoList, useLoadWorldViewList, useRoleDefList, useRoleId, useRoleInfoList, useWorldViewId, useWorldViewList, useRoleInfoId, useRoleChromaMetadataList, calculateRoleInfoFingerprint, IRoleChromaMetadata } from "./roleManageContext";
+import RoleManageContextProvider, { useFactionList, useLoadFactionList, useLoadRoleDefList, useLoadRoleInfoList, useLoadWorldViewList, useRoleDefList, useRoleId, useRoleInfoList, useWorldViewId, useWorldViewList, useRoleInfoId, useRoleChromaMetadataList, calculateRoleInfoFingerprint, IRoleChromaMetadata, useLoadRoleChromaMetadataList } from "./roleManageContext";
 import { IFactionDefData } from "@/src/types/IAiNoval";
 import _ from 'lodash';
+import { getRabbitMQClient, RabbitMQClient } from "@/src/utils/rabbitmq";
+import { IMessage } from "@stomp/stompjs";
 
 export default function RoleManage() {
 
@@ -47,112 +49,6 @@ export default function RoleManage() {
 
         return res.data;
     }
-
-    // async function reloadAll() {
-    //     let res = await getWorldViews()
-    //     setWorldViewList(res.data);
-    //     setWorldViewId(res.data?.[0].id || null);
-
-    //     loadRoleDefList();
-    // }
-
-    // useEffect(() => {
-    //     loadRoleDefList();
-    // }, [worldViewId]);
-
-    // useEffect(() => {
-    //     reloadAll();
-    // }, []);
-
-
-    /**
-     * 渲染角色列表标题
-     * @returns 
-     */
-    // const roleListTitle = (
-    //     <Space>
-    //         <label>世界观：</label>
-    //         <Select 
-    //             style={{ width: 170 }} 
-    //             allowClear value={worldViewId} 
-    //             onChange={(value) => setWorldViewId(value)}
-    //             onClear={() => setWorldViewId(null)}
-    //         >
-    //             {worldViewList.map((item) => (
-    //                 <Select.Option key={item.id} value={item.id}>{item.title}</Select.Option>
-    //             ))}
-    //         </Select>
-    //         <Button type="primary" onClick={reloadAll}>刷新</Button>
-    //     </Space>
-    // );
-
-    
-
-    // const handleNodeClick = (roleId: string | number) => {
-    //     let role = roleList.find(item => item.id == Number(roleId));
-    //     if (role) {
-    //         setSelectedRole(role);
-    //     }
-    // }
-
-    // 更改角色属性的版本
-    // const handleVersionChange = async (roleDef: IRoleData) => {
-    //     try {
-    //         await apiCalls.updateRole(roleDef);
-    //         message.success('更新角色版本成功');
-
-
-    //         // 刷新角色列表
-    //         await loadRoleDefList() as IRoleData[];
-    //         console.debug('handleVersionChange updateTimestamp --->> ', Date.now());
-    //         setUpdateTimestamp(Date.now());
-    //     } catch (error) {
-    //         console.error('Failed to update role:', error);
-    //         message.error('更新角色版本失败');
-    //     }
-    // };
-
-    // 创建或更新角色属性
-    // const handleCreateOrUpdateRoleInfo = async (roleDef: IRoleData, data: IRoleInfo) => {
-    //     try {
-    //         let response = null;
-
-    //         delete data.created_at;
-            
-    //         if (data.id) {
-    //             response = await apiCalls.updateRoleInfo(data);
-    //         } else {
-    //             response = await apiCalls.createRoleInfo(data);
-    //         }
-
-    //         message.success(data.id ? '更新角色版本成功' : '创建角色版本成功');
-    //         setEditModalVisible(false);
-
-    //         // 刷新角色列表
-    //         await loadRoleDefList() as IRoleData[];
-    //         console.debug('handleCreateOrUpdateRoleInfo updateTimestamp --->> ', Date.now());
-    //         setUpdateTimestamp(Date.now());
-
-    //     } catch (error) {
-    //         console.error('Failed to create role info:', error);
-    //         message.error('创建角色版本失败');
-    //     }
-    // };
-
-    // const handleDeleteRoleInfo = async (roleDef: IRoleData, data: IRoleInfo) => {
-    //     try {
-    //         await apiCalls.deleteRoleInfo(data);
-    //         await apiCalls.updateRole({ id: roleDef.id, version: null });
-    //         message.success('删除成功');
-
-    //         // 刷新角色列表
-    //         await loadRoleDefList() as IRoleData[];
-    //         console.debug('handleDeleteRoleInfo updateTimestamp --->> ', Date.now());
-    //         setUpdateTimestamp(Date.now());
-    //     } catch (error) {
-    //         message.error('删除失败');
-    //     }
-    // }
 
     // 打开角色属性编辑模态框
     const handleOpenRoleInfoEditModal = (roleDef: IRoleData, data?: IRoleInfo) => {
@@ -209,8 +105,106 @@ export default function RoleManage() {
                 onCancel={() => setEditModalVisible(false)}
             />
             </div>
+
+            <MqProvider></MqProvider>
         </RoleManageContextProvider>
     )
+}
+
+interface MqProviderProps {
+    children?: ReactNode;
+}
+
+function MqProvider({ children }: MqProviderProps) {
+    const mqClient = useRef<RabbitMQClient | null>(null);
+    const subscriptionIdRef = useRef<string | null>(null); // 跟踪订阅ID，确保只订阅一次
+    const loadRoleChromaMetadataList = useLoadRoleChromaMetadataList(); // 使用优化后的 hook，总是使用最新的 worldViewId
+
+    useEffect(() => {
+        // 如果已经订阅过，不再重复订阅
+        if (subscriptionIdRef.current) {
+            return;
+        }
+
+        const client = mqClient.current = getRabbitMQClient();
+        if (client) {
+            // 即使未连接也可以调用 subscribe，连接建立后会自动订阅
+            const subscriptionId = client.subscribe({
+                destination: '/exchange/frontend_notice.fanout',
+                id: 'frontend_notice_subscription', // 使用固定ID，确保只订阅一次
+            }, (message: IMessage) => {
+                console.debug('message --->> ', message);
+                let body = JSON.parse(message.body);
+                if (body.type === 'embed_task_completed') {
+                    // 直接调用，函数内部总是使用最新的 worldViewId
+                    loadRoleChromaMetadataList();
+                }
+                message.ack();
+            });
+            
+            subscriptionIdRef.current = subscriptionId;
+        }
+
+        // 清理函数：组件卸载时取消订阅
+        return () => {
+            if (mqClient.current && subscriptionIdRef.current) {
+                mqClient.current.unsubscribe(subscriptionIdRef.current);
+                subscriptionIdRef.current = null;
+            }
+        };
+    }, [loadRoleChromaMetadataList]); // 依赖 loadRoleChromaMetadataList，但由于它使用 useCallback 返回稳定引用，不会导致重复订阅
+
+    // const [isConnected, setIsConnected] = useState(false);
+
+    // useEffect(() => {
+    //     if (!mqClient.current) {
+    //         mqClient.current = getRabbitMQClient();
+    //     }
+
+    //     // 如果客户端存在但未连接，尝试连接
+    //     if (mqClient.current && !mqClient.current.isConnected) {
+    //         mqClient.current.connect();
+    //     }
+
+    //     // 定期检查连接状态
+    //     const checkConnection = () => {
+    //         const connected = mqClient.current?.isConnected || false;
+    //         setIsConnected(connected);
+    //     };
+
+    //     // 初始检查
+    //     checkConnection();
+
+    //     // 设置轮询检查连接状态（每500ms检查一次）
+    //     const intervalId = setInterval(checkConnection, 500);
+
+    //     return () => {
+    //         clearInterval(intervalId);
+    //     };
+    // }, []);
+
+    // const prevConnectedRef = useRef<boolean | null>(null);
+    
+    // useEffect(() => {
+    //     // 只在状态变化时显示通知，避免重复通知
+    //     if (prevConnectedRef.current !== null && prevConnectedRef.current !== isConnected) {
+    //         if (!isConnected) {
+    //             notification.error({
+    //                 message: 'RabbitMQ 连接失败',
+    //                 description: '请检查 RabbitMQ 连接配置',
+    //             });
+    //         } else {
+    //             notification.success({
+    //                 message: 'RabbitMQ 连接成功',
+    //                 description: '连接成功',
+    //             });
+    //         }
+    //     }
+    //     prevConnectedRef.current = isConnected;
+    // }, [isConnected]);
+
+    // 这个组件只用于监控连接状态，不渲染任何内容
+    return null;
 }
 
 interface RolePanelProps {
@@ -233,6 +227,7 @@ function RolePanel(props: RolePanelProps) {
     const loadRoleInfoList = useLoadRoleInfoList();
     // const loadFactionList = useLoadFactionList();
     const [roleChromaMetadataList] = useRoleChromaMetadataList();
+    const loadRoleChromaMetadataList = useLoadRoleChromaMetadataList();
 
     const { isOpen, presetValues, openModal, closeModal } = useRoleDefModal();
 
@@ -320,6 +315,8 @@ function RolePanel(props: RolePanelProps) {
     function reloadAll() {
         loadWorldViewList();
         loadRoleDefList();
+        loadRoleInfoList();
+        loadRoleChromaMetadataList();
     }
 
     /**

@@ -3,7 +3,7 @@
  * 用于显示和管理AI小说角色的详细信息、版本管理和Dify文档集成
  */
 
-import { Card, Select, Button, Space, Typography, Descriptions, Dropdown, Alert, MenuProps, Modal, Divider, Row, Col, Radio, Pagination, message, Input, Form } from 'antd'
+import { Card, Select, Button, Space, Typography, Descriptions, Dropdown, Alert, MenuProps, Modal, Divider, Row, Col, Radio, Pagination, message, Input, Form, Tag } from 'antd'
 import { PlusOutlined, DownOutlined, EditOutlined, DeleteOutlined, SafetyCertificateFilled, SearchOutlined, CopyOutlined, RetweetOutlined } from '@ant-design/icons'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { IRoleData, IRoleInfo, IWorldViewData, IFactionDefData } from '@/src/types/IAiNoval'
@@ -16,7 +16,8 @@ import { debounce } from 'lodash'
 import store from '@/src/store'
 import { setFrontHost } from '@/src/store/difySlice'
 import { connect } from 'react-redux'
-import { useFactionList, useLoadRoleDefList, useRoleDefList, useRoleId, useRoleInfoId, useRoleInfoList, useWorldViewList } from '../roleManageContext'
+import { calculateRoleInfoFingerprint, useFactionList, useLoadRoleDefList, useRoleChromaMetadata, useRoleDef, useRoleDefList, useRoleId, useRoleInfo, useRoleInfoId, useRoleInfoList, useWorldViewList } from '../roleManageContext'
+import { prepareTextEmbedding } from '@/src/api/aiNovel'
 
 const { Title, Text } = Typography
 
@@ -305,12 +306,109 @@ export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
             </Descriptions>
 
             <Divider />
+
+            <RoleInfoChromaManage/>
+
+            <Divider />
             
             {/* Dify文档管理组件 */}
             <DifyDocumentForRole roleInfo={roleInfo} onRequestUpdate={() => {}} />
           </>
         )}
       </Card>
+    </div>
+  )
+})
+
+interface RoleInfoChromaManageProps {
+  roleInfo: IRoleInfo
+  onRequestUpdate?: () => void
+}
+
+const RoleInfoChromaManage = connect(mapStateToProps)(function (props: RoleInfoChromaManageProps) {
+  const roleDef = useRoleDef();
+  const roleInfo = useRoleInfo();
+  const roleChromaMetadata = useRoleChromaMetadata();
+  const [factionList] = useFactionList();
+
+  const factionMap = useMemo(() => {
+    const map = new Map<number, IFactionDefData>();
+    factionList.forEach(faction => {
+      if (faction.id) {
+        map.set(faction.id, faction);
+      }
+    });
+    return map;
+  }, [factionList]);
+
+  const actualFingerprint = useMemo(() => {
+    if (!roleInfo) {
+      return null;
+    }
+    return calculateRoleInfoFingerprint(roleInfo, factionMap);
+  }, [roleInfo, factionMap]);
+
+  let embedStatus = <Text type="secondary">--</Text>;
+  if (roleInfo) {
+    if (roleChromaMetadata?.metadata?.fingerprint) {
+      if (roleChromaMetadata.metadata.fingerprint === actualFingerprint) {
+        embedStatus = <Tag color="green">向量就绪</Tag>;
+      } else {
+        embedStatus = <Tag color="orange">向量过期</Tag>;
+      }
+    } else {
+      embedStatus = <Tag color="red">未嵌入</Tag>;
+    }
+  }
+
+  const handleUpdateEmbedding = useCallback(async () => {
+    if (!roleInfo || !roleInfo.id) {
+      return;
+    }
+
+    try {
+      let res = await prepareTextEmbedding({ 
+        characters: [roleInfo.id],
+        worldviews: [],
+        locations: [],
+        factions: [],
+        events: [],
+      });
+    } catch (error) {
+      message.error('更新嵌入向量失败，请检查程序');
+    }
+  }, [roleInfo]);
+
+  const canUpdateEmbedding = useMemo(() => {
+    if (!roleInfo || !roleInfo.id) {
+      return false;
+    }
+    // return roleChromaMetadata?.metadata?.fingerprint === actualFingerprint;
+    return true;
+  }, [roleInfo, roleChromaMetadata, actualFingerprint]);
+
+  return (
+    <div>
+      <Descriptions size='small' bordered column={4} labelStyle={labelStyle}>
+        <Descriptions.Item label="角色ID">
+          {roleInfo?.id}
+        </Descriptions.Item>
+        <Descriptions.Item label="嵌入状态">
+          {embedStatus}
+        </Descriptions.Item>
+        <Descriptions.Item label="操作" span={2}>
+          <Button type="primary" size="small" disabled={!canUpdateEmbedding} icon={<EditOutlined />} onClick={handleUpdateEmbedding}>更新嵌入向量</Button>
+        </Descriptions.Item>
+        <Descriptions.Item label="数据指纹（chroma）" span={2}>
+          {roleChromaMetadata?.metadata?.fingerprint}
+        </Descriptions.Item>
+        <Descriptions.Item label="数据指纹（实时）" span={2}>
+          {actualFingerprint}
+        </Descriptions.Item>
+        {/* <Descriptions.Item label="角色性别">
+          {roleInfo?.gender_in_worldview}
+        </Descriptions.Item> */}
+      </Descriptions>
     </div>
   )
 })

@@ -1,5 +1,5 @@
 import { IRoleData, IRoleInfo, IWorldViewData } from "@/src/types/IAiNoval";
-import { createContext, Dispatch, ReactNode, useContext, useEffect, useReducer } from "react";
+import { createContext, Dispatch, ReactNode, useContext, useEffect, useMemo, useReducer, useCallback, useRef } from "react";
 import { getWorldViews } from "../common/worldViewUtil";
 import apiCalls from "./apiCalls";
 import { IFactionDefData } from "@/src/types/IAiNoval";
@@ -93,8 +93,8 @@ function defaultContextData(): RoleManageContextData {
     }
 }
 
-const reducerContext = createContext<RoleManageContextData>(defaultContextData());
-const reducerDispatch = createContext<Dispatch<RoleManageAction>>(() => {});
+export const reducerContext = createContext<RoleManageContextData>(defaultContextData());
+export const reducerDispatch = createContext<Dispatch<RoleManageAction>>(() => {});
 
 export default function RoleManageContextProvider({ children }: RoleManageContextProviderProps) {
 
@@ -216,6 +216,14 @@ export function useRoleDefList() {
     ] as const;
 }
 
+export function useRoleDef() {
+    const { roleId } = useContext(reducerContext);
+    const { roleDefList } = useContext(reducerContext);
+    return useMemo(() => {
+        return roleDefList.find(info => info.id === roleId) || null;
+    }, [roleId, roleDefList]);
+}
+
 export function useLoadRoleDefList() {
     const { worldViewId } = useContext(reducerContext);
     const dispatch = useContext(reducerDispatch);
@@ -252,6 +260,14 @@ export function useRoleInfoList() {
             dispatch({ type: 'SET_ROLE_INFO_LIST', payload: roleInfoList });
         },
     ] as const;
+}
+
+export function useRoleInfo() {
+    const { roleInfoId } = useContext(reducerContext);
+    const { roleInfoList } = useContext(reducerContext);
+    return useMemo(() => {
+        return roleInfoList.find(info => info.id === roleInfoId) || null;
+    }, [roleInfoId, roleInfoList]);
 }
 
 export function useLoadRoleInfoList() {
@@ -303,7 +319,15 @@ export function useRoleChromaMetadataList() {
     return [roleChromaMetadataList] as const;
 }
 
-async function loadRoleChromaMetadataList(dispatch: Dispatch<RoleManageAction>, worldViewId: number | null) {
+export function useRoleChromaMetadata() {
+    const { roleInfoId } = useContext(reducerContext);
+    const { roleChromaMetadataList } = useContext(reducerContext);
+    return useMemo(() => {
+        return roleChromaMetadataList.find(info => info.id === String(roleInfoId)) || null;
+    }, [roleInfoId, roleChromaMetadataList]);
+}
+
+export async function loadRoleChromaMetadataList(dispatch: Dispatch<RoleManageAction>, worldViewId: number | null) {
     
     if (worldViewId === null) {
         dispatch({ type: 'SET_ROLE_CHROMA_METADATA_LIST', payload: [] });
@@ -335,9 +359,20 @@ async function loadRoleChromaMetadataList(dispatch: Dispatch<RoleManageAction>, 
 export function useLoadRoleChromaMetadataList() {
     const { worldViewId } = useContext(reducerContext);
     const dispatch = useContext(reducerDispatch);
-
-    return async () => {
-        let data = await loadRoleChromaMetadataList(dispatch, worldViewId);
+    
+    // 使用 ref 存储最新的值，避免闭包问题
+    const worldViewIdRef = useRef(worldViewId);
+    const dispatchRef = useRef(dispatch);
+    
+    // 保持 ref 为最新值
+    useEffect(() => {
+        worldViewIdRef.current = worldViewId;
+        dispatchRef.current = dispatch;
+    }, [worldViewId, dispatch]);
+    
+    // 使用 useCallback 返回稳定的函数引用，但内部使用 ref 获取最新值
+    return useCallback(async () => {
+        let data = await loadRoleChromaMetadataList(dispatchRef.current, worldViewIdRef.current);
         return data;
-    }
+    }, []); // 空依赖数组，函数引用保持稳定，但内部总是使用最新的值
 }

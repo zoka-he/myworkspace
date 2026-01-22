@@ -29,6 +29,7 @@ export class RabbitMQClient {
     private config: RabbitMQConfig;
     private subscriptions: Map<string, StompSubscription> = new Map();
     private messageHandlers: Map<string, MessageHandler[]> = new Map();
+    private subscriptionConfigs: Map<string, SubscriptionConfig> = new Map(); // 存储订阅配置，用于重连后自动重订阅
     private reconnectAttempts = 0;
     private isManualDisconnect = false;
     private hasConnectedOnce = false; // 标记是否已经成功连接过
@@ -227,6 +228,7 @@ export class RabbitMQClient {
 
     /**
      * Subscribe to a queue/topic
+     * 即使未连接也可以调用，连接建立后会自动订阅
      */
     subscribe(config: SubscriptionConfig, handler: MessageHandler): string {
         const subscriptionId = config.id || `sub-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -237,9 +239,14 @@ export class RabbitMQClient {
         }
         this.messageHandlers.get(subscriptionId)!.push(handler);
 
+        // Store the subscription config for reconnection
+        this.subscriptionConfigs.set(subscriptionId, config);
+
         // If connected, subscribe immediately
         if (this.client?.active) {
             this.doSubscribe(subscriptionId, config);
+        } else {
+            this.log(`Subscription ${subscriptionId} queued, will subscribe when connected`);
         }
 
         return subscriptionId;
@@ -277,9 +284,19 @@ export class RabbitMQClient {
      * Resubscribe all handlers after reconnection
      */
     private resubscribeAll(): void {
-        // Note: We need to store the original subscription configs to resubscribe
-        // For now, the client's built-in reconnection should handle this
-        this.log('Resubscription handled by STOMP client');
+        this.log('Resubscribing all subscriptions after reconnection');
+        
+        // Clear existing subscriptions (they are invalid after reconnection)
+        this.subscriptions.clear();
+        
+        // Resubscribe all stored subscriptions
+        this.subscriptionConfigs.forEach((config, subscriptionId) => {
+            if (this.messageHandlers.has(subscriptionId)) {
+                this.doSubscribe(subscriptionId, config);
+            }
+        });
+        
+        this.log(`Resubscribed ${this.subscriptionConfigs.size} subscription(s)`);
     }
 
     /**
@@ -290,9 +307,11 @@ export class RabbitMQClient {
         if (subscription) {
             subscription.unsubscribe();
             this.subscriptions.delete(subscriptionId);
-            this.messageHandlers.delete(subscriptionId);
-            this.log(`Unsubscribed from ${subscriptionId}`);
         }
+        // Also remove from handlers and configs to prevent resubscription
+        this.messageHandlers.delete(subscriptionId);
+        this.subscriptionConfigs.delete(subscriptionId);
+        this.log(`Unsubscribed from ${subscriptionId}`);
     }
 
     /**
@@ -305,6 +324,7 @@ export class RabbitMQClient {
         });
         this.subscriptions.clear();
         this.messageHandlers.clear();
+        this.subscriptionConfigs.clear();
     }
 
     /**
@@ -362,7 +382,7 @@ export class RabbitMQClient {
      */
     private log(message: string, ...args: unknown[]): void {
         if (this.config.debug) {
-            console.log(`[RabbitMQ] ${message}`, ...args);
+            // console.log(`[RabbitMQ] ${message}`, ...args);
         }
     }
 }

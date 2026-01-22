@@ -22,6 +22,7 @@ import AiNovelContextProvider from '@/src/components/context/aiNovel';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import TestConsumer from '@/src/components/mq/testConsumer';
+import NoticeConsumer from '@/src/components/mq/noticeConsumer';
 
 const queryClient = new QueryClient();
 const MyRouter = dynamic(() => import("../src/router"), { ssr: false });
@@ -59,7 +60,8 @@ function AppCore() {
                 onConnectionChange={onConnectionChange}
                 onError={onError}
             >
-                <TestConsumer/>
+                {/* <TestConsumer/> */}
+                <NoticeConsumer/>
             </MQHolder>
 
         </RabbitMQProvider>
