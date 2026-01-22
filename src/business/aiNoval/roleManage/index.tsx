@@ -14,6 +14,7 @@ import { IFactionDefData } from "@/src/types/IAiNoval";
 import _ from 'lodash';
 import { getRabbitMQClient, RabbitMQClient } from "@/src/utils/rabbitmq";
 import { IMessage } from "@stomp/stompjs";
+import { QueryTestPanel } from "./panel/queryTestPanel";    
 
 export default function RoleManage() {
 
@@ -58,6 +59,19 @@ export default function RoleManage() {
         }
     };
 
+    let content = null;
+    switch (activePanel) {
+        case 'attributes':
+            content = <RoleInfoPanel onOpenRoleInfoEditModal={handleOpenRoleInfoEditModal} />;
+            break;
+        case 'relations':
+            content = <RoleRelationPanel onUpdate={() => {}} />;
+            break;
+        case 'query':
+            content = <QueryTestPanel />;
+            break;
+    }
+
 
     return (
         <RoleManageContextProvider>
@@ -78,21 +92,11 @@ export default function RoleManage() {
                         >
                           <Radio.Button value="attributes">角色属性及版本</Radio.Button>
                           <Radio.Button value="relations">角色关系</Radio.Button>
+                          <Radio.Button value="query">查询测试</Radio.Button>
                         </Radio.Group>
                       }
                     >
-                      {activePanel === 'attributes' ? (
-                        <RoleInfoPanel
-                            onOpenRoleInfoEditModal={handleOpenRoleInfoEditModal}
-                        />
-                      ) : (
-                        <RoleRelationPanel 
-                            onUpdate={() => {
-                                console.debug('handleRelationUpdate updateTimestamp --->> ', Date.now());
-                                // setUpdateTimestamp(Date.now())
-                            }}
-                        />
-                      )}
+                      {content}
                     </Card>
                 </Col>
             </Row>

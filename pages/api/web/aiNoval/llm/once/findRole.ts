@@ -20,7 +20,7 @@ export default async function handler(
     }
 
     let { worldviewId, keywords, threshold } = req.query;
-    console.debug('req.query ------------->> ', req.query);
+    // console.debug('req.query ------------->> ', req.query);
 
     // 立体防御开始
 
@@ -81,20 +81,22 @@ export default async function handler(
         let chroma_zero_count = db_data.length - chroma_data.length; // db_data本身就包含了chroma_data的数据，减去chroma_data的长度就得到了不是chroma的数据条数
         let cross_count = db_data.length - db_zero_count - chroma_zero_count; // 交叉数据条数
 
-        let k = 10; // topk在两侧都内定为10，如果要修改就要改动代码
+        let k = total_count;
         let overlap_ratio = cross_count / Math.min(total_count - db_zero_count, total_count - chroma_zero_count);
         let db_coverage = (total_count - db_zero_count) / k;
         let chroma_coverage = (total_count - chroma_zero_count) / k;
 
+        // 根据交叠程度抬升db权重，db初始权重0.4时，最大可抬升到0.8
         let w_db = db_coef + db_coef * overlap_ratio;
         if (db_zero_count === k) {
             w_db = 0;
         }
         let w_chroma = 1 - w_db;
 
-        console.debug('db_zero_count ------------->> ', db_zero_count);
-        console.debug('chroma_zero_count ------------->> ', chroma_zero_count);
-        console.debug('cross_count ------------->> ', cross_count);
+        console.debug('total_count ------------->> ', total_count);
+        console.debug('db_coverage ------------->> ', db_coverage);
+        console.debug('chroma_coverage ------------->> ', chroma_coverage);
+        console.debug('overlap_ratio ------------->> ', overlap_ratio);
         console.debug('w_db ------------->> ', w_db);
         console.debug('w_chroma ------------->> ', w_chroma);
 
@@ -158,7 +160,7 @@ function processChromaData(chroma_data: (QueryResult & { chroma_score?: number }
     }));
 
     ret.forEach(item => {
-        console.debug('item ------------->> ', [item.distance, distanceToSimilarity(item.distance || 0), mean_score, item.chroma_score]);
+        // console.debug('item ------------->> ', [item.distance, distanceToSimilarity(item.distance || 0), mean_score, item.chroma_score]);
     });
 
     return ret;
@@ -167,8 +169,8 @@ function processChromaData(chroma_data: (QueryResult & { chroma_score?: number }
 function processDbData(db_data: (IRoleInfo & { score: number })[]): (IRoleInfo & { score: number, db_score: number })[] {
     let mean_score = _.mean(db_data.map(item => item.score || 0));
 
-    console.debug('db_data ------------->> ', db_data);
-    console.debug('mean_score ------------->> ', mean_score);
+    // console.debug('db_data ------------->> ', db_data);
+    // console.debug('mean_score ------------->> ', mean_score);
 
     return db_data.map((item: IRoleInfo & { score: number }) => ({
         ...item,
