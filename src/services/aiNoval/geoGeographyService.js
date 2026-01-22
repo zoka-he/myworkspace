@@ -30,19 +30,23 @@ export default class GeoGeographyService extends MysqlNovalService {
     async getGeoNamesByIds(geoIds) {
         const tables = ['geo_star_system', 'geo_star', 'geo_planet', 'geo_satellite', 'geo_geography_unit'];
         const columns = (tableName) => ['name'];
-        let data = this.getGeoInfoByIds(geoIds, tables, columns);
+        let data = await this.getGeoInfoByIds(geoIds, tables, columns);
+        // 确保 data 是数组，如果不是则返回空数组
+        if (!Array.isArray(data)) {
+            return '';
+        }
         return data.map(r => r.name).join(',');
     }
 
     async getGeoInfoByIds(geoIds, tables, columns) {
         if (!geoIds) {
-            return '';
+            return [];
         }
 
         geoIds = _.uniq(String(geoIds).split(',').map(s => s.trim()).filter(s => s.length > 0).map(s => `'${s}'`)).join(',');
 
         if (geoIds.length === 0) {
-            return '';
+            return [];
         }
 
         
@@ -52,7 +56,8 @@ export default class GeoGeographyService extends MysqlNovalService {
 
         let ret = await this.query(sql, [], ['name asc'], 1, geoIds.split(',').length * 5);
 
-        return ret.data;
+        // 确保返回数组，即使 ret.data 不存在或不是数组
+        return Array.isArray(ret?.data) ? ret.data : [];
     }
 
     // 获取某个地理单元的最大code
