@@ -26,7 +26,7 @@ export function RoleRelationPanel({
   // worldViews, 
   // worldViewId,
   // candidateRoles,
-  onUpdate
+  // onUpdate
 }: RoleRelationPanelProps) {
   roleRelationPanelRenderCount++;
   console.warn('=== [RoleRelationPanel] RENDER ===', roleRelationPanelRenderCount);
@@ -36,6 +36,8 @@ export function RoleRelationPanel({
   const [roleInfoId, setRoleInfoId] = useRoleInfoId();
   const [worldViewId] = useWorldViewId();
   const [worldViewList] = useWorldViewList();
+
+  const [graphUpdateTimestamp, setGraphUpdateTimestamp] = useState(0)
   
   console.warn('=== [RoleRelationPanel] Context values ===', {
     roleId,
@@ -88,7 +90,8 @@ export function RoleRelationPanel({
           await apiCalls.deleteRoleRelation(record)
           message.success('删除成功')
           fetchIRoleRelations()
-          onUpdate?.()
+          setGraphUpdateTimestamp(Date.now())
+          // onUpdate?.()
         } catch (error) {
           message.error('删除失败')
         }
@@ -153,7 +156,8 @@ export function RoleRelationPanel({
       form.resetFields()
       setRelationStrength(50)
       fetchIRoleRelations()
-      onUpdate?.()
+      setGraphUpdateTimestamp(Date.now())
+      // onUpdate?.()
     } catch (error) {
       message.error(editingRelation ? '更新失败' : '添加失败')
     }
@@ -181,19 +185,21 @@ export function RoleRelationPanel({
         <div style={{ position: 'relative' }}>
           <Space style={{ position: 'absolute', right: 0, top: 0 }}>
             <Button 
+              size="small"
               type="text" 
               icon={<EditOutlined />}
               onClick={() => handleEdit(item)}
             >
-              编辑
+              {/* 编辑 */}
             </Button>
             <Button 
+              size="small"
               type="text" 
               danger 
               icon={<DeleteOutlined />}
               onClick={() => handleDelete(item)}
             >
-              删除
+              {/* 删除 */}
             </Button>
           </Space>
           <List.Item.Meta
@@ -256,43 +262,57 @@ export function RoleRelationPanel({
       ) : (
         <Row gutter={16}>
           <Col span={17}>
-            <D3RoleRelationGraph
-              // worldview_id={worldViewId?.toString() || ''}
-              updateTimestamp={0}
-              onNodeClick={(roleId: string) => {
-                let roleDef = roleList.find(role => role.id === Number(roleId))
-                if (roleDef) {
-                  setRoleDefId(roleDef.id)
-                  setRoleInfoId(roleDef.version)
-                }
-              }}
-            />
+            <Card title="角色关系力导向图" size="small" styles={{ body: { height: 'calc(100vh - 220px)', padding: 0 } }}>
+              <D3RoleRelationGraph
+                // worldview_id={worldViewId?.toString() || ''}
+                updateTimestamp={graphUpdateTimestamp}
+                onNodeClick={(roleId: string) => {
+                  let roleDef = roleList.find(role => role.id === Number(roleId))
+                  if (roleDef) {
+                    setRoleDefId(roleDef.id)
+                    setRoleInfoId(roleDef.version)
+                  }
+                }}
+              />
+            </Card>
           </Col>
           <Col span={7}>
             <Card
-              title={`${selectedRole?.name}的角色关系`}
+              title={roleId ? `${selectedRole?.name}的角色关系` : '角色关系'}
               extra={
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={handleAdd}
-                >
-                  添加关系
-                </Button>
+                roleId ? (
+                  <Button
+                    size="small"
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={handleAdd}
+                  >
+                    {/* 添加关系 */}
+                  </Button>
+                ) : null
               }
+              size="small"
               styles={{ body: { height: 'calc(100vh - 220px)' } }}
             >
-              <List
-                loading={loading}
-                dataSource={relations}
-                renderItem={renderRelationItem}
-                itemLayout="vertical"
-                split={true}
-                style={{ 
-                  '--ant-list-item-padding': '8px 0',
-                  '--ant-list-item-border-bottom': '1px solid #f0f0f0'
-                } as React.CSSProperties}
-              />
+              {!roleId ? (
+                <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                  <Typography.Text type="secondary" style={{ fontSize: 16 }}>
+                    请选择一个角色
+                  </Typography.Text>
+                </div>
+              ) : (
+                <List
+                  loading={loading}
+                  dataSource={relations}
+                  renderItem={renderRelationItem}
+                  itemLayout="vertical"
+                  split={true}
+                  style={{ 
+                    '--ant-list-item-padding': '8px 0',
+                    '--ant-list-item-border-bottom': '1px solid #f0f0f0'
+                  } as React.CSSProperties}
+                />
+              )}
             </Card>
           </Col>
 

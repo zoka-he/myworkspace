@@ -166,28 +166,11 @@ export default function RoleManage() {
     return (
         <RoleManageContextProvider>
             <div className="f-fit-height" style={{ paddingBottom: 10 }}>
-                <Row className="f-fit-height" gutter={10}>
-                    <Col className="f-fit-height" span={6}>
+                <Row className="f-fit-height" gutter={8}>
+                    <Col className="f-fit-height" span={7}>
                         <RolePanel/>
                     </Col>
-                {/* <Col className="f-fit-height" span={11}> */}
-                    {/* <Card className="f-fit-height" title={
-                        <Space>
-                            <span>角色关系图</span>
-                            <Button type="primary" size="small" icon={<ReloadOutlined />} onClick={() => {
-                                console.debug('handleRelationUpdate updateTimestamp --->> ', Date.now());
-                                setUpdateTimestamp(Date.now())
-                            }}>刷新</Button>
-                        </Space>
-                    }>
-                        <D3RoleRelationGraph 
-                            worldview_id={worldViewId?.toString() || ''} 
-                            updateTimestamp={updateTimestamp}
-                            onNodeClick={handleNodeClick}
-                        />
-                    </Card> */}
-                {/* </Col> */}
-                <Col className="f-fit-height" span={18}>
+                <Col className="f-fit-height" span={17}>
                     <Card 
                       className="f-fit-height" 
                       title={
@@ -204,20 +187,10 @@ export default function RoleManage() {
                     >
                       {activePanel === 'attributes' ? (
                         <RoleInfoPanel
-                            // roleDef={selectedRole}
-                            // updateTimestamp={updateTimestamp}
-                            // onVersionChange={handleVersionChange}
                             onOpenRoleInfoEditModal={handleOpenRoleInfoEditModal}
-                            // onDeleteRoleInfo={handleDeleteRoleInfo}
-                            // worldviewMap={worldviewMap}
                         />
                       ) : (
                         <RoleRelationPanel 
-                            // roleId={selectedRole.id} 
-                            // roleName={selectedRole.name!}
-                            // candidateRoles={roleList}
-                            // worldViews={worldViewList}
-                            // worldViewId={worldViewId}
                             onUpdate={() => {
                                 console.debug('handleRelationUpdate updateTimestamp --->> ', Date.now());
                                 // setUpdateTimestamp(Date.now())
@@ -234,10 +207,7 @@ export default function RoleManage() {
                 ref={roleInfoEditModalRef}
                 open={editModalVisible}
                 onCancel={() => setEditModalVisible(false)}
-                // onSubmit={handleCreateOrUpdateRoleInfo}
-                // worldViewList={worldViewList}
-                // roleData={selectedRole}
-                />
+            />
             </div>
         </RoleManageContextProvider>
     )
@@ -399,6 +369,7 @@ function RolePanel(props: RolePanelProps) {
                         blockNode={true}
                         titleRender={(node: DataNode) => {
                             let suffix = [];
+                            let actions = [];
                             let hasChildren = node.children?.length || false;
 
                             let info_id = '';
@@ -430,9 +401,9 @@ function RolePanel(props: RolePanelProps) {
 
                             if (chromaFingerprint) {
                                 if (chromaFingerprint === localFingerprint) {
-                                    suffix.push(<Tag key="vector" color="green">向量就绪</Tag>);
+                                    actions.push(<Tag key="vector" color="green">向量就绪</Tag>);
                                 } else {
-                                    suffix.push(<Tag key="vector" color="red">向量过时</Tag>);
+                                    actions.push(<Tag key="vector" color="red">向量过时</Tag>);
                                 }
                             } else if (node_data_to_compare) {
                                 // suffix.push(<Tag key="vector" color="orange">未向量化</Tag>);
@@ -445,6 +416,7 @@ function RolePanel(props: RolePanelProps) {
                                         {suffix}
                                     </Space>
                                     <Space>
+                                        {actions}
                                         <Button type="link" size="small" icon={<EditOutlined />} />
                                         <Button type="link" size="small" disabled={hasChildren} danger icon={<DeleteOutlined />} />
                                     </Space>
