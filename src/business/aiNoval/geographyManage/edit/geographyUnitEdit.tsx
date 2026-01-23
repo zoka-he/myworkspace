@@ -1,51 +1,42 @@
-import React from "react";
-import {Form, Modal, Input, Button, message, FormInstance, Radio, Select} from "antd";
+import { useRef, useState, forwardRef, useImperativeHandle } from "react";
+import {Form, Modal, Input, Button, message, Radio, Select, Space} from "antd";
 import _ from 'lodash';
 import fetch from '@/src/fetch';
 import { IGeoGeographyUnitData, GEO_UNIT_TYPES, IGeoUnionData } from "@/src/types/IAiNoval";
 import { loadGeoUnionList } from "../../common/geoDataUtil";
-
-interface IGeographyUnitEditState {
-    modalOpen: boolean,
-    loading: boolean,
-
-    // 可选的上级节点列表（行星 / 卫星 / 地理单元）
-    parentUnionList: IGeoUnionData[],
-}
+import { generateGeoEmbedText } from "@/src/api/aiNovel";
 
 interface IGeographyUnitEditProps {
     onFinish: (() => void) | undefined
 }
 
-class GeographyUnitEdit extends React.Component<IGeographyUnitEditProps, IGeographyUnitEditState> {
+interface IGeographyUnitEditRef {
+    showAndEdit: (data: Object) => void;
+}
 
-    // 使用 any 以兼容 antd FormRef / FormInstance 的差异
-    private mForm: any;
-    private oldData: IGeoGeographyUnitData | null;
+const GeographyUnitEditModal = forwardRef<IGeographyUnitEditRef, IGeographyUnitEditProps>((props, ref) => {
 
-    constructor(props: IGeographyUnitEditProps) {
-        super(props);
+    const [mForm] = Form.useForm();
+    const [modalOpen, setModalOpen] = useState(false);
+    const [parentUnionList, setParentUnionList] = useState<IGeoUnionData[]>([]);
+    const [loading, setLoading] = useState(false);
+    const oldDataRef = useRef<IGeoGeographyUnitData | null>(null);
 
-        this.state = {
-            modalOpen: false,
-            loading: false,
-            parentUnionList: [],
-        }
+    useImperativeHandle(ref, () => ({
+        showAndEdit,
+    }));
 
-        this.mForm = null;
-        this.oldData = null;
-    }
-
-    parseAndFixData(data: Object) {
-        this.mForm?.setFieldsValue(_.clone(data));
+    function parseAndFixData(data: Object) {
+        oldDataRef.current = data as IGeoGeographyUnitData;
+        mForm?.setFieldsValue(_.clone(data));
     }
 
     /**
      * 加载当前世界观下可选的上级节点列表（行星 / 卫星 / 地理单元）
      */
-    async loadParentUnionList(worldview_id: number | null | undefined) {
+    async function loadParentUnionList(worldview_id: number | null | undefined) {
         if (!worldview_id) {
-            this.setState({ parentUnionList: [] });
+            setParentUnionList([]);
             return;
         }
 
@@ -57,12 +48,12 @@ class GeographyUnitEdit extends React.Component<IGeographyUnitEditProps, IGeogra
                 item.data_type === 'geoUnit'
             );
 
-            this.setState({ parentUnionList });
+            setParentUnionList(parentUnionList);
 
             // 根据 oldData 预设选中项（保持原有逻辑的默认行为）
-            if (this.oldData && this.mForm) {
-                const parent_type = this.oldData.parent_type;
-                const parent_id = this.oldData.parent_id;
+            if (oldDataRef.current && mForm) {
+                const parent_type = oldDataRef.current.parent_type;
+                const parent_id = oldDataRef.current.parent_id;
 
                 if (parent_type && parent_id) {
                     let dataTypeForSelect: string | null = null;
@@ -76,7 +67,7 @@ class GeographyUnitEdit extends React.Component<IGeographyUnitEditProps, IGeogra
                     }
 
                     const parentSelectorValue = `${dataTypeForSelect}:${parent_id}`;
-                    this.mForm.setFieldsValue({
+                    mForm.setFieldsValue({
                         parent_selector: parentSelectorValue,
                     });
                 }
@@ -87,16 +78,16 @@ class GeographyUnitEdit extends React.Component<IGeographyUnitEditProps, IGeogra
     }
 
     /**
-     * 用户在“上级节点”下拉框中选择值时，同步更新 parent_type / parent_id / planet_id / satellite_id / star_system_id
+     * 用户在"上级节点"下拉框中选择值时，同步更新 parent_type / parent_id / planet_id / satellite_id / star_system_id
      * 保证后端现有逻辑不变，只是改为由表单决定这些字段。
      */
-    onParentSelectorChange = (value: string) => {
-        if (!value || !this.mForm) return;
+    function onParentSelectorChange(value: string) {
+        if (!value || !mForm) return;
 
         const [dataType, idStr] = value.split(':');
         const parentId = Number(idStr) || null;
 
-        const target = this.state.parentUnionList.find(
+        const target = parentUnionList.find(
             item => item.data_type === dataType && item.id === parentId
         );
 
@@ -128,7 +119,7 @@ class GeographyUnitEdit extends React.Component<IGeographyUnitEditProps, IGeogra
                 break;
         }
 
-        this.mForm.setFieldsValue({
+        mForm.setFieldsValue({
             parent_selector: value,
             parent_type,
             parent_id: parentId,
@@ -137,9 +128,9 @@ class GeographyUnitEdit extends React.Component<IGeographyUnitEditProps, IGeogra
             star_system_id,
             has_geo_area: 'N',
         });
-    };
+    }
 
-    preCheckData(data: Object) {
+    function preCheckData(data: Object) {
         const baseCheckList = [
             'worldview_id',
             'star_system_id',
@@ -179,87 +170,124 @@ class GeographyUnitEdit extends React.Component<IGeographyUnitEditProps, IGeogra
         return true;
     }
 
-    showAndEdit(data: Object) {
-        if (!this.preCheckData(data)) {
+    function showAndEdit(data: Object) {
+        if (!preCheckData(data)) {
             return;
         }
 
-        this.setState({
-            modalOpen: true
-        });
+        setModalOpen(true);
         
-        this.oldData = {
-            ...this.getDefaultFormData(),
+        let oldData = {
+            ...getDefaultFormData(),
             ...data,
         }
-        this.parseAndFixData(this.oldData);
+        parseAndFixData(oldData);
 
         // 打开编辑器时，根据世界观加载可选上级节点
         const dataObject = data as { [key: string]: any };
-        this.loadParentUnionList(dataObject.worldview_id || this.oldData.worldview_id || null);
+        loadParentUnionList(dataObject.worldview_id || oldDataRef.current?.worldview_id || null);
     }
 
-    onFormRef(comp: any) {
-        this.mForm = comp;
-        if (this.oldData) {
-            this.parseAndFixData(this.oldData);
-        }
+    function hide() {
+        setModalOpen(false);
+        mForm?.resetFields();
+        oldDataRef.current = null;
     }
 
-    hide() {
-        this.setState({
-            modalOpen: false
-        });
-        this.mForm?.resetFields();
-    }
-
-    async onFinish(values: any) {
-        if (this.oldData?.id) {
+    async function onFinish(values: any) {
+        let oldData = oldDataRef.current;
+        if (oldData?.id) {
             let updateObj = {
-                ...this.oldData,
+                ...oldData,
                 ...values,
             };
 
             try {
                 await fetch.post('/api/aiNoval/geo/geoUnit', updateObj, { params: { id: updateObj.id } });
     
-                if (this.props.onFinish) {
-                    this.props.onFinish();
+                if (props.onFinish) {
+                    props.onFinish();
                 }
                 message.success('更新成功！');
-                this.hide();
+                hide();
             } catch(e) {
                 message.error('更新失败！');
             }
         } else {
             let createObj = {
-                ...this.oldData,
+                ...oldData,
                 ...values,
             };
 
             try {
                 await fetch.post('/api/aiNoval/geo/geoUnit', createObj);
     
-                if (this.props.onFinish) {
-                    this.props.onFinish();
+                if (props.onFinish) {
+                    props.onFinish();
                 }
                 message.success('创建成功！');
-                this.hide();
+                hide();
             } catch(e) {
                 message.error('创建失败！');
             }
         }
     }
 
-    onFinishedFailed(e: any) {
+    function onFinishedFailed(e: any) {
         message.warning('表单校验失败，请修改');
     }
 
-    onCancel() {
-        this.hide();
+    function onCancel() {
+        hide();
     }
 
-    private getDefaultFormData(): IGeoGeographyUnitData {
+    /**
+     * 生成嵌入文档
+     */
+    async function handleGenerateEmbedText() {
+        try {
+            const formValues = mForm.getFieldsValue();
+            const type = formValues.type;
+            const description = formValues.description;
+
+            if (!type) {
+                message.warning('请先选择地理单元类型！');
+                return;
+            }
+
+            // 获取类型的中文名称
+            const geoTypeItem = GEO_UNIT_TYPES.find(item => item.enName === type);
+            const geoType = geoTypeItem ? geoTypeItem.cnName : type;
+
+            // 获取上级关系信息
+            let parentInfo: string | undefined;
+            const parentType = formValues.parent_type;
+            if (parentType === 'planet') {
+                parentInfo = '所属行星';
+            } else if (parentType === 'satellite') {
+                parentInfo = '所属卫星';
+            } else if (parentType === 'geoUnit') {
+                parentInfo = '所属地理单元';
+            }
+
+            setLoading(true);
+            const embedText = await generateGeoEmbedText({
+                geoType,
+                description: description || undefined,
+                parentInfo
+            });
+
+            mForm.setFieldsValue({ embed_document: embedText });
+            message.success('嵌入文档生成成功！');
+        } catch (error: any) {
+            console.error('生成嵌入文档失败：', error);
+            message.error(error?.message || '生成嵌入文档失败！');
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    function getDefaultFormData(): IGeoGeographyUnitData {
         return {
             id: null,
             worldview_id: null,
@@ -271,116 +299,131 @@ class GeographyUnitEdit extends React.Component<IGeographyUnitEditProps, IGeogra
             satellite_id: null,
             description: null,
             described_in_llm: 0,
+            embed_document: null,
         }
     }
 
-    private getGeoUnitOptions() {
+    function getGeoUnitOptions() {
         return GEO_UNIT_TYPES.map(item => ({
             label: `${item.cnName} - ${item.codePrefix}`,
             value: item.enName,
         }));
     }
 
-    render() {
-        return (
-            <>
-                <Modal title={'地理单元信息'} open={this.state.modalOpen} onCancel={e => this.onCancel()} footer={null} width={'70vw'}>
-                    <Form ref={comp => this.onFormRef(comp)} labelCol={{ span: 6 }} wrapperCol={{ span: 16 }} initialValues={this.getDefaultFormData}
-                          onFinish={e => this.onFinish(e)}
-                          onFinishFailed={e => this.onFinishedFailed(e)}
-                    >
-                        <Form.Item label={'地理单元名称'} name={'name'} rules={[{ required: true, message: '地理单元名称为必填！' }]}>
-                            <Input/>
-                        </Form.Item>
-                        <Form.Item label={'地理单元类型'} name={'type'} rules={[{ required: true, message: '地理单元类型为必填！' }]}>
-                            <Select options={this.getGeoUnitOptions()} showSearch/>
-                        </Form.Item>
-                        <Form.Item label={'地理单元编码'} name={'code'} rules={[{ required: true, message: '地理单元编码为必填！' }, {
-                            validateTrigger: ['onChange', 'onBlur'],
-                            warningOnly: true,
-                            validator: async (arg1: any, value: string) => {
-                                if (!value || value.length < 2) return Promise.resolve()
-                                // 查询maxcode
-                                try {
-                                    const res = await fetch.get('/api/web/aiNoval/geo/geoUnit/maxCode', { params: { prefix: value.slice(0, 2) } })
-                                    const maxcode = res?.data
-                                    if (value < maxcode) {
-                                        return Promise.reject(new Error(`当前最大编码：${maxcode}`))
-                                    }
-                                } catch (e) {
-                                    // 忽略接口异常
+    return (
+        <>
+            <Modal title={'地理单元信息'} open={modalOpen} onCancel={e => onCancel()} footer={null} width={'80vw'}>
+                <Form form={mForm} labelCol={{ span: 6 }} wrapperCol={{ span: 16 }} initialValues={getDefaultFormData}
+                      onFinish={e => onFinish(e)}
+                      onFinishFailed={e => onFinishedFailed(e)}
+                >
+                    <Form.Item label={'地理单元名称'} name={'name'} rules={[{ required: true, message: '地理单元名称为必填！' }]}>
+                        <Input/>
+                    </Form.Item>
+                    <Form.Item label={'地理单元类型'} name={'type'} rules={[{ required: true, message: '地理单元类型为必填！' }]}>
+                        <Select options={getGeoUnitOptions()} showSearch/>
+                    </Form.Item>
+                    <Form.Item label={'地理单元编码'} name={'code'} rules={[{ required: true, message: '地理单元编码为必填！' }, {
+                        validateTrigger: ['onChange', 'onBlur'],
+                        warningOnly: true,
+                        validator: async (arg1: any, value: string) => {
+                            if (!value || value.length < 2) return Promise.resolve()
+                            // 查询maxcode
+                            try {
+                                const res = await fetch.get('/api/web/aiNoval/geo/geoUnit/maxCode', { params: { prefix: value.slice(0, 2) } })
+                                const maxcode = res?.data
+                                if (value < maxcode) {
+                                    return Promise.reject(new Error(`当前最大编码：${maxcode}`))
                                 }
-                                return Promise.resolve()
+                            } catch (e) {
+                                // 忽略接口异常
                             }
-                        }]}>
-                            <Input/>
-                        </Form.Item>
-                        
-                        <Form.Item label={'是否具有疆域意义'} name={'has_geo_area'}>
-                            <Radio.Group>
-                                <Radio value={"Y"}>是</Radio>
-                                <Radio value={"N"}>否</Radio>
-                            </Radio.Group>
-                        </Form.Item>
-                        {/* 上级节点选择（支持行星 / 卫星 / 地理单元） */}
-                        <Form.Item label={'上级节点'} name={'parent_selector'}>
-                            <Select
-                                allowClear
-                                showSearch
-                                placeholder="默认为在树中选中的节点，可在此手动指定"
-                                options={this.state.parentUnionList.map(item => {
-                                    let typeLabel = '';
-                                    if (item.data_type === 'planet') {
-                                        typeLabel = '行星';
-                                    } else if (item.data_type === 'satellite') {
-                                        typeLabel = '卫星';
-                                    } else if (item.data_type === 'geoUnit') {
-                                        typeLabel = '地理单元';
-                                    }
-                                    const label = `[${typeLabel}] ${item.name || ''}${item.code ? ` (${item.code})` : ''}`;
-                                    const value = `${item.data_type}:${item.id}`;
-                                    return { label, value };
-                                })}
-                                optionFilterProp="label"
-                                onChange={this.onParentSelectorChange}
-                            />
-                        </Form.Item>
-                        {/* 隐藏字段：由上级节点选择器自动维护，保持与原有后端字段兼容 */}
-                        <Form.Item name={'parent_type'} hidden>
-                            <Input type="hidden" />
-                        </Form.Item>
-                        <Form.Item name={'parent_id'} hidden>
-                            <Input type="hidden" />
-                        </Form.Item>
-                        <Form.Item name={'planet_id'} hidden>
-                            <Input type="hidden" />
-                        </Form.Item>
-                        <Form.Item name={'satellite_id'} hidden>
-                            <Input type="hidden" />
-                        </Form.Item>
-                        <Form.Item name={'star_system_id'} hidden>
-                            <Input type="hidden" />
-                        </Form.Item>
-                        <Form.Item label={'地理单元描述'} name={'description'}>
-                            <Input.TextArea autoSize={{ minRows: 10 }}/>
-                        </Form.Item>
-                        <Form.Item label={'是否在知识库中'} name={'described_in_llm'}>
-                            <Radio.Group>
-                                <Radio value={1}>是</Radio>
-                                <Radio value={0}>否</Radio>
-                            </Radio.Group>
-                        </Form.Item>
-                       
-                        <div className={'f-align-center'}>
-                            <Button style={{ width: '200px' }} type="primary" htmlType="submit">
-                                提交
+                            return Promise.resolve()
+                        }
+                    }]}>
+                        <Input/>
+                    </Form.Item>
+                    
+                    <Form.Item label={'是否具有疆域意义'} name={'has_geo_area'}>
+                        <Radio.Group>
+                            <Radio value={"Y"}>是</Radio>
+                            <Radio value={"N"}>否</Radio>
+                        </Radio.Group>
+                    </Form.Item>
+                    {/* 上级节点选择（支持行星 / 卫星 / 地理单元） */}
+                    <Form.Item label={'上级节点'} name={'parent_selector'}>
+                        <Select
+                            allowClear
+                            showSearch
+                            placeholder="默认为在树中选中的节点，可在此手动指定"
+                            options={parentUnionList.map(item => {
+                                let typeLabel = '';
+                                if (item.data_type === 'planet') {
+                                    typeLabel = '行星';
+                                } else if (item.data_type === 'satellite') {
+                                    typeLabel = '卫星';
+                                } else if (item.data_type === 'geoUnit') {
+                                    typeLabel = '地理单元';
+                                }
+                                const label = `[${typeLabel}] ${item.name || ''}${item.code ? ` (${item.code})` : ''}`;
+                                const value = `${item.data_type}:${item.id}`;
+                                return { label, value };
+                            })}
+                            optionFilterProp="label"
+                            onChange={onParentSelectorChange}
+                        />
+                    </Form.Item>
+                    {/* 隐藏字段：由上级节点选择器自动维护，保持与原有后端字段兼容 */}
+                    <Form.Item name={'parent_type'} hidden>
+                        <Input type="hidden" />
+                    </Form.Item>
+                    <Form.Item name={'parent_id'} hidden>
+                        <Input type="hidden" />
+                    </Form.Item>
+                    <Form.Item name={'planet_id'} hidden>
+                        <Input type="hidden" />
+                    </Form.Item>
+                    <Form.Item name={'satellite_id'} hidden>
+                        <Input type="hidden" />
+                    </Form.Item>
+                    <Form.Item name={'star_system_id'} hidden>
+                        <Input type="hidden" />
+                    </Form.Item>
+                    <Form.Item label={'地理单元描述'} name={'description'}>
+                        <Input.TextArea autoSize={{ minRows: 10 }}/>
+                    </Form.Item>
+                    
+                    <Form.Item label={'嵌入文档'}>
+                        <Space direction="vertical" style={{ width: '100%' }}>
+                            <Button 
+                                type="default" 
+                                onClick={handleGenerateEmbedText}
+                                loading={loading}
+                            >
+                                生成嵌入文档
                             </Button>
-                        </div>
-                    </Form>
-                </Modal>
-            </>
-        );
-    }
-}
+                            <Form.Item name={'embed_document'} noStyle>
+                                <Input.TextArea autoSize={{ minRows: 5 }}/>
+                            </Form.Item>
+                        </Space>
+                    </Form.Item>
 
-export default GeographyUnitEdit;
+                    <Form.Item label={'是否在知识库中'} name={'described_in_llm'}>
+                        <Radio.Group>
+                            <Radio value={1}>是</Radio>
+                            <Radio value={0}>否</Radio>
+                        </Radio.Group>
+                    </Form.Item>
+                   
+                    <div className={'f-align-center'}>
+                        <Button style={{ width: '200px' }} type="primary" htmlType="submit">
+                            提交
+                        </Button>
+                    </div>
+                </Form>
+            </Modal>
+        </>
+    );
+});
+
+export default GeographyUnitEditModal;

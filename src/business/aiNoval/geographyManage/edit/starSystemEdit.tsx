@@ -1,90 +1,68 @@
-import React from "react";
-import {Form, Modal, Input, Button, message, FormInstance, Radio, TreeSelect} from "antd";
+import { useRef, useState, forwardRef, useImperativeHandle } from "react";
+import {Form, Modal, Input, Button, message, Radio, TreeSelect, Space} from "antd";
 import _ from 'lodash';
 import fetch from '@/src/fetch';
 import { IGeoStarSystemData } from "@/src/types/IAiNoval";
 import DayJS from 'dayjs';
 import * as EditCommon from "./editCommon";
-
-interface IStarSystemEditState {
-    modalOpen: boolean,
-    loading: boolean,
-    starSystemList: EditCommon.IGeoStarSystemDataWithChildren[],
-}
+import { generateGeoEmbedText } from "@/src/api/aiNovel";
 
 interface IStarSystemEditProps {
-    // worldviewId: number | null;
     onFinish: (() => void) | undefined
 }
 
-class StarSystemEdit extends React.Component<IStarSystemEditProps, IStarSystemEditState> {
+interface IStarSystemEditRef {
+    showAndEdit: (data: Object) => void;
+    show: () => void;
+}
 
-    private mForm: FormInstance<any> | null;
-    private oldData: IGeoStarSystemData | null;
+const StarSystemEditModal = forwardRef<IStarSystemEditRef, IStarSystemEditProps>((props, ref) => {
 
-    constructor(props: IStarSystemEditProps) {
-        super(props);
+    const [mForm] = Form.useForm();
+    const [modalOpen, setModalOpen] = useState(false);
+    const [starSystemList, setStarSystemList] = useState<EditCommon.IGeoStarSystemDataWithChildren[]>([]);
+    const [loading, setLoading] = useState(false);
+    const oldDataRef = useRef<IGeoStarSystemData | null>(null);
 
-        this.state = {
-            modalOpen: false,
-            loading: false,
-            starSystemList: [],
-        }
+    useImperativeHandle(ref, () => ({
+        showAndEdit,
+        show,
+    }));
 
-        this.mForm = null;
-        this.oldData = null;
+    function parseAndFixData(data: Object) {
+        oldDataRef.current = data as IGeoStarSystemData;
+        mForm?.setFieldsValue(_.clone(data));
     }
 
-    show() {
-        this.setState({
-            modalOpen: true
-        });
-
-        this.oldData = null;
-        this.loadStarSystemTree();
+    function show() {
+        setModalOpen(true);
+        oldDataRef.current = null;
+        loadStarSystemTree();
     }
 
-    parseAndFixData(data: Object) {
-        this.mForm?.setFieldsValue(_.clone(data));
+    function showAndEdit(data: Object) {
+        setModalOpen(true);
+        oldDataRef.current = _.clone(data) as IGeoStarSystemData;
+        parseAndFixData(oldDataRef.current);
+        loadStarSystemTree();
     }
 
-    showAndEdit(data: Object) {
-        this.setState({
-            modalOpen: true
-        });
-
-        this.oldData = _.clone(data);
-        this.parseAndFixData(this.oldData);
-        this.loadStarSystemTree();
+    function hide() {
+        setModalOpen(false);
+        mForm?.resetFields();
+        oldDataRef.current = null;
     }
 
-    onFormRef(comp: any) {
-        this.mForm = comp;
-        if (this.oldData) {
-            this.parseAndFixData(this.oldData);
-        }
-    }
-
-    hide() {
-        this.setState({
-            modalOpen: false
-        });
-        this.mForm?.resetFields();
-    }
-
-    async loadStarSystemTree() {
+    async function loadStarSystemTree() {
         let starSystemList = await EditCommon.loadStarSystemTree();
-
-        this.setState({
-            starSystemList
-        });
+        setStarSystemList(starSystemList);
     }
 
-    async onFinish(values: any) {
-        if (this.oldData) {
+    async function onFinish(values: any) {
+        let oldData = oldDataRef.current;
+        if (oldData) {
             let updateObj = {
-                ...this.oldData,
-                // worldview_id: this.props.worldviewId,
+                ...oldData,
                 ...values,
                 updated_at: DayJS().format('YYYY-MM-DD HH:mm:ss')
             };
@@ -92,43 +70,64 @@ class StarSystemEdit extends React.Component<IStarSystemEditProps, IStarSystemEd
             try {
                 await fetch.post('/api/aiNoval/geo/starSystem', updateObj, { params: { id: updateObj.id } });
     
-                if (this.props.onFinish) {
-                    this.props.onFinish();
+                if (props.onFinish) {
+                    props.onFinish();
                 }
                 message.success('更新成功！');
-                this.hide();
+                hide();
             } catch(e) {
                 message.error('更新失败！');
             }
         } else {
             let createObj = {
                 ...values,
-                // worldview_id: this.props.worldviewId
             };
 
             try {
                 await fetch.post('/api/aiNoval/geo/starSystem', createObj);
     
-                if (this.props.onFinish) {
-                    this.props.onFinish();
+                if (props.onFinish) {
+                    props.onFinish();
                 }
                 message.success('创建成功！');
-                this.hide();
+                hide();
             } catch(e) {
                 message.error('创建失败！');
             }
         }
     }
 
-    onFinishedFailed(e: any) {
+    function onFinishedFailed(e: any) {
         message.warning('表单校验失败，请修改');
     }
 
-    onCancel() {
-        this.hide();
+    function onCancel() {
+        hide();
     }
 
-    private getDefaultFormData(): IGeoStarSystemData {
+    /**
+     * 生成嵌入文档
+     */
+    async function handleGenerateEmbedText() {
+        try {
+            setLoading(true);
+            const embedText = await generateGeoEmbedText({
+                geoType: '星系',
+                description: undefined,
+                parentInfo: undefined
+            });
+
+            mForm.setFieldsValue({ embed_document: embedText });
+            message.success('嵌入文档生成成功！');
+        } catch (error: any) {
+            console.error('生成嵌入文档失败：', error);
+            message.error(error?.message || '生成嵌入文档失败！');
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    function getDefaultFormData(): IGeoStarSystemData {
         return {
             id: null,
             worldview_id: null,
@@ -136,48 +135,61 @@ class StarSystemEdit extends React.Component<IStarSystemEditProps, IStarSystemEd
             code: null,
             described_in_llm: 0,
             parent_system_id: null,
+            embed_document: null,
         }
     }
 
-    render() {
-        return (
-            <>
-                <Modal title={'天体系统信息'} open={this.state.modalOpen} onCancel={e => this.onCancel()} footer={null}>
-                    <Form ref={comp => this.onFormRef(comp)} labelCol={{ span: 6 }} wrapperCol={{ span: 16 }} initialValues={this.getDefaultFormData}
-                          onFinish={e => this.onFinish(e)}
-                          onFinishFailed={e => this.onFinishedFailed(e)}
-                    >
-                        <Form.Item label={'天体系统名称'} name={'name'} rules={[{ required: true, message: '天体系统名称为必填！' }]}>
-                            <Input/>
-                        </Form.Item>
-                        <Form.Item label={'天体系统编码'} name={'code'} rules={[{ required: true, message: '小说描述为必填！' }]}>
-                            <Input.TextArea/>
-                        </Form.Item>
-                        <Form.Item label={'父级天体系统'} name={'parent_system_id'}>
-                            <TreeSelect
-                                treeData={this.state.starSystemList}
-                                fieldNames={{ label: 'name', value: 'id', children: 'children' }}
-                                placeholder="请选择父天体系统"
-                                allowClear
-                            />
-                        </Form.Item>
-                        <Form.Item label={'是否在知识库中'} name={'described_in_llm'}>
-                            <Radio.Group>
-                                <Radio value={1}>是</Radio>
-                                <Radio value={0}>否</Radio>
-                            </Radio.Group>
-                        </Form.Item>
-                       
-                        <div className={'f-align-center'}>
-                            <Button style={{ width: '200px' }} type="primary" htmlType="submit">
-                                提交
+    return (
+        <>
+            <Modal title={'天体系统信息'} open={modalOpen} onCancel={e => onCancel()} footer={null} width={'80vw'}>
+                <Form form={mForm} labelCol={{ span: 6 }} wrapperCol={{ span: 16 }} initialValues={getDefaultFormData}
+                      onFinish={e => onFinish(e)}
+                      onFinishFailed={e => onFinishedFailed(e)}
+                >
+                    <Form.Item label={'天体系统名称'} name={'name'} rules={[{ required: true, message: '天体系统名称为必填！' }]}>
+                        <Input/>
+                    </Form.Item>
+                    <Form.Item label={'天体系统编码'} name={'code'} rules={[{ required: true, message: '小说描述为必填！' }]}>
+                        <Input.TextArea autoSize={{ minRows: 10 }}/>
+                    </Form.Item>
+                    <Form.Item label={'父级天体系统'} name={'parent_system_id'}>
+                        <TreeSelect
+                            treeData={starSystemList}
+                            fieldNames={{ label: 'name', value: 'id', children: 'children' }}
+                            placeholder="请选择父天体系统"
+                            allowClear
+                        />
+                    </Form.Item>
+                    <Form.Item label={'嵌入文档'}>
+                        <Space direction="vertical" style={{ width: '100%' }}>
+                            <Button 
+                                type="default" 
+                                onClick={handleGenerateEmbedText}
+                                loading={loading}
+                            >
+                                生成嵌入文档
                             </Button>
-                        </div>
-                    </Form>
-                </Modal>
-            </>
-        );
-    }
-}
+                            <Form.Item name={'embed_document'} noStyle>
+                                <Input.TextArea autoSize={{ minRows: 5 }}/>
+                            </Form.Item>
+                        </Space>
+                    </Form.Item>
+                    <Form.Item label={'是否在知识库中'} name={'described_in_llm'}>
+                        <Radio.Group>
+                            <Radio value={1}>是</Radio>
+                            <Radio value={0}>否</Radio>
+                        </Radio.Group>
+                    </Form.Item>
+                   
+                    <div className={'f-align-center'}>
+                        <Button style={{ width: '200px' }} type="primary" htmlType="submit">
+                            提交
+                        </Button>
+                    </div>
+                </Form>
+            </Modal>
+        </>
+    );
+});
 
-export default StarSystemEdit;
+export default StarSystemEditModal;

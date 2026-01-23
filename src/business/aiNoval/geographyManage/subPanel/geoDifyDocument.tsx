@@ -84,13 +84,13 @@ function GeoDifyDocument({ worldViewId, geoDataType, geoData, onRequestUpdate, d
             }
         } 
 
-        if (!difyDocumentId) {
-            console.debug('geoData没有绑定dify文档', geoData);
-        } 
+        // if (!difyDocumentId) {
+        //     console.debug('geoData没有绑定dify文档', geoData);
+        // } 
 
-        if ( !difyDatasetId) {
-            console.debug('geoData没有绑定知识库！', geoData);
-        } 
+        // if ( !difyDatasetId) {
+        //     console.debug('geoData没有绑定知识库！', geoData);
+        // } 
 
         setDifyDocumentId(difyDocumentId);
         // setDifyDatasetId(difyDatasetId);
@@ -105,8 +105,8 @@ function GeoDifyDocument({ worldViewId, geoDataType, geoData, onRequestUpdate, d
 
     // 当dify主机、difyDatasetId或者difyDocumentId变化时，更新文档
     useEffect(() => {
-        console.debug('difyDatasetId', difyDatasetId);
-        console.debug('difyDocumentId', difyDocumentId);
+        // console.debug('difyDatasetId', difyDatasetId);
+        // console.debug('difyDocumentId', difyDocumentId);
 
         if (difyDatasetId && difyDocumentId) {
             loadDocumentContent(difyFrontHost, difyDatasetId, difyDocumentId).then((document) => {
@@ -392,8 +392,8 @@ function GeoDifyDocument({ worldViewId, geoDataType, geoData, onRequestUpdate, d
         }
     }
 
-    console.debug('geoData', geoData);
-    console.debug('difyDocumentDefaultContent', difyDocumentDefaultContent);
+    // console.debug('geoData', geoData);
+    // console.debug('difyDocumentDefaultContent', difyDocumentDefaultContent);
 
 
     return (

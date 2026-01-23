@@ -4,7 +4,7 @@ import React, { Key, useEffect, useRef, useState, useMemo } from 'react';
 import { type IGeoTreeItem, loadGeoTree } from '../common/geoDataUtil';
 import { CheckOutlined, CheckCircleOutlined, IssuesCloseOutlined, SearchOutlined } from '@ant-design/icons';
 import { useGeoData } from './GeoDataProvider';
-import { useManageState } from './ManageStateProvider';
+import { useManageState, useObjectCode, useObjectType } from './ManageStateProvider';
 
 interface IGeoTreeProps {
     
@@ -18,8 +18,8 @@ export default function(props: IGeoTreeProps) {
     const { state: geoDataState } = useGeoData();
     const { geoTree } = geoDataState;
 
-    const { state: manageState, setTreeRaisedObject } = useManageState();
-    const { treeRaisedObject } = manageState;
+    const [objectType, setObjectType] = useObjectType();
+    const [objectCode, setObjectCode] = useObjectCode();
 
     let [expandedKeys, setExpandedKeys] = useState<Key[]>([]);
     let [searchValue, setSearchValue] = useState<string>('');
@@ -241,7 +241,9 @@ export default function(props: IGeoTreeProps) {
                 expandedKeys={expandedKeys}
                 onExpand={handleExpand}
                 onSelect={(selectedKeys, info) => {
-                    setTreeRaisedObject(info.node);
+                    // setTreeRaisedObject(info.node);
+                    // setObjectType(info.node.data.type);
+                    setObjectCode?.(info.node.data.code || '');
                 }}
             >
             </Tree>

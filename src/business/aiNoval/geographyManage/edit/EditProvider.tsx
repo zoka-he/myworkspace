@@ -1,10 +1,10 @@
 import { Modal, message } from "antd";
 import { useRef, useMemo, createContext, useContext } from "react";
-import GeographyUnitEdit from "./geographyUnitEdit";
+import GeographyUnitEditModal from "./geographyUnitEdit";
 import PlanetEdit from "./planetEdit";
-import SatelliteEdit from "./satelliteEdit";
-import StarEdit from "./starEdit";
-import StarSystemEdit from "./starSystemEdit";
+import SatelliteEditModal from "./satelliteEdit";
+import StarEditModal from "./starEdit";
+import StarSystemEditModal from "./starSystemEdit";
 import { ExclamationCircleFilled } from "@ant-design/icons";
 import { useSimpleWorldviewContext } from "../../common/SimpleWorldviewProvider";
 import { IGeoStarSystemData, IGeoStarData, IGeoPlanetData, IGeoSatelliteData, IGeoGeographyUnitData } from "@/src/types/IAiNoval";
@@ -18,11 +18,11 @@ export default function EditProvider({ children }: { children: React.ReactNode }
     const { state: worldviewState } = useSimpleWorldviewContext();
     const { refreshGeoData } = useGeoData();
 
-    let starSystemEditRef = useRef<StarSystemEdit>(null);
-    let starEditRef = useRef<StarEdit>(null);
-    let planetEditRef = useRef<PlanetEdit>(null);
-    let satelliteEditRef = useRef<SatelliteEdit>(null);
-    let geographyUnitEditRef = useRef<GeographyUnitEdit>(null);
+    let starSystemEditRef = useRef<{ showAndEdit: (data: Object) => void; show: () => void }>(null);
+    let starEditRef = useRef<{ showAndEdit: (data: Object) => void }>(null);
+    let planetEditRef = useRef<{ showAndEdit: (data: Object) => void }>(null);
+    let satelliteEditRef = useRef<{ showAndEdit: (data: Object) => void }>(null);
+    let geographyUnitEditRef = useRef<{ showAndEdit: (data: Object) => void }>(null);
     
 
     let [delConfirmModal, delConfirmModalContextHolder] = Modal.useModal();
@@ -234,11 +234,11 @@ export default function EditProvider({ children }: { children: React.ReactNode }
     return (
         <EditContext.Provider value={providerValue}>
             {children}
-            <StarSystemEdit ref={starSystemEditRef} onFinish={() => resetAll()}/>
-            <StarEdit ref={starEditRef} onFinish={() => resetAll()}/>
+            <StarSystemEditModal ref={starSystemEditRef} onFinish={() => resetAll()}/>
+            <StarEditModal ref={starEditRef} onFinish={() => resetAll()}/>
             <PlanetEdit ref={planetEditRef} onFinish={() => resetAll()}/>
-            <SatelliteEdit ref={satelliteEditRef} onFinish={() => resetAll()}/>
-            <GeographyUnitEdit ref={geographyUnitEditRef} onFinish={() => resetAll()}/>
+            <SatelliteEditModal ref={satelliteEditRef} onFinish={() => resetAll()}/>
+            <GeographyUnitEditModal ref={geographyUnitEditRef} onFinish={() => resetAll()}/>
 
             {delConfirmModalContextHolder}
         </EditContext.Provider>

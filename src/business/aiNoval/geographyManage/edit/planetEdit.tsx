@@ -1,10 +1,10 @@
 import { useRef, useState, forwardRef, useImperativeHandle } from "react";
-import {Form, Modal, Input, Button, message, FormInstance, Radio, Select, TreeSelect} from "antd";
+import {Form, Modal, Input, Button, message, FormInstance, Radio, Select, TreeSelect, Space} from "antd";
 import _ from 'lodash';
 import fetch from '@/src/fetch';
 import { IGeoPlanetData } from "@/src/types/IAiNoval";
 import * as EditCommon from "./editCommon";
-import { getMaxGeoCode } from "@/src/api/aiNovel";
+import { getMaxGeoCode, generateGeoEmbedText } from "@/src/api/aiNovel";
 
 interface IPlanetEditProps {
     onFinish?: (() => void) | undefined
@@ -19,6 +19,7 @@ const PlanetEditModal = forwardRef<IPlanetEditRef, IPlanetEditProps>((props, ref
     const [mForm] = Form.useForm();
     const [modalOpen, setModalOpen] = useState(false);
     const [starSystemList, setStarSystemList] = useState<EditCommon.IGeoStarSystemDataWithChildren[] | null>(null);
+    const [loading, setLoading] = useState(false);
     const oldDataRef = useRef<IGeoPlanetData | null>(null);
 
     useImperativeHandle(ref, () => ({
@@ -127,6 +128,31 @@ const PlanetEditModal = forwardRef<IPlanetEditRef, IPlanetEditProps>((props, ref
         hide();
     }
 
+    /**
+     * 生成嵌入文档
+     */
+    async function handleGenerateEmbedText() {
+        try {
+            const formValues = mForm.getFieldsValue();
+            const description = formValues.description;
+
+            setLoading(true);
+            const embedText = await generateGeoEmbedText({
+                geoType: '行星',
+                description: description || undefined,
+                parentInfo: '所属星系'
+            });
+
+            mForm.setFieldsValue({ embed_document: embedText });
+            message.success('嵌入文档生成成功！');
+        } catch (error: any) {
+            console.error('生成嵌入文档失败：', error);
+            message.error(error?.message || '生成嵌入文档失败！');
+        } finally {
+            setLoading(false);
+        }
+    }
+
     function getDefaultFormData(): IGeoPlanetData {
         return {
             id: null,
@@ -136,13 +162,14 @@ const PlanetEditModal = forwardRef<IPlanetEditRef, IPlanetEditProps>((props, ref
             code: null,
             description: null,
             described_in_llm: 0,
+            embed_document: null,
         }
     }
 
 
     return (
         <>
-            <Modal title={'行星信息'} open={modalOpen} onCancel={e => onCancel()} footer={null}>
+            <Modal title={'行星信息'} open={modalOpen} onCancel={e => onCancel()} footer={null} width={'80vw'}>
                 <Form form={mForm} labelCol={{ span: 6 }} wrapperCol={{ span: 16 }} initialValues={getDefaultFormData}
                         onFinish={e => onFinish(e)}
                         onFinishFailed={e => onFinishedFailed(e)}
@@ -181,8 +208,24 @@ const PlanetEditModal = forwardRef<IPlanetEditRef, IPlanetEditProps>((props, ref
                         <Input/>
                     </Form.Item>
                     <Form.Item label={'行星描述'} name={'description'}>
-                        <Input.TextArea/>
+                        <Input.TextArea autoSize={{ minRows: 10 }}/>
                     </Form.Item>
+                    
+                    <Form.Item label={'嵌入文档'}>
+                        <Space direction="vertical" style={{ width: '100%' }}>
+                            <Button 
+                                type="default" 
+                                onClick={handleGenerateEmbedText}
+                                loading={loading}
+                            >
+                                生成嵌入文档
+                            </Button>
+                            <Form.Item name={'embed_document'} noStyle>
+                                <Input.TextArea autoSize={{ minRows: 5 }}/>
+                            </Form.Item>
+                        </Space>
+                    </Form.Item>
+
                     <Form.Item label={'是否在知识库中'} name={'described_in_llm'}>
                         <Radio.Group>
                             <Radio value={1}>是</Radio>

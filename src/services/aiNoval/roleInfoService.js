@@ -26,6 +26,7 @@ export default class RoleDefService extends MysqlNovalService {
             'fingerprint',
             'match_percent',
             'score',
+            'embed_document',
         ]);
     }
 

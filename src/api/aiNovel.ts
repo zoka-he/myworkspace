@@ -102,3 +102,27 @@ export async function getMaxGeoCode(code: string): Promise<string> {
     const res = await fetch.get('/api/web/aiNoval/geo/geoUnit/maxCode', { params: { prefix: code.slice(0, 2) } })
     return res?.data
 }
+
+/**
+ * 生成地理设定嵌入文本
+ * @param geoType - 地理类型，如："星系"、"恒星"、"行星"、"卫星"、"城市"等
+ * @param description - 地理单元的描述信息（可选）
+ * @param parentInfo - 上级关系信息，如："所属星系"、"所属行星"等（可选）
+ * @returns 生成的嵌入标签原文
+ */
+export async function generateGeoEmbedText(params: {
+    geoType: string;
+    description?: string;
+    parentInfo?: string;
+}): Promise<string> {
+    // fetch 拦截器已经提取了 response.data，所以 response 就是 { success: true, data: { embedText: "..." } }
+    const response = await fetch.post(
+        '/api/web/aiNoval/llm/once/generateGeoEmbedText',
+        params
+    ) as unknown as { success: boolean; data: { embedText: string } };
+    
+    if (response && response.success && response.data && response.data.embedText) {
+        return response.data.embedText;
+    }
+    throw new Error('API 返回数据格式不正确');
+}

@@ -11,7 +11,7 @@ import GeographicUnitPanel from './panel/geographicUnitPanel';
 
 import GeoDataProvider from './GeoDataProvider';
 import SimpleWorldviewProvider, { useSimpleWorldviewContext } from '../common/SimpleWorldviewProvider';
-import ManageStateProvider, { useManageState } from './ManageStateProvider';
+import ManageStateProvider, { useManageState, useObject } from './ManageStateProvider';
 import SimpleFactionProvider from '../common/SimpleFactionProvider';
 import EditProvider from './edit/EditProvider';
 
@@ -135,8 +135,9 @@ function RightPanel(prop: RightPanelProps) {
 }
 
 function RightPanelContentOfManage() {
-    const { state: manageState } = useManageState();
-    const { treeRaisedObject } = manageState;
+    // const { state: manageState } = useManageState();
+    // const { treeRaisedObject } = manageState;
+    const [treeRaisedObject] = useObject();
 
     const { 
         panelAddStarSystem,
@@ -163,9 +164,11 @@ function RightPanelContentOfManage() {
     } else {
 
         mainPanel = <></>;
+
+        console.log('treeRaisedObject?.data_type', treeRaisedObject?.data_type);
         
         // 提取关键信息
-        switch (treeRaisedObject?.dataType) {
+        switch (treeRaisedObject?.data_type) {
             case 'starSystem': 
                 // starSystemId = treeRaisedObject?.data?.id;
                 mainPanel = (
