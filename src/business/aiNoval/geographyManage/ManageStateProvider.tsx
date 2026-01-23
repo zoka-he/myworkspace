@@ -110,8 +110,8 @@ export function useObject() {
     const { state: manageState } = useManageState();
     const { state: geoDataState } = useGeoData();
 
-    console.log('objectCode', manageState?.objectCode);
-    console.log('geoData', geoDataState.geoData);
+    // console.log('objectCode', manageState?.objectCode);
+    // console.log('geoData', geoDataState.geoData);
 
     if (!manageState.objectCode) {
         return [null];
@@ -122,7 +122,7 @@ export function useObject() {
     }
 
     let selectedObject = geoDataState.geoData.find(item => item.code === manageState.objectCode) || null;
-    console.log('selectedObject', selectedObject);
+    // console.log('selectedObject', selectedObject);
 
     return [selectedObject] as const;
 }

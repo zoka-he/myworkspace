@@ -5,7 +5,7 @@ import fetch from '@/src/fetch';
 import { IGeoStarSystemData } from "@/src/types/IAiNoval";
 import DayJS from 'dayjs';
 import * as EditCommon from "./editCommon";
-import { generateGeoEmbedText } from "@/src/api/aiNovel";
+import { generateGeoEmbedText, getMaxGeoCode } from "@/src/api/aiNovel";
 
 interface IStarSystemEditProps {
     onFinish: (() => void) | undefined
@@ -149,9 +149,34 @@ const StarSystemEditModal = forwardRef<IStarSystemEditRef, IStarSystemEditProps>
                     <Form.Item label={'天体系统名称'} name={'name'} rules={[{ required: true, message: '天体系统名称为必填！' }]}>
                         <Input/>
                     </Form.Item>
-                    <Form.Item label={'天体系统编码'} name={'code'} rules={[{ required: true, message: '小说描述为必填！' }]}>
+
+                    <Form.Item label={'天体系统编码'} name={'code'} rules={[
+                        { required: true, message: '编码为必填！' },
+                        {
+                            validateTrigger: ['onChange', 'onBlur'],
+                            warningOnly: true,
+                            validator: async (arg1: any, value: string) => {
+                                if (!value || value.length < 2) return Promise.resolve()
+                                // 查询maxcode
+                                try {
+                                    const maxcode = await getMaxGeoCode(value);
+                                    if (value < maxcode) {
+                                        return Promise.reject(new Error(`当前最大编码：${maxcode}`))
+                                    }
+                                } catch (e) {
+                                    // 忽略接口异常
+                                }
+                                return Promise.resolve()
+                            }
+                        }
+                    ]}>
+                        <Input/>
+                    </Form.Item>
+
+                    <Form.Item label={'天体系统描述'} name={'description'} rules={[{ required: true, message: '描述为必填！' }]}>
                         <Input.TextArea autoSize={{ minRows: 10 }}/>
                     </Form.Item>
+
                     <Form.Item label={'父级天体系统'} name={'parent_system_id'}>
                         <TreeSelect
                             treeData={starSystemList}

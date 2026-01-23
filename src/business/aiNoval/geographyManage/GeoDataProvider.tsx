@@ -3,10 +3,13 @@ import { useState, useReducer, useContext, createContext, useEffect } from 'reac
 import { IGeoTreeItem } from './geoTree';
 import { loadGeoUnionList, transfromGeoUnionToGeoTree } from '../common/geoDataUtil';
 import { useSimpleWorldviewContext } from '../common/SimpleWorldviewProvider';
+import { fetchChromaMetadata, fetchChromaCollectionMetadata } from "@/src/api/chroma";
+import SparkMD5 from 'spark-md5';
 
 interface GeoDataState {
     geoData: IGeoUnionData[];
     geoTree: IGeoTreeItem<IGeoUnionData>[] | null;
+    geoEmbedDocuments: any[];
 }
 
 interface GeoDataContextType {
@@ -35,6 +38,7 @@ function getDefaultGeoDataState(): GeoDataState {
     return {
         geoData: [],
         geoTree: [],
+        geoEmbedDocuments: [],
     };
 }
 
@@ -44,6 +48,8 @@ function geoDataReducer(state: GeoDataState, action: any): GeoDataState {
             return { ...state, geoData: action.payload };
         case 'SET_GEO_TREE':
             return { ...state, geoTree: action.payload };
+        case 'SET_GEO_EMBED_DOCUMENTS':
+            return { ...state, geoEmbedDocuments: action.payload };
         default:
             return state;
     }
@@ -56,6 +62,11 @@ async function refreshGeoData(worldviewId: number | null, dispatch: (action: any
     }
 
     let geoList = await loadGeoUnionList(worldviewId);
+    geoList.forEach(geo => {
+        if (geo.embed_document) {
+            geo.fingerprint = SparkMD5.hash(geo.embed_document);
+        }
+    });
     let geoTree = transfromGeoUnionToGeoTree(geoList);
 
     dispatch({
@@ -101,6 +112,7 @@ export default function GeoDataProvider({ children }: { children: React.ReactNod
             return;
         }
         await refreshGeoData(worldviewState.worldviewId, dispatch);
+        await loadGeoEmbedDocuments(worldviewState.worldviewId, dispatch);
     }
 
     useEffect(() => {
@@ -161,4 +173,31 @@ export function useRefreshGeoData() {
     return async function() {
         await refreshGeoData(context.state.worldviewId, dispatch);
     };
+}
+
+export async function loadGeoEmbedDocuments(worldviewId: number | null, dispatch: (action: any) => void) {
+    let response: any = await fetchChromaMetadata({
+        type: 'geo',
+        worldview_id: String(worldviewId),
+    });
+    if (response?.success) {
+        dispatch({
+            type: 'SET_GEO_EMBED_DOCUMENTS',
+            payload: response.data || [],
+        });
+    }
+}
+
+export function useLoadGeoEmbedDocuments() {
+    const { state: worldviewState } = useSimpleWorldviewContext();
+    const { dispatch } = useContext(GeoDataDispatchContext);
+
+    return async function() {
+        await loadGeoEmbedDocuments(worldviewState.worldviewId, dispatch);
+    };
+}
+
+export function useGeoEmbedDocuments() {
+    const context = useContext(GeoDataContext);
+    return [context.state.geoEmbedDocuments];
 }

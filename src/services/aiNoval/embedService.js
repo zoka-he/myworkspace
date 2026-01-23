@@ -324,7 +324,7 @@ class EmbedService {
         const embedding = await this.embedQuery(document, { model: embedding_model });
         const chromaServer = ChromaServer.getInstance();
         await chromaServer.addDocument(this.getGeoCollectionName(worldview_id), {
-            id: this.nomalizeId(metadata.id),
+            id: this.nomalizeId(metadata.code),
             content: document,
             metadata: this.normalizeMetadata(metadata),
             embedding: embedding,

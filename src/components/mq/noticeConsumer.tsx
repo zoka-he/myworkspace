@@ -25,10 +25,17 @@ export default function TestConsumer() {
                 let body = JSON.parse(mqMessage.body);
                 if (body.type === 'embed_task_completed' && body.dataType === 'character') {
                     notification.success({
-                            message: '角色向量生成完毕',
-                            description: `指纹：${body.fingerprint}`
-                        });
-                    }
+                        message: '角色向量生成完毕',
+                        description: `指纹：${body.fingerprint}`
+                    });
+                }
+
+                if (body.type === 'embed_task_completed' && body.dataType === 'location') {
+                    notification.success({
+                        message: '地理向量生成完毕',
+                        description: `指纹：${body.fingerprint}`
+                    });
+                }
             }
             mqMessage.ack();
             // console.log(mqMessage);

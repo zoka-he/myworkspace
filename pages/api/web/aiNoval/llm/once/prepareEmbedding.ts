@@ -118,13 +118,6 @@ async function prepareGeoDocument(codes: string[]) {
     const geoColumns = (tableName: string) => {
 
         let source_table_name = `'${tableName}' source_table_name`;
-        let description = `concat_ws('|', name, description) document`;
-        let fingerprint = `md5(concat_ws('|', name, description)) fingerprint`;
-
-        if (tableName === 'geo_star_system') {
-            description = `name document`;
-            fingerprint = `md5(name) fingerprint`;
-        }
 
         return [
             'id',
@@ -132,8 +125,8 @@ async function prepareGeoDocument(codes: string[]) {
             'code', 
             'name', 
             source_table_name,
-            description, 
-            fingerprint,
+            'embed_document document', 
+            'md5(embed_document) fingerprint',
         ]
     }
 

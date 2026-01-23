@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Select, Space, message, Card, Radio } from 'antd';
 
 import { IGeoStarSystemData, IGeoPlanetData, IGeoSatelliteData, IGeoGeographyUnitData } from '@/src/types/IAiNoval';
@@ -9,7 +9,7 @@ import PlanetPanel from './panel/planetPanel';
 import SatellitePanel from './panel/satellitePanel';
 import GeographicUnitPanel from './panel/geographicUnitPanel';
 
-import GeoDataProvider from './GeoDataProvider';
+import GeoDataProvider, { useLoadGeoEmbedDocuments } from './GeoDataProvider';
 import SimpleWorldviewProvider, { useSimpleWorldviewContext } from '../common/SimpleWorldviewProvider';
 import ManageStateProvider, { useManageState, useObject } from './ManageStateProvider';
 import SimpleFactionProvider from '../common/SimpleFactionProvider';
@@ -17,6 +17,8 @@ import EditProvider from './edit/EditProvider';
 
 import { useEditContext } from './edit/EditProvider';
 import AreaCoefPanel from './panel/AreaCoefPanel';
+import { useMQ } from '@/src/components/context/aiNovel';
+import { IMessage } from '@stomp/stompjs';
 
 const LEFT_PANEL_WIDTH = 400; // 左侧面板宽度，必须大于320
 
@@ -30,6 +32,7 @@ export default function GeoManage() {
             <GeoDataProvider>
             <SimpleFactionProvider>
             <ManageStateProvider>
+                <WatchMq/>
                 <EditProvider>
                     <div style={{ display: 'flex', height: '100%' }}>
                         <div style={{ width: LEFT_PANEL_WIDTH, height: '100%', padding: '0 0 10px 0' }}>
@@ -49,6 +52,37 @@ export default function GeoManage() {
         </SimpleWorldviewProvider>
     )
 
+}
+
+function WatchMq() {
+    const { subscribe, unsubscribe, isConnected } = useMQ();
+    const subscriptionIdRef = useRef<string | null>(null);
+    const loadGeoEmbedDocuments = useLoadGeoEmbedDocuments();
+
+    useEffect(() => {
+        const subscriptionId = subscribe({
+            destination: '/exchange/frontend_notice.fanout',
+            id: 'geo_panel_notice_subscription', // 使用固定ID，确保只订阅一次
+        }, (message: IMessage) => {
+            console.debug('message --->> ', message);
+            let body = JSON.parse(message.body);
+            if (body.type === 'embed_task_completed') {
+                // 直接调用，函数内部总是使用最新的 worldViewId
+                loadGeoEmbedDocuments();
+            }
+            message.ack();
+        });
+        subscriptionIdRef.current = subscriptionId;
+
+        return () => {
+            if (subscriptionIdRef.current) {
+                unsubscribe(subscriptionIdRef.current);
+                subscriptionIdRef.current = null;
+            }
+        };
+    }, []);
+
+    return null;
 }
 
 
@@ -165,7 +199,7 @@ function RightPanelContentOfManage() {
 
         mainPanel = <></>;
 
-        console.log('treeRaisedObject?.data_type', treeRaisedObject?.data_type);
+        // console.log('treeRaisedObject?.data_type', treeRaisedObject?.data_type);
         
         // 提取关键信息
         switch (treeRaisedObject?.data_type) {
