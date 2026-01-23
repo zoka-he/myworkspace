@@ -112,9 +112,9 @@ const StarSystemEditModal = forwardRef<IStarSystemEditRef, IStarSystemEditProps>
         try {
             setLoading(true);
             const embedText = await generateGeoEmbedText({
-                geoType: '星系',
-                description: undefined,
-                parentInfo: undefined
+                geoType: '天体系统',
+                description: mForm.getFieldValue('description'),
+                parentInfo: '所属天体系统'
             });
 
             mForm.setFieldsValue({ embed_document: embedText });

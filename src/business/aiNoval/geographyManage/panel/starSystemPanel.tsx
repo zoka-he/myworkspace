@@ -78,7 +78,6 @@ export default function(props: IStarSystemEditProps) {
                     <dl>
                         <dt>地理编码：</dt><dd>{data?.code}</dd>
                     </dl>
-                    
                 </Col>
                 <Col span={12}>
                     <Space>
@@ -93,9 +92,9 @@ export default function(props: IStarSystemEditProps) {
 
 
             <Row>
-                {/* <dl>
+                <dl>
                     <dt>简介</dt><dd>{ data?.description }</dd>
-                    </dl> */}
+                </dl>
                 <dl>
                     <dt>是否在知识库中：</dt><dd>{ described_in_llm ? '是' : '否' }</dd>
                 </dl>

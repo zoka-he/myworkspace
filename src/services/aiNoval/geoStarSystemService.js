@@ -18,6 +18,7 @@ export default class GeoStarSystemService extends MysqlNovalService {
             'has_geo_area',
             'parent_system_id',
             'embed_document',
+            'description',
         ]);
     }
 
