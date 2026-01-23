@@ -268,8 +268,18 @@ class EmbedService {
     async saveWorldviewDocument(worldview_id, document, metadata, embedding_model = chromaConfig.EMBEDDING_MODEL) {
         const embedding = await this.embedQuery(document, { model: embedding_model });
         const chromaServer = ChromaServer.getInstance();
-        await chromaServer.addDocument(this.getWorldviewCollectionName(), {
-            id: this.nomalizeId(metadata.id),
+        const collectionName = this.getWorldviewCollectionName();
+        const documentId = this.nomalizeId(metadata.id);
+        
+        // 先删除后创建
+        try {
+            await chromaServer.deleteById(collectionName, documentId);
+        } catch (error) {
+            // 如果文档不存在，忽略删除错误
+        }
+        
+        await chromaServer.addDocument(collectionName, {
+            id: documentId,
             content: document,
             metadata: this.normalizeMetadata(metadata),
             embedding: embedding,
@@ -279,8 +289,18 @@ class EmbedService {
     async saveChapterDocument(worldview_id, document, metadata, embedding_model = chromaConfig.EMBEDDING_MODEL) {
         const embedding = await this.embedQuery(document, { model: embedding_model });
         const chromaServer = ChromaServer.getInstance();
-        await chromaServer.addDocument(this.getChapterCollectionName(worldview_id), {
-            id: this.nomalizeId(metadata.id),
+        const collectionName = this.getChapterCollectionName(worldview_id);
+        const documentId = this.nomalizeId(metadata.id);
+        
+        // 先删除后创建
+        try {
+            await chromaServer.deleteById(collectionName, documentId);
+        } catch (error) {
+            // 如果文档不存在，忽略删除错误
+        }
+        
+        await chromaServer.addDocument(collectionName, {
+            id: documentId,
             content: document,
             metadata: this.normalizeMetadata(metadata),
             embedding: embedding,
@@ -290,8 +310,18 @@ class EmbedService {
     async saveCharacterDocument(worldview_id, document, metadata, embedding_model = chromaConfig.EMBEDDING_MODEL) {
         const embedding = await this.embedQuery(document, { model: embedding_model });
         const chromaServer = ChromaServer.getInstance();
-        await chromaServer.addDocument(this.getCharacterCollectionName(worldview_id), {
-            id: this.nomalizeId(metadata.id),
+        const collectionName = this.getCharacterCollectionName(worldview_id);
+        const documentId = this.nomalizeId(metadata.id);
+        
+        // 先删除后创建
+        try {
+            await chromaServer.deleteById(collectionName, documentId);
+        } catch (error) {
+            // 如果文档不存在，忽略删除错误
+        }
+        
+        await chromaServer.addDocument(collectionName, {
+            id: documentId,
             content: document,
             metadata: this.normalizeMetadata(metadata),
             embedding: embedding,
@@ -301,8 +331,18 @@ class EmbedService {
     async saveEventDocument(worldview_id, document, metadata, embedding_model = chromaConfig.EMBEDDING_MODEL) {
         const embedding = await this.embedQuery(document, { model: embedding_model });
         const chromaServer = ChromaServer.getInstance();
-        await chromaServer.addDocument(this.getEventCollectionName(worldview_id), {
-            id: this.nomalizeId(metadata.id),
+        const collectionName = this.getEventCollectionName(worldview_id);
+        const documentId = this.nomalizeId(metadata.id);
+        
+        // 先删除后创建
+        try {
+            await chromaServer.deleteById(collectionName, documentId);
+        } catch (error) {
+            // 如果文档不存在，忽略删除错误
+        }
+        
+        await chromaServer.addDocument(collectionName, {
+            id: documentId,
             content: document,
             metadata: this.normalizeMetadata(metadata),
             embedding: embedding,
@@ -312,8 +352,18 @@ class EmbedService {
     async saveFactionDocument(worldview_id, document, metadata, embedding_model = chromaConfig.EMBEDDING_MODEL) {
         const embedding = await this.embedQuery(document, { model: embedding_model });
         const chromaServer = ChromaServer.getInstance();
-        await chromaServer.addDocument(this.getFactionCollectionName(worldview_id), {
-            id: this.nomalizeId(metadata.id),
+        const collectionName = this.getFactionCollectionName(worldview_id);
+        const documentId = this.nomalizeId(metadata.id);
+        
+        // 先删除后创建
+        try {
+            await chromaServer.deleteById(collectionName, documentId);
+        } catch (error) {
+            // 如果文档不存在，忽略删除错误
+        }
+        
+        await chromaServer.addDocument(collectionName, {
+            id: documentId,
             content: document,
             metadata: this.normalizeMetadata(metadata),
             embedding: embedding,
@@ -323,8 +373,18 @@ class EmbedService {
     async saveGeoDocument(worldview_id, document, metadata, embedding_model = chromaConfig.EMBEDDING_MODEL) {
         const embedding = await this.embedQuery(document, { model: embedding_model });
         const chromaServer = ChromaServer.getInstance();
-        await chromaServer.addDocument(this.getGeoCollectionName(worldview_id), {
-            id: this.nomalizeId(metadata.code),
+        const collectionName = this.getGeoCollectionName(worldview_id);
+        const documentId = this.nomalizeId(metadata.code);
+        
+        // 先删除后创建
+        try {
+            await chromaServer.deleteById(collectionName, documentId);
+        } catch (error) {
+            // 如果文档不存在，忽略删除错误
+        }
+        
+        await chromaServer.addDocument(collectionName, {
+            id: documentId,
             content: document,
             metadata: this.normalizeMetadata(metadata),
             embedding: embedding,
