@@ -11,6 +11,10 @@ interface ManageStateContextType {
     dispatch: (action: any) => void;
 }
 
+interface ManageDispatchContextType {
+    dispatch: (action: any) => void;
+}
+
 interface UseManageStateInterface extends ManageStateContextType {
     setTreeRaisedObject: (obj: IGeoTreeItem<IGeoUnionData> | null) => void;
 }
@@ -35,6 +39,10 @@ const ManageStateContext = createContext<ManageStateContextType>({
     dispatch: () => {}
 });
 
+const ManageDispatchContext = createContext<ManageDispatchContextType>({
+    dispatch: () => {}
+});
+
 export default function ManageStateProvider({ children }: { children: React.ReactNode }) {
     const [state, dispatch] = useReducer(manageStateReducer, getDefaultManageState());
 
@@ -45,7 +53,9 @@ export default function ManageStateProvider({ children }: { children: React.Reac
 
     return (
         <ManageStateContext.Provider value={contextValue}>
-            {children}
+            <ManageDispatchContext.Provider value={{ dispatch }}>
+                {children}
+            </ManageDispatchContext.Provider>
         </ManageStateContext.Provider>
     )
 }

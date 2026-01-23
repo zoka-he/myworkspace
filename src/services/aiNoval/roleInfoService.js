@@ -69,7 +69,13 @@ export default class RoleDefService extends MysqlNovalService {
             with ranked as (
                 SELECT 
                     id,
+                    version_name,
                     name_in_worldview, 
+                    gender_in_worldview,
+                    age_in_worldview,
+                    race_id,
+                    faction_id,
+                    root_faction_id,
                     background,
                     personality,
                     (

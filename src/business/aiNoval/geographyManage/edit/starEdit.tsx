@@ -5,6 +5,7 @@ import fetch from '@/src/fetch';
 import { IGeoStarData } from "@/src/types/IAiNoval";
 import DayJS from 'dayjs';
 import * as EditCommon from "./editCommon";
+import { getMaxGeoCode } from "@/src/api/aiNovel";
 
 interface IStarEditState {
     modalOpen: boolean,
@@ -175,7 +176,26 @@ class StarEdit extends React.Component<IStarEditProps, IStarEditState> {
                         <Form.Item label={'恒星名称'} name={'name'} rules={[{ required: true, message: '恒星名称为必填！' }]}>
                             <Input/>
                         </Form.Item>
-                        <Form.Item label={'恒星编码'} name={'code'} rules={[{ required: true, message: '恒星编码为必填！' }]}>
+                        <Form.Item label={'恒星编码'} name={'code'} rules={[
+                            { required: true, message: '恒星编码为必填！' },
+                            {
+                                validateTrigger: ['onChange', 'onBlur'],
+                                warningOnly: true,
+                                validator: async (arg1: any, value: string) => {
+                                    if (!value || value.length < 2) return Promise.resolve()
+                                    // 查询maxcode
+                                    try {
+                                        const maxcode = await getMaxGeoCode(value);
+                                        if (value < maxcode) {
+                                            return Promise.reject(new Error(`当前最大编码：${maxcode}`))
+                                        }
+                                    } catch (e) {
+                                        // 忽略接口异常
+                                    }
+                                    return Promise.resolve()
+                                }
+                            }
+                        ]}>
                             <Input/>
                         </Form.Item>
                         <Form.Item label={'恒星类型'} name={'type'}>

@@ -292,6 +292,9 @@ class GeographyUnitEdit extends React.Component<IGeographyUnitEditProps, IGeogra
                         <Form.Item label={'地理单元名称'} name={'name'} rules={[{ required: true, message: '地理单元名称为必填！' }]}>
                             <Input/>
                         </Form.Item>
+                        <Form.Item label={'地理单元类型'} name={'type'} rules={[{ required: true, message: '地理单元类型为必填！' }]}>
+                            <Select options={this.getGeoUnitOptions()} showSearch/>
+                        </Form.Item>
                         <Form.Item label={'地理单元编码'} name={'code'} rules={[{ required: true, message: '地理单元编码为必填！' }, {
                             validateTrigger: ['onChange', 'onBlur'],
                             warningOnly: true,
@@ -312,9 +315,7 @@ class GeographyUnitEdit extends React.Component<IGeographyUnitEditProps, IGeogra
                         }]}>
                             <Input/>
                         </Form.Item>
-                        <Form.Item label={'地理单元类型'} name={'type'} rules={[{ required: true, message: '地理单元类型为必填！' }]}>
-                            <Select options={this.getGeoUnitOptions()}/>
-                        </Form.Item>
+                        
                         <Form.Item label={'是否具有疆域意义'} name={'has_geo_area'}>
                             <Radio.Group>
                                 <Radio value={"Y"}>是</Radio>

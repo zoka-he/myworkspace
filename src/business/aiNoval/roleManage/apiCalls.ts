@@ -43,6 +43,15 @@ const apiCalls = {
     },
     deleteRoleRelation: (data: IRoleRelation) => {
         return fetch.delete(`/api/aiNoval/role/relation`, { params: { id: data.id } });
+    },
+    findRole: (worldviewId: number, keywords: string[], threshold?: number) => {
+        return fetch.get('/api/web/aiNoval/llm/once/findRole', { 
+            params: { 
+                worldviewId, 
+                keywords: keywords.length === 1 ? keywords[0] : keywords,
+                threshold: threshold || 0.5
+            } 
+        });
     }
 }
 

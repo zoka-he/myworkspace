@@ -14,12 +14,20 @@ interface GeoDataContextType {
     dispatch: (action: any) => void;
 }
 
+interface GeoDataDispatchContextType {
+    dispatch: (action: any) => void;
+}
+
 interface UseGeoDataInterface extends GeoDataContextType {
     refreshGeoData: () => Promise<void>;
 }
 
 const GeoDataContext = createContext<GeoDataContextType>({
     state: getDefaultGeoDataState(),
+    dispatch: () => {},
+});
+
+const GeoDataDispatchContext = createContext<GeoDataDispatchContextType>({
     dispatch: () => {},
 });
 
@@ -105,7 +113,9 @@ export default function GeoDataProvider({ children }: { children: React.ReactNod
 
     return (
         <GeoDataContext.Provider value={{ state, dispatch }}>
-            {children}
+            <GeoDataDispatchContext.Provider value={{ dispatch }}>
+                {children}
+            </GeoDataDispatchContext.Provider>
         </GeoDataContext.Provider>
     );
 }
@@ -127,5 +137,28 @@ export function useGeoData(): UseGeoDataInterface {
         refreshGeoData: async () => {
             await refreshGeoData(worldviewState.worldviewId, context.dispatch);
         },
+    };
+}
+
+export function useGeoTree() {
+    const context = useContext(GeoDataContext);
+    if (!context) {
+        throw new Error('useGeoTree must be used within a GeoDataProvider');
+    }
+
+    return [
+        context.state.geoTree,
+    ]
+}
+
+export function useRefreshGeoData() {
+    const context = useSimpleWorldviewContext();
+    const { dispatch } = useContext(GeoDataDispatchContext);
+    if (!context) {
+        throw new Error('useRefreshGeoData must be used within a GeoDataProvider');
+    }
+
+    return async function() {
+        await refreshGeoData(context.state.worldviewId, dispatch);
     };
 }

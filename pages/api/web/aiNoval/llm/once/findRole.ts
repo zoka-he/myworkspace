@@ -168,12 +168,17 @@ function processChromaData(chroma_data: (QueryResult & { chroma_score?: number }
 
 function processDbData(db_data: (IRoleInfo & { score: number })[]): (IRoleInfo & { score: number, db_score: number })[] {
     let mean_score = _.mean(db_data.map(item => item.score || 0));
+    
 
     // console.debug('db_data ------------->> ', db_data);
     // console.debug('mean_score ------------->> ', mean_score);
 
-    return db_data.map((item: IRoleInfo & { score: number }) => ({
-        ...item,
-        db_score: sigmoid(item.score, 5, mean_score),  // 中位数初定在平均值，斜率初定在10
-    }));
+    return db_data.map((item: IRoleInfo & { score: number }) => {
+        let notFromDb = item.score === 0;
+        let db_score = notFromDb ? 0 : sigmoid(item.score, 5, mean_score);
+        return {
+            ...item,
+            db_score: db_score,
+        }
+    });
 }

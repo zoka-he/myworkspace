@@ -92,3 +92,13 @@ export async function prepareTextEmbedding(data: PrepareTextEmbeddingRequest): P
     );
     return response.data as PrepareTextEmbeddingResponse;
 }
+
+/**
+ * 获取地理编码的最大值
+ * @param code 
+ * @returns 
+ */
+export async function getMaxGeoCode(code: string): Promise<string> {
+    const res = await fetch.get('/api/web/aiNoval/geo/geoUnit/maxCode', { params: { prefix: code.slice(0, 2) } })
+    return res?.data
+}

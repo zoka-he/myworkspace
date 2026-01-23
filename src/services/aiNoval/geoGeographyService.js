@@ -66,14 +66,18 @@ export default class GeoGeographyService extends MysqlNovalService {
             return '';
         }
 
+        let tables = ['geo_star_system', 'geo_star', 'geo_planet', 'geo_satellite', 'geo_geography_unit'];
+        let subSqls = (table) => `select max(code) code from ${table} where code like '${prefix}%'`
+
         let sql = `
-            select max(code) code from geo_geography_unit where code like '${prefix}%'
+            select max(t_union.code) code from (${tables.map(subSqls).join(' union ')}) t_union
         `;
 
-        let ret = await this.query(sql, [], ['code asc'], 1, 1);
+        let ret = await this.queryBySql(sql, []);
+        console.debug(ret);
 
-        if (ret.data.length > 0) {
-            return ret.data[0].code;
+        if (ret.length > 0) {
+            return ret[0].code;
         }
 
         return '';

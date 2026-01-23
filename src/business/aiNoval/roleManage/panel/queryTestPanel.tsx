@@ -1,7 +1,10 @@
-import { Card, Space, Button, Input, InputNumber, Tag, Typography, Descriptions } from "antd";
+import { Card, Space, Button, Input, InputNumber, Tag, Typography, Descriptions, Alert, message } from "antd";
 import { useState } from "react";
 import { IRoleInfo } from "@/src/types/IAiNoval";
-import { SearchOutlined, ClearOutlined } from "@ant-design/icons";
+import { SearchOutlined, ClearOutlined, ExclamationCircleOutlined, ManOutlined, WomanOutlined, UserOutlined } from "@ant-design/icons";
+import { ApiResponse } from "@/src/types/ApiResponse";
+import apiCalls from "../apiCalls";
+import { useWorldViewId } from "../roleManageContext";
 
 const { Text } = Typography;
 
@@ -12,109 +15,24 @@ interface QueryResult extends IRoleInfo {
 }
 
 interface QueryTestPanelProps {
-    worldViewId?: number | null;
+    // worldViewId?: number | null;
 }
 
-// 生成mock数据
-function generateMockData(keywords: string[], threshold: number): QueryResult[] {
-    const mockRoles: QueryResult[] = [
-        {
-            id: 1,
-            role_id: 1,
-            version_name: 'v1.0',
-            worldview_id: 1,
-            name_in_worldview: '艾莉亚·星火',
-            gender_in_worldview: '女',
-            age_in_worldview: '25',
-            race_id: 1,
-            faction_id: 1,
-            background: '来自北境的勇敢战士，从小接受严格的战斗训练，擅长使用双剑。',
-            personality: '勇敢、果断、正义感强，但有时过于冲动。',
-            chroma_score: 0.85,
-            db_score: 0.78,
-            combined_score: 0.82,
-        },
-        {
-            id: 2,
-            role_id: 2,
-            version_name: 'v2.1',
-            worldview_id: 1,
-            name_in_worldview: '雷克斯·暗影',
-            gender_in_worldview: '男',
-            age_in_worldview: '32',
-            race_id: 2,
-            faction_id: 2,
-            background: '神秘的魔法师，掌握古老的暗影魔法，曾在魔法学院担任导师。',
-            personality: '冷静、智慧、神秘，对魔法研究充满热情。',
-            chroma_score: 0.92,
-            db_score: 0.88,
-            combined_score: 0.90,
-        },
-        {
-            id: 3,
-            role_id: 3,
-            version_name: 'v1.5',
-            worldview_id: 1,
-            name_in_worldview: '索伦·铁王',
-            gender_in_worldview: '男',
-            age_in_worldview: '45',
-            race_id: 1,
-            faction_id: 3,
-            background: '强大的国王，统治着铁王座，以铁血手段维护国家统一。',
-            personality: '威严、果断、野心勃勃，但内心孤独。',
-            chroma_score: 0.75,
-            db_score: 0.82,
-            combined_score: 0.78,
-        },
-        {
-            id: 4,
-            role_id: 4,
-            version_name: 'v1.0',
-            worldview_id: 1,
-            name_in_worldview: '莉娜·火焰',
-            gender_in_worldview: '女',
-            age_in_worldview: '28',
-            race_id: 3,
-            faction_id: 1,
-            background: '火焰法师，能够操控强大的火焰魔法，是魔法学院的优秀毕业生。',
-            personality: '热情、开朗、充满活力，但有时缺乏耐心。',
-            chroma_score: 0.68,
-            db_score: 0.65,
-            combined_score: 0.66,
-        },
-        {
-            id: 5,
-            role_id: 5,
-            version_name: 'v2.0',
-            worldview_id: 1,
-            name_in_worldview: '凯文·守护者',
-            gender_in_worldview: '男',
-            age_in_worldview: '35',
-            race_id: 1,
-            faction_id: 1,
-            background: '忠诚的骑士，誓死保护王国和人民，是国王最信任的护卫。',
-            personality: '忠诚、勇敢、正直，但有时过于固执。',
-            chroma_score: 0.58,
-            db_score: 0.62,
-            combined_score: 0.60,
-        },
-    ];
-
-    // 根据threshold过滤并排序
-    return mockRoles
-        .filter(item => (item.combined_score || 0) >= threshold)
-        .sort((a, b) => (b.combined_score || 0) - (a.combined_score || 0));
-}
-
-export function QueryTestPanel({ worldViewId }: QueryTestPanelProps) {
+export function QueryTestPanel({ }: QueryTestPanelProps) {
+    const [worldViewId] = useWorldViewId();
     const [keywords, setKeywords] = useState<string>('');
     const [threshold, setThreshold] = useState<number>(0.5);
     const [results, setResults] = useState<QueryResult[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
 
     // 处理查询
-    const handleQuery = () => {
+    const handleQuery = async () => {
         if (!keywords.trim()) {
+            return;
+        }
+
+        if (!worldViewId) {
+            message.warning('请先选择世界观');
             return;
         }
 
@@ -124,17 +42,32 @@ export function QueryTestPanel({ worldViewId }: QueryTestPanelProps) {
             .filter(k => k.length > 0);
         
         if (keywordList.length === 0) {
+            message.warning('请输入至少一个关键词');
             return;
         }
 
         setLoading(true);
         
-        // 模拟接口调用延迟
-        setTimeout(() => {
-            const mockData = generateMockData(keywordList, threshold);
-            setResults(mockData);
+        try {
+            const response = await apiCalls.findRole(worldViewId, keywordList, threshold);
+            const result = response as ApiResponse<QueryResult[]>;
+            
+            if (result?.success && result.data) {
+                setResults(result.data);
+                if (result.data.length === 0) {
+                    message.info('未找到匹配的角色');
+                }
+            } else {
+                message.error(result?.error || '查询失败');
+                setResults([]);
+            }
+        } catch (error: any) {
+            console.error('查询角色失败:', error);
+            message.error(error?.message || '查询失败，请稍后重试');
+            setResults([]);
+        } finally {
             setLoading(false);
-        }, 500);
+        }
     };
 
     // 清空表单和结果
@@ -150,6 +83,21 @@ export function QueryTestPanel({ worldViewId }: QueryTestPanelProps) {
         if (score >= 0.6) return 'processing';
         if (score >= 0.4) return 'warning';
         return 'error';
+    };
+
+    // 获取性别图标和颜色
+    const getGenderConfig = (gender: string | null | undefined) => {
+        if (!gender) return { icon: null, color: 'default' };
+        
+        const genderLower = gender.toLowerCase();
+        if (genderLower.includes('男') || genderLower === 'male' || genderLower === 'm') {
+            return { icon: <ManOutlined />, color: 'blue' };
+        } else if (genderLower.includes('女') || genderLower === 'female' || genderLower === 'f') {
+            return { icon: <WomanOutlined />, color: 'pink' };
+        } else if (genderLower.includes('未知') || genderLower === 'unknown' || genderLower === 'unknow') {
+            return { icon: <UserOutlined />, color: 'default' };
+        }
+        return { icon: <UserOutlined />, color: 'default' };
     };
 
     return (
@@ -181,7 +129,7 @@ export function QueryTestPanel({ worldViewId }: QueryTestPanelProps) {
                         type="primary"
                         icon={<SearchOutlined />}
                         onClick={handleQuery}
-                        disabled={!keywords.trim()}
+                        disabled={!worldViewId || !keywords.trim()}
                         loading={loading}
                     >
                         查询
@@ -228,34 +176,68 @@ export function QueryTestPanel({ worldViewId }: QueryTestPanelProps) {
                                             {item.name_in_worldview || '-'}
                                         </Text>
                                         <Tag>{item.version_name || '-'}</Tag>
-                                        {item.gender_in_worldview && (
-                                            <Tag color="blue">{item.gender_in_worldview}</Tag>
-                                        )}
+                                        {item.gender_in_worldview && (() => {
+                                            const genderConfig = getGenderConfig(item.gender_in_worldview);
+                                            return (
+                                                <Tag color={genderConfig.color} icon={genderConfig.icon}>
+                                                    {item.gender_in_worldview}
+                                                </Tag>
+                                            );
+                                        })()}
                                         {item.age_in_worldview && (
                                             <Tag color="cyan">{item.age_in_worldview}岁</Tag>
                                         )}
                                     </Space>
-                                    <Space>
-                                        <Tag color={getScoreColor(item.combined_score || 0)}>
-                                            综合: {((item.combined_score || 0) * 100).toFixed(2)}%
-                                        </Tag>
-                                        <Text type="secondary" style={{ fontSize: '12px' }}>
-                                            向量: {((item.chroma_score || 0) * 100).toFixed(2)}% | 
-                                            数据库: {((item.db_score || 0) * 100).toFixed(2)}%
-                                        </Text>
+                                    <Space align="end" size="small">
+                                        <Space size="small" style={{ marginLeft: 8 }}>
+                                            <Tag color={item.chroma_score === 0 ? 'error' : 'default'}>
+                                                向量: {((item.chroma_score || 0) * 100).toFixed(2)}%
+                                            </Tag>
+                                            <Tag color={item.db_score === 0 ? 'error' : 'default'}>
+                                                数据库: {((item.db_score || 0) * 100).toFixed(2)}%
+                                            </Tag>
+                                            <Tag color={getScoreColor(item.combined_score || 0)}>
+                                                综合: {((item.combined_score || 0) * 100).toFixed(2)}%
+                                            </Tag>
+                                            {(item.chroma_score === 0 || item.db_score === 0) && (
+                                                <>
+                                                    <Text type="secondary">|</Text>
+                                                    <Tag color="warning" icon={<ExclamationCircleOutlined />}>
+                                                        数据偏斜
+                                                    </Tag>
+                                                </>
+                                            )}
+                                        </Space>
+                                        
                                     </Space>
                                 </div>
                                 
+                                {(item.chroma_score === 0 || item.db_score === 0) && (
+                                    <Alert
+                                        message="数据偏斜警告"
+                                        description={
+                                            item.chroma_score === 0 && item.db_score === 0
+                                                ? '向量分数和数据库分数均为0，该结果可能不可靠'
+                                                : item.chroma_score === 0
+                                                ? '向量分数为0，该角色可能未进行向量化处理'
+                                                : '数据库分数为0，该角色可能不在数据库匹配范围内'
+                                        }
+                                        type="warning"
+                                        showIcon
+                                        style={{ marginBottom: 8 }}
+                                    />
+                                )}
                                 <Descriptions size="small" column={2} bordered>
-                                    <Descriptions.Item label="角色ID">{item.id}</Descriptions.Item>
-                                    <Descriptions.Item label="版本名称">{item.version_name || '-'}</Descriptions.Item>
+                                    {/* <Descriptions.Item label="角色ID">{item.id}</Descriptions.Item> */}
+
+
                                     {item.background && (
                                         <Descriptions.Item label="背景" span={2}>
                                             {item.background}
                                         </Descriptions.Item>
                                     )}
                                     {item.personality && (
-                                        <Descriptions.Item label="性格" span={2}>
+                                        <Descriptions.Item label="描述" span={2}>
                                             {item.personality}
                                         </Descriptions.Item>
                                     )}

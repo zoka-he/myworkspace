@@ -2,27 +2,23 @@ import React from "react";
 import {Form, Modal, Input, Button, message, FormInstance, Radio, Select, TreeSelect} from "antd";
 import _ from 'lodash';
 import fetch from '@/src/fetch';
-import { IGeoSatelliteData } from "@/src/types/IAiNoval";
+import { IGeoPlanetData } from "@/src/types/IAiNoval";
 import * as EditCommon from "./editCommon";
-import { getMaxGeoCode } from "@/src/api/aiNovel";
 
 interface IPlanetEditState {
     modalOpen: boolean,
     loading: boolean,
     starSystemList: EditCommon.IGeoStarSystemDataWithChildren[] | null,
-    planetList: EditCommon.IGeoPlanetDataWithChildren[] | null,
-    starSystemId: number | null
 }
 
 interface IPlanetEditProps {
     onFinish: (() => void) | undefined
 }
 
-class SatelliteEdit extends React.Component<IPlanetEditProps, IPlanetEditState> {
+class PlanetEdit extends React.Component<IPlanetEditProps, IPlanetEditState> {
 
     private mForm: FormInstance<any> | null;
-    private oldData: IGeoSatelliteData | null;
-    private starSystemId: number | null = null;
+    private oldData: IGeoPlanetData | null;
 
     constructor(props: IPlanetEditProps) {
         super(props);
@@ -31,8 +27,6 @@ class SatelliteEdit extends React.Component<IPlanetEditProps, IPlanetEditState> 
             modalOpen: false,
             loading: false,
             starSystemList: null,
-            planetList: null,
-            starSystemId: null,
         }
 
         this.mForm = null;
@@ -40,7 +34,6 @@ class SatelliteEdit extends React.Component<IPlanetEditProps, IPlanetEditState> 
     }
 
     parseAndFixData(data: Object) {
-        console.log("parseAndFixData", data);
         this.mForm?.setFieldsValue(_.clone(data));
     }
 
@@ -48,7 +41,6 @@ class SatelliteEdit extends React.Component<IPlanetEditProps, IPlanetEditState> 
         const checkList = [
             'worldview_id',
             'star_system_id',
-            'planet_id'
         ];
 
         if (!data || !(data instanceof Object)) {
@@ -82,15 +74,12 @@ class SatelliteEdit extends React.Component<IPlanetEditProps, IPlanetEditState> 
         }
         this.parseAndFixData(this.oldData);
         this.loadStarSystemTree();
-        this.loadPlanetList(this.oldData?.star_system_id);
     }
 
     onFormRef(comp: FormInstance<any> | null) {
-        if (!this.mForm) {
-            this.mForm = comp;
-            if (this.oldData) {
-                this.parseAndFixData(this.oldData);
-            }
+        this.mForm = comp;
+        if (this.oldData) {
+            this.parseAndFixData(this.oldData);
         }
     }
 
@@ -108,44 +97,7 @@ class SatelliteEdit extends React.Component<IPlanetEditProps, IPlanetEditState> 
         });
     }
 
-    async loadPlanetList(star_system_id?: number | null) {
-        if (!star_system_id) {
-            this.setState({
-                planetList: []
-            });
-            return;
-        }
-
-        let params = { worldview_id: this.oldData?.worldview_id, star_system_id: star_system_id };
-
-        let planetList = await EditCommon.loadPlanetList(params);
-        this.setState({
-            planetList
-        });
-    }
-
-    onFormFieldChange(fields: any[]) {
-        fields.forEach(item => {
-            if (item.name === 'star_system_id' || item.name.includes?.('star_system_id')) {
-                if (this.state.starSystemId !== item.value) {
-                    this.setState({ starSystemId: item.value });
-                    this.loadPlanetList(item.value);
-                }
-            }
-
-            // if (item.name === 'code' || item.name.includes?.('code')) {
-            //     let str = item.value;
-            //     if (str.length === 2) {
-
-            //     }
-            // }
-        })
-    }
-
     async onFinish(values: any) {
-
-        console.log("onFinish", values);
-
         if (this.oldData?.id) {
             let updateObj = {
                 ...this.oldData,
@@ -153,7 +105,7 @@ class SatelliteEdit extends React.Component<IPlanetEditProps, IPlanetEditState> 
             };
 
             try {
-                await fetch.post('/api/aiNoval/geo/satellite', updateObj, { params: { id: updateObj.id } });
+                await fetch.post('/api/aiNoval/geo/planet', updateObj, { params: { id: updateObj.id } });
     
                 if (this.props.onFinish) {
                     this.props.onFinish();
@@ -170,7 +122,7 @@ class SatelliteEdit extends React.Component<IPlanetEditProps, IPlanetEditState> 
             };
 
             try {
-                await fetch.post('/api/aiNoval/geo/satellite', createObj);
+                await fetch.post('/api/aiNoval/geo/planet', createObj);
     
                 if (this.props.onFinish) {
                     this.props.onFinish();
@@ -191,12 +143,11 @@ class SatelliteEdit extends React.Component<IPlanetEditProps, IPlanetEditState> 
         this.hide();
     }
 
-    private getDefaultFormData(): IGeoSatelliteData {
+    private getDefaultFormData(): IGeoPlanetData {
         return {
             id: null,
             worldview_id: null,
             star_system_id: null,
-            planet_id: null,
             name: null,
             code: null,
             description: null,
@@ -207,10 +158,8 @@ class SatelliteEdit extends React.Component<IPlanetEditProps, IPlanetEditState> 
     render() {
         return (
             <>
-                <Modal title={'卫星信息'} open={this.state.modalOpen} onCancel={e => this.onCancel()} footer={null}>
+                <Modal title={'行星信息'} open={this.state.modalOpen} onCancel={e => this.onCancel()} footer={null}>
                     <Form ref={comp => this.onFormRef(comp)} labelCol={{ span: 6 }} wrapperCol={{ span: 16 }} initialValues={this.getDefaultFormData}
-                          onFieldsChange={(field) => this.onFormFieldChange(field)}
-                        //   onValuesChange={values => this.onFormChange(values)}
                           onFinish={e => this.onFinish(e)}
                           onFinishFailed={e => this.onFinishedFailed(e)}
                     >
@@ -222,39 +171,13 @@ class SatelliteEdit extends React.Component<IPlanetEditProps, IPlanetEditState> 
                                 allowClear
                             />
                         </Form.Item>
-                        <Form.Item label={'行星'} name={'planet_id'} rules={[{ required: true, message: '行星为必填！' }]}>
-                            <Select
-                                options={this.state.planetList?.map(item => ({ label: item.name, value: item.id })) || []}
-                                placeholder="请选择行星"
-                                allowClear
-                            />
-                        </Form.Item>
-                        <Form.Item label={'卫星名称'} name={'name'} rules={[{ required: true, message: '卫星名称为必填！' }]}>
+                        <Form.Item label={'行星名称'} name={'name'} rules={[{ required: true, message: '行星名称为必填！' }]}>
                             <Input/>
                         </Form.Item>
-                        <Form.Item label={'卫星编码'} name={'code'} rules={[
-                            { required: true, message: '卫星编码为必填！' },
-                            {
-                                validateTrigger: ['onChange', 'onBlur'],
-                                warningOnly: true,
-                                validator: async (arg1: any, value: string) => {
-                                    if (!value || value.length < 2) return Promise.resolve()
-                                    // 查询maxcode
-                                    try {
-                                        const maxcode = await getMaxGeoCode(value);
-                                        if (value < maxcode) {
-                                            return Promise.reject(new Error(`当前最大编码：${maxcode}`))
-                                        }
-                                    } catch (e) {
-                                        // 忽略接口异常
-                                    }
-                                    return Promise.resolve()
-                                }
-                            }
-                        ]}>
+                        <Form.Item label={'行星编码'} name={'code'} rules={[{ required: true, message: '行星编码为必填！' }]}>
                             <Input/>
                         </Form.Item>
-                        <Form.Item label={'卫星描述'} name={'description'}>
+                        <Form.Item label={'行星描述'} name={'description'}>
                             <Input.TextArea/>
                         </Form.Item>
                         <Form.Item label={'是否在知识库中'} name={'described_in_llm'}>
@@ -276,4 +199,4 @@ class SatelliteEdit extends React.Component<IPlanetEditProps, IPlanetEditState> 
     }
 }
 
-export default SatelliteEdit;
+export default PlanetEdit;

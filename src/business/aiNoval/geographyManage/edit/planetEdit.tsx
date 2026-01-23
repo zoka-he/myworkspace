@@ -1,43 +1,37 @@
-import React from "react";
+import { useRef, useState, forwardRef, useImperativeHandle } from "react";
 import {Form, Modal, Input, Button, message, FormInstance, Radio, Select, TreeSelect} from "antd";
 import _ from 'lodash';
 import fetch from '@/src/fetch';
 import { IGeoPlanetData } from "@/src/types/IAiNoval";
 import * as EditCommon from "./editCommon";
-
-interface IPlanetEditState {
-    modalOpen: boolean,
-    loading: boolean,
-    starSystemList: EditCommon.IGeoStarSystemDataWithChildren[] | null,
-}
+import { getMaxGeoCode } from "@/src/api/aiNovel";
 
 interface IPlanetEditProps {
-    onFinish: (() => void) | undefined
+    onFinish?: (() => void) | undefined
 }
 
-class PlanetEdit extends React.Component<IPlanetEditProps, IPlanetEditState> {
+interface IPlanetEditRef {
+    showAndEdit: (data: Object) => void;
+}
 
-    private mForm: FormInstance<any> | null;
-    private oldData: IGeoPlanetData | null;
+const PlanetEditModal = forwardRef<IPlanetEditRef, IPlanetEditProps>((props, ref) => {
 
-    constructor(props: IPlanetEditProps) {
-        super(props);
+    const [mForm] = Form.useForm();
+    const [modalOpen, setModalOpen] = useState(false);
+    const [starSystemList, setStarSystemList] = useState<EditCommon.IGeoStarSystemDataWithChildren[] | null>(null);
+    const oldDataRef = useRef<IGeoPlanetData | null>(null);
 
-        this.state = {
-            modalOpen: false,
-            loading: false,
-            starSystemList: null,
-        }
+    useImperativeHandle(ref, () => ({
+        showAndEdit,
+        hide,
+    }));
 
-        this.mForm = null;
-        this.oldData = null;
+    function parseAndFixData(data: Object) {
+        oldDataRef.current = data;
+        mForm?.setFieldsValue(_.clone(data));
     }
 
-    parseAndFixData(data: Object) {
-        this.mForm?.setFieldsValue(_.clone(data));
-    }
-
-    preCheckData(data: Object) {
+    function preCheckData(data: Object) {
         const checkList = [
             'worldview_id',
             'star_system_id',
@@ -59,91 +53,81 @@ class PlanetEdit extends React.Component<IPlanetEditProps, IPlanetEditState> {
         return true;
     }
 
-    showAndEdit(data: Object) {
-        if (!this.preCheckData(data)) {
+    function showAndEdit(data: Object) {
+        if (!preCheckData(data)) {
             return;
         }
 
-        this.setState({
-            modalOpen: true
-        });
+        setModalOpen(true);
 
-        this.oldData = {
-            ...this.getDefaultFormData(),
+        let oldData = {
+            ...getDefaultFormData(),
             ...data,
         }
-        this.parseAndFixData(this.oldData);
-        this.loadStarSystemTree();
+        parseAndFixData(oldData);
+        loadStarSystemTree();
     }
 
-    onFormRef(comp: FormInstance<any> | null) {
-        this.mForm = comp;
-        if (this.oldData) {
-            this.parseAndFixData(this.oldData);
-        }
+    function hide() {
+        setModalOpen(false);
+        mForm?.resetFields();
     }
 
-    hide() {
-        this.setState({
-            modalOpen: false
-        });
-        this.mForm?.resetFields();
-    }
-
-    async loadStarSystemTree() {
+    async function loadStarSystemTree() {
         let starSystemList = await EditCommon.loadStarSystemTree();
-        this.setState({
-            starSystemList
-        });
+        setStarSystemList(starSystemList);
     }
 
-    async onFinish(values: any) {
-        if (this.oldData?.id) {
+    async function onFinish(values: any) {
+        let oldData = oldDataRef.current;
+        if (oldData?.id) {
             let updateObj = {
-                ...this.oldData,
+                ...oldData,
                 ...values,
             };
 
             try {
                 await fetch.post('/api/aiNoval/geo/planet', updateObj, { params: { id: updateObj.id } });
     
-                if (this.props.onFinish) {
-                    this.props.onFinish();
+                if (props.onFinish) {
+                    props.onFinish();
                 }
                 message.success('更新成功！');
-                this.hide();
+                oldDataRef.current = null;
+                hide();
             } catch(e) {
                 message.error('更新失败！');
             }
         } else {
             let createObj = {
-                ...this.oldData,
+                ...oldData,
                 ...values,
             };
 
             try {
                 await fetch.post('/api/aiNoval/geo/planet', createObj);
     
-                if (this.props.onFinish) {
-                    this.props.onFinish();
+                if (props.onFinish) {
+                    props.onFinish();
                 }
                 message.success('创建成功！');
-                this.hide();
+                oldDataRef.current = null;
+                hide();
             } catch(e) {
                 message.error('创建失败！');
             }
         }
     }
 
-    onFinishedFailed(e: any) {
+    function onFinishedFailed(e: any) {
         message.warning('表单校验失败，请修改');
     }
 
-    onCancel() {
-        this.hide();
+    function onCancel() {
+        hide();
     }
 
-    private getDefaultFormData(): IGeoPlanetData {
+    function getDefaultFormData(): IGeoPlanetData {
         return {
             id: null,
             worldview_id: null,
@@ -155,48 +139,67 @@ class PlanetEdit extends React.Component<IPlanetEditProps, IPlanetEditState> {
         }
     }
 
-    render() {
-        return (
-            <>
-                <Modal title={'行星信息'} open={this.state.modalOpen} onCancel={e => this.onCancel()} footer={null}>
-                    <Form ref={comp => this.onFormRef(comp)} labelCol={{ span: 6 }} wrapperCol={{ span: 16 }} initialValues={this.getDefaultFormData}
-                          onFinish={e => this.onFinish(e)}
-                          onFinishFailed={e => this.onFinishedFailed(e)}
-                    >
-                        <Form.Item label={'天体系统'} name={'star_system_id'} rules={[{ required: true, message: '天体系统为必填！' }]}>
-                            <TreeSelect
-                                treeData={this.state.starSystemList || []}
-                                fieldNames={{ label: 'name', value: 'id', children: 'children' }}
-                                placeholder="请选择天体系统"
-                                allowClear
-                            />
-                        </Form.Item>
-                        <Form.Item label={'行星名称'} name={'name'} rules={[{ required: true, message: '行星名称为必填！' }]}>
-                            <Input/>
-                        </Form.Item>
-                        <Form.Item label={'行星编码'} name={'code'} rules={[{ required: true, message: '行星编码为必填！' }]}>
-                            <Input/>
-                        </Form.Item>
-                        <Form.Item label={'行星描述'} name={'description'}>
-                            <Input.TextArea/>
-                        </Form.Item>
-                        <Form.Item label={'是否在知识库中'} name={'described_in_llm'}>
-                            <Radio.Group>
-                                <Radio value={1}>是</Radio>
-                                <Radio value={0}>否</Radio>
-                            </Radio.Group>
-                        </Form.Item>
-                       
-                        <div className={'f-align-center'}>
-                            <Button style={{ width: '200px' }} type="primary" htmlType="submit">
-                                提交
-                            </Button>
-                        </div>
-                    </Form>
-                </Modal>
-            </>
-        );
-    }
-}
 
-export default PlanetEdit;
+    return (
+        <>
+            <Modal title={'行星信息'} open={modalOpen} onCancel={e => onCancel()} footer={null}>
+                <Form form={mForm} labelCol={{ span: 6 }} wrapperCol={{ span: 16 }} initialValues={getDefaultFormData}
+                        onFinish={e => onFinish(e)}
+                        onFinishFailed={e => onFinishedFailed(e)}
+                >
+                    <Form.Item label={'天体系统'} name={'star_system_id'} rules={[{ required: true, message: '天体系统为必填！' }]}>
+                        <TreeSelect
+                            treeData={starSystemList || []}
+                            fieldNames={{ label: 'name', value: 'id', children: 'children' }}
+                            placeholder="请选择天体系统"
+                            allowClear
+                        />
+                    </Form.Item>
+                    <Form.Item label={'行星名称'} name={'name'} rules={[{ required: true, message: '行星名称为必填！' }]}>
+                        <Input/>
+                    </Form.Item>
+                    <Form.Item label={'行星编码'} name={'code'} rules={[
+                        { required: true, message: '行星编码为必填！' },
+                        {
+                            validateTrigger: ['onChange', 'onBlur'],
+                            warningOnly: true,
+                            validator: async (arg1: any, value: string) => {
+                                if (!value || value.length < 2) return Promise.resolve()
+                                // 查询maxcode
+                                try {
+                                    const maxcode = await getMaxGeoCode(value);
+                                    if (value < maxcode) {
+                                        return Promise.reject(new Error(`当前最大编码：${maxcode}`))
+                                    }
+                                } catch (e) {
+                                    // 忽略接口异常
+                                }
+                                return Promise.resolve()
+                            }
+                        }
+                    ]}>
+                        <Input/>
+                    </Form.Item>
+                    <Form.Item label={'行星描述'} name={'description'}>
+                        <Input.TextArea/>
+                    </Form.Item>
+                    <Form.Item label={'是否在知识库中'} name={'described_in_llm'}>
+                        <Radio.Group>
+                            <Radio value={1}>是</Radio>
+                            <Radio value={0}>否</Radio>
+                        </Radio.Group>
+                    </Form.Item>
+                    
+                    <div className={'f-align-center'}>
+                        <Button style={{ width: '200px' }} type="primary" htmlType="submit">
+                            提交
+                        </Button>
+                    </div>
+                </Form>
+            </Modal>
+        </>
+    );
+});
+
+export default PlanetEditModal;
+
