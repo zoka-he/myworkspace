@@ -50,7 +50,7 @@ export function QueryTestPanel({ }: QueryTestPanelProps) {
         
         try {
             const response = await apiCalls.findRole(worldViewId, keywordList, threshold);
-            const result = response as ApiResponse<QueryResult[]>;
+            const result = response as unknown as ApiResponse<QueryResult[]>;
             
             if (result?.success && result.data) {
                 setResults(result.data);

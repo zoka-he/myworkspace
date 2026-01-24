@@ -19,6 +19,7 @@ import { useEditContext } from './edit/EditProvider';
 import AreaCoefPanel from './panel/AreaCoefPanel';
 import { useMQ } from '@/src/components/context/aiNovel';
 import { IMessage } from '@stomp/stompjs';
+import FindGeo from './panel/FindGeo';
 
 const LEFT_PANEL_WIDTH = 400; // 左侧面板宽度，必须大于320
 
@@ -146,6 +147,7 @@ function RightPanel(prop: RightPanelProps) {
         <Radio.Group value={activePanel} onChange={e => setActivePanel(e.target.value)} size="small" buttonStyle="solid" optionType="button">
             <Radio.Button value="manage">地理设定管理</Radio.Button>
             <Radio.Button value="areas">疆域设定</Radio.Button>
+            <Radio.Button value="find_geo">召回测试</Radio.Button>
             {/* <Radio.Button value="faction_bind">阵营绑定</Radio.Button> */}
         </Radio.Group>
     )
@@ -155,6 +157,8 @@ function RightPanel(prop: RightPanelProps) {
         Content = <RightPanelContentOfManage/>;
     } else if (activePanel === 'areas') {
         Content = <AreaCoefPanel/>;
+    } else if (activePanel === 'find_geo') {
+        Content = <FindGeo/>;
     }
 
     return (
