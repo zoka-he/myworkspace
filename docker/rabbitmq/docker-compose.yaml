@@ -1,0 +1,24 @@
+version: '3.9'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq-server
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:28007:5672"      # AMQP API 端口
+      - "0.0.0.0:28008:15672"     # 管理界面端口
+      - "0.0.0.0:28009:61613"     # STOMP 端口
+      - "0.0.0.0:28010:15674"     # WS 端口
+    volumes:
+      - ./rabbitmq_data:/var/lib/rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=myworksite
+      - RABBITMQ_DEFAULT_PASS=nsds123456
+    command: >
+      sh -c "
+        rabbitmq-plugins enable rabbitmq_stomp &&
+        rabbitmq-plugins enable rabbitmq_web_stomp &&
+        rabbitmq-server
+      "
+

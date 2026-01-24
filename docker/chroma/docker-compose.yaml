@@ -1,0 +1,33 @@
+version: '3.9'
+
+services:
+  chroma:
+    image: ghcr.io/chroma-core/chroma:latest
+    container_name: chroma-server
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:28005:8000"
+    volumes:
+      - ./chroma_data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+      - CHROMA_SERVER_HOST=0.0.0.0
+      - CHROMA_SERVER_HTTP_PORT=8000
+      - CHROMA_DB_IMPL=duckdb
+      - PERSIST_DIRECTORY=/chroma/chroma
+      - CHROMA_SERVER_CORS_ALLOW_ORIGINS=["*"]
+      - ANONYMIZED_TELEMETRY=FALSE
+
+  chromadb-admin:
+    image: fengzhichao/chromadb-admin:latest
+    container_name: chromadb-admin
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:28006:3001"
+    environment:
+      - NEXT_PUBLIC_CHROMA_API_URL=http://0.0.0.0:28005
+      - HOSTNAME=0.0.0.0
+      - PORT=3001
+    depends_on:
+      - chroma
+
