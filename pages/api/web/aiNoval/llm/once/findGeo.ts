@@ -8,6 +8,7 @@ import GeoPlanetService from "@/src/services/aiNoval/geoPlanetService";
 import GeoSatelliteService from "@/src/services/aiNoval/geoSatelliteService";
 import { chromaService, QueryResult } from "@/src/server/chroma";
 import EmbedService from "@/src/services/aiNoval/embedService";
+import { rerankService } from "@/src/services/aiNoval/rerankService";
 import { distanceToSimilarity, sigmoid } from "@/src/utils/rag/scores";
 import { IGeoUnionData } from "@/src/types/IAiNoval";
 
@@ -100,12 +101,12 @@ export default async function handler(
         let db_coverage = (total_count - db_zero_count) / k;
         let chroma_coverage = (total_count - chroma_zero_count) / k;
 
-        // 根据交叠程度抬升db权重，db初始权重0.4时，最大可抬升到0.8
-        let w_db = db_coef + db_coef * overlap_ratio;
+        // 根据交叠程度抬升chroma权重，chroma初始权重0.6时，最大可抬升到0.8
+        let w_chroma = Math.min(1, chroma_coef + chroma_coef * overlap_ratio);
         if (db_zero_count === k) {
-            w_db = 0;
+            w_chroma = 1;
         }
-        let w_chroma = 1 - w_db;
+        let w_db = 1 - w_chroma;
 
         console.debug('total_count ------------->> ', total_count);
         console.debug('db_coverage ------------->> ', db_coverage);
@@ -134,11 +135,55 @@ export default async function handler(
             }, ['score', 'match_percent']);
         });
 
+        // 对 combined_data 进行 rerank 重排序
+        if (combined_data.length > 0) {
+            try {
+                // 准备查询文本和文档数组
+                const queryText = keywords.join(' ');
+                const documents = combined_data.map(item => {
+                    // 组合 name 和 description 作为文档文本
+                    const name = item.name || '';
+                    const description = item.description || '';
+                    return `${name} ${description}`.trim();
+                });
+
+                // 调用 rerank 服务
+                const rerankResults = await rerankService.rerank(queryText, documents);
+                
+                // 计算 rerank_score 的平均值，用于 sigmoid 处理
+                const rerankScores = rerankResults.map(result => result.relevance_score);
+                const mean_rerank_score = _.mean(rerankScores);
+                
+                // 根据 rerank 结果重新排序 combined_data，并对 rerank_score 进行 sigmoid 处理
+                // rerankResults 返回的是按相关性排序的结果，包含 index 和 relevance_score
+                const rerankedData = rerankResults.map(result => {
+                    const originalItem = combined_data[result.index];
+                    // 对 rerank_score 进行 sigmoid 处理，参考 db_score 的处理方式（斜率使用 5）
+                    const processed_rerank_score = sigmoid(result.relevance_score, 5, mean_rerank_score);
+                    return {
+                        ...originalItem,
+                        rerank_score: processed_rerank_score,
+                    };
+                });
+
+                combined_data = rerankedData;
+                console.debug('rerank completed, reranked items count:', combined_data.length);
+            } catch (error) {
+                console.error('rerank failed:', error);
+                // 如果 rerank 失败，使用原来的排序方式
+                combined_data = combined_data.sort((a, b) => b.combined_score - a.combined_score);
+            }
+        } else {
+            // 如果没有数据，直接按 combined_score 排序
+            combined_data = combined_data.sort((a, b) => b.combined_score - a.combined_score);
+        }
+
         // let combined_data_normalized = normalizeScore(combined_data, 'combined_score', 'score').map(item => _.omit(item, ['combined_score']));
 
-        let thresholdNum = _.toNumber(threshold || '0.5');
-        console.debug('threshold ------------->> ', thresholdNum);
-        res.status(200).json({ success: true, data: combined_data.sort((a, b) => b.combined_score - a.combined_score).filter(item => item.combined_score >= thresholdNum) });
+        // let thresholdNum = _.toNumber(threshold || '0.5');
+        // console.debug('threshold ------------->> ', thresholdNum);
+        // res.status(200).json({ success: true, data: combined_data.sort((a, b) => b.combined_score - a.combined_score).filter(item => item.combined_score >= thresholdNum) });
+        res.status(200).json({ success: true, data: combined_data });
         return;
     } catch (error) {
         res.status(500).json({ success: false, error: 'oh shit! ' + error });
@@ -170,7 +215,7 @@ function processChromaData(chroma_data: (QueryResult & { chroma_score?: number }
 
     let ret = chroma_data.map((item: QueryResult) => ({
         ...item,
-        chroma_score: sigmoid(distanceToSimilarity(item.distance), 10, mean_score),  // 中位数初定在0.5，斜率初定在10
+        chroma_score: sigmoid(distanceToSimilarity(item.distance), 35, mean_score),  // 中位数初定在0.5，斜率初定在10
     }));
 
     ret.forEach(item => {

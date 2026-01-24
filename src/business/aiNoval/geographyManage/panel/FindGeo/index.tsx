@@ -12,6 +12,7 @@ interface QueryResult extends IGeoUnionData {
     chroma_score?: number;
     db_score?: number;
     combined_score?: number;
+    rerank_score?: number;
 }
 
 interface FindGeoProps {
@@ -196,8 +197,8 @@ export default function FindGeo({ }: FindGeoProps) {
                                                 <Tag color={item.db_score === 0 ? 'error' : 'default'}>
                                                     数据库: {((item.db_score || 0) * 100).toFixed(2)}%
                                                 </Tag>
-                                                <Tag color={getScoreColor(item.combined_score || 0)}>
-                                                    综合: {((item.combined_score || 0) * 100).toFixed(2)}%
+                                                <Tag color={getScoreColor(item.rerank_score || 0)}>
+                                                    重排: {((item.rerank_score || 0) * 100).toFixed(2)}%
                                                 </Tag>
                                                 {(item.chroma_score === 0 || item.db_score === 0) && (
                                                     <>
@@ -213,13 +214,12 @@ export default function FindGeo({ }: FindGeoProps) {
                                     
                                     {(item.chroma_score === 0 || item.db_score === 0) && (
                                         <Alert
-                                            message="数据偏斜警告"
-                                            description={
+                                            message={
                                                 item.chroma_score === 0 && item.db_score === 0
-                                                    ? '向量分数和数据库分数均为0，该结果可能不可靠'
+                                                    ? '数据偏斜警告：向量分数和数据库分数均为0，该结果可能不可靠'
                                                     : item.chroma_score === 0
-                                                    ? '向量分数为0，该地理信息可能未进行向量化处理'
-                                                    : '数据库分数为0，该地理信息可能不在数据库匹配范围内'
+                                                    ? '数据偏斜警告：向量分数为0，该地理信息可能未进行向量化处理'
+                                                    : '数据偏斜警告：数据库分数为0，该地理信息可能不在数据库匹配范围内'
                                             }
                                             type="warning"
                                             showIcon
@@ -242,15 +242,15 @@ export default function FindGeo({ }: FindGeoProps) {
                                         {item.star_system_id && (
                                             <Descriptions.Item label="所属恒星系ID">{item.star_system_id}</Descriptions.Item>
                                         )}
-                                        {item.planet_id && (
+                                        {/* {item.planet_id && (
                                             <Descriptions.Item label="所属行星ID">{item.planet_id}</Descriptions.Item>
                                         )}
                                         {item.satellite_id && (
                                             <Descriptions.Item label="所属卫星ID">{item.satellite_id}</Descriptions.Item>
-                                        )}
-                                        {item.parent_id && (
+                                        )} */}
+                                        {/* {item.parent_id && (
                                             <Descriptions.Item label="父级ID">{item.parent_id}</Descriptions.Item>
-                                        )}
+                                        )} */}
                                         {item.parent_type && (
                                             <Descriptions.Item label="父级类型">{item.parent_type}</Descriptions.Item>
                                         )}
