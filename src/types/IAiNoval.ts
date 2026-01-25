@@ -125,6 +125,7 @@ export interface IFactionDefData {
     parent_id?: number | null,
     dify_document_id?: string | null,
     dify_dataset_id?: string | null,
+    embed_document?: string | null,
 }
 
 export interface IRoleData {

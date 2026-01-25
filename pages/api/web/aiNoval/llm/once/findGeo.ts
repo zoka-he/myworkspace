@@ -171,19 +171,29 @@ export default async function handler(
             } catch (error) {
                 console.error('rerank failed:', error);
                 // 如果 rerank 失败，使用原来的排序方式
-                combined_data = combined_data.sort((a, b) => b.combined_score - a.combined_score);
+                combined_data = combined_data.map(item => {
+                    return {
+                        ...item,
+                        rerank_score: item.combined_score,
+                    }
+                }).sort((a, b) => b.combined_score - a.combined_score);
             }
         } else {
             // 如果没有数据，直接按 combined_score 排序
-            combined_data = combined_data.sort((a, b) => b.combined_score - a.combined_score);
+            combined_data = combined_data.map(item => {
+                return {
+                    ...item,
+                    rerank_score: item.combined_score,
+                }
+            }).sort((a, b) => b.combined_score - a.combined_score);
         }
 
         // let combined_data_normalized = normalizeScore(combined_data, 'combined_score', 'score').map(item => _.omit(item, ['combined_score']));
 
-        // let thresholdNum = _.toNumber(threshold || '0.5');
-        // console.debug('threshold ------------->> ', thresholdNum);
+        let thresholdNum = _.toNumber(threshold || '0.5');
+        console.debug('threshold ------------->> ', thresholdNum);
         // res.status(200).json({ success: true, data: combined_data.sort((a, b) => b.combined_score - a.combined_score).filter(item => item.combined_score >= thresholdNum) });
-        res.status(200).json({ success: true, data: combined_data });
+        res.status(200).json({ success: true, data: combined_data.filter(item => item.rerank_score >= thresholdNum) });
         return;
     } catch (error) {
         res.status(500).json({ success: false, error: 'oh shit! ' + error });

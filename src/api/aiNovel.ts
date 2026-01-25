@@ -1,5 +1,5 @@
 import fetch from '@/src/fetch';
-import { IChapter, INovalData } from '../types/IAiNoval';
+import { IChapter, INovalData, IWorldViewData } from '../types/IAiNoval';
 
 function splitIds(ids: any) {
     if (!ids) {
@@ -125,4 +125,40 @@ export async function generateGeoEmbedText(params: {
         return response.data.embedText;
     }
     throw new Error('API 返回数据格式不正确');
+}
+
+/**
+ * 生成阵营设定嵌入标签原文
+ * @param params.description - 阵营描述（可选）
+ * @param params.hasParent - 是否有上级阵营（可选）
+ * @returns 生成的嵌入标签原文
+ */
+export async function generateFactionEmbedText(params: {
+    description?: string;
+    hasParent?: boolean;
+}): Promise<string> {
+    const response = await fetch.post(
+        '/api/web/aiNoval/llm/once/generateFactionEmbedText',
+        { description: params.description, hasParent: Boolean(params.hasParent) }
+    ) as unknown as { success: boolean; data: { embedText: string } };
+
+    if (response?.success && response?.data?.embedText) {
+        return response.data.embedText;
+    }
+    throw new Error('API 返回数据格式不正确');
+}
+
+export async function getWorldViews() {
+    let resp = await fetch.get('/api/aiNoval/worldView/list', { params: { page: 1, limit: 100 } });
+
+    let data: IWorldViewData[] = [];
+    let count = 0;
+
+    if (resp && resp.data && resp.data.length > 0) {
+        data = resp.data;
+    }
+
+    count = (resp as { count?: number })?.count || 0;
+
+    return { data, count };
 }

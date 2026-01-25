@@ -36,6 +36,13 @@ export default function TestConsumer() {
                         description: `指纹：${body.fingerprint}`
                     });
                 }
+
+                if (body.type === 'embed_task_completed' && body.dataType === 'faction') {
+                    notification.success({
+                        message: '阵营向量生成完毕',
+                        description: `指纹：${body.fingerprint}`
+                    });
+                }
             }
             mqMessage.ack();
             // console.log(mqMessage);

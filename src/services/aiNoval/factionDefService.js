@@ -11,7 +11,8 @@ export default class FactionDefService extends MysqlNovalService {
             'worldview_id',
             'name',
             'description',
-            'parent_id'
+            'parent_id',
+            'embed_document',
         ]);
     }
 
@@ -36,8 +37,8 @@ export default class FactionDefService extends MysqlNovalService {
                 id, 
                 worldview_id,
                 name title, 
-                concat_ws('|', name, description) document, 
-                md5(concat_ws('|', name, description)) fingerprint
+                embed_document document, 
+                md5(embed_document) fingerprint
             from Faction
             where id in(${ids.join(',')})
         `;
