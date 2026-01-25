@@ -4,6 +4,7 @@ import _ from 'lodash';
 import RoleInfoService from "@/src/services/aiNoval/roleInfoService";
 import { chromaService, QueryResult } from "@/src/server/chroma";
 import EmbedService from "@/src/services/aiNoval/embedService";
+import { rerankService } from "@/src/services/aiNoval/rerankService";
 import { distanceToSimilarity, sigmoid } from "@/src/utils/rag/scores";
 import { IRoleInfo } from "@/src/types/IAiNoval";
 
@@ -105,26 +106,30 @@ export default async function handler(
         //     db_coef = 0;
         // }
 
-        let combined_data = db_data.map(item => {
-            // 注意注意，这里需要将item.id转换为字符串，因为chroma_data.id是字符串（chroma龟腚！）
-            let chroma_item = chroma_data.find(chroma_item => chroma_item.id === _.toString(item.id));
-            let chroma_score = chroma_item?.chroma_score || 0;
-            let db_score = item.db_score || 0;
+        let combined_data: (IRoleInfo & { score: number, db_score: number })[] = db_data.map(
+            (item: IRoleInfo & { score: number, db_score: number }) => {
+                // 注意注意，这里需要将item.id转换为字符串，因为chroma_data.id是字符串（chroma龟腚！）
+                let chroma_item = chroma_data.find(chroma_item => chroma_item.id === _.toString(item.id));
+                let chroma_score = chroma_item?.chroma_score || 0;
+                let db_score = item.db_score || 0;
 
-            let combined_score = (chroma_score * w_chroma + db_score * w_db);
+                let combined_score = (chroma_score * w_chroma + db_score * w_db);
 
-            return _.omit({
-                ...item,
-                chroma_score: chroma_score,
-                combined_score: combined_score,
-            }, ['score', 'match_percent']);
-        });
+                return _.omit({
+                    ...item,
+                    chroma_score: chroma_score,
+                    combined_score: combined_score,
+                }, 
+                ['score', 'match_percent']) as IRoleInfo & { score: number, db_score: number };
+            }
+        );
 
         // let combined_data_normalized = normalizeScore(combined_data, 'combined_score', 'score').map(item => _.omit(item, ['combined_score']));
+        let rerank_data = await rerankData(combined_data, keywords as string[]);
 
-        threshold = _.toNumber(threshold || '0.5');
-        console.debug('threshold ------------->> ', threshold);
-        res.status(200).json({ success: true, data: combined_data.sort((a, b) => b.combined_score - a.combined_score).filter(item => item.combined_score >= threshold) });
+        let thresholdNum = _.toNumber(threshold || '0.5');
+        console.debug('threshold ------------->> ', thresholdNum);
+        res.status(200).json({ success: true, data: rerank_data.filter(item => item.score >= thresholdNum) });
         return;
     } catch (error) {
         res.status(500).json({ success: false, error: 'oh shit! ' + error });
@@ -181,4 +186,47 @@ function processDbData(db_data: (IRoleInfo & { score: number })[]): (IRoleInfo &
             db_score: db_score,
         }
     });
+}
+
+async function rerankData(
+    data: (IRoleInfo & { combined_score?: number; db_score: number })[],
+    keywords: string[]
+): Promise<(IRoleInfo & { score: number; db_score: number })[]> {
+    if (data.length === 0) {
+        return [];
+    }
+    try {
+        const queryText = keywords.join(' ');
+        const documents = data.map((item) => {
+            const name = item.name_in_worldview || '';
+            const background = item.background || '';
+            const personality = item.personality || '';
+            return `${name} ${background} ${personality}`.trim() || '无';
+        });
+
+        const rerankResults = await rerankService.rerank(queryText, documents);
+        const rerankScores = rerankResults.map((r) => r.relevance_score);
+        const meanRerankScore = _.mean(rerankScores);
+
+        const reranked = rerankResults.map((result) => {
+            const original = data[result.index];
+            const processedRerankScore = sigmoid(result.relevance_score, 5, meanRerankScore);
+            return {
+                ...original,
+                score: processedRerankScore,
+                db_score: original.db_score,
+            };
+        });
+        console.debug('rerank completed, reranked items count:', reranked.length);
+        return reranked;
+    } catch (error) {
+        console.error('rerank failed:', error);
+        return data
+            .map((item) => ({
+                ...item,
+                score: item.combined_score ?? 0,
+                db_score: item.db_score,
+            }))
+            .sort((a, b) => b.score - a.score);
+    }
 }
