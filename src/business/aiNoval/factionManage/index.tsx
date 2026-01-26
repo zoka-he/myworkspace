@@ -7,6 +7,7 @@ import FactionTree from "./factionTree";
 import FactionInfoPanel from "./panels/factionInfoPanel";
 import { FactionRelationPanel } from "./panels/factionRelationPanel";
 import { D3FactionView } from "./panels/factionRelationMap";
+import FactionQueryTest from "./panels/factionQueryTest";
 import apiCalls from "./apiCalls";
 import FactionManageContextProvider, { useLoadWorldViewList, useLoadFactionList, useCurrentFactionId, useFactionList, useFactionTree, useWorldViewId, useWorldViewList, useCurrentFaction, useGetEditModal, useSetEditModalRef, useLoadFactionEmbedDocuments, useFactionEmbedDocuments } from "./FactionManageContext";
 import { useMQ } from "@/src/components/context/aiNovel";
@@ -231,6 +232,7 @@ function RightPanel() {
             <Radio.Button value="factionInfo">阵营属性</Radio.Button>
             <Radio.Button value="factionRelation">阵营关系</Radio.Button>
             <Radio.Button value="factionStatus">阵营状态</Radio.Button>
+            <Radio.Button value="factionQuery">召回测试</Radio.Button>
         </Radio.Group>
     )
 
@@ -251,6 +253,11 @@ function RightPanel() {
                     onRelationChange={() => {
                         // setTreeTimestamp(Date.now());
                     }}
+                />
+            )}
+            {factionInfoPanelId === 'factionQuery' && (
+                <FactionQueryTest 
+                    worldViewId={worldViewId}
                 />
             )}
         </Card>

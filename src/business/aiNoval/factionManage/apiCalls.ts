@@ -108,5 +108,14 @@ export default {
             }
         );
         return response;
+    },
+    findFaction: (worldviewId: number, keywords: string[], threshold?: number) => {
+        return fetch.get('/api/web/aiNoval/llm/once/findFaction', { 
+            params: { 
+                worldviewId, 
+                keywords: keywords.length === 1 ? keywords[0] : keywords,
+                threshold: threshold || 0.5
+            } 
+        });
     }
 }

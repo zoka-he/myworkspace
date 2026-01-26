@@ -95,7 +95,7 @@ const FactionTree: React.FC<IFactionTreeProps> = ({
                                 <div>
                                     {embedState}
                                     <Button 
-                                        type="text" 
+                                        type="link" 
                                         icon={<PlusOutlined />} 
                                         size="small"
                                         onClick={(e) => {
@@ -108,6 +108,7 @@ const FactionTree: React.FC<IFactionTreeProps> = ({
                                         icon={<DeleteOutlined />} 
                                         size="small"
                                         disabled={!isLeaf}
+                                        danger={isLeaf}
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             handleDelete(faction);
