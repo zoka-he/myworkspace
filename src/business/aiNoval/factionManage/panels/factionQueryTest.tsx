@@ -119,6 +119,14 @@ export default function FactionQueryTest(props: IFactionQueryTestProps) {
     };
 
     const lowQuality = queryResults.length > 0 && !queryResults.some(item => item.score > threshold);
+    
+    // 检测单个结果是否数据偏斜
+    const isItemSkewed = (item: QueryResult) => {
+        const chromaScore = item.chroma_score ?? 0;
+        const dbScore = item.db_score ?? 0;
+        // 如果其中一个为0，另一个大于0，则认为是数据偏斜
+        return (chromaScore === 0 && dbScore > 0) || (dbScore === 0 && chromaScore > 0);
+    };
 
     // 检查世界观
     if (!worldViewId) {
@@ -203,6 +211,7 @@ export default function FactionQueryTest(props: IFactionQueryTestProps) {
                     </div>
                 ) : (
                     queryResults.map((item) => {
+                        const itemSkewed = isItemSkewed(item);
                         return (
                             <Card
                                 key={item.id}
@@ -215,13 +224,16 @@ export default function FactionQueryTest(props: IFactionQueryTestProps) {
                                 }
                                 extra={
                                     <Space size="small" align="end">
-                                        
                                         <Space size="small">
                                             {item.chroma_score !== undefined && (
-                                                <Tag>向量: {item.chroma_score.toFixed(3)}</Tag>
+                                                <Tag color={getScoreColor(item.chroma_score)}>
+                                                    向量: {item.chroma_score.toFixed(3)}
+                                                </Tag>
                                             )}
                                             {item.db_score !== undefined && (
-                                                <Tag>数据库: {item.db_score.toFixed(3)}</Tag>
+                                                <Tag color={getScoreColor(item.db_score)}>
+                                                    数据库: {item.db_score.toFixed(3)}
+                                                </Tag>
                                             )}
                                         </Space>
                                         <Text type="secondary"> | </Text>
@@ -233,25 +245,41 @@ export default function FactionQueryTest(props: IFactionQueryTestProps) {
                                     </Space>
                                 }
                             >
-                                <Descriptions size="small" column={2} bordered>
-                                    {item.id && (
-                                        <Descriptions.Item label="ID">{item.id}</Descriptions.Item>
+                                <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                                    {/* 数据偏斜警告 - 显示在具体卡片上 */}
+                                    {itemSkewed && (
+                                        <Alert 
+                                            message={
+                                                (item.chroma_score === 0 && item.db_score > 0) 
+                                                    ? "向量得分为0，可能影响召回质量。建议检查知识库嵌入状态。" 
+                                                    : "数据库得分为0，可能影响召回质量。建议检查数据库索引。"
+                                            }
+                                            type="warning"
+                                            showIcon
+                                            size="small"
+                                            style={{ marginBottom: 8 }}
+                                        />
                                     )}
-                                    {item.factionName && (
-                                        <Descriptions.Item label="阵营名称">{item.factionName}</Descriptions.Item>
-                                    )}
-                                    {/* {item.metadata?.source && (
-                                        <Descriptions.Item label="来源">{item.metadata.source}</Descriptions.Item>
-                                    )}
-                                    {item.metadata?.timestamp && (
-                                        <Descriptions.Item label="时间">{item.metadata.timestamp}</Descriptions.Item>
-                                    )} */}
-                                    {item.content && (
-                                        <Descriptions.Item label="描述" span={2}>
-                                            <pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{item.content}</pre>
-                                        </Descriptions.Item>
-                                    )}
-                                </Descriptions>
+                                    <Descriptions size="small" column={2} bordered>
+                                        {item.id && (
+                                            <Descriptions.Item label="ID">{item.id}</Descriptions.Item>
+                                        )}
+                                        {item.factionName && (
+                                            <Descriptions.Item label="阵营名称">{item.factionName}</Descriptions.Item>
+                                        )}
+                                        {/* {item.metadata?.source && (
+                                            <Descriptions.Item label="来源">{item.metadata.source}</Descriptions.Item>
+                                        )}
+                                        {item.metadata?.timestamp && (
+                                            <Descriptions.Item label="时间">{item.metadata.timestamp}</Descriptions.Item>
+                                        )} */}
+                                        {item.content && (
+                                            <Descriptions.Item label="描述" span={2}>
+                                                <pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{item.content}</pre>
+                                            </Descriptions.Item>
+                                        )}
+                                    </Descriptions>
+                                </Space>
                             </Card>
                         );
                     })
