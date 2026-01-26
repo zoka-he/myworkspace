@@ -3,13 +3,16 @@ import { useState, useEffect, forwardRef, useImperativeHandle, useMemo } from 'r
 import { IRoleInfo, IRoleData, IWorldViewData, IFactionDefData } from '@/src/types/IAiNoval'
 import factionApiCalls from '@/src/business/aiNoval/factionManage/apiCalls'
 import { CopyOutlined } from '@ant-design/icons'
+import { useFactionList, useLoadRoleInfoList, useRoleDefList, useRoleId, useWorldViewList } from '../roleManageContext'
+import apiCalls from '../apiCalls'
+import { generateRoleEmbedText } from '@/src/api/aiNovel'
 
 interface RoleInfoEditModalProps {
   open: boolean
   onCancel: () => void
-  onSubmit: (roleDef: IRoleData, data: IRoleInfo) => void | Promise<void>
-  roleData?: IRoleData
-  worldViewList: IWorldViewData[]
+  // onSubmit: (roleDef: IRoleData, data: IRoleInfo) => void | Promise<void>
+  // roleData?: IRoleData
+  // worldViewList: IWorldViewData[]
 }
 
 export interface RoleInfoEditModalRef {
@@ -19,15 +22,30 @@ export interface RoleInfoEditModalRef {
 export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditModalProps>(({
   open,
   onCancel,
-  onSubmit,
-  roleData,
-  worldViewList
+  // onSubmit,
+  // roleData,
+  // worldViewList
 }, ref) => {
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
-  const [roleDef, setRoleDef] = useState<IRoleData | undefined>()
+  const [embedLoading, setEmbedLoading] = useState(false)
+  // const [roleDef, setRoleDef] = useState<IRoleData | undefined>()
+
+  const [worldviewList] = useWorldViewList();
+
+  const [roleDefId] = useRoleId();
+  const [roleDefList] = useRoleDefList();
+  const roleDef = useMemo(() => {
+    return roleDefList.find(info => info.id === roleDefId) || null;
+  }, [roleDefId])
+
+
   const [presetValues, setPresetValues] = useState<IRoleInfo | undefined>()
-  const [factionList, setFactionList] = useState<IFactionDefData[]>([])
+  // const [factionList, setFactionList] = useState<IFactionDefData[]>([])
+
+  const [factionList] = useFactionList();
+
+  const loadRoleInfoList = useLoadRoleInfoList();
 
   // Transform faction data into tree structure using useMemo
   const factionTreeData = useMemo(() => {
@@ -58,7 +76,7 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
 
   useImperativeHandle(ref, () => ({
     openAndEdit: (roleDef: IRoleData, presetData?: IRoleInfo) => {
-      setRoleDef(roleDef)
+      // setRoleDef(roleDef)
       setPresetValues(presetData)
       form.setFieldsValue(presetData)
     }
@@ -72,24 +90,24 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
   }, [open, form])
 
   // Fetch faction data when worldview changes
-  useEffect(() => {
-    const fetchFactionData = async () => {
-      const worldviewId = form.getFieldValue('worldview_id')
-      if (worldviewId) {
-        try {
-          const response = await factionApiCalls.getFactionList(worldviewId)
-          setFactionList(response.data || [])
-        } catch (error) {
-          console.error('Failed to fetch faction data:', error)
-        }
-      }
-    }
+  // useEffect(() => {
+  //   const fetchFactionData = async () => {
+  //     const worldviewId = form.getFieldValue('worldview_id')
+  //     if (worldviewId) {
+  //       try {
+  //         const response = await factionApiCalls.getFactionList(worldviewId)
+  //         setFactionList(response.data || [])
+  //       } catch (error) {
+  //         console.error('Failed to fetch faction data:', error)
+  //       }
+  //     }
+  //   }
 
-    fetchFactionData()
-  }, [form.getFieldValue('worldview_id')])
+  //   fetchFactionData()
+  // }, [form.getFieldValue('worldview_id')])
 
   const copyName = () => {
-    const name = roleData?.name;
+    const name = roleDef?.name;
     if (!name) {
       message.error('没有可参考的角色名称！')
       return
@@ -106,24 +124,106 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
     })
   }
 
+  const handleGenerateEmbedDocument = async () => {
+    try {
+      const values = form.getFieldsValue([
+        'name_in_worldview',
+        'gender_in_worldview',
+        'age_in_worldview',
+        'personality',
+        'background'
+      ])
+      
+      // 组合角色信息为单一文本
+      const roleTextParts: string[] = []
+      
+      if (values.name_in_worldview) {
+        roleTextParts.push(`角色名称：${values.name_in_worldview}`)
+      }
+      if (values.gender_in_worldview) {
+        const genderMap: Record<string, string> = {
+          'male': '男',
+          'female': '女',
+          'other': '其他'
+        }
+        roleTextParts.push(`性别：${genderMap[values.gender_in_worldview] || values.gender_in_worldview}`)
+      }
+      if (values.age_in_worldview) {
+        roleTextParts.push(`年龄：${values.age_in_worldview}`)
+      }
+      if (values.personality) {
+        roleTextParts.push(`性格特征：${values.personality}`)
+      }
+      if (values.background) {
+        roleTextParts.push(`背景故事：${values.background}`)
+      }
+      
+      const roleText = roleTextParts.join('\n')
+      
+      if (!roleText.trim()) {
+        message.warning('请先填写角色基本信息（名称、性别、年龄、性格或背景）')
+        return
+      }
+      
+      setEmbedLoading(true)
+      const embedText = await generateRoleEmbedText(roleText)
+      form.setFieldsValue({ embed_document: embedText })
+      message.success('嵌入文档生成成功')
+    } catch (e: any) {
+      console.error('生成嵌入文档失败：', e)
+      message.error(e?.message || '生成嵌入文档失败')
+    } finally {
+      setEmbedLoading(false)
+    }
+  }
+
   const handleSubmit = async () => {
+
+    let values = null;
     try {
       setLoading(true)
-      const values = await form.validateFields()
-      const factionId = values.faction_id
-      const rootFactionId = findRootFactionId(factionId)
-
-      await onSubmit(
-        roleDef || {}, 
-        {
-          ...presetValues,
-          ...values,
-          role_id: roleData?.id,
-          root_faction_id: rootFactionId
-        }
-      )
+      values = await form.validateFields()
+      
     } catch (error) {
       console.error('Form validation failed:', error)
+      setLoading(false)
+      return;
+    }
+
+    const factionId = values.faction_id
+    const rootFactionId = findRootFactionId(factionId)
+
+    const data = {
+      ...presetValues,
+      ...values,
+      role_id: roleDefId,
+      root_faction_id: rootFactionId
+    }
+
+
+    try {
+      let response = null;
+  
+      delete data.created_at;
+      
+      if (data.id) {
+          response = await apiCalls.updateRoleInfo(data);
+      } else {
+          response = await apiCalls.createRoleInfo(data);
+      }
+  
+      message.success(data.id ? '更新角色版本成功' : '创建角色版本成功');
+      // setEditModalVisible(false);
+      onCancel();
+  
+      // 刷新角色列表
+      loadRoleInfoList();
+      // console.debug('handleCreateOrUpdateRoleInfo updateTimestamp --->> ', Date.now());
+      // setUpdateTimestamp(Date.now());
+    
+    } catch (error) {
+        console.error('Failed to create role info:', error);
+        message.error('创建角色版本失败');
     } finally {
       setLoading(false)
     }
@@ -194,7 +294,7 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
               rules={[{ required: true, message: '请选择世界观' }]}
             >
               <Select placeholder="请选择世界观">
-                {(worldViewList || []).map(worldView => (
+                {(worldviewList || []).map(worldView => (
                   <Select.Option key={worldView.id} value={worldView.id}>
                     {worldView.title}
                   </Select.Option>
@@ -270,8 +370,21 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
         <Row gutter={16}>
           <Col span={24}>
             <Form.Item
+              name="personality"
+              label="角色详情"
+              labelCol={{ span: 3 }}
+              wrapperCol={{ span: 21 }}
+            >
+              <Input.TextArea autoSize={{ minRows: 4 }} placeholder="请输入角色详情" />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          <Col span={24}>
+            <Form.Item
               name="background"
-              label="角色背景"
+              label="背景故事"
               labelCol={{ span: 3 }}
               wrapperCol={{ span: 21 }}
             >
@@ -283,12 +396,17 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
         <Row gutter={16}>
           <Col span={24}>
             <Form.Item
-              name="personality"
-              label="角色详情"
+              name="embed_document"
+              label="嵌入内容"
               labelCol={{ span: 3 }}
               wrapperCol={{ span: 21 }}
             >
-              <Input.TextArea rows={4} placeholder="请输入角色详情" />
+              <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                <Button loading={embedLoading} onClick={handleGenerateEmbedDocument}>生成嵌入文档</Button>
+                <Form.Item name="embed_document" noStyle>
+                  <Input.TextArea rows={4} placeholder="请输入嵌入内容" />
+                </Form.Item>
+              </Space>
             </Form.Item>
           </Col>
         </Row>

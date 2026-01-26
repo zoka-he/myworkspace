@@ -4,7 +4,8 @@ import { type IGeoTreeItem } from "../geoTree";
 import GeoRecallTest from "../subPanel/geoRecallTest";
 import GeoDifyDocument from "../subPanel/geoDifyDocument";
 import { useSimpleWorldviewContext } from "../../common/SimpleWorldviewProvider";
-import { useManageState } from "../ManageStateProvider";
+import { isParentObject, useManageState, useObject } from "../ManageStateProvider";
+import GeoEmbedDocument from "../subPanel/geoEmbedDocument";
 
 interface IStarEditProps {
     raiseAddSatellite: (data: IGeoPlanetData) => void,
@@ -19,12 +20,14 @@ export default function(props: IStarEditProps) {
     const { state: worldviewState } = useSimpleWorldviewContext();
     const { worldviewId } = worldviewState;
 
-    const { state: manageState } = useManageState();
-    const { treeRaisedObject } = manageState;
+    // const { state: manageState } = useManageState();
+    // const { treeRaisedObject } = manageState;
 
-    let data = treeRaisedObject?.data;
+    // let data = treeRaisedObject?.data;
+    let [data] = useObject();
+    let [isParent] = isParentObject();
     let described_in_llm = data?.described_in_llm == 1;
-    let isParent = (treeRaisedObject?.children?.length || 0) > 0;
+    // let isParent = (treeRaisedObject?.children?.length || 0) > 0;
 
     function onClickAddSatellite() {
         if (typeof props.raiseAddSatellite === 'function' && data) {
@@ -81,7 +84,8 @@ export default function(props: IStarEditProps) {
                     </Space>
                 </Col>
             </Row>
-            <Divider style={{ margin: '10px 0' }} />
+
+            
             <Row>
                 <Col span={24}>
                     <dl>
@@ -93,6 +97,8 @@ export default function(props: IStarEditProps) {
                 </Col>
             </Row>
 
+            <GeoEmbedDocument geoData={data} />
+            <Divider style={{ margin: '10px 0' }} />
             <Tabs
                 defaultActiveKey="1"
                 type="card"

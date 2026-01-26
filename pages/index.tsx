@@ -2,15 +2,74 @@ import '@/src/init';
 import Head from 'next/head'
 import { Provider, useSelector } from 'react-redux';
 import store, { IRootState } from '../src/store';
-import zhCN from 'antd/locale/zh_CN';
-import { ConfigProvider } from 'antd';
-import { StyleProvider } from '@ant-design/cssinjs';
-import { getAlgorithm } from '../src/config/theme';
 import dynamic from "next/dynamic";
 import Script from 'next/script';
 import { useEffect } from 'react';
+import { IMessage } from '@stomp/stompjs';
 
+import { ConfigProvider, message } from 'antd';
+import { StyleProvider } from '@ant-design/cssinjs';
+import { getAlgorithm } from '../src/config/theme';
+import zhCN from 'antd/locale/zh_CN';
+
+import { WagmiProvider } from 'wagmi';
+import { wagmiConfig } from '@/src/config/wagmi';
+import { RabbitMQProvider } from '@/src/components/context/aiNovel';
+import mqConfig from '@/src/config/rabbitmq';
+import MQHolder from '@/src/components/context/aiNovel/mqHolder';
+
+import AiNovelContextProvider from '@/src/components/context/aiNovel';
+
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import TestConsumer from '@/src/components/mq/testConsumer';
+import NoticeConsumer from '@/src/components/mq/noticeConsumer';
+
+const queryClient = new QueryClient();
 const MyRouter = dynamic(() => import("../src/router"), { ssr: false });
+
+function AppCore() {
+
+    function onMessage(message: IMessage) {
+        // console.log(message);
+    }
+
+    function onConnectionChange(connected: boolean) {
+        console.log(connected);
+
+        if (connected) {
+            message.success('已连接后端队列');
+        } else {
+            message.error('已断开后端队列');
+        }
+    }
+
+    function onError(error: string) {
+        console.log(error);
+        message.error('后端队列连接错误: ' + error);
+    }
+
+    return (
+        <WagmiProvider config={wagmiConfig}>
+        <QueryClientProvider client={queryClient}>
+        <RabbitMQProvider config={mqConfig}>
+
+            <MyRouter/>
+
+            <MQHolder
+                onMessage={onMessage}
+                onConnectionChange={onConnectionChange}
+                onError={onError}
+            >
+                {/* <TestConsumer/> */}
+                <NoticeConsumer/>
+            </MQHolder>
+
+        </RabbitMQProvider>
+        </QueryClientProvider>
+        </WagmiProvider>
+        
+    )
+}
 
 function AntdApp() {
 
@@ -18,7 +77,7 @@ function AntdApp() {
 
     // 动态更新 HTML 的 data-theme 属性
     useEffect(() => {
-      document.documentElement.setAttribute('data-theme', themeConfig.name);
+        document.documentElement.setAttribute('data-theme', themeConfig.name);
     }, [themeConfig.name]);
 
     return (
@@ -29,10 +88,11 @@ function AntdApp() {
                 token: themeConfig.token,
             }}
         >
-            <StyleProvider hashPriority="low">
-                <MyRouter/>
-            </StyleProvider>
+        <StyleProvider hashPriority="low">
+            <AppCore/>
+        </StyleProvider>
         </ConfigProvider>
+
     )
 }
 

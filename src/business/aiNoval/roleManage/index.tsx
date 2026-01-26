@@ -1,28 +1,35 @@
-import { Row, Col, Card, Space, Button, Select, List, Modal, message, Alert, Table, Typography, Radio } from "antd";
-import { useEffect, useState, useRef, useMemo } from "react";
+import { Row, Col, Card, Space, Button, Select, List, Modal, message, Alert, Table, Typography, Radio, Tree, TreeProps, TreeDataNode, Tag, notification } from "antd";
+import { useEffect, useState, useRef, useMemo, ReactNode } from "react";
 import { getWorldViews } from "../common/worldViewUtil";
 import { IRoleData, IWorldViewData, IRoleInfo } from "@/src/types/IAiNoval";
 import apiCalls from "./apiCalls";
 import { RoleDefModal, useRoleDefModal } from "./edit/roleDefModal";
-import { DeleteOutlined, ExclamationCircleOutlined, PlusOutlined, ReloadOutlined } from "@ant-design/icons";
+import { DeleteOutlined, EditOutlined, ExclamationCircleOutlined, PlusOutlined, ReloadOutlined } from "@ant-design/icons";
 import { RoleInfoPanel } from "./panel/roleInfoPanel";
 import { RoleInfoEditModal, RoleInfoEditModalRef } from './edit/roleInfoEditModal';
 import { RoleRelationPanel } from "./panel/roleRelationPanel";
 import { D3RoleRelationGraph } from "./panel/d3RoleRelationGraph";
+import RoleManageContextProvider, { useFactionList, useLoadFactionList, useLoadRoleDefList, useLoadRoleInfoList, useLoadWorldViewList, useRoleDefList, useRoleId, useRoleInfoList, useWorldViewId, useWorldViewList, useRoleInfoId, useRoleChromaMetadataList, calculateRoleInfoFingerprint, IRoleChromaMetadata, useLoadRoleChromaMetadataList } from "./roleManageContext";
+import { IFactionDefData } from "@/src/types/IAiNoval";
+import _ from 'lodash';
+import { getRabbitMQClient, RabbitMQClient } from "@/src/utils/rabbitmq";
+import { IMessage } from "@stomp/stompjs";
+import { QueryTestPanel } from "./panel/queryTestPanel";    
 
 export default function RoleManage() {
+
     const [worldViewList, setWorldViewList] = useState<IWorldViewData[]>([]);
     const [worldViewId, setWorldViewId] = useState<number | null>(null);
 
     const [roleList, setRoleList] = useState<IRoleData[]>([]);
     const [selectedRole, setSelectedRole] = useState<IRoleData | undefined>(undefined);
     const [editModalVisible, setEditModalVisible] = useState(false);
-    const [updateTimestamp, setUpdateTimestamp] = useState(0);
-    const [figUpdateTimestamp, setFigUpdateTimestamp] = useState(0);
+    // const [updateTimestamp, setUpdateTimestamp] = useState(0);
+    // const [figUpdateTimestamp, setFigUpdateTimestamp] = useState(0);
 
     const roleInfoEditModalRef = useRef<RoleInfoEditModalRef>(null);
 
-    const { isOpen, presetValues, openModal, closeModal } = useRoleDefModal();
+    
 
     const [activePanel, setActivePanel] = useState('attributes');
 
@@ -44,32 +51,229 @@ export default function RoleManage() {
         return res.data;
     }
 
-    async function reloadAll() {
-        let res = await getWorldViews()
-        setWorldViewList(res.data);
+    // 打开角色属性编辑模态框
+    const handleOpenRoleInfoEditModal = (roleDef: IRoleData, data?: IRoleInfo) => {
+        if (roleDef) {
+            roleInfoEditModalRef.current?.openAndEdit(roleDef, data);
+            setEditModalVisible(true);
+        }
+    };
 
-        loadRoleDefList();
+    let content = null;
+    switch (activePanel) {
+        case 'attributes':
+            content = <RoleInfoPanel onOpenRoleInfoEditModal={handleOpenRoleInfoEditModal} />;
+            break;
+        case 'relations':
+            content = <RoleRelationPanel onUpdate={() => {}} />;
+            break;
+        case 'query':
+            content = <QueryTestPanel />;
+            break;
     }
 
-    useEffect(() => {
-        loadRoleDefList();
-    }, [worldViewId]);
+
+    return (
+        <RoleManageContextProvider>
+            <div className="f-fit-height" style={{ paddingBottom: 10 }}>
+                <Row className="f-fit-height" gutter={8}>
+                    <Col className="f-fit-height" span={7}>
+                        <RolePanel/>
+                    </Col>
+                <Col className="f-fit-height" span={17}>
+                    <Card 
+                      className="f-fit-height" 
+                      title={
+                        <Radio.Group 
+                          value={activePanel} 
+                          onChange={e => setActivePanel(e.target.value)}
+                          buttonStyle="solid"
+                          optionType="button"
+                        >
+                          <Radio.Button value="attributes">角色属性及版本</Radio.Button>
+                          <Radio.Button value="relations">角色关系</Radio.Button>
+                          <Radio.Button value="query">查询测试</Radio.Button>
+                        </Radio.Group>
+                      }
+                    >
+                      {content}
+                    </Card>
+                </Col>
+            </Row>
+
+            
+
+            <RoleInfoEditModal
+                ref={roleInfoEditModalRef}
+                open={editModalVisible}
+                onCancel={() => setEditModalVisible(false)}
+            />
+            </div>
+
+            <MqProvider></MqProvider>
+        </RoleManageContextProvider>
+    )
+}
+
+interface MqProviderProps {
+    children?: ReactNode;
+}
+
+function MqProvider({ children }: MqProviderProps) {
+    const mqClient = useRef<RabbitMQClient | null>(null);
+    const subscriptionIdRef = useRef<string | null>(null); // 跟踪订阅ID，确保只订阅一次
+    const loadRoleChromaMetadataList = useLoadRoleChromaMetadataList(); // 使用优化后的 hook，总是使用最新的 worldViewId
 
     useEffect(() => {
-        reloadAll();
-    }, []);
+        // 如果已经订阅过，不再重复订阅
+        if (subscriptionIdRef.current) {
+            return;
+        }
 
-    // 创建角色
-    const handleCreateRole = async (values: { name?: string }) => {
-        console.debug('createRole', values);
+        const client = mqClient.current = getRabbitMQClient();
+        if (client) {
+            // 即使未连接也可以调用 subscribe，连接建立后会自动订阅
+            const subscriptionId = client.subscribe({
+                destination: '/exchange/frontend_notice.fanout',
+                id: 'frontend_notice_subscription', // 使用固定ID，确保只订阅一次
+            }, (message: IMessage) => {
+                console.debug('message --->> ', message);
+                let body = JSON.parse(message.body);
+                if (body.type === 'embed_task_completed') {
+                    // 直接调用，函数内部总是使用最新的 worldViewId
+                    loadRoleChromaMetadataList();
+                }
+                message.ack();
+            });
+            
+            subscriptionIdRef.current = subscriptionId;
+        }
 
-        await apiCalls.createRole({
-            ...values,
+        // 清理函数：组件卸载时取消订阅
+        return () => {
+            if (mqClient.current && subscriptionIdRef.current) {
+                mqClient.current.unsubscribe(subscriptionIdRef.current);
+                subscriptionIdRef.current = null;
+            }
+        };
+    }, [loadRoleChromaMetadataList]); // 依赖 loadRoleChromaMetadataList，但由于它使用 useCallback 返回稳定引用，不会导致重复订阅
+
+    // const [isConnected, setIsConnected] = useState(false);
+
+    // useEffect(() => {
+    //     if (!mqClient.current) {
+    //         mqClient.current = getRabbitMQClient();
+    //     }
+
+    //     // 如果客户端存在但未连接，尝试连接
+    //     if (mqClient.current && !mqClient.current.isConnected) {
+    //         mqClient.current.connect();
+    //     }
+
+    //     // 定期检查连接状态
+    //     const checkConnection = () => {
+    //         const connected = mqClient.current?.isConnected || false;
+    //         setIsConnected(connected);
+    //     };
+
+    //     // 初始检查
+    //     checkConnection();
+
+    //     // 设置轮询检查连接状态（每500ms检查一次）
+    //     const intervalId = setInterval(checkConnection, 500);
+
+    //     return () => {
+    //         clearInterval(intervalId);
+    //     };
+    // }, []);
+
+    // const prevConnectedRef = useRef<boolean | null>(null);
+    
+    // useEffect(() => {
+    //     // 只在状态变化时显示通知，避免重复通知
+    //     if (prevConnectedRef.current !== null && prevConnectedRef.current !== isConnected) {
+    //         if (!isConnected) {
+    //             notification.error({
+    //                 message: 'RabbitMQ 连接失败',
+    //                 description: '请检查 RabbitMQ 连接配置',
+    //             });
+    //         } else {
+    //             notification.success({
+    //                 message: 'RabbitMQ 连接成功',
+    //                 description: '连接成功',
+    //             });
+    //         }
+    //     }
+    //     prevConnectedRef.current = isConnected;
+    // }, [isConnected]);
+
+    // 这个组件只用于监控连接状态，不渲染任何内容
+    return null;
+}
+
+interface RolePanelProps {
+    
+}
+
+function RolePanel(props: RolePanelProps) {
+
+    const [worldViewId, setWorldViewId] = useWorldViewId();
+    const [worldViewList, setWorldViewList] = useWorldViewList();
+
+    const [roleDefId, setRoleDefId] = useRoleId();
+    const [roleInfoId, setRoleInfoId] = useRoleInfoId();
+    const [roleDefList] = useRoleDefList();
+    const [roleInfoList] = useRoleInfoList();
+
+    const [factionList] = useFactionList();
+    
+    const loadRoleDefList = useLoadRoleDefList();
+    const loadRoleInfoList = useLoadRoleInfoList();
+    // const loadFactionList = useLoadFactionList();
+    const [roleChromaMetadataList] = useRoleChromaMetadataList();
+    const loadRoleChromaMetadataList = useLoadRoleChromaMetadataList();
+
+    const { isOpen, presetValues, openModal, closeModal } = useRoleDefModal();
+
+    const loadWorldViewList = useLoadWorldViewList();
+
+    // 创建 faction 映射表用于计算 fingerprint
+    const factionMap = useMemo(() => {
+        const map = new Map<number, IFactionDefData>();
+        factionList.forEach(faction => {
+            if (faction.id) {
+                map.set(faction.id, faction);
+            }
         });
-        // 重新加载角色列表
-        const res = await apiCalls.getRoleList(worldViewId);
-        setRoleList(res.data);
-    };
+        return map;
+    }, [factionList]);
+
+    useEffect(() => {
+        console.warn('[RolePanel] useEffect triggered, worldViewId:', worldViewId);
+        loadRoleDefList();
+        loadRoleInfoList();
+    }, [worldViewId])
+
+    const roleManageTreeData = useMemo<TreeDataNode[]>(() => {
+        // console.debug('roleManageTreeData --->> ', roleDefList, roleInfoList);
+
+        return roleDefList.map(role => {
+            return {
+                title: role.name,
+                key: 'def-' + role.id || '',
+                data: role,
+                children: roleInfoList.filter(info => info.role_id === role.id).map(info => {
+                    return {
+                        title: info.version_name,
+                        key: 'info-' + info.id || '',
+                        data: info,
+                        parent: role,
+                        isCurrent: info.id === role.version,
+                    }
+                })
+            }
+        })
+    }, [roleDefList, roleInfoList]);
 
     // 删除角色
     const handleDeleteRole = async (role: IRoleData) => {
@@ -82,13 +286,23 @@ export default function RoleManage() {
             await apiCalls.deleteRole(role.id);
             message.success('删除成功');
             // 重新加载角色列表
-            if (worldViewId) {
-                const res = await apiCalls.getRoleList(worldViewId);
-                setRoleList(res.data);
-            }
+            loadRoleDefList();
+            loadRoleInfoList();
         } catch (error) {
             message.error('删除失败');
         }
+    };
+
+    // 创建角色
+    const handleCreateRole = async (values: { name?: string }) => {
+        console.debug('createRole', values);
+
+        await apiCalls.createRole({
+            ...values,
+        });
+        // 重新加载角色列表
+        loadRoleDefList();
+        loadRoleInfoList();
     };
 
     const showDeleteConfirm = (role: IRoleData) => {
@@ -101,6 +315,13 @@ export default function RoleManage() {
             onOk: () => handleDeleteRole(role)
         });
     };
+
+    function reloadAll() {
+        loadWorldViewList();
+        loadRoleDefList();
+        loadRoleInfoList();
+        loadRoleChromaMetadataList();
+    }
 
     /**
      * 渲染角色列表标题
@@ -123,206 +344,89 @@ export default function RoleManage() {
         </Space>
     );
 
-    /**
-     * 渲染角色列表
-     * @param item 
-     * @returns 
-     */
-    function renderRoleItem(item: IRoleData) {
-        let itemText = null;
+    return (
+        <>
+            <Card className="f-fit-height" title={roleListTitle}>
+                <div className="f-flex-col">
+                    <Alert style={{ marginBottom: 10 }} message="添加角色后，角色不会立即出现在世界观，需要添加关联世界观的角色属性版本，相关角色会显示感叹号" type="info" />
+                    <Button 
+                        className="f-fit-width" 
+                        onClick={() => openModal()}
+                    >
+                        添加角色
+                    </Button>
+                    <Tree 
+                        className="f-flex-1" 
+                        treeData={roleManageTreeData}
+                        onClick={(e, node) => {
+                            if (node.key.startsWith('def-')) {
+                                setRoleDefId(node.data.id);
+                                setRoleInfoId(node.data.version);
+                            } else if (node.key.startsWith('info-')) {
+                                setRoleDefId(node.data.role_id);
+                                setRoleInfoId(node.data.id);
+                            }
+                        }}
+                        blockNode={true}
+                        titleRender={(node: DataNode) => {
+                            let suffix = [];
+                            let actions = [];
+                            let hasChildren = node.children?.length || false;
 
-        if (item.version_name) {
-            itemText = <List.Item.Meta title={`${item.name} (${item.version_name})`}/>;
-        } else {
-            itemText = <List.Item.Meta title={<Space><ExclamationCircleOutlined style={{ color: '#ff4d4f' }} /><span>{item.name}</span><span style={{ fontSize: 12, color: '#999' }}>未关联属性版本</span></Space>}/>;
-        }
+                            let info_id = '';
+                            let node_data_to_compare: any = {};
 
-        return (
-            <List.Item 
-                key={item.id} 
-                style={{ cursor: 'pointer' }}
-                onClick={() => setSelectedRole(item)}
-                actions={[
-                    <Button
-                        type="text"
-                        danger
-                        disabled={!!item.version_count && item.version_count > 0}
-                        icon={<DeleteOutlined />}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            showDeleteConfirm(item);
+                            if (node.key.startsWith('def-')) {
+                                suffix.push(<Tag key="version" color="green">{node.data?.version_name}</Tag>);
+                                node_data_to_compare = node.children?.find((child: any) => child.isCurrent)?.data;
+                                info_id = node_data_to_compare?.id || '';
+                            } else if (node.key.startsWith('info-')) {
+                                if (node.isCurrent) {
+                                    suffix.push(<Tag key="current" color="blue">当前</Tag>);
+                                }
+                                node_data_to_compare = node.data;
+                                info_id = node.data?.id || '';
+                            }
+
+                            // 在渲染时计算 fingerprint
+                            let localFingerprint = '';
+                            if (node_data_to_compare) {
+                                localFingerprint = calculateRoleInfoFingerprint(node_data_to_compare, factionMap);
+                            }
+
+                            let chromaFingerprint = roleChromaMetadataList.find(
+                                (item: IRoleChromaMetadata) => item.metadata.id === info_id
+                            )?.metadata.fingerprint || '';
+                            
+                            // console.debug('fingerprint compare --->> ', { info_id, localFingerprint, chromaFingerprint });
+
+                            if (chromaFingerprint) {
+                                if (chromaFingerprint === localFingerprint) {
+                                    actions.push(<Tag key="vector" color="green">向量就绪</Tag>);
+                                } else {
+                                    actions.push(<Tag key="vector" color="red">向量过时</Tag>);
+                                }
+                            } else if (node_data_to_compare) {
+                                // suffix.push(<Tag key="vector" color="orange">未向量化</Tag>);
+                            }
+
+                            return (
+                                <div className="f-flex-two-side">
+                                    <Space>
+                                        <span>{node.title}</span>
+                                        {suffix}
+                                    </Space>
+                                    <Space>
+                                        {actions}
+                                        <Button type="link" size="small" icon={<EditOutlined />} />
+                                        <Button type="link" size="small" disabled={hasChildren} danger icon={<DeleteOutlined />} />
+                                    </Space>
+                                </div>
+                            )
                         }}
                     />
-                ]}
-            >
-                {itemText}
-            </List.Item>
-        );
-    }
-
-    const handleNodeClick = (roleId: string | number) => {
-        let role = roleList.find(item => item.id == Number(roleId));
-        if (role) {
-            setSelectedRole(role);
-        }
-    }
-
-    // 更改角色属性的版本
-    const handleVersionChange = async (roleDef: IRoleData) => {
-        try {
-            await apiCalls.updateRole(roleDef);
-            message.success('更新角色版本成功');
-
-
-            // 刷新角色列表
-            await loadRoleDefList() as IRoleData[];
-            console.debug('handleVersionChange updateTimestamp --->> ', Date.now());
-            setUpdateTimestamp(Date.now());
-        } catch (error) {
-            console.error('Failed to update role:', error);
-            message.error('更新角色版本失败');
-        }
-    };
-
-    // 创建或更新角色属性
-    const handleCreateOrUpdateRoleInfo = async (roleDef: IRoleData, data: IRoleInfo) => {
-        try {
-            let response = null;
-
-            delete data.created_at;
-            
-            if (data.id) {
-                response = await apiCalls.updateRoleInfo(data);
-            } else {
-                response = await apiCalls.createRoleInfo(data);
-            }
-
-            message.success(data.id ? '更新角色版本成功' : '创建角色版本成功');
-            setEditModalVisible(false);
-
-            // 刷新角色列表
-            await loadRoleDefList() as IRoleData[];
-            console.debug('handleCreateOrUpdateRoleInfo updateTimestamp --->> ', Date.now());
-            setUpdateTimestamp(Date.now());
-
-        } catch (error) {
-            console.error('Failed to create role info:', error);
-            message.error('创建角色版本失败');
-        }
-    };
-
-    const handleDeleteRoleInfo = async (roleDef: IRoleData, data: IRoleInfo) => {
-        try {
-            await apiCalls.deleteRoleInfo(data);
-            await apiCalls.updateRole({ id: roleDef.id, version: null });
-            message.success('删除成功');
-
-            // 刷新角色列表
-            await loadRoleDefList() as IRoleData[];
-            console.debug('handleDeleteRoleInfo updateTimestamp --->> ', Date.now());
-            setUpdateTimestamp(Date.now());
-        } catch (error) {
-            message.error('删除失败');
-        }
-    }
-
-    // 打开角色属性编辑模态框
-    const handleOpenRoleInfoEditModal = (roleDef: IRoleData, data?: IRoleInfo) => {
-        if (roleDef) {
-            roleInfoEditModalRef.current?.openAndEdit(roleDef, data);
-            setEditModalVisible(true);
-        }
-    };
-
-    return (
-        <div className="f-fit-height" style={{ paddingBottom: 10 }}>
-            <Row className="f-fit-height" gutter={10}>
-                <Col className="f-fit-height" span={6}>
-                    <Card className="f-fit-height" title={roleListTitle}>
-                        <div className="f-flex-col">
-                            <Alert style={{ marginBottom: 10 }} message="添加角色后，角色不会立即出现在世界观，需要添加关联世界观的角色属性版本，相关角色会显示感叹号" type="info" />
-                            <Button 
-                                className="f-fit-width" 
-                                onClick={() => openModal()}
-                            >
-                                添加角色
-                            </Button>
-                            <List className="f-flex-1" size="small">
-                                {roleList.map(renderRoleItem)}
-                            </List>
-                        </div>
-                    </Card>
-                </Col>
-                <Col className="f-fit-height" span={11}>
-                    <Card className="f-fit-height" title={
-                        <Space>
-                            <span>角色关系图</span>
-                            <Button type="primary" size="small" icon={<ReloadOutlined />} onClick={() => {
-                                console.debug('handleRelationUpdate updateTimestamp --->> ', Date.now());
-                                setUpdateTimestamp(Date.now())
-                            }}>刷新</Button>
-                        </Space>
-                    }>
-                        <D3RoleRelationGraph 
-                            worldview_id={worldViewId?.toString() || ''} 
-                            updateTimestamp={updateTimestamp}
-                            onNodeClick={handleNodeClick}
-                        />
-                    </Card>
-                </Col>
-                <Col className="f-fit-height" span={7}>
-                    <Card 
-                      className="f-fit-height" 
-                      title={
-                        <Radio.Group 
-                          value={activePanel} 
-                          onChange={e => setActivePanel(e.target.value)}
-                          buttonStyle="solid"
-                          optionType="button"
-                        >
-                          <Radio.Button value="attributes">角色属性及版本</Radio.Button>
-                          <Radio.Button value="relations">角色关系</Radio.Button>
-                        </Radio.Group>
-                      }
-                    >
-                      {activePanel === 'attributes' ? (
-                        selectedRole ? (
-                            <RoleInfoPanel
-                                roleDef={selectedRole}
-                                updateTimestamp={updateTimestamp}
-                                onVersionChange={handleVersionChange}
-                                onOpenRoleInfoEditModal={handleOpenRoleInfoEditModal}
-                                onDeleteRoleInfo={handleDeleteRoleInfo}
-                                worldviewMap={worldviewMap}
-                            />
-                        ) : (
-                            <div style={{ textAlign: 'center', padding: '20px' }}>
-                                请选择一个角色查看详情
-                            </div>
-                        )
-                      ) : (
-                        selectedRole ? (
-                          <RoleRelationPanel 
-                            roleId={selectedRole.id} 
-                            roleName={selectedRole.name!}
-                            candidateRoles={roleList}
-                            worldViews={worldViewList}
-                            worldViewId={worldViewId}
-                            onUpdate={() => {
-                                console.debug('handleRelationUpdate updateTimestamp --->> ', Date.now());
-                                setUpdateTimestamp(Date.now())
-                            }}
-                          />
-                        ) : (
-                          <div className="f-center">
-                            请选择一个角色查看关系
-                          </div>
-                        )
-                      )}
-                    </Card>
-                </Col>
-            </Row>
-
+                </div>
+            </Card>
             <RoleDefModal
                 open={isOpen}
                 onCancel={closeModal}
@@ -330,15 +434,8 @@ export default function RoleManage() {
                 initialValues={presetValues}
                 title="创建角色"
             />
-
-            <RoleInfoEditModal
-                ref={roleInfoEditModalRef}
-                open={editModalVisible}
-                onCancel={() => setEditModalVisible(false)}
-                onSubmit={handleCreateOrUpdateRoleInfo}
-                worldViewList={worldViewList}
-                roleData={selectedRole}
-            />
-        </div>
+        </>
     )
 }
+
+

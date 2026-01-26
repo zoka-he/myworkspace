@@ -43,12 +43,12 @@ function factionReducer(state: FactionContextState, action: any): FactionContext
 
 async function loadFactions(state: FactionContextState, dispatch: (action: any) => void, worldViewId?: number | null): Promise<IFactionDefData[]> {
     if (!worldViewId) {
-        console.debug('loadFactions... worldViewId is null, return empty array');
+        // console.debug('loadFactions... worldViewId is null, return empty array');
         return [];
     }
     const response = await fetch.get('/api/aiNoval/faction/list', { params: { worldview_id: worldViewId, page: 1, limit: 1000 } });
     const factionList = response.data || [];
-    console.debug('loadFactions... factionList --> ', factionList);
+    // console.debug('loadFactions... factionList --> ', factionList);
     dispatch({ type: 'SET_FACTION_LIST', payload: factionList });
     dispatch({ type: 'SET_FACTION_TREE', payload: buildFactionTree(factionList) });
     return factionList;
@@ -79,7 +79,7 @@ function buildFactionTree(factionList: IFactionDefData[]): IFactionDefData[] {
         }
     });
 
-    console.debug('buildFactionTree... result --> ', result);
+    // console.debug('buildFactionTree... result --> ', result);
     return result;
 }
 
@@ -88,11 +88,11 @@ export default function SimpleFactionProvider({ children }: { children: React.Re
     const [state, dispatch] = useReducer(factionReducer, initialState());
 
     useEffect(() => {
-        console.debug('SimpleFactionProvider init... worldviewId --> ', worldviewState.worldviewId);
+        // console.debug('SimpleFactionProvider init... worldviewId --> ', worldviewState.worldviewId);
         if (worldviewState.worldviewId) {
             loadFactions(state, dispatch, worldviewState.worldviewId);
         }
-        console.debug('SimpleFactionProvider init done... ', state);
+        // console.debug('SimpleFactionProvider init done... ', state);
     }, [])
 
     useEffect(() => {

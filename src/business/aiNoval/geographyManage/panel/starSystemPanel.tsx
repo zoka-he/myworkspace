@@ -4,7 +4,8 @@ import { type IGeoTreeItem } from "../geoTree";
 import GeoRecallTest from "../subPanel/geoRecallTest";
 import GeoDifyDocument from "../subPanel/geoDifyDocument";
 import { useSimpleWorldviewContext } from "../../common/SimpleWorldviewProvider";
-import { useManageState } from "../ManageStateProvider";
+import { isParentObject, useManageState, useObject } from "../ManageStateProvider";
+import GeoEmbedDocument from "../subPanel/geoEmbedDocument";
 interface IStarSystemEditProps {
     raiseAddStarSystem: (data: IGeoStarSystemData) => void,
     raiseAddStar: (data: IGeoStarSystemData) => void,
@@ -19,12 +20,12 @@ export default function(props: IStarSystemEditProps) {
     const { state: worldviewState } = useSimpleWorldviewContext();
     const { worldviewId } = worldviewState;
 
-    const { state: manageState } = useManageState();
-    const { treeRaisedObject } = manageState;
+    // const { state: manageState } = useManageState();
+    // const { treeRaisedObject } = manageState;
 
-    let data = treeRaisedObject?.data;
+    let [data] = useObject();
     let described_in_llm = data?.described_in_llm == 1;
-    let isParent = (treeRaisedObject?.children?.length || 0) > 0;
+    let [isParent] = isParentObject();
 
     function onClickAddStar()  {
         if (typeof props.raiseAddStar === 'function' && data) {
@@ -77,7 +78,6 @@ export default function(props: IStarSystemEditProps) {
                     <dl>
                         <dt>地理编码：</dt><dd>{data?.code}</dd>
                     </dl>
-                    
                 </Col>
                 <Col span={12}>
                     <Space>
@@ -89,16 +89,20 @@ export default function(props: IStarSystemEditProps) {
                     </Space>
                 </Col>
             </Row>
-            <Divider style={{ margin: '10px 0' }} />
+
+
             <Row>
-                {/* <dl>
+                <dl>
                     <dt>简介</dt><dd>{ data?.description }</dd>
-                </dl> */}
+                </dl>
                 <dl>
                     <dt>是否在知识库中：</dt><dd>{ described_in_llm ? '是' : '否' }</dd>
                 </dl>
             </Row>
 
+            <GeoEmbedDocument geoData={data} />
+            <Divider style={{ margin: '10px 0' }} />
+            
             <Tabs
                 defaultActiveKey="1"
                 type="card"

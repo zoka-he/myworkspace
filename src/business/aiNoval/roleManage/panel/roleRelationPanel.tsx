@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react'
-import { Card, List, Button, message, Space, Modal, Form, Input, Select, Slider, DatePicker, Tag, Typography, Radio } from 'antd'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Card, List, Button, message, Space, Modal, Form, Input, Select, Slider, DatePicker, Tag, Typography, Radio, Row, Col } from 'antd'
 import { PlusOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { IRoleData, IWorldViewData, IRoleRelation, RELATION_TYPES } from '@/src/types/IAiNoval'
 import apiCalls from '../apiCalls'
+import { useRoleDefList, useRoleId, useRoleInfoId, useWorldViewId, useWorldViewList } from '../roleManageContext'
+import { D3RoleRelationGraph } from './d3RoleRelationGraph'
 
 
 interface RoleRelationPanelProps {
@@ -16,14 +18,43 @@ interface RoleRelationPanelProps {
 }
 
 
+let roleRelationPanelRenderCount = 0;
+
 export function RoleRelationPanel({ 
-  roleId, 
-  roleName, 
-  worldViews, 
-  worldViewId,
-  candidateRoles,
-  onUpdate
+  // roleId, 
+  // roleName, 
+  // worldViews, 
+  // worldViewId,
+  // candidateRoles,
+  // onUpdate
 }: RoleRelationPanelProps) {
+  roleRelationPanelRenderCount++;
+  console.warn('=== [RoleRelationPanel] RENDER ===', roleRelationPanelRenderCount);
+  
+  const [roleId, setRoleDefId] = useRoleId();
+  const [roleList] = useRoleDefList();
+  const [roleInfoId, setRoleInfoId] = useRoleInfoId();
+  const [worldViewId] = useWorldViewId();
+  const [worldViewList] = useWorldViewList();
+
+  const [graphUpdateTimestamp, setGraphUpdateTimestamp] = useState(0)
+  
+  console.warn('=== [RoleRelationPanel] Context values ===', {
+    roleId,
+    roleInfoId,
+    worldViewId,
+    roleListLen: roleList.length
+  });
+
+  const selectedRole = useMemo(() => {
+    return roleList.find(info => info.id === roleId) || null;
+  }, [roleInfoId, roleList])
+
+  const currentWorldView = useMemo(() => {
+    return worldViewList.find(w => w.id === worldViewId) || null;
+  }, [worldViewId, worldViewList])
+
+
   const [relations, setRelations] = useState<IRoleRelation[]>([])
   const [loading, setLoading] = useState(false)
   const [isModalVisible, setIsModalVisible] = useState(false)
@@ -31,8 +62,6 @@ export function RoleRelationPanel({
   const [form] = Form.useForm()
   const [sliderColor, setSliderColor] = useState('#52c41a')
   const [relationStrength, setRelationStrength] = useState(50)
-
-  const currentWorldView = (worldViews || []).find(w => w.id === worldViewId)
 
   useEffect(() => {
     fetchIRoleRelations()
@@ -61,7 +90,8 @@ export function RoleRelationPanel({
           await apiCalls.deleteRoleRelation(record)
           message.success('删除成功')
           fetchIRoleRelations()
-          onUpdate?.()
+          setGraphUpdateTimestamp(Date.now())
+          // onUpdate?.()
         } catch (error) {
           message.error('删除失败')
         }
@@ -126,7 +156,8 @@ export function RoleRelationPanel({
       form.resetFields()
       setRelationStrength(50)
       fetchIRoleRelations()
-      onUpdate?.()
+      setGraphUpdateTimestamp(Date.now())
+      // onUpdate?.()
     } catch (error) {
       message.error(editingRelation ? '更新失败' : '添加失败')
     }
@@ -143,7 +174,7 @@ export function RoleRelationPanel({
   const renderRelationItem = (item: IRoleRelation) => {
     const relationType = RELATION_TYPES.find(t => t.value === item.relation_type)
 
-    let related_role_name = (candidateRoles || []).find(role => role.id === item.related_role_id)?.name || '未知角色';
+    let related_role_name = (roleList || []).find(role => role.id === item.related_role_id)?.name || '未知角色';
     let relation_strength = item.relation_strength || 50;
     
     return (
@@ -154,19 +185,21 @@ export function RoleRelationPanel({
         <div style={{ position: 'relative' }}>
           <Space style={{ position: 'absolute', right: 0, top: 0 }}>
             <Button 
+              size="small"
               type="text" 
               icon={<EditOutlined />}
               onClick={() => handleEdit(item)}
             >
-              编辑
+              {/* 编辑 */}
             </Button>
             <Button 
+              size="small"
               type="text" 
               danger 
               icon={<DeleteOutlined />}
               onClick={() => handleDelete(item)}
             >
-              删除
+              {/* 删除 */}
             </Button>
           </Space>
           <List.Item.Meta
@@ -227,39 +260,61 @@ export function RoleRelationPanel({
           </Typography.Text>
         </div>
       ) : (
-        <>
-          {currentWorldView && (
-            <div style={{ marginBottom: 16 }}>
-              <Typography.Text type="secondary">
-                当前世界观：{currentWorldView.title}
-              </Typography.Text>
-            </div>
-          )}
-          <Card
-            title={`${roleName}的角色关系`}
-            extra={
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={handleAdd}
-              >
-                添加关系
-              </Button>
-            }
-            bodyStyle={{ padding: '12px' }}
-          >
-            <List
-              loading={loading}
-              dataSource={relations}
-              renderItem={renderRelationItem}
-              itemLayout="vertical"
-              split={true}
-              style={{ 
-                '--ant-list-item-padding': '8px 0',
-                '--ant-list-item-border-bottom': '1px solid #f0f0f0'
-              } as React.CSSProperties}
-            />
-          </Card>
+        <Row gutter={16}>
+          <Col span={17}>
+            <Card title="角色关系力导向图" size="small" styles={{ body: { height: 'calc(100vh - 220px)', padding: 0 } }}>
+              <D3RoleRelationGraph
+                // worldview_id={worldViewId?.toString() || ''}
+                updateTimestamp={graphUpdateTimestamp}
+                onNodeClick={(roleId: string) => {
+                  let roleDef = roleList.find(role => role.id === Number(roleId))
+                  if (roleDef) {
+                    setRoleDefId(roleDef.id)
+                    setRoleInfoId(roleDef.version)
+                  }
+                }}
+              />
+            </Card>
+          </Col>
+          <Col span={7}>
+            <Card
+              title={roleId ? `${selectedRole?.name}的角色关系` : '角色关系'}
+              extra={
+                roleId ? (
+                  <Button
+                    size="small"
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={handleAdd}
+                  >
+                    {/* 添加关系 */}
+                  </Button>
+                ) : null
+              }
+              size="small"
+              styles={{ body: { height: 'calc(100vh - 220px)' } }}
+            >
+              {!roleId ? (
+                <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                  <Typography.Text type="secondary" style={{ fontSize: 16 }}>
+                    请选择一个角色
+                  </Typography.Text>
+                </div>
+              ) : (
+                <List
+                  loading={loading}
+                  dataSource={relations}
+                  renderItem={renderRelationItem}
+                  itemLayout="vertical"
+                  split={true}
+                  style={{ 
+                    '--ant-list-item-padding': '8px 0',
+                    '--ant-list-item-border-bottom': '1px solid #f0f0f0'
+                  } as React.CSSProperties}
+                />
+              )}
+            </Card>
+          </Col>
 
           <Modal
             title={editingRelation ? '编辑角色关系' : '添加角色关系'}
@@ -299,7 +354,7 @@ export function RoleRelationPanel({
                   <Select
                     placeholder="请选择关联角色"
                     showSearch
-                    options={(candidateRoles || []).filter(role => role.id !== roleId).map(role => ({
+                    options={(roleList || []).filter(role => role.id !== roleId).map(role => ({
                       value: role.id,
                       label: role.name
                     }))}
@@ -401,7 +456,7 @@ export function RoleRelationPanel({
               </Form.Item>
             </Form>
           </Modal>
-        </>
+        </Row>
       )}
 
       <style jsx global>{`

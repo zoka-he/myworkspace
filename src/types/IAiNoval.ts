@@ -25,7 +25,8 @@ export interface IGeoStarSystemData {
     area_coef?: number | null,
     children_area_coef?: number | null,
     has_geo_area?: string,
-    parent_system_id?: number | null
+    parent_system_id?: number | null,
+    embed_document?: string | null,
 }
 
 export interface IGeoStarData {
@@ -41,7 +42,8 @@ export interface IGeoStarData {
     dify_dataset_id?: string | null,
     area_coef?: number | null,
     children_area_coef?: number | null,
-    has_geo_area?: string
+    has_geo_area?: string,
+    embed_document?: string | null,
 }
 
 export interface IGeoPlanetData {
@@ -56,7 +58,8 @@ export interface IGeoPlanetData {
     dify_dataset_id?: string | null,
     area_coef?: number | null,
     children_area_coef?: number | null,
-    has_geo_area?: string
+    has_geo_area?: string,
+    embed_document?: string | null,
 }
 
 export interface IGeoSatelliteData {
@@ -72,7 +75,8 @@ export interface IGeoSatelliteData {
     dify_dataset_id?: string | null,
     area_coef?: number | null,
     children_area_coef?: number | null,
-    has_geo_area?: string
+    has_geo_area?: string,
+    embed_document?: string | null,
 }
 
 export interface IGeoGeographyUnitData {
@@ -93,9 +97,11 @@ export interface IGeoGeographyUnitData {
     area_coef?: number | null,
     children_area_coef?: number | null,
     has_geo_area?: string,
+    embed_document?: string | null,
 }
 
 export interface IGeoUnionData extends IGeoStarSystemData, IGeoStarData, IGeoPlanetData, IGeoSatelliteData, IGeoGeographyUnitData {
+    fingerprint: string
     data_type?: string | null,
 }
 
@@ -119,6 +125,7 @@ export interface IFactionDefData {
     parent_id?: number | null,
     dify_document_id?: string | null,
     dify_dataset_id?: string | null,
+    embed_document?: string | null,
 }
 
 export interface IRoleData {
@@ -146,6 +153,7 @@ export interface IRoleInfo {
     created_at?: Date | null,
     dify_document_id?: string | null,
     dify_dataset_id?: string | null,
+    embed_document?: string | null,
 }
 
 

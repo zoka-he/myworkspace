@@ -6,6 +6,7 @@ import type { SimulationNodeDatum } from 'd3'
 import type { IRoleRelation, IRoleData, IRoleInfo } from '@/src/types/IAiNoval'
 import { RELATION_TYPES } from '@/src/types/IAiNoval'
 import apiCalls from '../../../aiNoval/roleManage/apiCalls'
+import { useRoleDefList, useRoleId, useRoleInfoId, useWorldViewId } from '../roleManageContext'
 
 interface RoleNode extends SimulationNodeDatum {
   id: string
@@ -28,30 +29,72 @@ interface RoleGraphData {
 }
 
 interface D3RoleRelationGraphProps {
-  worldview_id: string
+  // worldview_id: string
   updateTimestamp?: number
   onNodeClick?: (roleId: string) => void
 }
 
+// 全局计数器，在模块级别
+let globalMountCount = 0;
+let lastWorldViewId: number | null = null;
+let lastDimWidth: number = 0;
+let lastDimHeight: number = 0;
+let lastUpdateTimestamp: number | undefined = undefined;
+
 export function D3RoleRelationGraph({ 
-  worldview_id,
+  // worldview_id,
   updateTimestamp,
   onNodeClick
 }: D3RoleRelationGraphProps) {
+  globalMountCount++;
+  console.warn('=== [D3Graph] RENDER ===', globalMountCount);
+  
   const containerRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
+  const [worldViewId] = useWorldViewId();
+  
+  // 追踪依赖变化
+  if (worldViewId !== lastWorldViewId) {
+    console.warn('=== [D3Graph] worldViewId CHANGED ===', lastWorldViewId, '->', worldViewId);
+    lastWorldViewId = worldViewId;
+  }
+  if (dimensions.width !== lastDimWidth) {
+    console.warn('=== [D3Graph] dimensions.width CHANGED ===', lastDimWidth, '->', dimensions.width);
+    lastDimWidth = dimensions.width;
+  }
+  if (dimensions.height !== lastDimHeight) {
+    console.warn('=== [D3Graph] dimensions.height CHANGED ===', lastDimHeight, '->', dimensions.height);
+    lastDimHeight = dimensions.height;
+  }
+  if (updateTimestamp !== lastUpdateTimestamp) {
+    console.warn('=== [D3Graph] updateTimestamp CHANGED ===', lastUpdateTimestamp, '->', updateTimestamp);
+    lastUpdateTimestamp = updateTimestamp;
+  }
 
   // Handle resize
   useEffect(() => {
     if (!containerRef.current) return
 
-    console.debug('D3RoleRelationGraph useEffect onInit --->> ', containerRef.current);
-
     const resizeObserver = new ResizeObserver(entries => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect
-        setDimensions({ width, height })
+        setDimensions(prev => {
+          // 如果之前尺寸为0，直接更新（初始化）
+          if (prev.width === 0 || prev.height === 0) {
+            return { width, height };
+          }
+          
+          // 只有当尺寸变化超过阈值（10px）时才更新，避免微小变化导致的无限循环
+          const widthDiff = Math.abs(prev.width - width)
+          const heightDiff = Math.abs(prev.height - height)
+          const threshold = 10
+          
+          if (widthDiff < threshold && heightDiff < threshold) {
+            return prev;
+          }
+          return { width, height };
+        })
       }
     })
 
@@ -64,8 +107,21 @@ export function D3RoleRelationGraph({
 
   // Handle graph rendering
   useEffect(() => {
-    if (!svgRef.current || dimensions.width === 0 || dimensions.height === 0) return
-    console.debug('D3RoleRelationGraph useEffect --->> ', [worldview_id, dimensions.width, dimensions.height, updateTimestamp]);
+    console.warn('=== [D3Graph] useEffect START ===', { 
+      hasSvgRef: !!svgRef.current, 
+      dimensions,
+      worldViewId 
+    });
+    
+    let isCancelled = false;
+    
+    if (!svgRef.current || dimensions.width === 0 || dimensions.height === 0) {
+      console.warn('=== [D3Graph] useEffect EARLY RETURN ===', {
+        hasSvgRef: !!svgRef.current,
+        dimensions
+      });
+      return;
+    }
 
     // Clear previous graph
     d3.select(svgRef.current).selectAll('*').remove()
@@ -96,11 +152,18 @@ export function D3RoleRelationGraph({
       .force('center', d3.forceCenter(dimensions.width / 2, dimensions.height / 2))
 
     // 获取数据
+    console.warn('=== [D3Graph] FETCHING DATA ===');
     Promise.all([
-      apiCalls.getRoleList(Number(worldview_id), 1, 2000),
-      apiCalls.getWorldViewRoleRelationList(Number(worldview_id), 1, 2000),
-      apiCalls.getWorldViewRoleInfoList(Number(worldview_id), 2000)
+      apiCalls.getRoleList(Number(worldViewId), 1, 2000),
+      apiCalls.getWorldViewRoleRelationList(Number(worldViewId), 1, 2000),
+      apiCalls.getWorldViewRoleInfoList(Number(worldViewId), 2000)
     ]).then(([roleRes, relationRes, roleInfoRes]) => {
+      console.warn('=== [D3Graph] DATA RECEIVED ===', { isCancelled });
+      // 如果 effect 已经被清理，不要继续处理
+      if (isCancelled) {
+        console.warn('=== [D3Graph] CANCELLED, SKIPPING ===');
+        return;
+      }
       const data: RoleGraphData = {
         nodes: roleRes.data,
         relations: relationRes.data
@@ -420,13 +483,14 @@ export function D3RoleRelationGraph({
 
     // Cleanup
     return () => {
+      isCancelled = true;
       simulation.stop()
     }
-  }, [worldview_id, dimensions, updateTimestamp])
+  }, [worldViewId, dimensions.width, dimensions.height, updateTimestamp])
 
   return (
-    <div ref={containerRef} style={{ width: '100%', height: '100%' }}>
-      <svg ref={svgRef} style={{ width: '100%', height: '100%' }}></svg>
+    <div ref={containerRef} style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+      <svg ref={svgRef} style={{ width: '100%', height: '100%', display: 'block' }}></svg>
     </div>
   )
 }

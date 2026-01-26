@@ -3,7 +3,8 @@ import { Col, Row, Button, Space, Divider, Tabs } from "antd";
 import GeoRecallTest from "../subPanel/geoRecallTest";
 import GeoDifyDocument from "../subPanel/geoDifyDocument";
 import { useSimpleWorldviewContext } from "../../common/SimpleWorldviewProvider";
-import { useManageState } from "../ManageStateProvider";
+import { isParentObject, useManageState, useObject } from "../ManageStateProvider";
+import GeoEmbedDocument from "../subPanel/geoEmbedDocument";
 
 interface IGeographyUnitPanelProps {
     raiseAddGeographicUnit: (data: IGeoGeographyUnitData) => void,
@@ -17,12 +18,13 @@ export default function(props: IGeographyUnitPanelProps) {
     const { state: worldviewState } = useSimpleWorldviewContext();
     const { worldviewId } = worldviewState;
 
-    const { state: manageState } = useManageState();
-    const { treeRaisedObject } = manageState;
+    // const { state: manageState } = useManageState();
+    // const { treeRaisedObject } = manageState;
+    const [data] = useObject();
 
-    let data = treeRaisedObject?.data;
+    // let data = treeRaisedObject?.data;
     let described_in_llm = data?.described_in_llm == 1;
-    let isParent = (treeRaisedObject?.children?.length || 0) > 0;
+    let [isParent] = isParentObject();
 
 
     function onClickAddGeographicUnit() {
@@ -73,7 +75,8 @@ export default function(props: IGeographyUnitPanelProps) {
                     </Space>
                 </Col>
             </Row>
-            <Divider style={{ margin: '10px 0' }} />
+
+
             <Row>
                 <Col span={24}>
                     <dl>
@@ -85,6 +88,8 @@ export default function(props: IGeographyUnitPanelProps) {
                 </Col>
             </Row>
 
+            <GeoEmbedDocument geoData={data} />
+            <Divider style={{ margin: '10px 0' }} />
             <Tabs
                 defaultActiveKey="1"
                 type="card"
