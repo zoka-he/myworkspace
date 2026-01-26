@@ -16,11 +16,8 @@ import Dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 
-import { WagmiProvider } from 'wagmi';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { wagmiConfig } from '@/src/config/wagmi';
 
-const queryClient = new QueryClient();
+
 
 function initDayjs() {
   Dayjs.extend(utc);
@@ -39,16 +36,12 @@ export default function App({ Component, pageProps }: AppProps) {
 
     startDetectBrowserWalletProvider();
   }, []);
+
+  
   
   return (
     <SessionProvider session={pageProps.session}>
-      <WagmiProvider config={wagmiConfig}>
-        <QueryClientProvider client={queryClient}>
-
-          <Component  key={router.asPath} {...pageProps} />
-
-        </QueryClientProvider>
-      </WagmiProvider>
+        <Component  key={router.asPath} {...pageProps} />
     </SessionProvider>
   )
 }

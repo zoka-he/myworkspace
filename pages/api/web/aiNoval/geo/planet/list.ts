@@ -24,7 +24,8 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
 
         switch(k) {
             case 'worldview_id':
-                queryObject.worldview_id = v;
+            case 'star_system_id':
+                queryObject[k] = v;
                 break;
         }
     }

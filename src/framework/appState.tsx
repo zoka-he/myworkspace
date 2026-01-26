@@ -3,6 +3,7 @@ import { Typography, Space, Descriptions, Tag } from 'antd';
 import mysqlConfig from '@/src/config/mysql';
 import { useConnection, useChainId, useEnsAddress, useConnectors, Connector } from 'wagmi';
 import { Image } from 'antd';
+import { useMQ } from '../components/context/aiNovel';
 
 const { Text, Paragraph } = Typography;
 
@@ -20,6 +21,7 @@ export default function AppState() {
         <Space direction="vertical" size="middle">
             <BaseState />
             <WalletState />
+            <RabbitMQState />
         </Space>
     )
 }
@@ -82,6 +84,32 @@ function WalletState() {
                 <Space direction="vertical" size="small">
                     {Array.from(connection.addresses || []).map(renderWalletAddress)}
                 </Space>
+            </Descriptions.Item>
+        </Descriptions>
+    )
+}
+
+function RabbitMQState() {
+    let connection = useMQ();
+
+    let connectState = <Tag>未连接</Tag>;
+    if (connection.status === 'connected') {
+        connectState = <Tag color="green">已连接</Tag>;
+    } else if (connection.status === 'connecting') {
+        connectState = <Tag color="blue">连接中</Tag>;
+    } else if (connection.status === 'reconnecting') {
+        connectState = <Tag color="yellow">重连中</Tag>;
+    } else if (connection.status === 'error') {
+        connectState = <Tag color="red">连接错误</Tag>;
+    }
+
+    return (
+        <Descriptions title="RabbitMQ状态" bordered size="small" column={1} styles={DESCRIPTION_STYLES}>
+            <Descriptions.Item label="连接URL">
+                <Text>{connection.config.wsUrl}</Text>
+            </Descriptions.Item>
+            <Descriptions.Item label="连接状态">
+                {connectState}
             </Descriptions.Item>
         </Descriptions>
     )

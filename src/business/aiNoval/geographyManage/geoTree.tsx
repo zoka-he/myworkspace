@@ -3,8 +3,8 @@ import { IGeoStarSystemData } from '@/src/types/IAiNoval';
 import React, { Key, useEffect, useRef, useState, useMemo } from 'react';
 import { type IGeoTreeItem, loadGeoTree } from '../common/geoDataUtil';
 import { CheckOutlined, CheckCircleOutlined, IssuesCloseOutlined, SearchOutlined } from '@ant-design/icons';
-import { useGeoData } from './GeoDataProvider';
-import { useManageState } from './ManageStateProvider';
+import { useGeoData, useGeoEmbedDocuments } from './GeoDataProvider';
+import { useManageState, useObjectCode, useObjectType } from './ManageStateProvider';
 
 interface IGeoTreeProps {
     
@@ -18,8 +18,9 @@ export default function(props: IGeoTreeProps) {
     const { state: geoDataState } = useGeoData();
     const { geoTree } = geoDataState;
 
-    const { state: manageState, setTreeRaisedObject } = useManageState();
-    const { treeRaisedObject } = manageState;
+    const [objectCode, setObjectCode] = useObjectCode();
+
+    const [geoEmbedDocuments] = useGeoEmbedDocuments();
 
     let [expandedKeys, setExpandedKeys] = useState<Key[]>([]);
     let [searchValue, setSearchValue] = useState<string>('');
@@ -201,17 +202,39 @@ export default function(props: IGeoTreeProps) {
         const titleText = nodeData?.title?.toString() || '';
         const highlightedTitle = searchValue ? highlightText(titleText, searchValue) : titleText;
 
+        let embed_state: React.ReactNode = null;
+        if (geoEmbedDocuments?.length > 0) {
+            // console.log('find embed record for code: ', nodeData?.data?.code);
+            // console.log('geoEmbedDocuments: ', geoEmbedDocuments);
+            let embedRecord = geoEmbedDocuments.find(item => item?.id === nodeData?.data?.code);
+            if (embedRecord) {
+                if (embedRecord?.metadata?.fingerprint === nodeData?.data?.fingerprint) {
+                    embed_state = <Tag color="green">向量就绪</Tag>
+                } else {
+                    embed_state = <Tag color="orange">向量过期</Tag>
+                }
+            } 
+        } else {
+            // console.debug('geoEmbedDocuments is empty');
+        }
+
         return (
-            <Space>
-                <span>{highlightedTitle}</span>
-                <Tag>{nodeData.data.code}</Tag>
-                {hasDocument ? <span style={{color: 'green'}}>
-                    <CheckCircleOutlined />
-                </span> : null}
-                {hasRefDocument ? <span style={{color: 'orange'}}>
-                    <IssuesCloseOutlined />
-                </span> : null}
-            </Space>
+            <div className="f-flex-two-side">
+                <Space>
+                    <span>{highlightedTitle}</span>
+                    <Tag>{nodeData.data.code}</Tag>
+                </Space>
+                <Space>
+                    {embed_state}
+                    {hasDocument ? <span style={{color: 'green'}}>
+                        <CheckCircleOutlined />
+                    </span> : null}
+                    {hasRefDocument ? <span style={{color: 'orange'}}>
+                        <IssuesCloseOutlined />
+                    </span> : null}
+                    
+                </Space>
+            </div>
         );
     }
 
@@ -235,13 +258,16 @@ export default function(props: IGeoTreeProps) {
                 </Button>
             </div>
             <Tree
+                blockNode
                 showLine
                 treeData={filteredTreeData}
                 titleRender={renderNode}
                 expandedKeys={expandedKeys}
                 onExpand={handleExpand}
                 onSelect={(selectedKeys, info) => {
-                    setTreeRaisedObject(info.node);
+                    // setTreeRaisedObject(info.node);
+                    // setObjectType(info.node.data.type);
+                    setObjectCode?.(info.node.data.code || '');
                 }}
             >
             </Tree>

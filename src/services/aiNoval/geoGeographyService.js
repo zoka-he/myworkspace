@@ -23,39 +23,42 @@ export default class GeoGeographyService extends MysqlNovalService {
             'dify_dataset_id',
             'area_coef',
             'children_area_coef',
-            'has_geo_area'
+            'has_geo_area',
+            'embed_document',
         ]);
     }
 
     async getGeoNamesByIds(geoIds) {
-        if (!geoIds) {
+        const tables = ['geo_star_system', 'geo_star', 'geo_planet', 'geo_satellite', 'geo_geography_unit'];
+        const columns = (tableName) => ['name'];
+        let data = await this.getGeoInfoByIds(geoIds, tables, columns);
+        // 确保 data 是数组，如果不是则返回空数组
+        if (!Array.isArray(data)) {
             return '';
         }
+        return data.map(r => r.name).join(',');
+    }
 
-        
+    async getGeoInfoByIds(geoIds, tables, columns) {
+        if (!geoIds) {
+            return [];
+        }
+
         geoIds = _.uniq(String(geoIds).split(',').map(s => s.trim()).filter(s => s.length > 0).map(s => `'${s}'`)).join(',');
 
         if (geoIds.length === 0) {
-            return '';
+            return [];
         }
 
-        let sql = `
-            select gss.name name from geo_star_system gss WHERE code in(${geoIds})
-            union
-            select gs.name name from geo_star gs WHERE code in(${geoIds}) 
-            union
-            select gp.name name from geo_planet gp WHERE code in(${geoIds}) 
-            union
-            select gs.name name from geo_satellite gs WHERE code in(${geoIds}) 
-            union
-            select ggu.name name from geo_geography_unit ggu WHERE code in(${geoIds})
-        `;
+        
+        let sql = tables.map(tableName => {
+            return `select ${columns(tableName).join(',')} from ${tableName} WHERE code in(${geoIds})`;
+        }).join(' union ');
 
         let ret = await this.query(sql, [], ['name asc'], 1, geoIds.split(',').length * 5);
 
-        console.info('getGeoNamesByIds ----------------> ', ret.data);
-
-        return ret.data.map(r => r.name).join(',');
+        // 确保返回数组，即使 ret.data 不存在或不是数组
+        return Array.isArray(ret?.data) ? ret.data : [];
     }
 
     // 获取某个地理单元的最大code
@@ -64,14 +67,18 @@ export default class GeoGeographyService extends MysqlNovalService {
             return '';
         }
 
+        let tables = ['geo_star_system', 'geo_star', 'geo_planet', 'geo_satellite', 'geo_geography_unit'];
+        let subSqls = (table) => `select max(code) code from ${table} where code like '${prefix}%'`
+
         let sql = `
-            select max(code) code from geo_geography_unit where code like '${prefix}%'
+            select max(t_union.code) code from (${tables.map(subSqls).join(' union ')}) t_union
         `;
 
-        let ret = await this.query(sql, [], ['code asc'], 1, 1);
+        let ret = await this.queryBySql(sql, []);
+        console.debug(ret);
 
-        if (ret.data.length > 0) {
-            return ret.data[0].code;
+        if (ret.length > 0) {
+            return ret[0].code;
         }
 
         return '';

@@ -3,9 +3,9 @@
  * 用于显示和管理AI小说角色的详细信息、版本管理和Dify文档集成
  */
 
-import { Card, Select, Button, Space, Typography, Descriptions, Dropdown, Alert, MenuProps, Modal, Divider, Row, Col, Radio, Pagination, message, Input, Form } from 'antd'
+import { Card, Select, Button, Space, Typography, Descriptions, Dropdown, Alert, MenuProps, Modal, Divider, Row, Col, Radio, Pagination, message, Input, Form, Tag } from 'antd'
 import { PlusOutlined, DownOutlined, EditOutlined, DeleteOutlined, SafetyCertificateFilled, SearchOutlined, CopyOutlined, RetweetOutlined } from '@ant-design/icons'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { IRoleData, IRoleInfo, IWorldViewData, IFactionDefData } from '@/src/types/IAiNoval'
 import apiCalls from '../apiCalls'
 import factionApiCalls from '@/src/business/aiNoval/factionManage/apiCalls'
@@ -16,6 +16,9 @@ import { debounce } from 'lodash'
 import store from '@/src/store'
 import { setFrontHost } from '@/src/store/difySlice'
 import { connect } from 'react-redux'
+import { calculateRoleInfoFingerprint, useFactionList, useLoadRoleDefList, useLoadRoleChromaMetadataList, useRoleChromaMetadata, useRoleDef, useRoleDefList, useRoleId, useRoleInfo, useRoleInfoId, useRoleInfoList, useWorldViewId, useWorldViewList } from '../roleManageContext'
+import { prepareTextEmbedding } from '@/src/api/aiNovel'
+import { deleteChromaDocument } from '@/src/api/chroma'
 
 const { Title, Text } = Typography
 
@@ -55,102 +58,64 @@ const labelStyle = {
  * 负责显示角色信息、版本管理、阵营信息和Dify文档集成
  */
 export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
-  roleDef,
-  onVersionChange,
   onOpenRoleInfoEditModal,
-  onDeleteRoleInfo,
-  worldviewMap,
-  difyFrontHost,
-  difyFrontHostOptions
+  // onDeleteRoleInfo,
 }: RoleInfoPanelProps) {
 
-  // 当前选中的角色版本信息
-  const [role, setRole] = useState<IRoleInfo | null>(null)
-  // 加载状态
-  const [isLoading, setIsLoading] = useState(true)
-  // 角色版本列表
-  const [roleVersions, setRoleVersions] = useState<IRoleInfo[]>([])
-  // 阵营数据映射
-  const [factionMap, setFactionMap] = useState<Map<number, IFactionDefData>>(new Map())
+  const [roleDefId] = useRoleId();
+  const [roleDefList] = useRoleDefList();
+  const [roleInfoId] = useRoleInfoId();
+  const [roleInfoList] = useRoleInfoList();
   
-  /**
-   * 加载角色版本列表
-   * 获取指定角色的所有版本信息
-   */
-  async function loadRoleVersions() {
-    if (!roleDef?.id) {
-      setIsLoading(false)
-      return
+  const loadRoleDefList = useLoadRoleDefList();
+
+  // 阵营数据
+  const [factionList] = useFactionList();
+  const [isLoading, setIsLoading] = useState(false)
+
+  // 当前选中的角色定义
+  const roleDef = useMemo(() => {
+    return roleDefList.find(info => info.id === roleDefId) || null;
+  }, [roleDefId, roleDefList])
+
+  // 当前选中的角色版本信息
+  const roleInfo = useMemo(() => {
+    return roleInfoList.find(info => info.id === roleInfoId) || null;
+  }, [roleInfoId, roleInfoList])
+
+  // 加载状态
+
+  // 角色版本列表
+  const roleVersions = useMemo(() => {
+    return roleInfoList.filter(info => info.role_id === roleInfo?.role_id) || [];
+  }, [roleInfoList, roleInfoId])
+
+  // 更改角色属性的版本
+  const handleVersionChange = async (roleInfo: IRoleInfo) => {
+    if (!roleInfo?.id) {
+      return;
     }
-    
+
+    const newRowDef = {
+      id: roleDefId,
+      version: roleInfo.id
+    }
+
     try {
-      setIsLoading(true)
-      const res = await apiCalls.getRoleInfoList(roleDef.id)
-      setRoleVersions(res.data)
-      
-      // 如果当前有选中的版本ID，则设置对应的版本
-      if (roleDef.version) {
-        const selectedVersion = res.data.find((v: IRoleInfo) => v.id === roleDef.version)
-        if (selectedVersion) {
-          setRole(selectedVersion)
-          // 如果有世界观ID，加载阵营数据
-          if (selectedVersion.worldview_id) {
-            loadFactionData(selectedVersion.worldview_id)
-          }
-        }
-      } else {
-        setRole(null)
-      }
+        await apiCalls.updateRole(newRowDef);
+        message.success('更新角色版本成功');
 
+
+        // 刷新角色列表
+        await loadRoleDefList();
+        // console.debug('handleVersionChange updateTimestamp --->> ', Date.now());
+        // setUpdateTimestamp(Date.now());
     } catch (error) {
-      console.error('Failed to load role versions:', error)
-    } finally {
-      setIsLoading(false)
+        console.error('Failed to update role:', error);
+        message.error('更新角色版本失败');
     }
-  }
+  };
 
-  /**
-   * 加载阵营数据
-   * 根据世界观ID获取对应的阵营信息
-   */
-  async function loadFactionData(worldviewId: number) {
-    try {
-      const res = await factionApiCalls.getFactionList(worldviewId)
-      const factions = res.data as IFactionDefData[]
-      const newFactionMap = new Map<number, IFactionDefData>()
-      factions.forEach(faction => {
-        if (faction.id) {
-          newFactionMap.set(faction.id, faction)
-        }
-      })
-      setFactionMap(newFactionMap)
-    } catch (error) {
-      console.error('Failed to load faction data:', error)
-    }
-  }
-
-  // 监听角色定义变化，重新加载版本数据
-  useEffect(() => {
-    console.debug('roleInfoPanel roleDef change --->> ', roleDef)
-    loadRoleVersions()
-  }, [roleDef])
-
-  /**
-   * 处理版本切换
-   * 当用户选择不同版本时更新当前角色信息
-   */
-  const handleVersionChange = (version: IRoleInfo) => {
-    if (!roleDef?.id) return
-    setRole(version)
-    onVersionChange({
-      id: roleDef.id,
-      version: version.id
-    })
-    // 如果有世界观ID，加载阵营数据
-    if (version.worldview_id) {
-      loadFactionData(version.worldview_id)
-    }
-  }
 
   /**
    * 处理创建新版本
@@ -191,13 +156,24 @@ export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
       okType: 'danger', 
       cancelText: '取消',
       onOk: async () => {
-        onDeleteRoleInfo(roleDef, version)
+        try {
+          await apiCalls.deleteRoleInfo(version);
+          await apiCalls.updateRole({ id: roleDef.id, version: null });
+          message.success('删除成功');
+
+          // 刷新角色列表
+          await loadRoleDefList() as IRoleData[];
+          console.debug('handleDeleteRoleInfo updateTimestamp --->> ', Date.now());
+          // setUpdateTimestamp(Date.now());
+        } catch (error) {
+            message.error('删除失败');
+        }
       }
     });
   }
 
   // 未选择角色时显示提示
-  if (!roleDef) {
+  if (!roleInfo) {
     return (
       <div style={{ 
         height: '100%', 
@@ -207,7 +183,7 @@ export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
         color: '#999',
         fontSize: '14px'
       }}>
-        请选择角色
+        请选择一个角色查看详情
       </div>
     )
   }
@@ -218,11 +194,11 @@ export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
   }
 
   // 如果没有版本，显示简化版界面
-  if (!roleDef.version_count) {
+  if (!roleVersions.length) {
     return (
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '16px 0' }}>
-          <Title level={4} style={{ margin: 0 }}>{roleDef.name}</Title>
+          <Title level={4} style={{ margin: 0 }}>{roleDef?.name}</Title>
         </div>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
           <Alert
@@ -257,8 +233,8 @@ export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
       {/* 顶部标题栏 - 显示角色名称、版本信息和操作按钮 */}
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Space>
-          <Title level={4} style={{ margin: 0 }}>{roleDef.name}</Title>
-          {role && <Text type="secondary">v{role.version_name}</Text>}
+          <Title level={4} style={{ margin: 0 }}>{roleInfo.name_in_worldview}</Title>
+          {roleInfo && <Text type="secondary">v{roleInfo.version_name}</Text>}
           <Dropdown menu={{ items: versionItems }} trigger={['click']}>
             <a style={{ cursor: 'pointer' }}>
               切换 <DownOutlined />
@@ -276,7 +252,7 @@ export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
 
       {/* 版本详情卡片 - 显示当前版本的详细信息 */}
       <Card>
-        {!role ? (
+        {!roleInfo ? (
           <Alert
             message="提示"
             description="请从上方下拉菜单选择一个版本"
@@ -290,53 +266,200 @@ export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
 
               {/* 版本操作按钮 */}
               <Space style={{ marginBottom: 10}} align='center'>
-                <Button type="primary" icon={<EditOutlined />} onClick={() => handleEditRoleInfo(role)}>编辑版本</Button>
-                <Button type="primary" icon={<DeleteOutlined />} onClick={() => handleDeleteRoleInfo(role)} danger>删除版本</Button>
+                <Button type="primary" icon={<EditOutlined />} onClick={() => handleEditRoleInfo(roleInfo)}>编辑版本</Button>
+                <Button type="primary" icon={<DeleteOutlined />} onClick={() => handleDeleteRoleInfo(roleInfo)} danger>删除版本</Button>
               </Space>
             </div>
             
             {/* 版本详细信息展示 */}
-            <Descriptions size='small' bordered column={1} labelStyle={labelStyle}>
+            <Descriptions size='small' bordered column={3} labelStyle={labelStyle}>
               <Descriptions.Item label="版本名">
-                {role.version_name}
+                {roleInfo.version_name}
               </Descriptions.Item>
-              <Descriptions.Item label="世界观">
-                {role.worldview_id ? worldviewMap.get(role.worldview_id)?.title : '未设置世界观'}
-              </Descriptions.Item>
+              {/* <Descriptions.Item label="世界观">
+                {role.worldview_id ? worldViewList.find(w => w.id === role.worldview_id)?.title : '未设置世界观'}
+              </Descriptions.Item> */}
               <Descriptions.Item label="角色名称">
-                {role.name_in_worldview}
+                {roleInfo.name_in_worldview}
               </Descriptions.Item>
               <Descriptions.Item label="角色性别">
-                {role.gender_in_worldview}
+                {roleInfo.gender_in_worldview}
               </Descriptions.Item>
               <Descriptions.Item label="角色年龄">
-                {role.age_in_worldview}
+                {roleInfo.age_in_worldview}
               </Descriptions.Item>
               <Descriptions.Item label="角色种族">
-                {role.race_id}
+                {roleInfo.race_id}
               </Descriptions.Item>
               <Descriptions.Item label="角色阵营">
-                {role.faction_id ? factionMap.get(role.faction_id)?.name || '未知阵营' : '未设置阵营'}
+                {roleInfo.faction_id ? factionList.find(faction => faction.id === roleInfo.faction_id)?.name || '未知阵营ID' : '未设置阵营'}
               </Descriptions.Item>
-              <Descriptions.Item label="角色背景">
-                <Typography.Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }} ellipsis={{ rows: 3 }}>
-                  {role.background}
+              
+              <Descriptions.Item label="角色详情" span={3}>
+                <Typography.Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }} ellipsis={{ rows: 10 }}>
+                  {roleInfo.personality}
                 </Typography.Paragraph>
               </Descriptions.Item>
-              <Descriptions.Item label="角色详情">
+              <Descriptions.Item label="角色背景" span={3}>
                 <Typography.Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }} ellipsis={{ rows: 3 }}>
-                  {role.personality}
+                  {roleInfo.background}
                 </Typography.Paragraph>
               </Descriptions.Item>
             </Descriptions>
 
             <Divider />
+
+            <RoleInfoChromaManage/>
+
+            <Divider />
             
             {/* Dify文档管理组件 */}
-            <DifyDocumentForRole roleInfo={role} onRequestUpdate={loadRoleVersions} />
+            <DifyDocumentForRole roleInfo={roleInfo} onRequestUpdate={() => {}} />
           </>
         )}
       </Card>
+    </div>
+  )
+})
+
+interface RoleInfoChromaManageProps {
+  roleInfo: IRoleInfo
+  onRequestUpdate?: () => void
+}
+
+const RoleInfoChromaManage = connect(mapStateToProps)(function (props: RoleInfoChromaManageProps) {
+  const roleDef = useRoleDef();
+  const roleInfo = useRoleInfo();
+  const roleChromaMetadata = useRoleChromaMetadata();
+  const [factionList] = useFactionList();
+  const [worldViewId] = useWorldViewId();
+  const loadRoleChromaMetadataList = useLoadRoleChromaMetadataList();
+
+  const factionMap = useMemo(() => {
+    const map = new Map<number, IFactionDefData>();
+    factionList.forEach(faction => {
+      if (faction.id) {
+        map.set(faction.id, faction);
+      }
+    });
+    return map;
+  }, [factionList]);
+
+  const actualFingerprint = useMemo(() => {
+    if (!roleInfo) {
+      return null;
+    }
+    return calculateRoleInfoFingerprint(roleInfo, factionMap);
+  }, [roleInfo, factionMap]);
+
+  let embedStatus = <Text type="secondary">--</Text>;
+  if (roleInfo) {
+    if (roleChromaMetadata?.metadata?.fingerprint) {
+      if (roleChromaMetadata.metadata.fingerprint === actualFingerprint) {
+        embedStatus = <Tag color="green">向量就绪</Tag>;
+      } else {
+        embedStatus = <Tag color="orange">向量过期</Tag>;
+      }
+    } else {
+      embedStatus = <Tag color="red">未嵌入</Tag>;
+    }
+  }
+
+  const handleUpdateEmbedding = useCallback(async () => {
+    if (!roleInfo || !roleInfo.id) {
+      return;
+    }
+
+    try {
+      let res = await prepareTextEmbedding({ 
+        characters: [roleInfo.id],
+        worldviews: [],
+        locations: [],
+        factions: [],
+        events: [],
+      });
+    } catch (error) {
+      message.error('更新嵌入向量失败，请检查程序');
+    } finally {
+      await loadRoleChromaMetadataList();
+    }
+  }, [roleInfo, loadRoleChromaMetadataList]);
+
+  const handleRemoveEmbedding = useCallback(async () => {
+    if (!roleInfo || !roleInfo.worldview_id) {
+      message.warning('缺少世界观ID，无法删除嵌入向量');
+      return;
+    }
+
+    const documentId = roleChromaMetadata?.id;
+    if (!documentId) {
+      message.warning('未找到嵌入向量文档ID');
+      return;
+    }
+
+    try {
+      // 角色集合名称格式：ai_noval_roles_${worldview_id}
+      const collectionName = `ai_noval_roles_${roleInfo.worldview_id}`;
+      
+      const res: any = await deleteChromaDocument(collectionName, documentId);
+      
+      // fetch 拦截器已经处理了响应，返回格式为 { success: boolean, data?: any, error?: string }
+      if (res?.success) {
+        message.success('嵌入向量已删除');
+        // 刷新角色 chroma metadata
+        if (roleInfo.worldview_id) {
+          await loadRoleChromaMetadataList();
+        }
+      } else {
+        message.error(res?.error || '删除嵌入向量失败');
+      }
+    } catch (error: any) {
+      console.error('删除嵌入向量失败：', error);
+      message.error(error?.response?.data?.error || error?.message || '删除嵌入向量失败');
+    }
+  }, [roleInfo, roleChromaMetadata, loadRoleChromaMetadataList]);
+
+  const canUpdateEmbedding = useMemo(() => {
+    if (!roleInfo || !roleInfo.id) {
+      return false;
+    }
+    // return roleChromaMetadata?.metadata?.fingerprint === actualFingerprint;
+    return true;
+  }, [roleInfo, roleChromaMetadata, actualFingerprint]);
+
+  const canDeleteEmbedding = useMemo(() => {
+    // if (!roleInfo || !roleInfo.id) {
+    //   return false;
+    // }
+
+    return roleChromaMetadata?.metadata?.id !== null;
+  }, [roleChromaMetadata]);
+
+  return (
+    <div>
+      <Descriptions size='small' bordered column={4} labelStyle={labelStyle}>
+        <Descriptions.Item label="角色ID">
+          {roleInfo?.id}
+        </Descriptions.Item>
+        <Descriptions.Item label="嵌入状态">
+          {embedStatus}
+        </Descriptions.Item>
+        <Descriptions.Item label="操作" span={2}>
+          <Space>
+            <Button type="primary" size="small" disabled={!canUpdateEmbedding} icon={<EditOutlined />} onClick={handleUpdateEmbedding}>更新嵌入向量</Button>
+            <Button type="primary" size="small" danger disabled={!canDeleteEmbedding} icon={<DeleteOutlined />} onClick={handleRemoveEmbedding}>移除嵌入向量</Button>
+          </Space>
+        </Descriptions.Item>
+        <Descriptions.Item label="数据指纹（chroma）" span={2}>
+          {roleChromaMetadata?.metadata?.fingerprint}
+        </Descriptions.Item>
+        <Descriptions.Item label="数据指纹（实时）" span={2}>
+          {actualFingerprint}
+        </Descriptions.Item>
+        <Descriptions.Item label="嵌入内容">
+          {roleInfo?.embed_document}
+        </Descriptions.Item>
+      </Descriptions>
     </div>
   )
 })

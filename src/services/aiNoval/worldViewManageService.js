@@ -70,4 +70,17 @@ export default class WorldViewManageService extends MysqlNovalService {
         return this.query(sql, params, ['id asc'], page, limit);    
     }
 
+    async getWorldViewDocumentByIds(ids) {
+        let sql = `
+            select 
+                id, 
+                title, 
+                concat_ws('|', title, content) document, 
+                md5(concat_ws('|', title, content)) fingerprint
+            from WorldView
+            where id in(${ids.join(',')})
+        `;
+        return this.query(sql, [], ['id asc'], 1, ids.length);
+    }
+
 }
