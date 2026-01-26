@@ -144,7 +144,7 @@ class RabbitMQConsumer {
     private getDefaultConfig(): RabbitMQServerConfig {
         return {
             host: process.env.RABBITMQ_AMQP_HOST || process.env.RABBITMQ_STOMP_HOST || 'localhost',
-            port: parseInt(process.env.RABBITMQ_AMQP_PORT || '5672', 10),
+            port: parseInt(process.env.RABBITMQ_AMQP_PORT || '28007', 10),
             username: process.env.RABBITMQ_AMQP_USER || process.env.RABBITMQ_STOMP_USER || 'guest',
             password: process.env.RABBITMQ_AMQP_PASSWD || process.env.RABBITMQ_STOMP_PASSWD || 'guest',
             vhost: process.env.RABBITMQ_AMQP_VHOST || process.env.RABBITMQ_STOMP_VHOST || '/',

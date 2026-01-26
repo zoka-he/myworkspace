@@ -48,10 +48,41 @@ function AppCore() {
         message.error('后端队列连接错误: ' + error);
     }
 
+    // 在客户端使用与网站同源的地址
+    const getRabbitMQConfig = () => {
+        if (typeof window === 'undefined') {
+            // SSR 时使用环境变量或默认值
+            const host = process.env.RABBITMQ_STOMP_HOST || 'localhost';
+            const port = process.env.RABBITMQ_STOMP_PORT || '28010';
+            return {
+                wsUrl: `http://${host}:${port}/ws`,
+                managementUrl: `http://${host}:28008`,
+            };
+        }
+        
+        // 客户端：使用与网站同源的地址
+        const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+        const hostname = window.location.hostname;
+        // 根据 docker-compose.yaml，WebSocket 端口映射为 28010:15674
+        const wsPort = process.env.NEXT_PUBLIC_RABBITMQ_STOMP_PORT || '28010';
+        const mgmtPort = process.env.NEXT_PUBLIC_RABBITMQ_MANAGEMENT_PORT || '28008';
+        
+        return {
+            wsUrl: `${protocol}//${hostname}:${wsPort}/ws`,
+            managementUrl: `${protocol}//${hostname}:${mgmtPort}`,
+        };
+    };
+
+    const rabbitMQConfig = getRabbitMQConfig();
+
     return (
         <WagmiProvider config={wagmiConfig}>
         <QueryClientProvider client={queryClient}>
-        <RabbitMQProvider config={mqConfig}>
+        <RabbitMQProvider config={{ 
+            ...mqConfig, 
+            wsUrl: rabbitMQConfig.wsUrl,
+            managementUrl: rabbitMQConfig.managementUrl,
+        }}>
 
             <MyRouter/>
 
