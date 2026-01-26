@@ -16,8 +16,9 @@ import { debounce } from 'lodash'
 import store from '@/src/store'
 import { setFrontHost } from '@/src/store/difySlice'
 import { connect } from 'react-redux'
-import { calculateRoleInfoFingerprint, useFactionList, useLoadRoleDefList, useRoleChromaMetadata, useRoleDef, useRoleDefList, useRoleId, useRoleInfo, useRoleInfoId, useRoleInfoList, useWorldViewList } from '../roleManageContext'
+import { calculateRoleInfoFingerprint, useFactionList, useLoadRoleDefList, useLoadRoleChromaMetadataList, useRoleChromaMetadata, useRoleDef, useRoleDefList, useRoleId, useRoleInfo, useRoleInfoId, useRoleInfoList, useWorldViewId, useWorldViewList } from '../roleManageContext'
 import { prepareTextEmbedding } from '@/src/api/aiNovel'
+import { deleteChromaDocument } from '@/src/api/chroma'
 
 const { Title, Text } = Typography
 
@@ -331,6 +332,8 @@ const RoleInfoChromaManage = connect(mapStateToProps)(function (props: RoleInfoC
   const roleInfo = useRoleInfo();
   const roleChromaMetadata = useRoleChromaMetadata();
   const [factionList] = useFactionList();
+  const [worldViewId] = useWorldViewId();
+  const loadRoleChromaMetadataList = useLoadRoleChromaMetadataList();
 
   const factionMap = useMemo(() => {
     const map = new Map<number, IFactionDefData>();
@@ -377,8 +380,44 @@ const RoleInfoChromaManage = connect(mapStateToProps)(function (props: RoleInfoC
       });
     } catch (error) {
       message.error('更新嵌入向量失败，请检查程序');
+    } finally {
+      await loadRoleChromaMetadataList();
     }
-  }, [roleInfo]);
+  }, [roleInfo, loadRoleChromaMetadataList]);
+
+  const handleRemoveEmbedding = useCallback(async () => {
+    if (!roleInfo || !roleInfo.worldview_id) {
+      message.warning('缺少世界观ID，无法删除嵌入向量');
+      return;
+    }
+
+    const documentId = roleChromaMetadata?.id;
+    if (!documentId) {
+      message.warning('未找到嵌入向量文档ID');
+      return;
+    }
+
+    try {
+      // 角色集合名称格式：ai_noval_roles_${worldview_id}
+      const collectionName = `ai_noval_roles_${roleInfo.worldview_id}`;
+      
+      const res: any = await deleteChromaDocument(collectionName, documentId);
+      
+      // fetch 拦截器已经处理了响应，返回格式为 { success: boolean, data?: any, error?: string }
+      if (res?.success) {
+        message.success('嵌入向量已删除');
+        // 刷新角色 chroma metadata
+        if (roleInfo.worldview_id) {
+          await loadRoleChromaMetadataList();
+        }
+      } else {
+        message.error(res?.error || '删除嵌入向量失败');
+      }
+    } catch (error: any) {
+      console.error('删除嵌入向量失败：', error);
+      message.error(error?.response?.data?.error || error?.message || '删除嵌入向量失败');
+    }
+  }, [roleInfo, roleChromaMetadata, loadRoleChromaMetadataList]);
 
   const canUpdateEmbedding = useMemo(() => {
     if (!roleInfo || !roleInfo.id) {
@@ -387,6 +426,14 @@ const RoleInfoChromaManage = connect(mapStateToProps)(function (props: RoleInfoC
     // return roleChromaMetadata?.metadata?.fingerprint === actualFingerprint;
     return true;
   }, [roleInfo, roleChromaMetadata, actualFingerprint]);
+
+  const canDeleteEmbedding = useMemo(() => {
+    // if (!roleInfo || !roleInfo.id) {
+    //   return false;
+    // }
+
+    return roleChromaMetadata?.metadata?.id !== null;
+  }, [roleChromaMetadata]);
 
   return (
     <div>
@@ -398,7 +445,10 @@ const RoleInfoChromaManage = connect(mapStateToProps)(function (props: RoleInfoC
           {embedStatus}
         </Descriptions.Item>
         <Descriptions.Item label="操作" span={2}>
-          <Button type="primary" size="small" disabled={!canUpdateEmbedding} icon={<EditOutlined />} onClick={handleUpdateEmbedding}>更新嵌入向量</Button>
+          <Space>
+            <Button type="primary" size="small" disabled={!canUpdateEmbedding} icon={<EditOutlined />} onClick={handleUpdateEmbedding}>更新嵌入向量</Button>
+            <Button type="primary" size="small" danger disabled={!canDeleteEmbedding} icon={<DeleteOutlined />} onClick={handleRemoveEmbedding}>移除嵌入向量</Button>
+          </Space>
         </Descriptions.Item>
         <Descriptions.Item label="数据指纹（chroma）" span={2}>
           {roleChromaMetadata?.metadata?.fingerprint}
