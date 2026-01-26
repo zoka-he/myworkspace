@@ -148,6 +148,23 @@ export async function generateFactionEmbedText(params: {
     throw new Error('API 返回数据格式不正确');
 }
 
+/**
+ * 生成角色嵌入标签原文
+ * @param roleText - 角色设定信息文本
+ * @returns 生成的嵌入标签原文
+ */
+export async function generateRoleEmbedText(roleText: string): Promise<string> {
+    const response = await fetch.post(
+        '/api/web/aiNoval/llm/once/generateRoleEmbedText',
+        { roleText }
+    ) as unknown as { success: boolean; data: { embedText: string } };
+
+    if (response?.success && response?.data?.embedText) {
+        return response.data.embedText;
+    }
+    throw new Error('API 返回数据格式不正确');
+}
+
 export async function getWorldViews() {
     let resp = await fetch.get('/api/aiNoval/worldView/list', { params: { page: 1, limit: 100 } });
 

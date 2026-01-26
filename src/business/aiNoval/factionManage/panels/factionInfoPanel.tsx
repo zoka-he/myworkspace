@@ -2,19 +2,18 @@ import { Button, Card, Descriptions, Divider, Typography } from 'antd';
 import { IFactionDefData } from '@/src/types/IAiNoval';
 import { EditOutlined } from '@ant-design/icons';
 import FactionRecallTest from './factionRecallTest';
-import { useCurrentFactionId, useCurrentFaction, useGetEditModal } from '../FactionManageContext';
+import { useCurrentFactionId, useCurrentFaction, useGetEditModal, useWorldViewId } from '../FactionManageContext';
 import FactionEmbedPanel from './factionEmbedPanel';
 
-interface FactionInfoPanelProps {
-    faction?: IFactionDefData;
-    onEdit?: (faction: IFactionDefData) => void;
-    worldViewId?: number | null;
-}
+// interface FactionInfoPanelProps {
+//     worldViewId?: number | null;
+// }
 
-export default function FactionInfoPanel({ faction, onEdit, worldViewId }: FactionInfoPanelProps) {
+export default function FactionInfoPanel() {
     const currentFactionId = useCurrentFactionId();
     const currentFaction = useCurrentFaction();
     const getEditModal = useGetEditModal();
+    const worldViewId = useWorldViewId();
 
     function handleEdit() {
         getEditModal()?.showAndEdit(currentFaction as IFactionDefData);

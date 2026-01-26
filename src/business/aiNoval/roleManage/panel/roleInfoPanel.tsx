@@ -293,14 +293,15 @@ export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
               <Descriptions.Item label="角色阵营">
                 {roleInfo.faction_id ? factionList.find(faction => faction.id === roleInfo.faction_id)?.name || '未知阵营ID' : '未设置阵营'}
               </Descriptions.Item>
-              <Descriptions.Item label="角色背景" span={3}>
-                <Typography.Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }} ellipsis={{ rows: 3 }}>
-                  {roleInfo.background}
-                </Typography.Paragraph>
-              </Descriptions.Item>
+              
               <Descriptions.Item label="角色详情" span={3}>
                 <Typography.Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }} ellipsis={{ rows: 10 }}>
                   {roleInfo.personality}
+                </Typography.Paragraph>
+              </Descriptions.Item>
+              <Descriptions.Item label="角色背景" span={3}>
+                <Typography.Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }} ellipsis={{ rows: 3 }}>
+                  {roleInfo.background}
                 </Typography.Paragraph>
               </Descriptions.Item>
             </Descriptions>
@@ -405,9 +406,9 @@ const RoleInfoChromaManage = connect(mapStateToProps)(function (props: RoleInfoC
         <Descriptions.Item label="数据指纹（实时）" span={2}>
           {actualFingerprint}
         </Descriptions.Item>
-        {/* <Descriptions.Item label="角色性别">
-          {roleInfo?.gender_in_worldview}
-        </Descriptions.Item> */}
+        <Descriptions.Item label="嵌入内容">
+          {roleInfo?.embed_document}
+        </Descriptions.Item>
       </Descriptions>
     </div>
   )

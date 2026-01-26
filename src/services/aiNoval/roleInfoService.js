@@ -31,7 +31,9 @@ export default class RoleDefService extends MysqlNovalService {
     }
 
     async getRoleDocumentByIds(ids) {
-        const document_column_def = `concat_ws('|', name_in_worldview, gender_in_worldview, f_root.name, personality, background)`;
+        // const document_column_def = `concat_ws('|', name_in_worldview, gender_in_worldview, f_root.name, personality, background)`;
+        // 使用 embed_document 字段作为文档内容
+        const document_column_def = 'r.embed_document';
 
         let sql = `
             select 
@@ -50,7 +52,9 @@ export default class RoleDefService extends MysqlNovalService {
             left join Faction f_root on root_faction_id = f_root.id
             where r.id in(${ids.join(',')})
         `;
-        return this.query(sql, [], ['id asc'], 1, ids.length);
+        let ret = await this.queryBySql(sql, []);
+        console.debug('getRoleDocumentByIds ret ----------------> ', ret);
+        return ret;
     }
 
     // 根据关键词搜索角色信息及计算匹配度

@@ -17,17 +17,18 @@ export function calculateRoleInfoFingerprint(
     factionMap: Map<number, IFactionDefData>
 ): string {
     // 模拟mysql的一致化行为
-    const rootFactionName = roleInfo.root_faction_id 
-        ? factionMap.get(roleInfo.root_faction_id)?.name
-        : null;
+    // const rootFactionName = roleInfo.root_faction_id 
+    //     ? factionMap.get(roleInfo.root_faction_id)?.name
+    //     : null;
     
     // 使用 '|' 连接各字段，与 MySQL 的 concat_ws 行为一致
     const parts = [
-        roleInfo.name_in_worldview,
-        roleInfo.gender_in_worldview,
-        rootFactionName,
-        roleInfo.personality,
-        roleInfo.background,
+        // roleInfo.name_in_worldview,
+        // roleInfo.gender_in_worldview,
+        // rootFactionName,
+        // roleInfo.personality,
+        // roleInfo.background,
+        roleInfo.embed_document,
     ];
     
     

@@ -1,10 +1,10 @@
 import { Card, Space, Button, Input, InputNumber, Tag, Typography, Descriptions, Alert, message } from "antd";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { IRoleInfo } from "@/src/types/IAiNoval";
 import { SearchOutlined, ClearOutlined, ExclamationCircleOutlined, ManOutlined, WomanOutlined, UserOutlined } from "@ant-design/icons";
 import { ApiResponse } from "@/src/types/ApiResponse";
 import apiCalls from "../apiCalls";
-import { useWorldViewId } from "../roleManageContext";
+import { useRoleInfo, useWorldViewId } from "../roleManageContext";
 
 const { Text } = Typography;
 
@@ -24,6 +24,13 @@ export function QueryTestPanel({ }: QueryTestPanelProps) {
     const [threshold, setThreshold] = useState<number>(0.5);
     const [results, setResults] = useState<QueryResult[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
+    const roleInfo = useRoleInfo();
+
+    useEffect(() => {
+        if (roleInfo) {
+            setKeywords(roleInfo.name_in_worldview || '');
+        }
+    }, [roleInfo]);
 
     // 处理查询
     const handleQuery = async () => {

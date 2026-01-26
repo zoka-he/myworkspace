@@ -92,6 +92,7 @@ export default async function handler(
 
         res.status(200).json({ success: true, message: 'success', data: pushed });
     } catch (error) {
+        console.error('prepareEmbedding error ----------------> ', error);
         res.status(500).json({ success: false, error: 'Internal server error' });
         return;
     }
@@ -149,7 +150,7 @@ async function prepareCharacterDocument(characters: number[]) {
         return [];
     }
     let ret = await roleInfoService.getRoleDocumentByIds(characters);
-    return ret.data;
+    return ret;
 }
 
 async function prepareWorldviewDocument(worldviews: number[]) {

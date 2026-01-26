@@ -5,6 +5,7 @@ import factionApiCalls from '@/src/business/aiNoval/factionManage/apiCalls'
 import { CopyOutlined } from '@ant-design/icons'
 import { useFactionList, useLoadRoleInfoList, useRoleDefList, useRoleId, useWorldViewList } from '../roleManageContext'
 import apiCalls from '../apiCalls'
+import { generateRoleEmbedText } from '@/src/api/aiNovel'
 
 interface RoleInfoEditModalProps {
   open: boolean
@@ -27,6 +28,7 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
 }, ref) => {
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
+  const [embedLoading, setEmbedLoading] = useState(false)
   // const [roleDef, setRoleDef] = useState<IRoleData | undefined>()
 
   const [worldviewList] = useWorldViewList();
@@ -122,8 +124,58 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
     })
   }
 
-
-  
+  const handleGenerateEmbedDocument = async () => {
+    try {
+      const values = form.getFieldsValue([
+        'name_in_worldview',
+        'gender_in_worldview',
+        'age_in_worldview',
+        'personality',
+        'background'
+      ])
+      
+      // 组合角色信息为单一文本
+      const roleTextParts: string[] = []
+      
+      if (values.name_in_worldview) {
+        roleTextParts.push(`角色名称：${values.name_in_worldview}`)
+      }
+      if (values.gender_in_worldview) {
+        const genderMap: Record<string, string> = {
+          'male': '男',
+          'female': '女',
+          'other': '其他'
+        }
+        roleTextParts.push(`性别：${genderMap[values.gender_in_worldview] || values.gender_in_worldview}`)
+      }
+      if (values.age_in_worldview) {
+        roleTextParts.push(`年龄：${values.age_in_worldview}`)
+      }
+      if (values.personality) {
+        roleTextParts.push(`性格特征：${values.personality}`)
+      }
+      if (values.background) {
+        roleTextParts.push(`背景故事：${values.background}`)
+      }
+      
+      const roleText = roleTextParts.join('\n')
+      
+      if (!roleText.trim()) {
+        message.warning('请先填写角色基本信息（名称、性别、年龄、性格或背景）')
+        return
+      }
+      
+      setEmbedLoading(true)
+      const embedText = await generateRoleEmbedText(roleText)
+      form.setFieldsValue({ embed_document: embedText })
+      message.success('嵌入文档生成成功')
+    } catch (e: any) {
+      console.error('生成嵌入文档失败：', e)
+      message.error(e?.message || '生成嵌入文档失败')
+    } finally {
+      setEmbedLoading(false)
+    }
+  }
 
   const handleSubmit = async () => {
 
@@ -318,8 +370,21 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
         <Row gutter={16}>
           <Col span={24}>
             <Form.Item
+              name="personality"
+              label="角色详情"
+              labelCol={{ span: 3 }}
+              wrapperCol={{ span: 21 }}
+            >
+              <Input.TextArea autoSize={{ minRows: 4 }} placeholder="请输入角色详情" />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          <Col span={24}>
+            <Form.Item
               name="background"
-              label="角色背景"
+              label="背景故事"
               labelCol={{ span: 3 }}
               wrapperCol={{ span: 21 }}
             >
@@ -331,12 +396,17 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
         <Row gutter={16}>
           <Col span={24}>
             <Form.Item
-              name="personality"
-              label="角色详情"
+              name="embed_document"
+              label="嵌入内容"
               labelCol={{ span: 3 }}
               wrapperCol={{ span: 21 }}
             >
-              <Input.TextArea rows={4} placeholder="请输入角色详情" />
+              <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                <Button loading={embedLoading} onClick={handleGenerateEmbedDocument}>生成嵌入文档</Button>
+                <Form.Item name="embed_document" noStyle>
+                  <Input.TextArea rows={4} placeholder="请输入嵌入内容" />
+                </Form.Item>
+              </Space>
             </Form.Item>
           </Col>
         </Row>

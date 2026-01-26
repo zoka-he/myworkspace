@@ -153,6 +153,7 @@ export interface IRoleInfo {
     created_at?: Date | null,
     dify_document_id?: string | null,
     dify_dataset_id?: string | null,
+    embed_document?: string | null,
 }
 
 
