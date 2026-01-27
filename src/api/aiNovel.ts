@@ -1,5 +1,6 @@
 import fetch from '@/src/fetch';
-import { IChapter, INovalData, IWorldViewData } from '../types/IAiNoval';
+import { IChapter, INovalData, IWorldViewData, IWorldViewDataWithExtra } from '../types/IAiNoval';
+import _ from 'lodash';
 
 function splitIds(ids: any) {
     if (!ids) {
@@ -178,4 +179,19 @@ export async function getWorldViews() {
     count = (resp as { count?: number })?.count || 0;
 
     return { data, count };
+}
+
+
+export async function loadWorldviews(params: any, page: number = 1, limit: number = 10) {
+    let resp = await fetch.get('/api/aiNoval/worldView/list', 
+        { params: {
+            title: params?.title,
+            page: _.toInteger(page),
+            limit: _.toInteger(limit)
+        } }
+    );
+    return {
+        data: resp.data as IWorldViewDataWithExtra[],
+        count: (resp as { count?: number })?.count || 0
+    }
 }

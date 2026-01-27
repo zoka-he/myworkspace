@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import fetch from '@/src/fetch';
-import { Button, Input, Space, List, message, Card } from 'antd';
-import { ExclamationCircleFilled, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Button, Input, Space, List, message, Card, Row, Col, Typography, Radio, Divider } from 'antd';
+import { ExclamationCircleFilled, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import confirm from "antd/es/modal/confirm";
 import QueryBar from '@/src/components/queryBar';
 import usePagination from '@/src/utils/hooks/usePagination';
@@ -10,6 +10,12 @@ import { TimelineDefView } from './panel/timelineDefView';
 import { TimelineDefEdit } from './edit/timelineDefEdit';
 import { IWorldViewDataWithExtra, ITimelineDef, IWorldViewData } from '@/src/types/IAiNoval';
 import * as apiCalls from './apiCalls';
+import WorldviewManageContextProvider, { useLoadWorldviewList, useWorldViewData, useWorldViewEditorRef, useWorldViewId, useWorldviewList } from './worldviewManageContext';
+import { useAsyncEffect } from '@/src/utils/hooks/useAsyncEffect';
+import { ReloadOutlined, PlusOutlined } from '@ant-design/icons';
+import styles from './index.module.scss';
+
+const { Title, Text, Paragraph } = Typography;
 
 /**
  * Converts IWorldViewDataWithExtra to ITimelineDef
@@ -30,13 +36,132 @@ function convertToTimelineDef(data: IWorldViewDataWithExtra): ITimelineDef | nul
 }
 
 export default function WorldViewManage() {
+    return (
+        <WorldviewManageContextProvider>
+            <WorldViewManageContent />
+        </WorldviewManageContextProvider>
+    )
+}
+
+function WorldViewManageContent() {
+    const [worldViewId, setWorldViewId] = useWorldViewId();
+    const loadWorldviewList = useLoadWorldviewList();
+    const mEditor = useRef<WorldViewInfoEditor | null>(null);
+    const [worldViewEditorRef, setWorldViewEditorRef] = useWorldViewEditorRef();
+
+    useAsyncEffect(async () => {
+        let worldviewList = await loadWorldviewList();
+        if (worldviewList && worldviewList.length > 0) {
+            setWorldViewId(worldviewList[0].id!);
+        }
+    }, []);
+    
+    useEffect(() => {
+        setWorldViewEditorRef(mEditor);
+    }, [mEditor]);
+
+    function onQuery() {
+        loadWorldviewList()
+    }
+
+    return (
+        <>
+            <Row gutter={16}>
+                <Col span={6}>
+                    <WorldViewListPanel />
+                </Col>
+                <Col span={18}>
+                    <WorldViewInfoPanel />
+                </Col>
+            </Row> 
+
+            <WorldViewInfoEditor ref={mEditor} onFinish={() => onQuery()}/>
+        </> 
+    )
+}
+
+function WorldViewListPanel() {
+    const [worldviewList] = useWorldviewList();
+    const loadWorldviewList = useLoadWorldviewList();
+    const [searchValue, setSearchValue] = useState('');
+    const [worldViewId, setWorldViewId] = useWorldViewId();
+    const [mEditorRef, setMEditorRef] = useWorldViewEditorRef();
+
+    const filteredWorldviewList = useMemo(() => worldviewList.filter((item) => {
+        return item?.title?.toLowerCase().includes(searchValue.toLowerCase());
+    }), [worldviewList, searchValue]);
+
+    let title = (
+        <div className="f-flex-two-side">
+            <Space>
+                <Input placeholder="搜索世界观" prefix={<SearchOutlined/>} onChange={(e) => {setSearchValue(e.target.value);}} />
+            </Space>
+            <Space>
+                <Button type="primary" icon={<ReloadOutlined />} onClick={() => {loadWorldviewList();}}>刷新</Button>
+                <Button type="default" icon={<PlusOutlined />} onClick={() => {mEditorRef?.current?.show();}}></Button>
+            </Space>
+        </div>
+    )
+
+    function onDelete(worldViewData: IWorldViewDataWithExtra) {
+        confirm({
+            title: '删除确认',
+            icon: <ExclamationCircleFilled />,
+            content: '警告！将删除对象，请二次确认！',
+            okText: '删除',
+            okType: 'danger',
+            cancelText: '取消',
+            onOk() {
+                fetch.delete('/api/web/aiNoval/worldView', { 
+                    params: { id: worldViewData?.id } 
+                }).then(() => {
+                    message.success('已删除');
+                    loadWorldviewList();
+                });
+            },
+        });
+    }
+
+    let worldviewListContent = useMemo(() => {
+
+        let options = filteredWorldviewList.map((item) => (
+            <Radio key={item.id} className={styles.worldviewListItem} value={item.id}>
+                <div className='f-flex-two-side' style={{ alignItems: 'center' }}>
+                    <Text>
+                        {item?.title || ''}
+                    </Text>
+                    <Space>
+                        <Button type="link" icon={<EditOutlined/>} onClick={() => mEditorRef?.current?.showAndEdit(item as IWorldViewData)}></Button>
+                        <Button type="link" danger icon={<DeleteOutlined/>} onClick={() => onDelete(item as IWorldViewDataWithExtra)}></Button>
+                    </Space>
+                </div>
+            </Radio>
+        ));
+
+        return <Radio.Group onChange={(e) => {setWorldViewId(e.target.value);}} value={worldViewId}>{options}</Radio.Group>;
+    }, [filteredWorldviewList]);
+
+    return (
+        <Card title={title} style={{ margin: '12px 0' }}>
+            <div className={styles.worldviewListContainer}>
+                {worldviewListContent}
+            </div>
+        </Card>
+    )
+}
+
+function WorldViewInfoPanel() {
     let [userParams, setUserParams] = useState({});
     let [listData, updateListData] = useState<IWorldViewDataWithExtra[]>([]);
     let [spinning, updateSpinning] = useState(false);
     let [timelineEditOpen, setTimelineEditOpen] = useState(false);
     let pagination = usePagination();
-    let mEditor = useRef<WorldViewInfoEditor>();
+    // let mEditor = useRef<WorldViewInfoEditor | null>(null);
+
+    const [mEditorRef, setMEditorRef] = useWorldViewEditorRef();
     let timelineEditorRef = useRef<{ openAndEdit: (values: ITimelineDef, mode: string) => void } | null>(null);
+
+    const [worldViewData] = useWorldViewData();
 
     useEffect(() => {
         onQuery();
@@ -67,55 +192,7 @@ export default function WorldViewManage() {
         }
     }
 
-    function onCreateAccount() {
-        mEditor.current?.show();
-    }
-
-    function renderAction(row: IWorldViewDataWithExtra) {
-        function onEdit() {
-            mEditor.current?.showAndEdit(row);
-        }
-
-        const deleteRow = async () => {
-            await fetch.delete(
-                '/api/web/aiNoval/worldView', 
-                { 
-                    params: { 
-                        id: row.id,
-                    } 
-                }
-            );
-
-            message.success('已删除');
-            onQuery();
-        }
-
-        const showDeleteConfirm = () => {
-            confirm({
-                title: '删除确认',
-                icon: <ExclamationCircleFilled />,
-                content: '警告！将删除对象，请二次确认！',
-                okText: '删除',
-                okType: 'danger',
-                cancelText: '取消',
-                onOk() {
-                    deleteRow();
-                },
-                onCancel() {
-                    console.log('Cancel');
-                },
-            });
-        };
-
-        return (
-            <Space>
-                <Button type="link" icon={<EditOutlined />} onClick={onEdit}>
-                    编辑
-                </Button>
-                <Button type="text" danger icon={<DeleteOutlined />} onClick={showDeleteConfirm} />
-            </Space>
-        );
-    }
+    
 
     function renderYesNo(cell: string | number | null | undefined) {
         if (cell != null && cell != 0) {
@@ -158,83 +235,58 @@ export default function WorldViewManage() {
 
     return (
         <div className="f-fit-height f-flex-col">
-            <div className="f-flex-two-side">
-                <QueryBar onChange={onQuery} spinning={spinning}>
-                    <QueryBar.QueryItem name="title" label="世界观">
-                        <Input allowClear/>
-                    </QueryBar.QueryItem>
-
-                    <QueryBar.QueryItem name="content" label="摘要">
-                        <Input allowClear/>
-                    </QueryBar.QueryItem>
-                </QueryBar>
-
-                <Space>
-                    <Button type={'primary'} onClick={onCreateAccount}>新增</Button>
-                </Space>
-            </div>
-
-            <Card title="世界观列表" style={{ margin: '12px 0' }}>
-                <List
-                    grid={{ gutter: 16, column: 1 }}
-                    dataSource={listData}
-                    pagination={{
-                        current: pagination.page,
-                        pageSize: pagination.pageSize,
-                        total: pagination.total,
-                        showSizeChanger: true,
-                        showQuickJumper: true,
-                        showTotal: (total) => `共 ${total} 个记录`,
-                        onChange: (page, pageSize) => {
-                            pagination.setPage(page);
-                            pagination.setPageSize(pageSize);
-                        }
-                    }}
-                    renderItem={(item) => (
-                        <List.Item>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <h3 style={{ margin: 0 }}>{item.title}</h3>
-                                        <Button type="link" icon={<EditOutlined />} onClick={() => mEditor.current?.showAndEdit(item)}>
-                                            编辑
-                                        </Button>
-                                    </div>
-                                    <Button type="text" danger icon={<DeleteOutlined />} onClick={() => {
-                                        confirm({
-                                            title: '删除确认',
-                                            icon: <ExclamationCircleFilled />,
-                                            content: '警告！将删除对象，请二次确认！',
-                                            okText: '删除',
-                                            okType: 'danger',
-                                            cancelText: '取消',
-                                            onOk() {
-                                                fetch.delete('/api/web/aiNoval/worldView', { 
-                                                    params: { id: item.id } 
-                                                }).then(() => {
-                                                    message.success('已删除');
-                                                    onQuery();
-                                                });
-                                            },
-                                        });
-                                    }} />
-                                </div>
-                                <div>
-                                    <p style={{ marginBottom: 8 }}>{item.content}</p>
-                                    <div><strong>是否在知识库：</strong> {renderYesNo(item.is_dify_knowledge_base)}</div>
-                                </div>
-                                <TimelineDefView 
-                                    data={item.tl_id ? convertToTimelineDef(item) : undefined}
-                                    onEdit={() => handleTimelineEdit(item)}
-                                />
+            <Card title="世界观信息" style={{ margin: '12px 0' }}>
+                <div className={styles.worldviewInfoContainer}>
+                    <Space direction="vertical" size={16}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Title level={3} style={{ margin: 0 }}>{worldViewData?.title || ''}</Title>
+                                <Button type="link" icon={<EditOutlined />} onClick={() => mEditorRef?.current?.showAndEdit(worldViewData as IWorldViewData)}>
+                                    编辑
+                                </Button>
                             </div>
-                        </List.Item>
-                    )}
-                />
-            </Card>
 
-            {/* @ts-ignore */}
-            <WorldViewInfoEditor ref={mEditor} onFinish={() => onQuery()}/>
+                            {/* <Button type="text" danger icon={<DeleteOutlined />} onClick={() => {
+                                confirm({
+                                    title: '删除确认',
+                                    icon: <ExclamationCircleFilled />,
+                                    content: '警告！将删除对象，请二次确认！',
+                                    okText: '删除',
+                                    okType: 'danger',
+                                    cancelText: '取消',
+                                    onOk() {
+                                        fetch.delete('/api/web/aiNoval/worldView', { 
+                                            params: { id: worldViewData?.id } 
+                                        }).then(() => {
+                                            message.success('已删除');
+                                            onQuery();
+                                        });
+                                    },
+                                });
+                            }} /> */}
+                        </div>
+
+                        <div>
+                            <Paragraph>
+                                {worldViewData?.content}
+                            </Paragraph>
+                        </div>
+                        
+                        <TimelineDefView 
+                            data={(worldViewData?.tl_id ? convertToTimelineDef(worldViewData) : undefined)}
+                            onEdit={() => worldViewData && handleTimelineEdit(worldViewData)}
+                        />
+
+                        <Divider/>
+
+                        <div className='f-flex-two-side'>
+                            <div><strong>是否在知识库：</strong> {renderYesNo(worldViewData?.is_dify_knowledge_base)}</div>
+                        </div>
+
+
+                    </Space>
+                </div>
+            </Card>
 
             <TimelineDefEdit
                 ref={timelineEditorRef}

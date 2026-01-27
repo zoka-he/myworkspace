@@ -1,0 +1,35 @@
+.worldviewListContainer {
+    height: calc(100vh - 200px);
+    overflow-y: auto;
+
+    :global(.ant-radio-group) {
+        width: 100%;
+    }
+}
+
+.worldviewListItem {
+    border: 1px solid #e8e8e8;
+    border-radius: 4px;
+    padding: 12px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    &:hover {
+        background-color: #f0f0f0;
+    }
+    width: 100%;
+
+    display: flex;
+    flex-direction: row;
+
+    :global(.ant-radio-label) {
+        display: block;
+        flex: 1;
+        align-items: center;
+        justify-content: space-between;;
+    }
+}
+
+.worldviewInfoContainer {
+    height: calc(100vh - 200px);
+    overflow-y: auto;
+}
