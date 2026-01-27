@@ -367,6 +367,7 @@ export interface IWorldRuleItem {
 export interface IWorldRuleSnapshot {
     id?: number | null,
     worldview_id?: number | null,
+    title?: string | null,
     config?: string | null,
     content?: string | null,
     created_at?: Date | null,

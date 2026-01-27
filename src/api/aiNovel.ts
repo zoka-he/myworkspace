@@ -288,7 +288,7 @@ export async function deleteWorldRuleItem(id: number) {
  * @returns 
  */
 export async function getWorldRuleSnapshotList(worldviewId: number, page: number = 1, limit: number = 100) {
-    const response = await fetch.get('/api/aiNoval/worldrule/snapshot/list', { params: { worldviewId, page, limit } });
+    const response = await fetch.get('/api/aiNoval/worldrule/snapshot/list', { params: { worldview_id: worldviewId, page, limit } });
     return {
         data: response.data as IWorldRuleSnapshot[],
         count: (response as { count?: number })?.count || 0

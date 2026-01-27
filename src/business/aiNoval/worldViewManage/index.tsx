@@ -11,6 +11,7 @@ import { ReloadOutlined, PlusOutlined } from '@ant-design/icons';
 import styles from './index.module.scss';
 import BaseInfoPanel from './panel/baseInfoPanel';
 import RulesManagePanel from './panel/rulesManagePanel';
+import RulesSnapshotPanel from './panel/rulesSnapshotPanel';
 
 const { Text } = Typography;
 
@@ -137,6 +138,7 @@ function WorldViewInfoPanel() {
         <Radio.Group value={activeTab} onChange={(e) => setActiveTab(e.target.value)} optionType='button' buttonStyle="solid" >
             <Radio value="baseInfo">基础信息</Radio>
             <Radio value="worldRules">世界书</Radio>
+            <Radio value="snapshot">快照管理</Radio>
         </Radio.Group>
     </>
 
@@ -147,6 +149,8 @@ function WorldViewInfoPanel() {
                 return <BaseInfoPanel />;
             case 'worldRules':
                 return <RulesManagePanel />;
+            case 'snapshot':
+                return <RulesSnapshotPanel />;
             default:
                 return <div>开发中...</div>;
         }

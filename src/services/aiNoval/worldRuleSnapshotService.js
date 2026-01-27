@@ -8,6 +8,7 @@ export default class WorldRuleSnapshotService extends MysqlNovalService {
         this.setValidColumns([
             'id',
             'worldview_id',
+            'title',
             'config',
             'content',
             'created_at',
