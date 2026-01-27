@@ -5,6 +5,7 @@ import { getWorldRuleSnapshotList } from '@/src/api/aiNovel';
 import { IWorldRuleSnapshot } from '@/src/types/IAiNoval';
 import { useWorldViewData, useLoadWorldviewList } from '../../worldviewManageContext';
 import * as apiCalls from '../../apiCalls';
+import styles from './WorldBookSnapshotDisplay.module.scss';
 
 const { Option } = Select;
 const { Title, Text } = Typography;
@@ -104,7 +105,7 @@ export default function WorldBookSnapshotDisplay({ defaultSnapshotId }: WorldBoo
     const renderSnapshotContent = (snapshot: IWorldRuleSnapshot | null, label?: string) => {
         if (!snapshot) {
             return (
-                <div style={{ padding: '16px', background: '#f5f5f5', borderRadius: '4px', minHeight: '10em' }}>
+                <div className={styles.contentBox}>
                     <Empty description={label ? `${label}：无快照内容` : '无快照内容'} image={Empty.PRESENTED_IMAGE_SIMPLE} />
                 </div>
             );
@@ -118,19 +119,7 @@ export default function WorldBookSnapshotDisplay({ defaultSnapshotId }: WorldBoo
                         <Text>{snapshot.title || `快照 #${snapshot.id}`}</Text>
                     </div>
                 )}
-                <div
-                    style={{
-                        padding: '16px',
-                        background: '#f5f5f5',
-                        borderRadius: '4px',
-                        minHeight: '10em',
-                        whiteSpace: 'pre-wrap',
-                        wordBreak: 'break-word',
-                        fontFamily: 'monospace',
-                        fontSize: '13px',
-                        lineHeight: '1.6'
-                    }}
-                >
+                <div className={styles.contentBox}>
                     {snapshot.content || '（无内容）'}
                 </div>
             </div>
@@ -182,11 +171,7 @@ export default function WorldBookSnapshotDisplay({ defaultSnapshotId }: WorldBoo
                         <div style={{ flex: 1 }}>
                             {renderSnapshotContent(defaultSnapshot, '默认快照')}
                         </div>
-                        <div style={{ 
-                            width: '1px', 
-                            background: '#d9d9d9',
-                            alignSelf: 'stretch'
-                        }} />
+                        <div className={styles.divider} />
                         <div style={{ flex: 1 }}>
                             {renderSnapshotContent(selectedSnapshot)}
                         </div>
