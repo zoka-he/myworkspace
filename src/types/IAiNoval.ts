@@ -340,3 +340,35 @@ export const GEO_UNIT_TYPES = [
     { enName: 'mine', cnName: '矿山', codePrefix: 'MI'},
     { enName: 'power_plant', cnName: '发电站', codePrefix: 'PP'},
 ]
+
+
+export interface IWorldRuleGroup {
+    id?: number | null,
+    worldview_id?: number | null,
+    title?: string | null,
+    parent_id?: number | null,
+    order?: number | null,
+    content?: string | null,
+    created_at?: Date | null,
+    updated_at?: Date | null,
+}
+
+export interface IWorldRuleItem {
+    id?: number | null,
+    worldview_id?: number | null,
+    group_id?: number | null,
+    summary?: string | null,
+    content?: string | null,
+    order?: number | null,
+    created_at?: Date | null,
+    updated_at?: Date | null,
+}
+
+export interface IWorldRuleSnapshot {
+    id?: number | null,
+    worldview_id?: number | null,
+    config?: string | null,
+    content?: string | null,
+    created_at?: Date | null,
+    updated_at?: Date | null,
+}

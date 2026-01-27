@@ -2,7 +2,7 @@ import { IWorldViewDataWithExtra } from "@/src/types/IAiNoval";
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState } from "react";
 import { loadWorldviews } from "@/src/api/aiNovel";
 import { RefObject } from "react";
-import WorldViewInfoEditor from "./worldViewInfoEditor";
+import WorldViewInfoEditor from "./edit/worldViewInfoEditor";
 
 interface WorldviewManageState {
     worldviewList: IWorldViewDataWithExtra[];
