@@ -44,3 +44,8 @@ next-env.d.ts
 # installer
 installer/tmpfolder
 
+#docker volumes
+docker/mysql/mysql_data
+docker/rabbitmq/rabbitmq_data
+docker/chroma/chroma_data
+

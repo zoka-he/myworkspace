@@ -93,10 +93,7 @@ export const queueRegistrations: QueueRegistration[] = [
 export async function initializeHandlers(): Promise<void> {
     const consumer = getRabbitMQConsumer();
     
-    // 连接到 RabbitMQ
-    await consumer.connect();
-    
-    // 注册所有启用的队列消费者
+    // 先注册所有启用的队列消费者（即使连接失败，注册信息也会保存，重连时会自动恢复）
     for (const registration of queueRegistrations) {
         if (registration.enabled) {
             console.log(`[RabbitMQ] Registering consumer for queue: ${registration.queue.name}`);
@@ -106,7 +103,14 @@ export async function initializeHandlers(): Promise<void> {
         }
     }
     
-    console.log('[RabbitMQ] All handlers initialized');
+    // 连接到 RabbitMQ（如果连接失败，会自动重试，已注册的消费者会在连接成功后自动设置）
+    try {
+        await consumer.connect();
+        console.log('[RabbitMQ] All handlers initialized and connected');
+    } catch (error) {
+        console.warn('[RabbitMQ] Initial connection failed, will retry automatically:', error instanceof Error ? error.message : String(error));
+        console.log('[RabbitMQ] Consumers registered, will be set up when connection succeeds');
+    }
 }
 
 /**

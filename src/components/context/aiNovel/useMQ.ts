@@ -42,6 +42,7 @@ export function useMQ() {
 
     /**
      * Subscribe to a queue/topic with a message handler
+     * 即使未连接也可以调用，连接建立后会自动订阅
      */
     const subscribe = useCallback((
         subscriptionConfig: SubscriptionConfig,
@@ -53,10 +54,11 @@ export function useMQ() {
             return null;
         }
         
-        if (!client.isConnected) {
-            console.warn('[useMQ] Cannot subscribe: client not connected (client.active is false)');
-            return null;
-        }
+        // 允许在未连接时订阅，RabbitMQClient 会在连接建立后自动订阅
+        // if (!client.isConnected) {
+        //     console.warn('[useMQ] Cannot subscribe: client not connected (client.active is false)');
+        //     return null;
+        // }
 
         const wrappedHandler: MessageHandler = (message) => {
             dispatch({ type: 'MESSAGE_RECEIVED', payload: message });

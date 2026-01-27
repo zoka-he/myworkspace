@@ -5,8 +5,9 @@
  */
 
 import { Client, IMessage, IFrame, StompSubscription } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
-import { RabbitMQConfig, SubscriptionConfig } from '@/config/rabbitmq';
+// SockJS 暂时不使用，因为 RabbitMQ Web STOMP 插件不支持
+// import SockJS from 'sockjs-client';
+import { RabbitMQConfig, SubscriptionConfig } from '@/src/config/rabbitmq';
 
 export type MessageHandler = (message: IMessage) => void;
 export type ConnectionCallback = () => void;
@@ -49,6 +50,16 @@ export class RabbitMQClient {
     }
 
     /**
+     * 检测是否应该使用 SockJS
+     * 注意：RabbitMQ 的 rabbitmq_web_stomp 插件不支持 SockJS，只支持原生 WebSocket
+     * 此方法保留用于未来可能的扩展
+     */
+    private shouldUseSockJS(): boolean {
+        // RabbitMQ Web STOMP 插件不支持 SockJS，始终返回 false
+        return false;
+    }
+
+    /**
      * Initialize and connect to RabbitMQ
      */
     connect(): void {
@@ -68,16 +79,18 @@ export class RabbitMQClient {
             vhost: this.config.vhost,
         });
 
+        // RabbitMQ Web STOMP 只支持原生 WebSocket，不支持 SockJS
         // 转换为 WebSocket URL (ws:// 或 wss://)
-        const wsUrl = this.config.wsUrl
+        const connectionUrl = this.config.wsUrl
             .replace(/^http:/, 'ws:')
             .replace(/^https:/, 'wss:');
 
-        this.log('Connecting to WebSocket URL:', wsUrl);
+        this.log(`Connecting using native WebSocket to:`, connectionUrl);
+        this.log(`User Agent:`, typeof window !== 'undefined' ? window.navigator.userAgent : 'N/A');
 
         this.client = new Client({
             // 使用原生 WebSocket 连接
-            brokerURL: wsUrl,
+            brokerURL: connectionUrl,
             
             // Connection credentials
             connectHeaders: {
@@ -91,6 +104,7 @@ export class RabbitMQClient {
             heartbeatOutgoing: this.config.heartbeatOutgoing || 10000,
 
             // Reconnection settings
+            // 使用配置的重连延迟，但我们会通过 onWebSocketClose 手动控制重连
             reconnectDelay: this.config.reconnectDelay || 5000,
 
             // Debug logging
@@ -103,14 +117,20 @@ export class RabbitMQClient {
                 this.reconnectAttempts = 0;
                 
                 this.log('Connected to RabbitMQ', frame);
-                this.resubscribeAll();
-                // 使用 setTimeout 确保 STOMP client 内部状态完全更新后再触发回调
-                // 这解决了 client.active 和 onConnect 回调之间的竞态条件
+                
+                // 延迟订阅，确保 STOMP 连接完全建立
+                // 使用 setTimeout 确保 STOMP client 内部状态完全更新后再订阅
                 setTimeout(() => {
                     if (this.client?.active) {
-                        this.onConnect?.();
+                        this.resubscribeAll();
+                        // 再次延迟触发连接回调，确保订阅完成
+                        setTimeout(() => {
+                            if (this.client?.active) {
+                                this.onConnect?.();
+                            }
+                        }, 100);
                     }
-                }, 0);
+                }, 100);
             },
 
             // Disconnection callback
@@ -135,10 +155,12 @@ export class RabbitMQClient {
 
             // WebSocket error callback - 区分连接错误和运行时错误
             onWebSocketError: (event) => {
-                this.log('WebSocket Error', event);
+                const errorMsg = event instanceof Error ? event.message : String(event);
+                this.log('WebSocket Error', errorMsg, event);
+                
                 // 只在首次连接失败时触发错误回调
                 if (!this.hasConnectedOnce && this.reconnectAttempts === 0) {
-                    this.onError?.('WebSocket connection error');
+                    this.onError?.(`WebSocket connection error: ${errorMsg}`);
                 } else {
                     // 运行时错误只记录日志
                     this.log('Runtime WebSocket error (will attempt reconnect)');
@@ -147,9 +169,28 @@ export class RabbitMQClient {
 
             // WebSocket close callback
             onWebSocketClose: (event) => {
-                this.log('WebSocket Closed', event);
+                this.log('WebSocket Closed', {
+                    code: event.code,
+                    reason: event.reason,
+                    wasClean: event.wasClean,
+                });
+                
+                // 只有在非手动断开且连接曾经成功过的情况下才重连
+                // 如果从未成功连接过，可能是配置错误，不应该无限重连
                 if (!this.isManualDisconnect) {
-                    this.handleReconnect();
+                    if (this.hasConnectedOnce) {
+                        // 曾经连接成功过，允许重连
+                        this.handleReconnect();
+                    } else {
+                        // 从未成功连接过，可能是配置问题，停止重连
+                        const maxAttempts = this.config.maxReconnectAttempts || 10;
+                        if (this.reconnectAttempts >= maxAttempts) {
+                            this.log('Max reconnect attempts reached, stopping reconnection');
+                            this.onError?.('Failed to establish initial connection. Please check your configuration.');
+                        } else {
+                            this.handleReconnect();
+                        }
+                    }
                 }
             },
         });
@@ -163,15 +204,47 @@ export class RabbitMQClient {
     private handleReconnect(): void {
         const maxAttempts = this.config.maxReconnectAttempts || 10;
         
-        if (maxAttempts === -1 || this.reconnectAttempts < maxAttempts) {
-            this.reconnectAttempts++;
-            this.log(`Reconnect attempt ${this.reconnectAttempts}/${maxAttempts === -1 ? '∞' : maxAttempts}`);
-            this.onReconnect?.(this.reconnectAttempts);
-        } else {
-            // 达到最大重连次数，触发错误
-            this.log(`Max reconnect attempts (${maxAttempts}) reached`);
-            this.onError?.(`Max reconnect attempts (${maxAttempts}) reached`);
+        // 如果已经达到最大重连次数，停止重连
+        if (maxAttempts !== -1 && this.reconnectAttempts >= maxAttempts) {
+            this.log(`Max reconnect attempts (${maxAttempts}) reached, stopping reconnection`);
+            this.onError?.(`Max reconnect attempts (${maxAttempts}) reached. Please check your network connection and RabbitMQ server status.`);
+            return;
         }
+        
+        this.reconnectAttempts++;
+        this.log(`Reconnect attempt ${this.reconnectAttempts}/${maxAttempts === -1 ? '∞' : maxAttempts}`);
+        this.onReconnect?.(this.reconnectAttempts);
+        
+        // 延迟重连，避免立即重连导致的问题
+        const reconnectDelay = this.config.reconnectDelay || 5000;
+        setTimeout(() => {
+            // 检查是否仍然需要重连（可能已经手动断开或已经连接）
+            if (this.isManualDisconnect) {
+                this.log('Manual disconnect detected, skipping reconnect');
+                return;
+            }
+            
+            if (!this.client) {
+                this.log('Client is null, cannot reconnect');
+                return;
+            }
+            
+            if (this.client.active) {
+                this.log('Client is already active, skipping reconnect');
+                return;
+            }
+            
+            this.log('Attempting to reconnect...');
+            try {
+                this.client.activate();
+            } catch (error) {
+                this.log('Error during reconnect activation:', error);
+                // 如果激活失败，继续尝试重连
+                if (maxAttempts === -1 || this.reconnectAttempts < maxAttempts) {
+                    this.handleReconnect();
+                }
+            }
+        }, reconnectDelay);
     }
 
     /**
@@ -256,28 +329,44 @@ export class RabbitMQClient {
      * Internal subscribe method
      */
     private doSubscribe(subscriptionId: string, config: SubscriptionConfig): void {
-        if (!this.client?.active) {
+        if (!this.client) {
+            this.log(`Cannot subscribe ${subscriptionId}: client not initialized`);
             return;
         }
 
-        const headers: Record<string, string> = {
-            id: subscriptionId,
-            ack: config.ack || 'auto',
-            ...config.headers,
-        };
+        // 检查连接状态，如果未连接则等待
+        if (!this.client.active) {
+            this.log(`Cannot subscribe ${subscriptionId}: client not active`);
+            return;
+        }
 
-        const subscription = this.client.subscribe(
-            config.destination,
-            (message) => {
-                this.log(`Received message on ${config.destination}`, message);
-                const handlers = this.messageHandlers.get(subscriptionId);
-                handlers?.forEach((handler) => handler(message));
-            },
-            headers
-        );
+        // 检查底层 WebSocket 连接是否就绪
+        // @stomp/stompjs 的 client 在 active 为 true 时，底层连接可能还在建立中
+        try {
+            const headers: Record<string, string> = {
+                id: subscriptionId,
+                ack: config.ack || 'auto',
+                ...config.headers,
+            };
 
-        this.subscriptions.set(subscriptionId, subscription);
-        this.log(`Subscribed to ${config.destination} with id ${subscriptionId}`);
+            const subscription = this.client.subscribe(
+                config.destination,
+                (message) => {
+                    this.log(`Received message on ${config.destination}`, message);
+                    const handlers = this.messageHandlers.get(subscriptionId);
+                    handlers?.forEach((handler) => handler(message));
+                },
+                headers
+            );
+
+            this.subscriptions.set(subscriptionId, subscription);
+            this.log(`Subscribed to ${config.destination} with id ${subscriptionId}`);
+        } catch (error) {
+            // 如果订阅失败（比如底层连接还没准备好），记录错误但不删除订阅配置
+            // 这样在重连或连接完全建立后，resubscribeAll 会重试
+            this.log(`Failed to subscribe ${subscriptionId}, will retry on reconnect:`, error);
+            // 不抛出错误，让订阅配置保留，等待重连后重试
+        }
     }
 
     /**
