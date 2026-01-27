@@ -6,6 +6,7 @@ import { useWorldViewData, useWorldViewEditorRef, useLoadWorldviewList } from ".
 import { useRef, useState } from "react";
 import { TimelineDefEdit } from "../edit/timelineDefEdit";
 import * as apiCalls from "../apiCalls";
+import WorldBookSnapshotDisplay from "./baseInfoPanel/WorldBookSnapshotDisplay";
 
 const { Title, Paragraph } = Typography;
 
@@ -18,7 +19,8 @@ function convertToTimelineDef(data: IWorldViewDataWithExtra): ITimelineDef | nul
         hour_length_in_seconds: data.tl_hour_length_in_seconds!,
         day_length_in_hours: data.tl_day_length_in_hours!,
         month_length_in_days: data.tl_month_length_in_days!,
-        year_length_in_months: data.tl_year_length_in_months!
+        year_length_in_months: data.tl_year_length_in_months!,
+        base_seconds: data.tl_base_seconds || 0
     }
 }
 
@@ -91,12 +93,17 @@ export default function BaseInfoPanel() {
                     onEdit={() => worldViewData && handleTimelineEdit(worldViewData)}
                 />
 
+                {/* <Divider/> */}
+
+                {/* <div className='f-flex-two-side'>
+                    <div><strong>是否在知识库：</strong> {renderYesNo(worldViewData?.is_dify_knowledge_base)}</div>
+                </div> */}
+
                 <Divider/>
 
-                <div className='f-flex-two-side'>
-                    <div><strong>是否在知识库：</strong> {renderYesNo(worldViewData?.is_dify_knowledge_base)}</div>
-                </div>
-
+                <WorldBookSnapshotDisplay 
+                    defaultSnapshotId={worldViewData?.default_snapshot_id || null}
+                />
 
             </Space>
 

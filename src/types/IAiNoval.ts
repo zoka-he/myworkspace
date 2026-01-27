@@ -245,6 +245,7 @@ export interface IRoleRelation {
     content?: string | null,
     base_timeline_id?: number | null,
     is_dify_knowledge_base?: number | null,
+    default_snapshot_id?: number | null,
     tl_id?: number | null,
     tl_worldview_id?: number | null,
     tl_epoch?: string | null,
