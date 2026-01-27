@@ -102,7 +102,7 @@ export default function BaseInfoPanel() {
                 <Divider/>
 
                 <WorldBookSnapshotDisplay 
-                    defaultSnapshotId={worldViewData?.default_snapshot_id || null}
+                    defaultSnapshotId={worldViewData?.worldrule_snapshot_id ?? null}
                 />
 
             </Space>

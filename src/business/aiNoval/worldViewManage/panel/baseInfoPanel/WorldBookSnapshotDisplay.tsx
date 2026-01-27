@@ -78,7 +78,7 @@ export default function WorldBookSnapshotDisplay({ defaultSnapshotId }: WorldBoo
         }
     };
 
-    // 保存为默认快照
+    // 保存为默认快照：更新 worldView 的 worldrule_snapshot_id，与快照 id 一致
     const handleSaveDefault = async () => {
         if (!worldViewData?.id) return;
         try {
@@ -88,10 +88,10 @@ export default function WorldBookSnapshotDisplay({ defaultSnapshotId }: WorldBoo
                 content: worldViewData.content ?? undefined,
                 is_dify_knowledge_base: worldViewData.is_dify_knowledge_base ?? undefined,
                 base_timeline_id: worldViewData.base_timeline_id ?? undefined,
-                default_snapshot_id: selectedSnapshotId ?? undefined,
-            } as any);
+                worldrule_snapshot_id: selectedSnapshotId ?? undefined,
+            });
             message.success('默认快照已更新');
-            loadWorldviewList();
+            await loadWorldviewList();
         } catch (e: any) {
             message.error(e?.message || '保存失败');
         }
