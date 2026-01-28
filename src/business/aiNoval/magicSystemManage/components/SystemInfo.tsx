@@ -3,7 +3,7 @@ import { Card, Descriptions, Button, Space, message, Modal, Form, Input, Popconf
 import { EditOutlined, DeleteOutlined, AppstoreOutlined } from '@ant-design/icons';
 import { useMagicSystemManage, useWorldviewList } from '../context';
 import fetch from '@/src/fetch';
-import { IMagicSystemDef } from '@/src/types/IAiNoval';
+import { IMagicSystemDef, IWorldViewData } from '@/src/types/IAiNoval';
 
 export default function SystemInfo() {
     const { state, dispatch } = useMagicSystemManage();
@@ -74,11 +74,23 @@ export default function SystemInfo() {
         }
     }
 
+    const selectedWorldview = state.selectedWorldviewId 
+        ? worldviewList.find(w => w.id === state.selectedWorldviewId)
+        : null;
+
     if (!selectedSystem) {
         return (
-            <Card>
+            <Card
+                title={
+                    <Space>
+                        <AppstoreOutlined />
+                        <span>技能系统信息</span>
+                    </Space>
+                }
+                style={{ minHeight: 200 }}
+            >
                 <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>
-                    请从左侧选择一个技能系统
+                    {selectedWorldview ? '请从左侧选择一个技能系统' : '请先选择一个世界观或技能系统'}
                 </div>
             </Card>
         );

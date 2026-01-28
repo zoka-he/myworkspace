@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Card, Table, Button, Space, message, Modal, Form, Input, Popconfirm } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, HistoryOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, HistoryOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useMagicSystemManage } from '../context';
 import fetch from '@/src/fetch';
 import { IMagicSystemVersion } from '@/src/types/IAiNoval';
@@ -287,11 +287,40 @@ export default function VersionManage() {
         },
     ];
 
+    // 获取当前版本（从 CurrentVersionPreview 的逻辑）
+    function getCurrentVersion(): IMagicSystemVersion | null {
+        if (!state.selectedMagicSystemId) return null;
+
+        const currentSystem = state.magicSystemList.find(
+            sys => sys.id === state.selectedMagicSystemId
+        );
+
+        if (!currentSystem?.version_id) return null;
+
+        return state.magicSystemVersions.find(
+            version => version.id === currentSystem.version_id
+        ) || null;
+    }
+
+    const currentVersion = getCurrentVersion();
+
     if (!state.selectedMagicSystemId) {
+        const selectedWorldview = state.selectedWorldviewId 
+            ? state.worldviewList.find(w => w.id === state.selectedWorldviewId)
+            : null;
+        
         return (
-            <Card>
+            <Card
+                title={
+                    <Space>
+                        <HistoryOutlined />
+                        <span>版本管理</span>
+                    </Space>
+                }
+                style={{ minHeight: 650 }}
+            >
                 <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>
-                    请先选择一个技能系统
+                    {selectedWorldview ? '请从左侧选择一个技能系统' : '请先选择一个世界观或技能系统'}
                 </div>
             </Card>
         );
@@ -324,6 +353,39 @@ export default function VersionManage() {
                     pagination={false}
                     size="small"
                 />
+                
+                {/* 当前版本预览 */}
+                <div style={{ marginTop: 24, paddingTop: 16 }}>
+                    <div style={{ marginBottom: 12 }}>
+                        <FileTextOutlined style={{ marginRight: 8 }} />
+                        <strong>当前版本：{currentVersion ? currentVersion.version_name : '暂无当前版本'}</strong>
+                    </div>
+                    {currentVersion ? (
+                        <pre style={{
+                            background: '#f5f5f5',
+                            padding: 16,
+                            borderRadius: 4,
+                            margin: 0,
+                            minHeight: 200,
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-all',
+                            fontSize: '12px',
+                            lineHeight: '1.5'
+                        }}>
+                            {(() => {
+                                try {
+                                    return JSON.stringify(JSON.parse(currentVersion.content), null, 2);
+                                } catch {
+                                    return currentVersion.content;
+                                }
+                            })()}
+                        </pre>
+                    ) : (
+                        <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>
+                            暂无当前版本
+                        </div>
+                    )}
+                </div>
             </Card>
 
             <Modal

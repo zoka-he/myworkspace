@@ -5,7 +5,6 @@ import { useMagicSystemManage } from "./context";
 import SystemTree from "./components/SystemTree";
 import SystemInfo from "./components/SystemInfo";
 import VersionManage from "./components/VersionManage";
-import CurrentVersionPreview from "./components/CurrentVersionPreview";
 import AddSystemModal from "./components/AddSystemModal";
 import fetch from '@/src/fetch';
 
@@ -26,7 +25,7 @@ function MagicSystemManageContent() {
     }
 
     return (
-        <div style={{ padding: '16px', height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
+        <div style={{ padding: '0', height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
             <Row gutter={16} style={{ height: '100%' }}>
                 {/* 左侧：世界观和技能系统树 */}
                 <Col span={6} style={{ height: '100%' }}>
@@ -38,11 +37,8 @@ function MagicSystemManageContent() {
                     <div style={{ marginBottom: 16 }}>
                         <SystemInfo />
                     </div>
-                    <div style={{ marginBottom: 16 }}>
-                        <VersionManage />
-                    </div>
                     <div>
-                        <CurrentVersionPreview />
+                        <VersionManage />
                     </div>
                 </Col>
             </Row>
