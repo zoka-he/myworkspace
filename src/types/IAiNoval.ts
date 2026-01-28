@@ -375,3 +375,23 @@ export interface IWorldRuleSnapshot {
     created_at?: Date | null,
     updated_at?: Date | null,
 }
+
+export interface IMagicSystemDef {
+    id: number,
+    worldview_id: number,   // 世界观ID
+    system_name: string,   // 系统名称
+    order_num: number,   // 排序号
+    version_id: number,   // 版本ID
+    created_at: Date,      // 创建时间
+    updated_at: Date,      // 更新时间
+}
+
+export interface IMagicSystemVersion {
+    id: number,
+    def_id: number,      // 定义ID
+    worldview_id: number,   // 世界观ID
+    version_name: string,   // 版本名称
+    content: string,       // 系统内容
+    created_at: Date,      // 创建时间
+    updated_at: Date,      // 更新时间
+}

@@ -257,16 +257,16 @@ export default function() {
             <Table dataSource={tableData} size="small" scroll={{y: 'calc(100vh - 215px)'}} 
                     rowKey={'ID'} expandable={{ expandedRowKeys: expendKeys, onExpand: onRowExpand }}>
                 <Table.Column title="名称" dataIndex="label"></Table.Column>
-                <Table.Column title="类型" dataIndex="type"></Table.Column>
+                <Table.Column title="类型" dataIndex="type" width={100}></Table.Column>
                 <Table.Column title="URI" dataIndex="uri"></Table.Column>
                 <Table.Column title="URL" dataIndex="url"></Table.Column>
-                <Table.Column title="是否私密" dataIndex="is_secret" render={(is_secret: string, row: IPermission) => {
+                <Table.Column title="是否私密" dataIndex="is_secret" width={100} render={(is_secret: string, row: IPermission) => {
                         return (
                             <Switch checked={is_secret === 'Y'} onChange={() => toggleRowSecret(row)}/>
                         )
                     }}
                 />
-                <Table.Column title="测试模式" dataIndex="is_testing" render={(is_testing: 0 | 1, row: IPermission) => {
+                <Table.Column title="测试模式" dataIndex="is_testing" width={100} render={(is_testing: 0 | 1, row: IPermission) => {
                         return (
                             <Switch checked={is_testing === 1} onChange={() => toggleRowTesting(row)}/>
                         )
