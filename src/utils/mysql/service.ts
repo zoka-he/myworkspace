@@ -91,6 +91,12 @@ class MysqlService {
                     } else if (v.hasOwnProperty('$gt')) {
                         condStrs.push(`${k}>?`);
                         values.push(v.$gt);
+                    } else if (v.hasOwnProperty('$gte')) {
+                        condStrs.push(`${k}>=?`);
+                        values.push(v.$gte);
+                    } else if (v.hasOwnProperty('$lte')) {
+                        condStrs.push(`${k}<=?`);
+                        values.push(v.$lte);
                     } else if (v?.$btw instanceof Array) {
                         condStrs.push(`${k} between ? and ?`);
                         values.push(...v.$btw);

@@ -193,6 +193,33 @@ export const getChapterList = async (novelId: number, page: number = 1, limit: n
 }
 
 /**
+ * 获取所有章节定义数据
+ * @returns { data: IChapter[], count: number }
+ */
+export const getChapterListFrom = async (novelId: number, from: number = 1, to: number = 100) => {
+    let params = {
+        novelId,
+        dataType: 'base',
+        from,
+        to
+    };
+    const response = await fetch.get<IChapter[]>('/api/aiNoval/chapters/list', { params });
+
+    if (response.data) {
+        response.data.forEach(chapter => {
+            chapter.storyline_ids = splitIds(chapter.storyline_ids).map(Number);
+            chapter.event_ids = splitIds(chapter.event_ids).map(Number);
+            chapter.geo_ids = splitIds(chapter.geo_ids).map(String);
+            chapter.role_ids = splitIds(chapter.role_ids).map(Number);
+            chapter.faction_ids = splitIds(chapter.faction_ids).map(Number);
+            chapter.related_chapter_ids = splitIds(chapter.related_chapter_ids).map(Number);
+        });
+    }
+
+    return response as unknown as {data: IChapter[], count: number};
+}
+
+/**
  * 添加章节
  * @param chapter 章节数据（字段可选）
  * @returns 
@@ -300,6 +327,25 @@ export const stripChapterBlocking = async (chapterId: number, stripLength: numbe
     console.debug('response -> ', response);
 
     return response.data?.outputs?.output || '';
+}
+
+export const stripText = async (text: string, targetLength: number = 300): Promise<string> => {
+    const response = await fetch.post(`/api/aiNoval/llm/once/stripParagraph`, 
+        {
+            text,
+            targetLength
+        },
+        {
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            timeout: 1000 * 60 * 10
+        }
+    );
+
+    console.debug('response -> ', response);
+
+    return response.data?.strippedText || '';
 }
 
 

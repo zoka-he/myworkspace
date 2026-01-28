@@ -12,10 +12,26 @@ const service = new ChaptersService();
 async function research(req: NextApiRequest, res: NextApiResponse) {
     console.debug('req query', req.query);
 
-    const page = _.toNumber(req.query.page || 1);
-    const limit = _.toNumber(req.query.limit || 20);
+    let page = _.toNumber(req.query.page || 1);
+    let limit = _.toNumber(req.query.limit || 20);
 
-    const mode = req.query.mode || 'base';
+    let mode = req.query.mode || 'base';
+
+    const numExp = /^[1-9]\d+$/;
+    if (numExp.test(req.query.from as string) && numExp.test(req.query.to as string)) {
+        page = 1;
+        limit = _.toNumber(req.query.to) - _.toNumber(req.query.from) + 1;
+        mode = 'anything';
+    } else {
+        if (req.query.from) {
+            delete req.query.from;
+        }
+
+        if (req.query.to) {
+            delete req.query.to;
+        }
+    }
+
     
     if (mode === 'base') {
         if (!req.query.novelId) {
@@ -43,7 +59,19 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
                     break;
                 case 'title':
                     queryObject.title = v;
+                    break;
+                // case 'from':
+                //     queryObject.chapter_number = { '$gte': _.toNumber(v) };
+                //     break;
+                // case 'to':
+                //     queryObject.chapter_number = { '$lte': _.toNumber(v) };
+                //     break;
             }
+        }
+
+        // orm设计问题，如果同时设置chapter_number，后来的会覆盖先到的
+        if (req.query.from && req.query.to) {
+            queryObject.chapter_number = { '$btw': [_.toNumber(req.query.from), _.toNumber(req.query.to)] };
         }
 
         let ret = await service.query(queryObject, [], ['chapter_number asc', 'version asc'], page, limit);
