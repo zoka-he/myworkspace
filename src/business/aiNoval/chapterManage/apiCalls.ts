@@ -407,7 +407,9 @@ export const pickFromText = async (target: string, src_text: string): Promise<an
 
 // 生成章节
 export const genChapterBlocking = async (worldviewId: number, inputs: any, difyHost: string = ''): Promise<{ content: string, status: string, error: string, elapsed_time: number }> => {
-    const response = await fetch.post(`/api/aiNoval/chapters/genChapter`, 
+    const response = await fetch.post(
+        // `/api/aiNoval/chapters/genChapterLegacy`, 
+        `/api/aiNoval/chapters/genChapter`, 
         inputs,
         {
             params: {worldviewId, difyHost},

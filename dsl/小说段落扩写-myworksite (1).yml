@@ -1,0 +1,2045 @@
+app:
+  description: ''
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: workflow
+  name: 小说段落扩写-myworksite
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/siliconflow:0.0.34@1c203017d8ef49fd9152696a42e6dc71ecf272b115d8caf731c99ee0d2956dce
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/deepseek:0.0.7@c4e7b999ae67bfc059f6f51630bed36def5a835d12b0251694f5784b5ff1cd95
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/openrouter:0.0.31@6d9f4aa9c5d2f7a0c5a7ca4870328fb8d93c5f8c04a0cf45a34976723ce4d502
+kind: app
+version: 0.3.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: end
+      id: 1745917173443-source-1745913118080-target
+      source: '1745917173443'
+      sourceHandle: source
+      target: '1745913118080'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: start
+        targetType: template-transform
+      id: 1745911704570-source-1745912260145-target
+      source: '1745911704570'
+      sourceHandle: source
+      target: '1745912260145'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: if-else
+      id: 1745911704570-source-1748160695953-target
+      source: '1745911704570'
+      sourceHandle: source
+      target: '1748160695953'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: if-else
+      id: 1745911704570-source-1748160792395-target
+      source: '1745911704570'
+      sourceHandle: source
+      target: '1748160792395'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: if-else
+      id: 1745911704570-source-1748160809755-target
+      source: '1745911704570'
+      sourceHandle: source
+      target: '1748160809755'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: if-else
+      id: 1745911704570-source-1748249452099-target
+      source: '1745911704570'
+      sourceHandle: source
+      target: '1748249452099'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: knowledge-retrieval
+      id: 1748249452099-true-1748249467235-target
+      source: '1748249452099'
+      sourceHandle: 'true'
+      target: '1748249467235'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: knowledge-retrieval
+        targetType: variable-aggregator
+      id: 1748249467235-source-1745917245117-target
+      source: '1748249467235'
+      sourceHandle: source
+      target: '1745917245117'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: template-transform
+        targetType: template-transform
+      id: 1745912260145-source-1748249866268-target
+      source: '1745912260145'
+      sourceHandle: source
+      target: '1748249866268'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: 1748160695953-true-1751601932411-target
+      source: '1748160695953'
+      sourceHandle: 'true'
+      target: '1751601932411'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: iteration
+      id: 1751601932411-source-1751602108098-target
+      source: '1751601932411'
+      sourceHandle: source
+      target: '1751602108098'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1751602108098'
+        sourceType: iteration-start
+        targetType: knowledge-retrieval
+      id: 1751602108098start-source-1751602150216-target
+      source: 1751602108098start
+      sourceHandle: source
+      target: '1751602150216'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInLoop: false
+        sourceType: iteration
+        targetType: variable-aggregator
+      id: 1751602108098-source-1745917245117-target
+      source: '1751602108098'
+      sourceHandle: source
+      target: '1745917245117'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: 1748160792395-true-1751615254357-target
+      source: '1748160792395'
+      sourceHandle: 'true'
+      target: '1751615254357'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: iteration
+      id: 1751615254357-source-1751615304788-target
+      source: '1751615254357'
+      sourceHandle: source
+      target: '1751615304788'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1751615304788'
+        sourceType: iteration-start
+        targetType: knowledge-retrieval
+      id: 1751615304788start-source-1751615319612-target
+      source: 1751615304788start
+      sourceHandle: source
+      target: '1751615319612'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInLoop: false
+        sourceType: iteration
+        targetType: variable-aggregator
+      id: 1751615304788-source-1745917245117-target
+      source: '1751615304788'
+      sourceHandle: source
+      target: '1745917245117'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: 1748160809755-true-1752422325621-target
+      source: '1748160809755'
+      sourceHandle: 'true'
+      target: '1752422325621'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: iteration
+      id: 1752422325621-source-1752422301800-target
+      source: '1752422325621'
+      sourceHandle: source
+      target: '1752422301800'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1752422301800'
+        sourceType: iteration-start
+        targetType: knowledge-retrieval
+      id: 1752422301800start-source-1752422386614-target
+      source: 1752422301800start
+      sourceHandle: source
+      target: '1752422386614'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInLoop: false
+        sourceType: iteration
+        targetType: variable-aggregator
+      id: 1752422301800-source-1745917245117-target
+      source: '1752422301800'
+      sourceHandle: source
+      target: '1745917245117'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: variable-aggregator
+        targetType: if-else
+      id: 1745917245117-source-1756705720326-target
+      source: '1745917245117'
+      sourceHandle: source
+      target: '1756705720326'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: template-transform
+        targetType: if-else
+      id: 1748249866268-source-1756705720326-target
+      source: '1748249866268'
+      sourceHandle: source
+      target: '1756705720326'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: 1756705720326-true-1745917173443-target
+      source: '1756705720326'
+      sourceHandle: 'true'
+      target: '1745917173443'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: 1756705720326-6a6259a0-550e-4aa4-98f2-77cba8e6ff85-1745917173443-target
+      source: '1756705720326'
+      sourceHandle: 6a6259a0-550e-4aa4-98f2-77cba8e6ff85
+      target: '1745917173443'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: end
+      id: 1756705857258-source-1756705928170-target
+      source: '1756705857258'
+      sourceHandle: source
+      target: '1756705928170'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: 1756705720326-3133b2dd-f8bb-4172-a29d-6258e75164f6-1756705857258-target
+      source: '1756705720326'
+      sourceHandle: 3133b2dd-f8bb-4172-a29d-6258e75164f6
+      target: '1756705857258'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: 1756705720326-false-1745917173443-target
+      selected: false
+      source: '1756705720326'
+      sourceHandle: 'false'
+      target: '1745917173443'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: 1756705720326-a3fb05ca-96d5-4aad-a220-922ffd7fcb2d-17636111081830-target
+      source: '1756705720326'
+      sourceHandle: a3fb05ca-96d5-4aad-a220-922ffd7fcb2d
+      target: '17636111081830'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: end
+      id: 17636111081830-source-17636111348710-target
+      source: '17636111081830'
+      sourceHandle: source
+      target: '17636111348710'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1751602108098'
+        sourceType: knowledge-retrieval
+        targetType: code
+      id: 1751602150216-source-1764522971987-target
+      source: '1751602150216'
+      sourceHandle: source
+      target: '1764522971987'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1751602108098'
+        sourceType: iteration-start
+        targetType: tool
+      id: 1751602108098start-source-1764523096935-target
+      source: 1751602108098start
+      sourceHandle: source
+      target: '1764523096935'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1751602108098'
+        sourceType: tool
+        targetType: code
+      id: 1764523096935-source-1764522971987-target
+      source: '1764523096935'
+      sourceHandle: source
+      target: '1764522971987'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1752422301800'
+        sourceType: iteration-start
+        targetType: tool
+      id: 1752422301800start-source-1764573249155-target
+      source: 1752422301800start
+      sourceHandle: source
+      target: '1764573249155'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1752422301800'
+        sourceType: knowledge-retrieval
+        targetType: code
+      id: 1752422386614-source-1764573275867-target
+      source: '1752422386614'
+      sourceHandle: source
+      target: '1764573275867'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1752422301800'
+        sourceType: tool
+        targetType: code
+      id: 1764573249155-source-1764573275867-target
+      source: '1764573249155'
+      sourceHandle: source
+      target: '1764573275867'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: 开始
+        type: start
+        variables:
+        - allowed_file_extensions: []
+          allowed_file_types:
+          - document
+          allowed_file_upload_methods:
+          - local_file
+          label: 前序段落
+          max_length: 18000
+          options: []
+          required: false
+          type: paragraph
+          variable: prev_content
+        - label: 本章内容
+          max_length: 18000
+          options: []
+          required: false
+          type: paragraph
+          variable: curr_context
+        - label: role_names
+          max_length: 256
+          options: []
+          required: false
+          type: text-input
+          variable: role_names
+        - label: faction_names
+          max_length: 256
+          options: []
+          required: false
+          type: text-input
+          variable: faction_names
+        - label: geo_names
+          max_length: 256
+          options: []
+          required: false
+          type: text-input
+          variable: geo_names
+        - label: 额外设定
+          max_length: 2000
+          options: []
+          required: false
+          type: paragraph
+          variable: extra_settings
+        - label: 注意事项
+          max_length: 500
+          options: []
+          required: false
+          type: paragraph
+          variable: attension
+        - label: 模型分类
+          max_length: 48
+          options: []
+          required: false
+          type: text-input
+          variable: llm_type
+      height: 272
+      id: '1745911704570'
+      position:
+        x: 611.359563717853
+        y: 303.1450257409837
+      positionAbsolute:
+        x: 611.359563717853
+        y: 303.1450257409837
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        selected: false
+        template: "{% if prev_content %}\r\n{{ '【章节背景】: ' }}\r\n{{ arg1 }}\r\n{% endif\
+          \ %}\r\n\r\n{% if arg2 %}\r\n{{ '【本章待写内容】：' }}\r\n{{ arg2 }}\r\n{% endif\
+          \ %}\r\n"
+        title: 模板转换 - 前后情节
+        type: template-transform
+        variables:
+        - value_selector:
+          - '1745911704570'
+          - prev_content
+          variable: arg1
+        - value_selector:
+          - '1745911704570'
+          - curr_context
+          variable: arg2
+      height: 54
+      id: '1745912260145'
+      position:
+        x: 1178.758850499369
+        y: 303.1450257409837
+      positionAbsolute:
+        x: 1178.758850499369
+        y: 303.1450257409837
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        outputs:
+        - value_selector:
+          - '1745917173443'
+          - text
+          variable: output
+        selected: false
+        title: 结束-Gemini
+        type: end
+      height: 90
+      id: '1745913118080'
+      position:
+        x: 4328.430856824782
+        y: 303.1450257409837
+      positionAbsolute:
+        x: 4328.430856824782
+        y: 303.1450257409837
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - '1745917245117'
+          - output
+        desc: ''
+        model:
+          completion_params:
+            temperature: 0.9
+          mode: chat
+          name: google/gemini-2.5-pro
+          provider: langgenius/openrouter/openrouter
+        prompt_template:
+        - id: 4766c0f9-dd97-441d-9767-919459b564c2
+          role: system
+          text: '```xml
+
+            <instruction>
+
+            <title>小说片段扩写</title>
+
+
+            <description>
+
+            本任务旨在根据用户提供的待扩写小说片段、前情提要和相关设定，进行扩写，使故事更加丰满、情节更加引人入胜。扩写时需保持原片段的风格、基调和人物性格，并在此基础上进行合理的补充和发展。请务必仔细阅读前情提要和相关设定，确保扩写内容与原故事背景一致，并符合逻辑。扩写内容应避免出现与原设定相悖的情节或人物行为。
+
+            </description>
+
+
+            <section title="任务目标">
+
+            1. 扩写用户提供的待扩写小说片段，使其内容更加丰富、细节更加生动。
+
+            2. 保持原片段的风格、基调和人物性格。
+
+            3. 确保扩写内容与前情提要和相关设定一致，符合逻辑。
+
+            4. 避免出现与原设定相悖的情节或人物行为。
+
+            5. 扩写后的内容应流畅自然，易于理解。
+
+            6. 只需要扩写“待扩写片段”，并与前情提要做好衔接即可；
+
+            7.使用2010年后中文网络化的表达，避免出现翻译腔，避免出现古代表达；
+
+            8.使用流畅、自然的动作与场景描写；减少不必要的形容词；
+
+            </section>
+
+
+            <section title="输入信息">
+
+            * **待扩写小说片段:** 用户提供的需要扩写的片段。
+
+            * **前情提要:** 故事的背景介绍、主要人物关系、已发生的重要事件等。
+
+            * **相关设定:** 故事的世界观、规则、文化、技术等。
+
+            </section>
+
+
+            <section title="输出要求">
+
+            * 扩写后的小说片段，应与前情提要衔接顺畅。
+
+            * 扩写内容应保持与相关设定一致的人物性格、人物设定。
+
+            * 扩写内容应符合前情提要和相关设定的逻辑。
+
+            * 扩写后的内容应流畅自然，易于理解。
+
+            * 输出内容应为纯文本，严禁包含任何XML标签。
+
+            </section>
+
+
+            <section title="注意事项">
+
+            {{#1748249866268.output#}}
+
+            </section>
+
+
+            <section title="相关设定">
+
+            {{#context#}}
+
+            </section>'
+        - id: 1555b90f-88be-4a7a-9a10-ee398f855fb9
+          role: user
+          text: '{{#1745912260145.output#}}
+
+            '
+        selected: false
+        title: LLM - Gemini扩写段落
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 90
+      id: '1745917173443'
+      position:
+        x: 3943.3010661513845
+        y: 303.1450257409837
+      positionAbsolute:
+        x: 3943.3010661513845
+        y: 303.1450257409837
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        advanced_settings:
+          group_enabled: false
+          groups:
+          - groupId: a966cb49-8d94-46e5-aef4-4343cfe52728
+            group_name: roles
+            output_type: array[object]
+            variables:
+            - - '1745915306250'
+              - result
+          - groupId: 8d0221b7-e02f-4cd9-9705-57801f63c075
+            group_name: factions
+            output_type: array[object]
+            variables:
+            - - '1745915696588'
+              - result
+          - groupId: 1548ec5f-03e2-4bd7-bd1c-13e5208113db
+            group_name: geographies
+            output_type: array[object]
+            variables:
+            - - '1748160540365'
+              - result
+        desc: ''
+        output_type: array[object]
+        selected: false
+        title: 变量聚合器
+        type: variable-aggregator
+        variables:
+        - - '1751602108098'
+          - output
+        - - '1752422301800'
+          - output
+        - - '1748249467235'
+          - result
+        - - '1751615304788'
+          - output
+      height: 174
+      id: '1745917245117'
+      position:
+        x: 3176.71993688014
+        y: 415.66921950615244
+      positionAbsolute:
+        x: 3176.71993688014
+        y: 415.66921950615244
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: not empty
+            id: 54a7109b-14ed-4824-9633-6bdf52e407f8
+            value: ''
+            varType: string
+            variable_selector:
+            - '1745911704570'
+            - role_names
+          id: 'true'
+          logical_operator: and
+        desc: ''
+        selected: false
+        title: 条件分支
+        type: if-else
+      height: 126
+      id: '1748160695953'
+      position:
+        x: 1178.758850499369
+        y: 387.3836788967665
+      positionAbsolute:
+        x: 1178.758850499369
+        y: 387.3836788967665
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: not empty
+            id: 48597df9-1220-4baf-8904-8067a133e816
+            value: ''
+            varType: string
+            variable_selector:
+            - '1745911704570'
+            - faction_names
+          id: 'true'
+          logical_operator: and
+        desc: ''
+        selected: false
+        title: 条件分支 2
+        type: if-else
+      height: 126
+      id: '1748160792395'
+      position:
+        x: 1178.758850499369
+        y: 770.9941816128415
+      positionAbsolute:
+        x: 1178.758850499369
+        y: 770.9941816128415
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: not empty
+            id: 0de2e0fe-a87b-43b9-a88c-7731b137bb33
+            value: ''
+            varType: string
+            variable_selector:
+            - '1745911704570'
+            - geo_names
+          id: 'true'
+          logical_operator: and
+        desc: ''
+        selected: false
+        title: 条件分支 3
+        type: if-else
+      height: 126
+      id: '1748160809755'
+      position:
+        x: 1178.758850499369
+        y: 1232.2089946227889
+      positionAbsolute:
+        x: 1178.758850499369
+        y: 1232.2089946227889
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: not empty
+            id: bac1f814-288c-46a4-924a-195186f0bf17
+            value: ''
+            varType: string
+            variable_selector:
+            - '1745911704570'
+            - extra_settings
+          id: 'true'
+          logical_operator: and
+        desc: ''
+        selected: false
+        title: 条件分支 4
+        type: if-else
+      height: 126
+      id: '1748249452099'
+      position:
+        x: 1178.758850499369
+        y: 1665.5986596084326
+      positionAbsolute:
+        x: 1178.758850499369
+        y: 1665.5986596084326
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        dataset_ids:
+        - cnXj49LcXuQfP1jm9pCDoCzyTzq5jrbvnly78kqi18SsrN120RvLaxSZyUsyNune
+        desc: ''
+        multiple_retrieval_config:
+          reranking_enable: false
+          reranking_mode: reranking_model
+          reranking_model:
+            model: BAAI/bge-reranker-v2-m3
+            provider: langgenius/siliconflow/siliconflow
+          score_threshold: null
+          top_k: 4
+        query_variable_selector:
+        - '1745911704570'
+        - extra_settings
+        retrieval_mode: multiple
+        selected: false
+        title: 知识检索 - 额外设定
+        type: knowledge-retrieval
+      height: 92
+      id: '1748249467235'
+      position:
+        x: 2649.836134978715
+        y: 1698.9343000399915
+      positionAbsolute:
+        x: 2649.836134978715
+        y: 1698.9343000399915
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        selected: false
+        template: "{% if arg1 %}\r\n{{ arg1 }}\r\n{% else %}\r\n* 扩写时，请仔细分析用户提供的片段，理解其含义和作用。\r\
+          \n* 扩写时，请充分利用前情提要和相关设定，为故事增加细节和深度。\r\n* 扩写时，请注意人物的心理活动和行为动机，使人物更加立体和真实。\r\
+          \n* 扩写时，请注意情节的节奏和悬念，使故事更加引人入胜。\r\n{% endif %}"
+        title: 模板转换  - 注意事项
+        type: template-transform
+        variables:
+        - value_selector:
+          - '1745911704570'
+          - attension
+          variable: arg1
+      height: 54
+      id: '1748249866268'
+      position:
+        x: 1728.803897431812
+        y: 303.1450257409837
+      positionAbsolute:
+        x: 1728.803897431812
+        y: 303.1450257409837
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "\ndef main(names: str) -> dict:\n    return {\n        \"result\":\
+          \ names.replace('，', ',').split(','),\n    }\n"
+        code_language: python3
+        desc: ''
+        outputs:
+          result:
+            children: null
+            type: array[string]
+        retry_config:
+          max_retries: 10
+          retry_enabled: true
+          retry_interval: '200'
+        selected: false
+        title: 代码执行 - 分解角色提示
+        type: code
+        variables:
+        - value_selector:
+          - '1745911704570'
+          - role_names
+          variable: names
+      height: 84
+      id: '1751601932411'
+      position:
+        x: 1728.803897431812
+        y: 415.66921950615244
+      positionAbsolute:
+        x: 1728.803897431812
+        y: 415.66921950615244
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        error_handle_mode: terminated
+        height: 344
+        is_parallel: false
+        iterator_selector:
+        - '1751601932411'
+        - result
+        output_selector:
+        - '1764522971987'
+        - result
+        output_type: array[object]
+        parallel_nums: 10
+        selected: false
+        start_node_id: 1751602108098start
+        title: 迭代 - 角色提取
+        type: iteration
+        width: 710
+      height: 344
+      id: '1751602108098'
+      position:
+        x: 2167.4464613917944
+        y: 415.66921950615244
+      positionAbsolute:
+        x: 2167.4464613917944
+        y: 415.66921950615244
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 710
+      zIndex: 1
+    - data:
+        desc: ''
+        isInIteration: true
+        selected: false
+        title: ''
+        type: iteration-start
+      draggable: false
+      height: 48
+      id: 1751602108098start
+      parentId: '1751602108098'
+      position:
+        x: 24
+        y: 68
+      positionAbsolute:
+        x: 2191.4464613917944
+        y: 483.66921950615244
+      selectable: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom-iteration-start
+      width: 44
+      zIndex: 1002
+    - data:
+        dataset_ids:
+        - hnxnc797Q5Jsl3T72lhzIXESOZtZSmbvXqY1cg5mXapmV9BkmbAIKbXhd3tR69L7
+        desc: ''
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1751602108098'
+        multiple_retrieval_config:
+          reranking_enable: false
+          reranking_mode: reranking_model
+          reranking_model:
+            model: BAAI/bge-reranker-v2-m3
+            provider: langgenius/siliconflow/siliconflow
+          score_threshold: null
+          top_k: 4
+        query_variable_selector:
+        - '1751602108098'
+        - item
+        retrieval_mode: multiple
+        selected: false
+        title: 知识检索 - 角色
+        type: knowledge-retrieval
+      height: 92
+      id: '1751602150216'
+      parentId: '1751602108098'
+      position:
+        x: 128
+        y: 65
+      positionAbsolute:
+        x: 2295.4464613917944
+        y: 480.66921950615244
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+      zIndex: 1002
+    - data:
+        code: "\ndef main(arg1: str) -> dict:\n    return {\n        \"result\": arg1.replace('，',\
+          \ ',').split(','),\n    }\n"
+        code_language: python3
+        desc: ''
+        outputs:
+          result:
+            children: null
+            type: array[string]
+        retry_config:
+          max_retries: 10
+          retry_enabled: true
+          retry_interval: '200'
+        selected: false
+        title: 代码执行 - 分解阵营提示
+        type: code
+        variables:
+        - value_selector:
+          - '1745911704570'
+          - faction_names
+          variable: arg1
+      height: 84
+      id: '1751615254357'
+      position:
+        x: 1728.803897431812
+        y: 803.3207266493466
+      positionAbsolute:
+        x: 1728.803897431812
+        y: 803.3207266493466
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        error_handle_mode: terminated
+        height: 409
+        is_parallel: false
+        iterator_selector:
+        - '1751615254357'
+        - result
+        output_selector:
+        - '1751615319612'
+        - result
+        output_type: array[object]
+        parallel_nums: 10
+        selected: false
+        start_node_id: 1751615304788start
+        title: 迭代 - 阵营抓取
+        type: iteration
+        width: 714
+      height: 409
+      id: '1751615304788'
+      position:
+        x: 2167.4464613917944
+        y: 803.3207266493466
+      positionAbsolute:
+        x: 2167.4464613917944
+        y: 803.3207266493466
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 714
+      zIndex: 1
+    - data:
+        desc: ''
+        isInIteration: true
+        selected: false
+        title: ''
+        type: iteration-start
+      draggable: false
+      height: 48
+      id: 1751615304788start
+      parentId: '1751615304788'
+      position:
+        x: 24
+        y: 68
+      positionAbsolute:
+        x: 2191.4464613917944
+        y: 871.3207266493466
+      selectable: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom-iteration-start
+      width: 44
+      zIndex: 1002
+    - data:
+        dataset_ids:
+        - rHhcH52xuTdoOX3zFHCtbwvJPEdTAJYOtQLLEtd4uCAPOtj0OVAX6016nlVCvS4r
+        - MpSXemlC1spURcrKF+m5XDnc49csFt7wjt6xdAH7Don6lHMQW5ZjD/tIagliYCt9
+        desc: ''
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1751615304788'
+        multiple_retrieval_config:
+          reranking_enable: false
+          reranking_mode: reranking_model
+          reranking_model:
+            model: BAAI/bge-reranker-v2-m3
+            provider: langgenius/siliconflow/siliconflow
+          score_threshold: null
+          top_k: 4
+        query_variable_selector:
+        - '1751615304788'
+        - item
+        retrieval_mode: multiple
+        selected: false
+        title: 知识检索 - 阵营
+        type: knowledge-retrieval
+      height: 120
+      id: '1751615319612'
+      parentId: '1751615304788'
+      position:
+        x: 128
+        y: 68
+      positionAbsolute:
+        x: 2295.4464613917944
+        y: 871.3207266493466
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+      zIndex: 1002
+    - data:
+        desc: ''
+        error_handle_mode: terminated
+        height: 404
+        is_parallel: false
+        iterator_selector:
+        - '1752422325621'
+        - result
+        output_selector:
+        - '1764573275867'
+        - result
+        output_type: array[string]
+        parallel_nums: 10
+        selected: false
+        start_node_id: 1752422301800start
+        title: 迭代 - 地理抓取
+        type: iteration
+        width: 717
+      height: 404
+      id: '1752422301800'
+      position:
+        x: 2167.4464613917944
+        y: 1264.527530400373
+      positionAbsolute:
+        x: 2167.4464613917944
+        y: 1264.527530400373
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 717
+      zIndex: 1
+    - data:
+        desc: ''
+        isInIteration: true
+        selected: false
+        title: ''
+        type: iteration-start
+      draggable: false
+      height: 48
+      id: 1752422301800start
+      parentId: '1752422301800'
+      position:
+        x: 24
+        y: 68
+      positionAbsolute:
+        x: 2191.4464613917944
+        y: 1332.527530400373
+      selectable: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom-iteration-start
+      width: 44
+      zIndex: 1002
+    - data:
+        code: "\ndef main(arg1: str) -> dict:\n    return {\n        \"result\": arg1.replace('，',\
+          \ ',').split(','),\n    }\n\n"
+        code_language: python3
+        desc: ''
+        outputs:
+          result:
+            children: null
+            type: array[string]
+        retry_config:
+          max_retries: 10
+          retry_enabled: true
+          retry_interval: '200'
+        selected: false
+        title: 代码执行 - 分解地理提示
+        type: code
+        variables:
+        - value_selector:
+          - '1745911704570'
+          - geo_names
+          variable: arg1
+      height: 84
+      id: '1752422325621'
+      position:
+        x: 1757.9136191137814
+        y: 1264.527530400373
+      positionAbsolute:
+        x: 1757.9136191137814
+        y: 1264.527530400373
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        dataset_ids:
+        - mCQk9HyX86QNR9fNTKriU8WIDMqc2f1zYInIPvmxqTwF2xc582jjr1zD4Zw2mbdM
+        desc: ''
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1752422301800'
+        multiple_retrieval_config:
+          reranking_enable: false
+          reranking_mode: reranking_model
+          reranking_model:
+            model: BAAI/bge-reranker-v2-m3
+            provider: langgenius/siliconflow/siliconflow
+          score_threshold: null
+          top_k: 4
+        query_variable_selector:
+        - '1752422301800'
+        - item
+        retrieval_mode: multiple
+        selected: false
+        title: 知识检索 - 地理环境
+        type: knowledge-retrieval
+      height: 92
+      id: '1752422386614'
+      parentId: '1752422301800'
+      position:
+        x: 128
+        y: 68
+      positionAbsolute:
+        x: 2295.4464613917944
+        y: 1332.527530400373
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+      zIndex: 1002
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: empty
+            id: dbf96480-64f9-4f9c-be09-d69f39a43639
+            value: ''
+            varType: string
+            variable_selector:
+            - '1745911704570'
+            - llm_type
+          id: 'true'
+          logical_operator: and
+        - case_id: 6a6259a0-550e-4aa4-98f2-77cba8e6ff85
+          conditions:
+          - comparison_operator: is
+            id: eb752964-4fc1-4b3d-93b0-365158e61276
+            value: gemini
+            varType: string
+            variable_selector:
+            - '1745911704570'
+            - llm_type
+          id: 6a6259a0-550e-4aa4-98f2-77cba8e6ff85
+          logical_operator: and
+        - case_id: 3133b2dd-f8bb-4172-a29d-6258e75164f6
+          conditions:
+          - comparison_operator: is
+            id: 432737c6-c2eb-434f-8b34-35e4b7295f28
+            value: deepseek
+            varType: string
+            variable_selector:
+            - '1745911704570'
+            - llm_type
+          id: 3133b2dd-f8bb-4172-a29d-6258e75164f6
+          logical_operator: and
+        - case_id: a3fb05ca-96d5-4aad-a220-922ffd7fcb2d
+          conditions:
+          - comparison_operator: contains
+            id: 7de9b194-70a4-4b86-bc66-ca1abce253c1
+            value: gemini3
+            varType: string
+            variable_selector:
+            - '1745911704570'
+            - llm_type
+          id: a3fb05ca-96d5-4aad-a220-922ffd7fcb2d
+          logical_operator: and
+        desc: ''
+        selected: false
+        title: 模型分类
+        type: if-else
+      height: 270
+      id: '1756705720326'
+      position:
+        x: 3501.954407060835
+        y: 303.1450257409837
+      positionAbsolute:
+        x: 3501.954407060835
+        y: 303.1450257409837
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - '1745917245117'
+          - output
+        desc: ''
+        model:
+          completion_params: {}
+          mode: chat
+          name: deepseek-reasoner
+          provider: langgenius/deepseek/deepseek
+        prompt_template:
+        - id: e9ce2b01-cce5-4a74-ac9d-0ee81e1ddc01
+          role: system
+          text: '```xml
+
+            <instruction>
+
+            <title>小说片段扩写</title>
+
+
+            <description>
+
+            本任务旨在根据用户提供的待润色的小说片段、前情提要和相关设定，进行润色，使故事更加丰满、情节更加引人入胜。扩写时需保持原片段的风格、基调和人物性格，并在此基础上进行合理的补充和发展。请务必仔细阅读前情提要和相关设定，确保扩写内容与原故事背景一致，并符合逻辑。扩写内容应避免出现与原设定相悖的情节或人物行为。
+
+            </description>
+
+
+            <section title="任务目标">
+
+            1. 扩写用户提供的待扩写小说片段，使其内容更加丰富、细节更加生动。
+
+            2. 保持原片段的风格、基调和人物性格。
+
+            3. 确保扩写内容与前情提要和相关设定一致，符合逻辑。
+
+            4. 避免出现与原设定相悖的情节或人物行为。
+
+            5. 扩写后的内容应流畅自然，易于理解。
+
+            6. 只需要扩写“待扩写片段”，并与前情提要做好衔接即可；
+
+            7.避免出现翻译腔，避免出现古代表达；
+
+            8.使用流畅、自然的动作与场景描写；减少不必要的形容词；
+
+            </section>
+
+
+            <section title="输入信息">
+
+            * **待扩写小说片段:** 用户提供的需要扩写的片段。
+
+            * **前情提要:** 故事的背景介绍、主要人物关系、已发生的重要事件等。
+
+            * **相关设定:** 故事的世界观、规则、文化、技术等。
+
+            </section>
+
+
+            <section title="输出要求">
+
+            * 扩写后的小说片段，应与前情提要衔接顺畅。
+
+            * 扩写内容应保持与相关设定一致的人物性格、人物设定。
+
+            * 扩写内容应符合前情提要和相关设定的逻辑。
+
+            * 扩写后的内容应流畅自然，易于理解。
+
+            * 输出内容应为纯文本，严禁包含任何XML标签。
+
+            </section>
+
+
+            <section title="注意事项">
+
+            {{#1748249866268.output#}}
+
+            </section>
+
+
+            <section title="相关设定">
+
+            {{#context#}}
+
+            </section>'
+        - id: 0ac42f76-9cb4-4368-86f9-b78df954a9ab
+          role: user
+          text: '{{#1745912260145.output#}}'
+        selected: true
+        title: LLM - deepseek扩写段落
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 90
+      id: '1756705857258'
+      position:
+        x: 3932.326635282883
+        y: 432.1450257409837
+      positionAbsolute:
+        x: 3932.326635282883
+        y: 432.1450257409837
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        outputs:
+        - value_selector:
+          - '1756705857258'
+          - text
+          variable: output
+        selected: false
+        title: 结束 - deepseek
+        type: end
+      height: 90
+      id: '1756705928170'
+      position:
+        x: 4328.430856824782
+        y: 432.1450257409837
+      positionAbsolute:
+        x: 4328.430856824782
+        y: 432.1450257409837
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - '1745917245117'
+          - output
+        desc: ''
+        model:
+          completion_params:
+            temperature: 0.9
+          mode: chat
+          name: google/gemini-2.5-pro
+          provider: langgenius/openrouter/openrouter
+        prompt_template:
+        - id: 4766c0f9-dd97-441d-9767-919459b564c2
+          role: system
+          text: '```xml
+
+            <instruction>
+
+            <title>小说片段扩写</title>
+
+
+            <description>
+
+            本任务旨在根据用户提供的待扩写小说片段、前情提要和相关设定，进行扩写，使故事更加丰满、情节更加引人入胜。扩写时需保持原片段的风格、基调和人物性格，并在此基础上进行合理的补充和发展。请务必仔细阅读前情提要和相关设定，确保扩写内容与原故事背景一致，并符合逻辑。扩写内容应避免出现与原设定相悖的情节或人物行为。
+
+            </description>
+
+
+            <section title="任务目标">
+
+            1. 扩写用户提供的待扩写小说片段，使其内容更加丰富、细节更加生动。
+
+            2. 保持原片段的风格、基调和人物性格。
+
+            3. 确保扩写内容与前情提要和相关设定一致，符合逻辑。
+
+            4. 避免出现与原设定相悖的情节或人物行为。
+
+            5. 扩写后的内容应流畅自然，易于理解。
+
+            6. 只需要扩写“待扩写片段”，并与前情提要做好衔接即可；
+
+            7.使用2010年后中文网络化的表达，避免出现翻译腔，避免出现古代表达；
+
+            8.使用流畅、自然的动作与场景描写；减少不必要的形容词；
+
+            </section>
+
+
+            <section title="输入信息">
+
+            * **待扩写小说片段:** 用户提供的需要扩写的片段。
+
+            * **前情提要:** 故事的背景介绍、主要人物关系、已发生的重要事件等。
+
+            * **相关设定:** 故事的世界观、规则、文化、技术等。
+
+            </section>
+
+
+            <section title="输出要求">
+
+            * 扩写后的小说片段，应与前情提要衔接顺畅。
+
+            * 扩写内容应保持与相关设定一致的人物性格、人物设定。
+
+            * 扩写内容应符合前情提要和相关设定的逻辑。
+
+            * 扩写后的内容应流畅自然，易于理解。
+
+            * 输出内容应为纯文本，严禁包含任何XML标签。
+
+            </section>
+
+
+            <section title="注意事项">
+
+            {{#1748249866268.output#}}
+
+            </section>
+
+
+            <section title="相关设定">
+
+            {{#context#}}
+
+            </section>'
+        - id: 1555b90f-88be-4a7a-9a10-ee398f855fb9
+          role: user
+          text: '{{#1745912260145.output#}}
+
+            '
+        selected: false
+        title: LLM - Gemini-3扩写段落
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 90
+      id: '17636111081830'
+      position:
+        x: 3932.326635282883
+        y: 569.3183603560242
+      positionAbsolute:
+        x: 3932.326635282883
+        y: 569.3183603560242
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        outputs:
+        - value_selector:
+          - '17636111081830'
+          - text
+          variable: output
+        selected: false
+        title: 结束-Gemini-3
+        type: end
+      height: 90
+      id: '17636111348710'
+      position:
+        x: 4328.430856824782
+        y: 569.3183603560242
+      positionAbsolute:
+        x: 4328.430856824782
+        y: 569.3183603560242
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "\nfunction main({arg1, arg2, arg3}) {\n    let result = [];\n    let\
+          \ warn = '';\n\n    if (arg1.length > 0) {\n        result = arg1;\n   \
+          \ } else {\n        try {\n            let jsonData = JSON.parse(arg2);\n\
+          \            if (jsonData !== null && typeof jsonData === 'object') {\n\
+          \                if (jsonData?.data?.length > 0) {\n                   \
+          \ let { name_in_worldview, background, personality } = jsonData.data[0];\n\
+          \                    result = [{\n                        content: `角色：${name_in_worldview}\\\
+          n${background}\\n${personality}`\n                    }]\n             \
+          \   }\n            }\n        } catch(e) {\n            warn = `查询角色'${arg3}'时接口数据异常！`\n\
+          \        }\n    }\n\n    return {\n        result,\n        warn\n    }\n\
+          }\n"
+        code_language: javascript
+        desc: ''
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1751602108098'
+        outputs:
+          result:
+            children: null
+            type: array[object]
+          warn:
+            children: null
+            type: string
+        selected: false
+        title: 代码执行 - 代偿BGE缺陷
+        type: code
+        variables:
+        - value_selector:
+          - '1751602150216'
+          - result
+          variable: arg1
+        - value_selector:
+          - '1764523096935'
+          - text
+          variable: arg2
+        - value_selector:
+          - '1751602108098'
+          - item
+          variable: arg3
+      height: 54
+      id: '1764522971987'
+      parentId: '1751602108098'
+      position:
+        x: 419.1815837321783
+        y: 65
+      positionAbsolute:
+        x: 2586.6280451239727
+        y: 480.66921950615244
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+      zIndex: 1002
+    - data:
+        desc: ''
+        isInIteration: true
+        isInLoop: false
+        is_team_authorization: true
+        iteration_id: '1751602108098'
+        output_schema: null
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: Id of worldview
+            ja_JP: Id of worldview
+            pt_BR: Id of worldview
+            zh_Hans: Id of worldview
+          label:
+            en_US: worldview_id
+            ja_JP: worldview_id
+            pt_BR: worldview_id
+            zh_Hans: worldview_id
+          llm_description: Id of worldview
+          max: null
+          min: null
+          name: worldview_id
+          options: []
+          placeholder:
+            en_US: Id of worldview
+            ja_JP: Id of worldview
+            pt_BR: Id of worldview
+            zh_Hans: Id of worldview
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: name of character
+            ja_JP: name of character
+            pt_BR: name of character
+            zh_Hans: name of character
+          label:
+            en_US: name
+            ja_JP: name
+            pt_BR: name
+            zh_Hans: name
+          llm_description: name of character
+          max: null
+          min: null
+          name: name
+          options: []
+          placeholder:
+            en_US: name of character
+            ja_JP: name of character
+            pt_BR: name of character
+            zh_Hans: name of character
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: page number, default 1
+            ja_JP: page number, default 1
+            pt_BR: page number, default 1
+            zh_Hans: page number, default 1
+          label:
+            en_US: page
+            ja_JP: page
+            pt_BR: page
+            zh_Hans: page
+          llm_description: page number, default 1
+          max: null
+          min: null
+          name: page
+          options: []
+          placeholder:
+            en_US: page number, default 1
+            ja_JP: page number, default 1
+            pt_BR: page number, default 1
+            zh_Hans: page number, default 1
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: number
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: limit of page data, default 200
+            ja_JP: limit of page data, default 200
+            pt_BR: limit of page data, default 200
+            zh_Hans: limit of page data, default 200
+          label:
+            en_US: limit
+            ja_JP: limit
+            pt_BR: limit
+            zh_Hans: limit
+          llm_description: limit of page data, default 200
+          max: null
+          min: null
+          name: limit
+          options: []
+          placeholder:
+            en_US: limit of page data, default 200
+            ja_JP: limit of page data, default 200
+            pt_BR: limit of page data, default 200
+            zh_Hans: limit of page data, default 200
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: number
+        params:
+          limit: ''
+          name: ''
+          page: ''
+          worldview_id: ''
+        provider_id: 08e55956-28c3-4074-a183-5764aaae4da1
+        provider_name: myworksite-novel
+        provider_type: api
+        selected: false
+        title: GetCharacterListOfWorldView
+        tool_configurations: {}
+        tool_description: Get all characters for a specific worldview
+        tool_label: GetCharacterListOfWorldView
+        tool_name: GetCharacterListOfWorldView
+        tool_parameters:
+          limit:
+            type: constant
+            value: 1
+          name:
+            type: mixed
+            value: '{{#1751602108098.item#}}'
+          page:
+            type: constant
+            value: 1
+          worldview_id:
+            type: mixed
+            value: '1'
+        type: tool
+      height: 54
+      id: '1764523096935'
+      parentId: '1751602108098'
+      position:
+        x: 127.21210558214534
+        y: 235.18261531059386
+      positionAbsolute:
+        x: 2294.6585669739397
+        y: 650.8518348167463
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+      zIndex: 1002
+    - data:
+        desc: ''
+        isInIteration: true
+        isInLoop: false
+        is_team_authorization: true
+        iteration_id: '1752422301800'
+        output_schema: null
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: Id of worldview,
+            ja_JP: Id of worldview,
+            pt_BR: Id of worldview,
+            zh_Hans: Id of worldview,
+          label:
+            en_US: worldview_id
+            ja_JP: worldview_id
+            pt_BR: worldview_id
+            zh_Hans: worldview_id
+          llm_description: Id of worldview,
+          max: null
+          min: null
+          name: worldview_id
+          options: []
+          placeholder:
+            en_US: Id of worldview,
+            ja_JP: Id of worldview,
+            pt_BR: Id of worldview,
+            zh_Hans: Id of worldview,
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: name of geography object
+            ja_JP: name of geography object
+            pt_BR: name of geography object
+            zh_Hans: name of geography object
+          label:
+            en_US: name
+            ja_JP: name
+            pt_BR: name
+            zh_Hans: name
+          llm_description: name of geography object
+          max: null
+          min: null
+          name: name
+          options: []
+          placeholder:
+            en_US: name of geography object
+            ja_JP: name of geography object
+            pt_BR: name of geography object
+            zh_Hans: name of geography object
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        params:
+          name: ''
+          worldview_id: ''
+        provider_id: 08e55956-28c3-4074-a183-5764aaae4da1
+        provider_name: myworksite-novel
+        provider_type: api
+        selected: false
+        title: GetGeoOneByName
+        tool_configurations: {}
+        tool_description: Get one geography unit by name
+        tool_label: GetGeoOneByName
+        tool_name: GetGeoOneByName
+        tool_parameters:
+          name:
+            type: mixed
+            value: '{{#1752422301800.item#}}'
+          worldview_id:
+            type: mixed
+            value: '1'
+        type: tool
+      height: 54
+      id: '1764573249155'
+      parentId: '1752422301800'
+      position:
+        x: 128
+        y: 199
+      positionAbsolute:
+        x: 2295.4464613917944
+        y: 1463.527530400373
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+      zIndex: 1002
+    - data:
+        code: "\nfunction main({arg1, arg2, arg3}) {\n    let result = [];\n    let\
+          \ warn = '';\n\n    if (arg1.length > 0) {\n        result = arg1;\n   \
+          \ } else {\n        try {\n            let jsonData = JSON.parse(arg2);\n\
+          \            if (jsonData !== null && typeof jsonData === 'object') {\n\
+          \                \n                let { name, description } = jsonData;\n\
+          \                result = [{\n                    content: `${name}\\n${description}`\n\
+          \                }]\n            }\n        } catch(e) {\n            warn\
+          \ = `查询地理单元'${arg3}'时接口数据异常！`\n        }\n    }\n\n    return {\n      \
+          \  result,\n        warn\n    }\n}\n"
+        code_language: javascript
+        desc: ''
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1752422301800'
+        outputs:
+          result:
+            children: null
+            type: array[object]
+          warn:
+            children: null
+            type: string
+        selected: false
+        title: 代码执行 - 代偿BGE缺陷
+        type: code
+        variables:
+        - value_selector:
+          - '1752422386614'
+          - result
+          variable: arg1
+        - value_selector:
+          - '1764573249155'
+          - text
+          variable: arg2
+        - value_selector:
+          - '1752422301800'
+          - item
+          variable: arg3
+      height: 54
+      id: '1764573275867'
+      parentId: '1752422301800'
+      position:
+        x: 432
+        y: 68
+      positionAbsolute:
+        x: 2599.4464613917944
+        y: 1332.527530400373
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+      zIndex: 1002
+    viewport:
+      x: -379.82001358918137
+      y: -27.97184595837507
+      zoom: 0.25

@@ -1,83 +1,379 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import fetch from "node-fetch";
-import ToolsConfigService from "@/src/services/aiNoval/toolsConfigService";
-import { difyCfg } from "@/src/utils/dify";
-
-const keyOfApiKey = 'DIFY_PARAGRAPH_STRIPPER_API_KEY';
-const toolsConfigService = new ToolsConfigService();
+import findRole from "@/src/domain/novel/findRole";
+import findFaction from "@/src/domain/novel/findFaction";
+import findGeo from "@/src/domain/novel/findGeo";
+import { ChatOpenAI } from "@langchain/openai";
+import { ChatDeepSeek } from "@langchain/deepseek";
+import { ChatPromptTemplate } from "@langchain/core/prompts";
+import { RunnableSequence } from "@langchain/core/runnables";
+import _ from 'lodash';
 
 interface Data {
     message?: string;
     data?: any;
+    outputs?: {
+        output?: string;
+    };
+    status?: string;
+    error?: string;
+    elapsed_time?: number;
 }
 
-
-function getApiKeyOfWorldview(worldviewId: string | number) {
-    return 'DIFY_AUTO_WRITE_API_KEY_' + worldviewId;
+// 分解名称字符串（支持中文逗号和英文逗号）
+function splitNames(names: string): string[] {
+    if (!names || names.trim().length === 0) {
+        return [];
+    }
+    return names.replace('，', ',').split(',').map(n => n.trim()).filter(n => n.length > 0);
 }
 
-async function handlePick(req: NextApiRequest, res: NextApiResponse<Data>) {
+// 构建提示词模板
+function buildPromptTemplate(attension: string): string {
+    const defaultAttension = `* 扩写时，请仔细分析用户提供的片段，理解其含义和作用。
+* 扩写时，请充分利用前情提要和相关设定，为故事增加细节和深度。
+* 扩写时，请注意人物的心理活动和行为动机，使人物更加立体和真实。
+* 扩写时，请注意情节的节奏和悬念，使故事更加引人入胜。`;
+
+    const attensionText = attension && attension.trim().length > 0 ? attension : defaultAttension;
+
+    return `\`\`\`xml
+
+<instruction>
+
+<title>小说片段扩写</title>
+
+
+<description>
+
+本任务旨在根据用户提供的待扩写小说片段、前情提要和相关设定，进行扩写，使故事更加丰满、情节更加引人入胜。扩写时需保持原片段的风格、基调和人物性格，并在此基础上进行合理的补充和发展。请务必仔细阅读前情提要和相关设定，确保扩写内容与原故事背景一致，并符合逻辑。扩写内容应避免出现与原设定相悖的情节或人物行为。
+
+</description>
+
+
+<section title="任务目标">
+
+1. 扩写用户提供的待扩写小说片段，使其内容更加丰富、细节更加生动。
+
+2. 保持原片段的风格、基调和人物性格。
+
+3. 确保扩写内容与前情提要和相关设定一致，符合逻辑。
+
+4. 避免出现与原设定相悖的情节或人物行为。
+
+5. 扩写后的内容应流畅自然，易于理解。
+
+6. 只需要扩写"待扩写片段"，并与前情提要做好衔接即可；
+
+7.使用2010年后中文网络化的表达，避免出现翻译腔，避免出现古代表达；
+
+8.使用流畅、自然的动作与场景描写；减少不必要的形容词；
+
+</section>
+
+
+<section title="输入信息">
+
+* **待扩写小说片段:** 用户提供的需要扩写的片段。
+
+* **前情提要:** 故事的背景介绍、主要人物关系、已发生的重要事件等。
+
+* **相关设定:** 故事的世界观、规则、文化、技术等。
+
+</section>
+
+
+<section title="输出要求">
+
+* 扩写后的小说片段，应与前情提要衔接顺畅。
+
+* 扩写内容应保持与相关设定一致的人物性格、人物设定。
+
+* 扩写内容应符合前情提要和相关设定的逻辑。
+
+* 扩写后的内容应流畅自然，易于理解。
+
+* 输出内容应为纯文本，严禁包含任何XML标签。
+
+</section>
+
+
+<section title="注意事项">
+
+${attensionText}
+
+</section>
+
+
+<section title="相关设定">
+
+{{context}}
+
+</section>\`\`\``;
+}
+
+// 构建用户输入
+function buildUserInput(prevContent: string, currContext: string): string {
+    let parts: string[] = [];
+    
+    if (prevContent && prevContent.trim().length > 0) {
+        parts.push(`【章节背景】: ${prevContent}`);
+    }
+    
+    if (currContext && currContext.trim().length > 0) {
+        parts.push(`【本章待写内容】：${currContext}`);
+    }
+    
+    return parts.join('\n\n');
+}
+
+// 聚合所有检索结果
+function aggregateContext(results: { roles: any[], factions: any[], geographies: any[] }): string {
+    const parts: string[] = [];
+
+    if (results.roles.length > 0) {
+        parts.push('【角色设定】');
+        results.roles.forEach(role => {
+            if (role.content) {
+                parts.push(role.content);
+            }
+        });
+        parts.push('');
+    }
+
+    if (results.factions.length > 0) {
+        parts.push('【阵营设定】');
+        results.factions.forEach(faction => {
+            if (faction.content) {
+                parts.push(faction.content);
+            }
+        });
+        parts.push('');
+    }
+
+    if (results.geographies.length > 0) {
+        parts.push('【地理环境】');
+        results.geographies.forEach(geo => {
+            if (geo.content) {
+                parts.push(geo.content);
+            }
+        });
+        parts.push('');
+    }
+
+    return parts.join('\n');
+}
+
+// 调用 LLM
+async function callLLM(
+    llmType: string,
+    systemPrompt: string,
+    userInput: string,
+    context: string
+): Promise<string> {
+    const systemPromptWithContext = systemPrompt.replace('{{context}}', context);
+    const effectiveType = llmType || 'gemini';
+
+    // 根据 llmType 选择模型
+    if (effectiveType === 'deepseek') {
+        console.debug('[genChapter] callLLM using deepseek-reasoner');
+        const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
+        if (!DEEPSEEK_API_KEY) {
+            throw new Error('DEEPSEEK_API_KEY is not configured');
+        }
+
+        const model = new ChatDeepSeek({
+            apiKey: DEEPSEEK_API_KEY,
+            model: "deepseek-reasoner",
+            temperature: 0.9,
+        });
+
+        // 使用 ChatPromptTemplate 构建消息
+        const prompt = ChatPromptTemplate.fromMessages([
+            ["system", systemPromptWithContext],
+            ["user", userInput]
+        ]);
+        
+        const chain = RunnableSequence.from([prompt, model]);
+        const response = await chain.invoke({});
+        
+        return response.content as string;
+    } else {
+        // 默认使用 Gemini（通过 OpenRouter）
+        const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+        if (!OPENROUTER_API_KEY) {
+            throw new Error('OPENROUTER_API_KEY is not configured');
+        }
+
+        const modelName = effectiveType === 'gemini3' || effectiveType?.includes('gemini3') 
+            ? 'google/gemini-2.0-flash-exp:free'
+            : 'google/gemini-2.5-pro';
+        console.debug('[genChapter] callLLM using OpenRouter', { modelName });
+
+        const model = new ChatOpenAI({
+            model: modelName,
+            temperature: 0.9,
+            configuration: {
+                apiKey: OPENROUTER_API_KEY,
+                baseURL: "https://openrouter.ai/api/v1",
+            },
+        });
+
+        // 使用 ChatPromptTemplate 构建消息
+        const prompt = ChatPromptTemplate.fromMessages([
+            ["system", systemPromptWithContext],
+            ["user", userInput]
+        ]);
+        
+        const chain = RunnableSequence.from([prompt, model]);
+        const response = await chain.invoke({});
+        
+        return response.content as string;
+    }
+}
+
+async function handleGenChapter(req: NextApiRequest, res: NextApiResponse<Data>) {
+    const startTime = Date.now();
     let worldviewId = String(req.query.worldviewId);
+
+    console.debug('[genChapter] start', { worldviewId });
+
     if (!worldviewId) {
         res.status(500).json({ message: 'worldviewId is required' });
         return;
     }
 
-    let inputs = { ...req.body };
+    const inputs = { ...req.body };
+    const {
+        prev_content = '',
+        curr_context = '',
+        role_names = '',
+        faction_names = '',
+        geo_names = '',
+        attension = '',
+        attention = '', // 兼容调用代码中的 attention 参数名
+        llm_type = '',
+        extra_settings = '' // 兼容调用代码，但不处理（已移除功能）
+    } = inputs;
 
-    let apiKey = await new ToolsConfigService().getConfig(getApiKeyOfWorldview(worldviewId));
-    if (!apiKey?.length) {
-        res.status(500).json({ message: `${keyOfApiKey} is not set` });
-        return;
-    }
+    // 使用 attension 或 attention（优先使用 attension，向后兼容）
+    const attensionText = attension || attention;
 
-    let difyDatasetBaseUrl
-    if (req.query.difyHost) {
-        difyDatasetBaseUrl = `http://${req.query.difyHost}/v1`;
-    } else {
-        difyDatasetBaseUrl = await toolsConfigService.getConfig('DIFY_DATASET_BASE_URL');
-    }
-    if (!difyDatasetBaseUrl) {
-        res.status(500).json({ message: 'DIFY知识库API入口未设置' });
-        return;
-    }
+    console.debug('[genChapter] inputs', {
+        worldviewId,
+        prev_content_len: prev_content?.length ?? 0,
+        curr_context_len: curr_context?.length ?? 0,
+        role_names: role_names || '(empty)',
+        faction_names: faction_names || '(empty)',
+        geo_names: geo_names || '(empty)',
+        llm_type: llm_type || 'gemini',
+        has_attension: !!attensionText
+    });
 
-    const response_mode = 'blocking';
+    const worldviewIdNum = _.toNumber(worldviewId);
+    const aggregatedResults = {
+        roles: [] as any[],
+        factions: [] as any[],
+        geographies: [] as any[]
+    };
 
     try {
-        const externalApiUrl = difyDatasetBaseUrl + '/workflows/run';
-        const reqHeaders = {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-        };
-
-        const body = {
-            inputs,
-            response_mode,
-            user: "my-worksite"
+        // 1. 处理角色名（使用 findRole，已融合知识库+数据库）
+        if (role_names && role_names.trim().length > 0) {
+            const roleNameList = splitNames(role_names);
+            console.debug('[genChapter] findRole', { roleNameList });
+            for (const roleName of roleNameList) {
+                const roleResults = await findRole(worldviewIdNum, [roleName], 0.5);
+                console.debug('[genChapter] findRole result', { roleName, count: roleResults.length });
+                roleResults.forEach(role => {
+                    const content = `角色：${role.name_in_worldview || ''}\n${role.background || ''}\n${role.personality || ''}`.trim();
+                    if (content.length > 0) {
+                        aggregatedResults.roles.push({ content });
+                    }
+                });
+            }
         }
 
-        
-        // Blocking mode
-        const response = await fetch(externalApiUrl, {
-            method: 'POST',
-            headers: reqHeaders,
-            body: JSON.stringify(body),
-            timeout: 1000 * 60 * 10
+        // 2. 处理阵营名（使用 findFaction，已融合知识库+数据库）
+        if (faction_names && faction_names.trim().length > 0) {
+            const factionNameList = splitNames(faction_names);
+            console.debug('[genChapter] findFaction', { factionNameList });
+            for (const factionName of factionNameList) {
+                const factionResults = await findFaction(worldviewIdNum, [factionName], 0.5);
+                console.debug('[genChapter] findFaction result', { factionName, count: factionResults.length });
+                factionResults.forEach(faction => {
+                    const content = `${faction.name || ''}\n${faction.description || ''}`.trim();
+                    if (content.length > 0) {
+                        aggregatedResults.factions.push({ content });
+                    }
+                });
+            }
+        }
+
+        // 3. 处理地理名（使用 findGeo，已融合知识库+数据库）
+        if (geo_names && geo_names.trim().length > 0) {
+            const geoNameList = splitNames(geo_names);
+            console.debug('[genChapter] findGeo', { geoNameList });
+            for (const geoName of geoNameList) {
+                const geoResults = await findGeo(worldviewIdNum, [geoName], 0.5);
+                console.debug('[genChapter] findGeo result', { geoName, count: geoResults.length });
+                geoResults.forEach(geo => {
+                    const content = `${geo.name || ''}\n${geo.description || ''}`.trim();
+                    if (content.length > 0) {
+                        aggregatedResults.geographies.push({ content });
+                    }
+                });
+            }
+        }
+
+        console.debug('[genChapter] aggregated', {
+            roles: aggregatedResults.roles.length,
+            factions: aggregatedResults.factions.length,
+            geographies: aggregatedResults.geographies.length
         });
 
-        if (!response.ok) {
-            const text = await response.text();
-            console.error(response.status, response.statusText, response.url, text);
-            throw new Error(`External API responded with status: ${response.status}, reason: ${text}`);
-        }
+        // 4. 聚合上下文
+        const context = aggregateContext(aggregatedResults);
+        console.debug('[genChapter] context length', context.length);
 
-        const data = await response.json();
-        res.status(200).json(data);
+        // 5. 构建提示词
+        const systemPrompt = buildPromptTemplate(attensionText);
+        const userInput = buildUserInput(prev_content, curr_context);
+        console.debug('[genChapter] userInput length', userInput.length);
 
-    } catch (error) {
-        console.error('API error:', error);
-        res.status(500).json({ message: 'Request failed' });
+        // 6. 调用 LLM
+        const effectiveLlmType = llm_type || 'gemini';
+        console.debug('[genChapter] callLLM', { llmType: effectiveLlmType });
+        const llmStart = Date.now();
+        const output = await callLLM(effectiveLlmType, systemPrompt, userInput, context);
+        console.debug('[genChapter] callLLM done', { outputLen: output?.length ?? 0, ms: Date.now() - llmStart });
+
+        const elapsedTime = Date.now() - startTime;
+        console.debug('[genChapter] success', { elapsedTime, outputLen: output?.length ?? 0 });
+
+        // 返回结构兼容 genChapterLegacy（Dify workflow 返回格式）
+        res.status(200).json({
+            data: {
+                outputs: {
+                    output
+                },
+                status: 'success',
+                error: '', // 兼容调用代码期望的 error 字段
+                elapsed_time: elapsedTime
+            }
+        });
+
+    } catch (error: any) {
+        const elapsedTime = Date.now() - startTime;
+        console.error('[genChapter] error', { error: error?.message, stack: error?.stack, elapsedTime });
+        // 错误时也返回 200 状态码，但 data.status 为 'error'，兼容 genChapterLegacy 的行为
+        res.status(200).json({
+            data: {
+                outputs: { output: '' },
+                status: 'error',
+                error: error?.message || 'Unknown error',
+                elapsed_time: elapsedTime
+            }
+        });
     }
 }
 
@@ -88,7 +384,7 @@ export default function handler(
     let processerFn: Function | undefined = undefined;
     switch (req.method) {
         case 'POST':
-            processerFn = handlePick;
+            processerFn = handleGenChapter;
             break;
     }
 
