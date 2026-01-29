@@ -1,4 +1,6 @@
 // pages/api/mcp/index.ts
+// 标准 JSON-RPC 2.0 MCP 端点（返回 JSON 响应）
+// 如需 SSE 模式，请使用 /api/mcp/sse 端点
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { mcpToolRegistry } from '../../../src/mcp/core/mcpToolRegistry';
 import { allTools } from '../../../src/mcp/index';
@@ -22,6 +24,7 @@ export default async function handler(
       usage: 'POST JSON-RPC 2.0 请求，Content-Type: application/json',
       methods: ['tools/list', 'tools/call', 'ping'],
       toolsListHint: 'POST {"jsonrpc":"2.0","id":1,"method":"tools/list"} 获取工具列表',
+      sseEndpoint: '如需 SSE 模式，请使用 POST /api/mcp/sse 端点',
     });
   }
 
@@ -51,6 +54,35 @@ export default async function handler(
     // 处理不同的MCP方法
     switch (method) {
 
+      // MCP 初始化方法
+      case 'initialize': {
+        return res.status(200).json({
+          jsonrpc: '2.0',
+          id,
+          result: {
+            protocolVersion: '2024-11-05',
+            capabilities: {
+              tools: {},
+              resources: {},
+              prompts: {},
+              sampling: {}
+            },
+            serverInfo: {
+              name: 'next-framework-mcp-server',
+              version: '1.0.0'
+            }
+          }
+        });
+      }
+
+      // MCP 初始化完成通知（客户端发送，服务器不需要响应）
+      case 'notifications/initialized': {
+        // 这是一个通知，不需要返回响应
+        console.debug('[MCP] Initialized notification received');
+        // 返回空响应或 204 No Content
+        return res.status(204).end();
+      }
+
       // 获取所有工具列表
       case 'tools/list': {
         const tools = mcpToolRegistry.getAllToolDefinitions();
@@ -64,6 +96,7 @@ export default async function handler(
       // 执行工具
       case 'tools/call': {
         if (!params || !params.name) {
+          // 参数错误应该返回 JSON-RPC 错误（协议级错误）
           return res.status(200).json({
             jsonrpc: '2.0',
             id,
@@ -79,15 +112,20 @@ export default async function handler(
           params.arguments || {}
         );
         
+        // 确保返回标准 MCP tools/call 响应格式
+        // result 应该包含 content 和 isError 字段
         return res.status(200).json({
           jsonrpc: '2.0',
           id,
-          result
+          result: {
+            content: result.content || [],
+            isError: result.isError || false
+          }
         });
       }
       
       // 心跳检测
-      case 'ping':
+      case 'ping': {
         return res.status(200).json({
           jsonrpc: '2.0',
           id,
@@ -97,9 +135,10 @@ export default async function handler(
             timestamp: new Date().toISOString()
           }
         });
+      }
       
       // 兜底方法
-      default:
+      default: {
         return res.status(200).json({
           jsonrpc: '2.0',
           id,
@@ -108,6 +147,7 @@ export default async function handler(
             message: `Method not found: ${method}` 
           }
         });
+      }
     }
     
   } catch (error: any) {
