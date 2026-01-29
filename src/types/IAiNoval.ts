@@ -102,7 +102,7 @@ export interface IGeoGeographyUnitData {
 }
 
 export interface IGeoUnionData extends IGeoStarSystemData, IGeoStarData, IGeoPlanetData, IGeoSatelliteData, IGeoGeographyUnitData {
-    fingerprint: string
+    fingerprint?: string
     data_type?: string | null,
 }
 

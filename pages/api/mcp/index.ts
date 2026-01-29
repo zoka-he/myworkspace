@@ -1,12 +1,12 @@
 // pages/api/mcp/index.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { mcpToolRegistry } from '../../../src/mcp/core/mcpToolRegistry';
-import { testTools } from '../../../src/mcp/index';
+import { allTools } from '../../../src/mcp/index';
 
 // 初始化注册（确保只执行一次）
 if (mcpToolRegistry.getToolCount() === 0) {
   console.log('初始化MCP工具注册...');
-  mcpToolRegistry.registerAll(testTools);
+  mcpToolRegistry.registerAll(allTools);
 }
 
 export default async function handler(
@@ -14,7 +14,17 @@ export default async function handler(
   res: NextApiResponse
 ) {
 
-  // 只处理POST请求
+  // GET：返回 MCP 端点说明，便于直接访问 /api/mcp 时有预期结果
+  if (req.method === 'GET') {
+    return res.status(200).json({
+      type: 'mcp',
+      endpoint: 'POST /api/mcp',
+      usage: 'POST JSON-RPC 2.0 请求，Content-Type: application/json',
+      methods: ['tools/list', 'tools/call', 'ping'],
+      toolsListHint: 'POST {"jsonrpc":"2.0","id":1,"method":"tools/list"} 获取工具列表',
+    });
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({
       jsonrpc: '2.0',
@@ -36,7 +46,8 @@ export default async function handler(
     }
     
     const { method, id, params } = rpcRequest;
-    
+    console.debug('[MCP]', method, 'id=', id, 'params.name=', params?.name);
+
     // 处理不同的MCP方法
     switch (method) {
 
