@@ -22,6 +22,15 @@ const nextConfig = {
         source: '/api/web/:path*',
         destination: '/api/web/:path*',
       },
+      // 保证 /api/mcp 不被 /api/:path* 重写到 /api/web/mcp，必须放在 /api/:path* 之前
+      {
+        source: '/api/mcp',
+        destination: '/api/mcp'
+      },
+      {
+        source: '/api/mcp/:path*',
+        destination: '/api/mcp/:path*'
+      },
       {
         source: '/api/:path*',
         destination: '/api/web/:path*',

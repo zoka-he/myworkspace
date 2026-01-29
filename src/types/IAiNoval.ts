@@ -12,6 +12,7 @@ export interface IWorldViewData {
     content?: string | null,
     is_dify_knowledge_base?: number | null,
     base_timeline_id?: number | null,
+    worldrule_snapshot_id?: number | null,
 }
 
 export interface IGeoStarSystemData {
@@ -101,7 +102,7 @@ export interface IGeoGeographyUnitData {
 }
 
 export interface IGeoUnionData extends IGeoStarSystemData, IGeoStarData, IGeoPlanetData, IGeoSatelliteData, IGeoGeographyUnitData {
-    fingerprint: string
+    fingerprint?: string
     data_type?: string | null,
 }
 
@@ -245,6 +246,7 @@ export interface IRoleRelation {
     content?: string | null,
     base_timeline_id?: number | null,
     is_dify_knowledge_base?: number | null,
+    worldrule_snapshot_id?: number | null,
     tl_id?: number | null,
     tl_worldview_id?: number | null,
     tl_epoch?: string | null,
@@ -340,3 +342,56 @@ export const GEO_UNIT_TYPES = [
     { enName: 'mine', cnName: '矿山', codePrefix: 'MI'},
     { enName: 'power_plant', cnName: '发电站', codePrefix: 'PP'},
 ]
+
+
+export interface IWorldRuleGroup {
+    id?: number | null,
+    worldview_id?: number | null,
+    title?: string | null,
+    parent_id?: number | null,
+    order?: number | null,
+    content?: string | null,
+    created_at?: Date | null,
+    updated_at?: Date | null,
+}
+
+export interface IWorldRuleItem {
+    id?: number | null,
+    worldview_id?: number | null,
+    group_id?: number | null,
+    summary?: string | null,
+    content?: string | null,
+    order?: number | null,
+    created_at?: Date | null,
+    updated_at?: Date | null,
+}
+
+export interface IWorldRuleSnapshot {
+    id?: number | null,
+    worldview_id?: number | null,
+    title?: string | null,
+    config?: string | null,
+    content?: string | null,
+    created_at?: Date | null,
+    updated_at?: Date | null,
+}
+
+export interface IMagicSystemDef {
+    id: number,
+    worldview_id: number,   // 世界观ID
+    system_name: string,   // 系统名称
+    order_num: number,   // 排序号
+    version_id: number,   // 版本ID
+    created_at: Date,      // 创建时间
+    updated_at: Date,      // 更新时间
+}
+
+export interface IMagicSystemVersion {
+    id: number,
+    def_id: number,      // 定义ID
+    worldview_id: number,   // 世界观ID
+    version_name: string,   // 版本名称
+    content: string,       // 系统内容
+    created_at: Date,      // 创建时间
+    updated_at: Date,      // 更新时间
+}

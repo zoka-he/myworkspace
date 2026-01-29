@@ -237,8 +237,10 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
 
   // 获取章节列表
   useEffect(() => {
-    if (novelId) {
-      apiCalls.getChapterList(novelId).then(res => {
+    if (novelId && selectedChapter?.chapter_number) {
+      let from = selectedChapter.chapter_number - 100;
+      let to = selectedChapter.chapter_number;
+      apiCalls.getChapterListFrom(novelId, from, to).then(res => {
         const ret = res.data;
         if (ret && ret.length > 0) {
           setChapterList(ret.reverse())
@@ -246,8 +248,10 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
           setChapterList([])
         }
       })
+    } else {
+      setChapterList([])
     }
-  }, [novelId])
+  }, [novelId, selectedChapter])
 
   // 处理AI续写（全流程：缩写+续写）
   const handleContinue = async () => {
@@ -294,8 +298,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
       setStripReportList(preparedChapterList)
 
       // 第三步：缩写关联章节（长耗时步骤，设计跳出逻辑）
-      let chapterIndex = 0;
-      for (const chapter of preparedChapterList) {
+      await Promise.all(preparedChapterList.map(async (chapter, chapterIndex) => {
         if (chapter.state === 'pending') {
           // 更新状态为处理中
           setStripReportList(prevList => {
@@ -304,7 +307,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
             return newList;
           });
 
-          const text = await chapterApi.stripChapterBlocking(chapter.id || 0, 300, store.getState().difySlice.frontHost || '')
+          const text = await chapterApi.stripText(chapter.originalContent || '', 300)
           
           // 更新状态为已完成
           setStripReportList(prevList => {
@@ -317,13 +320,42 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
             return newList;
           });
 
-          if (!keepGoingRef.current) {
-            throw new Error('用户已停止续写')
-          }
+          // if (!keepGoingRef.current) {
+          //   throw new Error('用户已停止续写')
+          // }
         }
+      }))
 
-        chapterIndex++;
-      }
+      // let chapterIndex = 0;
+      // for (const chapter of preparedChapterList) {
+      //   if (chapter.state === 'pending') {
+      //     // 更新状态为处理中
+      //     setStripReportList(prevList => {
+      //       const newList = [...prevList];
+      //       newList[chapterIndex] = { ...chapter, state: 'processing' };
+      //       return newList;
+      //     });
+
+      //     const text = await chapterApi.stripChapterBlocking(chapter.id || 0, 300, store.getState().difySlice.frontHost || '')
+          
+      //     // 更新状态为已完成
+      //     setStripReportList(prevList => {
+      //       const newList = [...prevList];
+      //       newList[chapterIndex] = { 
+      //         ...chapter, 
+      //         state: 'completed',
+      //         strippedContent: text 
+      //       };
+      //       return newList;
+      //     });
+
+      //     if (!keepGoingRef.current) {
+      //       throw new Error('用户已停止续写')
+      //     }
+      //   }
+
+      //   chapterIndex++;
+      // }
 
       // 第四步：使用AI续写，续写前先确认用户指令
       if (!keepGoingRef.current) {

@@ -23,6 +23,7 @@ import AiNovelContextProvider from '@/src/components/context/aiNovel';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import TestConsumer from '@/src/components/mq/testConsumer';
 import NoticeConsumer from '@/src/components/mq/noticeConsumer';
+import mysqlConfig from '@/src/config/mysql';
 
 const queryClient = new QueryClient();
 const MyRouter = dynamic(() => import("../src/router"), { ssr: false });
@@ -62,7 +63,12 @@ function AppCore() {
         
         // 客户端：使用与网站同源的地址
         const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-        const hostname = window.location.hostname;
+        let hostname = window.location.hostname;
+
+        if (process.env.NODE_ENV === 'development') {
+            hostname = mysqlConfig.MYSQL_HOST; // 开发环境通过数据库主机地址定位mq地址
+        }
+
         // 根据 docker-compose.yaml，WebSocket 端口映射为 28010:15674
         const wsPort = process.env.NEXT_PUBLIC_RABBITMQ_STOMP_PORT || '28010';
         const mgmtPort = process.env.NEXT_PUBLIC_RABBITMQ_MANAGEMENT_PORT || '28008';

@@ -1,0 +1,10 @@
+.treeContainer {
+    :global(.ant-tree-node-content-wrapper) {
+        display: flex;
+        flex-direction: row;
+    }
+
+    :global(.ant-tree-title) {
+        flex: 1;
+    }
+}

@@ -2,6 +2,8 @@ interface ISqlCondObj {
     $ne?: any;
     $gt?: any;
     $lt?: any;
+    $gte?: any;
+    $lte?: any;
     $btw?: [any, any];
     $in?: Array<any>;
     $like?: string;

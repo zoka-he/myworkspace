@@ -2,7 +2,10 @@ import { IMysqlActions } from '@/src/types/IMysqlActions';
 import { novalPool } from './pool';
 import {ISqlCondMap} from "@/src/utils/mysql/types";
 
-
+// 转义列名，避免 MySQL 保留关键字问题
+function escapeColumnName(name: string): string {
+    return `\`${name}\``;
+}
 
 async function insertOne(table: string, obj: ISqlCondMap) {
     let names = [];
@@ -10,7 +13,7 @@ async function insertOne(table: string, obj: ISqlCondMap) {
     let values = [];
 
     for (let [k, v] of Object.entries(obj)) {
-        names.push(k);
+        names.push(escapeColumnName(k));
         placeholders.push('?');
 
         if (typeof v === 'object') {
@@ -50,7 +53,7 @@ async function updateOne(table: string, conditions: ISqlCondMap, obj: any) {
     let values = [];
 
     for (let [k, v] of Object.entries(obj)) {
-        sets.push(`${k}=?`);
+        sets.push(`${escapeColumnName(k)}=?`);
         if (typeof v === 'object') {
             // values.push(convertJson(v));
             values.push(v);
@@ -66,7 +69,7 @@ async function updateOne(table: string, conditions: ISqlCondMap, obj: any) {
         conStr = conditions;
     } else {
         for (let [k, v] of Object.entries(conditions)) {
-            conNames.push(`${k}=?`);
+            conNames.push(`${escapeColumnName(k)}=?`);
             values.push(v);
         }
         conStr = conNames.join(' AND ');
@@ -90,7 +93,7 @@ async function deleteFrom(table: string, conditions: ISqlCondMap, values: any[] 
         values = [];
 
         for (let [k, v] of Object.entries(conditions)) {
-            conNames.push(`${k}=?`);
+            conNames.push(`${escapeColumnName(k)}=?`);
             values.push(v);
         }
         conStr = conNames.join(' AND ');

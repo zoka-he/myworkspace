@@ -1,5 +1,6 @@
 import fetch from '@/src/fetch';
-import { IChapter, INovalData, IWorldViewData } from '../types/IAiNoval';
+import { IChapter, INovalData, IWorldRuleGroup, IWorldRuleItem, IWorldRuleSnapshot, IWorldViewData, IWorldViewDataWithExtra } from '../types/IAiNoval';
+import _ from 'lodash';
 
 function splitIds(ids: any) {
     if (!ids) {
@@ -178,4 +179,145 @@ export async function getWorldViews() {
     count = (resp as { count?: number })?.count || 0;
 
     return { data, count };
+}
+
+
+export async function loadWorldviews(params: any, page: number = 1, limit: number = 10) {
+    let resp = await fetch.get('/api/aiNoval/worldView/list', 
+        { params: {
+            title: params?.title,
+            page: _.toInteger(page),
+            limit: _.toInteger(limit)
+        } }
+    );
+    return {
+        data: resp.data as IWorldViewDataWithExtra[],
+        count: (resp as { count?: number })?.count || 0
+    }
+}
+
+/**
+ * 获取世界规则组列表
+ * @param worldviewId 
+ * @param page 
+ * @param limit 
+ * @returns 
+ */
+export async function getWorldRuleGroupList(worldviewId: number, page: number = 1, limit: number = 200) {
+    const response = await fetch.get('/api/aiNoval/worldrule/group/list', { params: { worldview_id: worldviewId, page, limit } });
+    return {
+        data: response.data as IWorldRuleGroup[],
+        count: (response as { count?: number })?.count || 0
+    }
+}
+
+/**
+ * 创建或更新世界规则组
+ * @param data 
+ * @returns 
+ */
+export async function createOrUpdateWorldRuleGroup(data: IWorldRuleGroup) {
+    data = _.omit(data, ['created_at', 'updated_at']);
+
+    if (data.id) {
+        const response = await fetch.post('/api/aiNoval/worldrule/group', data, { params: { id: data.id } });
+        return response.data;
+    } else {
+        const response = await fetch.post('/api/aiNoval/worldrule/group', data);
+        return response.data;
+    }
+}
+
+/**
+ * 删除世界规则组
+ * @param id 
+ * @returns 
+ */
+export async function deleteWorldRuleGroup(id: number) {
+    const response = await fetch.delete('/api/aiNoval/worldrule/group', { params: { id } });
+    return response.data;
+}
+
+/**
+ * 获取世界规则项列表
+ * @param worldviewId 
+ * @param page 
+ * @param limit 
+ * @returns 
+ */
+export async function getWorldRuleItemList(worldviewId: number, page: number = 1, limit: number = 1500) {
+    const response = await fetch.get('/api/aiNoval/worldrule/item/list', { params: { worldview_id: worldviewId, page, limit } });
+    return {
+        data: response.data as IWorldRuleItem[],
+        count: (response as { count?: number })?.count || 0
+    }
+}
+
+/**
+ * 创建或更新世界规则项
+ * @param data 
+ * @returns 
+ */
+export async function createOrUpdateWorldRuleItem(data: IWorldRuleItem) {
+    data = _.omit(data, ['created_at', 'updated_at']);
+
+    if (data.id) {
+        const response = await fetch.post('/api/aiNoval/worldrule/item', data, { params: { id: data.id } });
+        return response.data;
+    } else {
+        const response = await fetch.post('/api/aiNoval/worldrule/item', data);
+        return response.data;
+    }
+}
+
+/**
+ * 删除世界规则项
+ * @param id 
+ * @returns 
+ */
+export async function deleteWorldRuleItem(id: number) {
+    const response = await fetch.delete('/api/aiNoval/worldrule/item', { params: { id } });
+    return response.data;
+}
+
+/**
+ * 获取世界规则快照列表
+ * @param worldviewId 
+ * @param page 
+ * @param limit 
+ * @returns 
+ */
+export async function getWorldRuleSnapshotList(worldviewId: number, page: number = 1, limit: number = 100) {
+    const response = await fetch.get('/api/aiNoval/worldrule/snapshot/list', { params: { worldview_id: worldviewId, page, limit } });
+    return {
+        data: response.data as IWorldRuleSnapshot[],
+        count: (response as { count?: number })?.count || 0
+    }
+}
+
+/**
+ * 创建或更新世界规则快照
+ * @param data 
+ * @returns 
+ */
+export async function createOrUpdateWorldRuleSnapshot(data: IWorldRuleSnapshot) {
+    data = _.omit(data, ['created_at', 'updated_at']);
+
+    if (data.id) {
+        const response = await fetch.post('/api/aiNoval/worldrule/snapshot', data, { params: { id: data.id } });
+        return response.data;
+    } else {
+        const response = await fetch.post('/api/aiNoval/worldrule/snapshot', data);
+        return response.data;
+    }
+}
+
+/**
+ * 删除世界规则快照
+ * @param id 
+ * @returns 
+ */
+export async function deleteWorldRuleSnapshot(id: number) {
+    const response = await fetch.delete('/api/aiNoval/worldrule/snapshot', { params: { id } });
+    return response.data;
 }

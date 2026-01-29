@@ -13,15 +13,15 @@ export const getWorldViewList = async (params: any, page: number = 1, limit: num
 }
 
 export const createWorldView = async (data: IWorldViewData) => {
-    return await fetch.post('/api/aiNoval/worldview', data);
+    return await fetch.post('/api/aiNoval/worldView', data);
 }
 
 export const updateWorldView = async (data: IWorldViewData) => {
-    return await fetch.post('/api/aiNoval/worldview', data, { params: { id: data.id } });
+    return await fetch.post('/api/aiNoval/worldView', data, { params: { id: data.id } });
 }
 
 export const deleteWorldView = async (id: number) => {
-    return await fetch.delete('/api/aiNoval/worldview', { params: { id } });
+    return await fetch.delete('/api/aiNoval/worldView', { params: { id } });
 }
 
 export const createTimelineDef = async (data: ITimelineDef) => {
