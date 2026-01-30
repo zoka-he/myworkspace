@@ -28,7 +28,8 @@ ENV SILICONFLOW_API_KEY=sk-ibxjepfovywzlqqormngkvqlygrzexumvcqosekbpagueqxd
 
 # ENV RABBITMQ_STOMP_HOST=192.168.0.175   # 应从前端获取
 ENV RABBITMQ_STOMP_PORT=28010
-ENV RABBITMQ_MANAGEMENT_URL=http://host.docker.internal:28008  # 前端部分应从前端获取
+# 前端部分应从前端获取
+ENV RABBITMQ_MANAGEMENT_URL=http://host.docker.internal:28008
 ENV RABBITMQ_STOMP_USER=myworksite
 ENV RABBITMQ_STOMP_PASSWD=nsds123456
 
