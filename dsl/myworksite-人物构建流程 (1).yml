@@ -1,0 +1,1012 @@
+app:
+  description: 协同进行人物设计
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: workflow
+  name: myworksite-人物构建流程
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/openrouter:0.0.31@6d9f4aa9c5d2f7a0c5a7ca4870328fb8d93c5f8c04a0cf45a34976723ce4d502
+kind: app
+version: 0.3.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: template-transform
+      id: 1750581105528-source-1750582881081-target
+      source: '1750581105528'
+      sourceHandle: source
+      target: '1750582881081'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: tool
+        targetType: llm
+      id: 1750581215200-source-1750581777766-target
+      source: '1750581215200'
+      sourceHandle: source
+      target: '1750581777766'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: template-transform
+        targetType: tool
+      id: 1750582881081-source-1750581215200-target
+      source: '1750582881081'
+      sourceHandle: source
+      target: '1750581215200'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: template-transform
+        targetType: tool
+      id: 1750582881081-source-1750584714142-target
+      source: '1750582881081'
+      sourceHandle: source
+      target: '1750584714142'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: template-transform
+        targetType: tool
+      id: 1750582881081-source-1750585477034-target
+      source: '1750582881081'
+      sourceHandle: source
+      target: '1750585477034'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: tool
+        targetType: llm
+      id: 1750584714142-source-1750587811609-target
+      source: '1750584714142'
+      sourceHandle: source
+      target: '1750587811609'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: end
+      id: 1750588748488-source-1750581229451-target
+      source: '1750588748488'
+      sourceHandle: source
+      target: '1750581229451'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: if-else
+      id: 1750581777766-source-1750683364969-target
+      source: '1750581777766'
+      sourceHandle: source
+      target: '1750683364969'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: if-else
+      id: 1750587811609-source-1750683364969-target
+      source: '1750587811609'
+      sourceHandle: source
+      target: '1750683364969'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: tool
+        targetType: if-else
+      id: 1750585477034-source-1750683364969-target
+      source: '1750585477034'
+      sourceHandle: source
+      target: '1750683364969'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: 1750683364969-true-1750588748488-target
+      source: '1750683364969'
+      sourceHandle: 'true'
+      target: '1750588748488'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: 1750683364969-false-17506832451020-target
+      source: '1750683364969'
+      sourceHandle: 'false'
+      target: '17506832451020'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: end
+      id: 17506832451020-source-17506835281500-target
+      source: '17506832451020'
+      sourceHandle: source
+      target: '17506835281500'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: 开始
+        type: start
+        variables:
+        - label: 章节提示词
+          max_length: 18000
+          options: []
+          required: true
+          type: paragraph
+          variable: chapter_prompt
+        - label: 命名风格
+          max_length: 256
+          options: []
+          required: true
+          type: text-input
+          variable: name_style
+        - label: 额外要求
+          max_length: 1000
+          options: []
+          required: true
+          type: paragraph
+          variable: extra_prompt
+        - label: 世界观id
+          max_length: 48
+          options: []
+          required: true
+          type: number
+          variable: worldview_id
+        - label: 是否创造角色
+          max_length: 48
+          options: []
+          required: true
+          type: number
+          variable: is_create_character
+      height: 194
+      id: '1750581105528'
+      position:
+        x: -659.3132407385463
+        y: 467.5644438175801
+      positionAbsolute:
+        x: -659.3132407385463
+        y: 467.5644438175801
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        is_team_authorization: true
+        output_schema: null
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: Id of worldview,
+            ja_JP: Id of worldview,
+            pt_BR: Id of worldview,
+            zh_Hans: Id of worldview,
+          label:
+            en_US: worldview_id
+            ja_JP: worldview_id
+            pt_BR: worldview_id
+            zh_Hans: worldview_id
+          llm_description: Id of worldview,
+          max: null
+          min: null
+          name: worldview_id
+          options: []
+          placeholder:
+            en_US: Id of worldview,
+            ja_JP: Id of worldview,
+            pt_BR: Id of worldview,
+            zh_Hans: Id of worldview,
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        params:
+          worldview_id: ''
+        provider_id: 3ad4b587-4ea2-4585-a0d2-6a96bb88b6ed
+        provider_name: myworksite-novel
+        provider_type: api
+        selected: false
+        title: GetGeoListOfWorldView
+        tool_configurations: {}
+        tool_description: Get all geography units for a specific worldview
+        tool_label: GetGeoListOfWorldView
+        tool_name: GetGeoListOfWorldView
+        tool_parameters:
+          limit:
+            type: constant
+            value: 1000
+          worldview_id:
+            type: mixed
+            value: '{{#1750582881081.output#}}'
+        type: tool
+      height: 54
+      id: '1750581215200'
+      position:
+        x: 340.6543581398903
+        y: 275.40246044613554
+      positionAbsolute:
+        x: 340.6543581398903
+        y: 275.40246044613554
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        outputs:
+        - value_selector:
+          - '1750581777766'
+          - text
+          variable: related_geo
+        - value_selector:
+          - '1750587811609'
+          - text
+          variable: related_faction
+        - value_selector:
+          - '1750588748488'
+          - text
+          variable: related_roles
+        selected: false
+        title: 结束
+        type: end
+      height: 142
+      id: '1750581229451'
+      position:
+        x: 1941.4682073858469
+        y: 376.953337069211
+      positionAbsolute:
+        x: 1941.4682073858469
+        y: 376.953337069211
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: openai/gpt-4o
+          provider: langgenius/openrouter/openrouter
+        prompt_template:
+        - id: d4c8832c-d36b-4691-9c78-ae1185b37705
+          role: system
+          text: '【你的角色与任务背景】
+
+            你现在的角色是一名资深的中文网络小说写手，现在，你正在考虑做人物设定的前期准备，当前正在准备地理背景。
+
+
+            【小说的世界观】
+
+            在用户设定的世界观里，已经有了比较详细的地理设定，它将以JSON形式呈现：
+
+            ```json
+
+            {{#1750581215200.text#}}
+
+            ```
+
+
+
+            【任务】
+
+            1.你将会收到用户将要构思的情节描述
+
+            2.用户的描述会阐明章节情节，挑选发生的大致地理位置
+
+
+            【任务解决步骤】
+
+            1.首先，你需要大致确定这个剧情关联到哪些地点，选择1~5个
+
+            2.你会得到详尽的地点描述，其中，必定包含地点的id，你需要寻找parent_id与之一致的地点，全部找出'
+        - id: f21e2bd8-086e-445b-bfda-97ce17040a28
+          role: user
+          text: '{{#1750581105528.chapter_prompt#}}'
+        selected: false
+        title: LLM - 地理
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 90
+      id: '1750581777766'
+      position:
+        x: 976.2323144598458
+        y: 275.40246044613554
+      positionAbsolute:
+        x: 976.2323144598458
+        y: 275.40246044613554
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        selected: false
+        template: '{{worldview_id}}'
+        title: 模板转换 - 世界观id转换
+        type: template-transform
+        variables:
+        - value_selector:
+          - '1750581105528'
+          - worldview_id
+          variable: worldview_id
+      height: 54
+      id: '1750582881081'
+      position:
+        x: -219.52595374223546
+        y: 467.5644438175801
+      positionAbsolute:
+        x: -219.52595374223546
+        y: 467.5644438175801
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        is_team_authorization: true
+        output_schema: null
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: Id of worldview
+            ja_JP: Id of worldview
+            pt_BR: Id of worldview
+            zh_Hans: Id of worldview
+          label:
+            en_US: worldViewId
+            ja_JP: worldViewId
+            pt_BR: worldViewId
+            zh_Hans: worldViewId
+          llm_description: Id of worldview
+          max: null
+          min: null
+          name: worldViewId
+          options: []
+          placeholder:
+            en_US: Id of worldview
+            ja_JP: Id of worldview
+            pt_BR: Id of worldview
+            zh_Hans: Id of worldview
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: limit of data, default 200
+            ja_JP: limit of data, default 200
+            pt_BR: limit of data, default 200
+            zh_Hans: limit of data, default 200
+          label:
+            en_US: limit
+            ja_JP: limit
+            pt_BR: limit
+            zh_Hans: limit
+          llm_description: limit of data, default 200
+          max: null
+          min: null
+          name: limit
+          options: []
+          placeholder:
+            en_US: limit of data, default 200
+            ja_JP: limit of data, default 200
+            pt_BR: limit of data, default 200
+            zh_Hans: limit of data, default 200
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: number
+        params:
+          limit: ''
+          worldViewId: ''
+        provider_id: 3ad4b587-4ea2-4585-a0d2-6a96bb88b6ed
+        provider_name: myworksite-novel
+        provider_type: api
+        selected: false
+        title: GetFactionListOfWorldView
+        tool_configurations: {}
+        tool_description: Get all factions for a specific worldview
+        tool_label: GetFactionListOfWorldView
+        tool_name: GetFactionListOfWorldView
+        tool_parameters:
+          limit:
+            type: constant
+            value: 200
+          worldViewId:
+            type: mixed
+            value: '{{#1750582881081.output#}}'
+        type: tool
+      height: 54
+      id: '1750584714142'
+      position:
+        x: 340.6543581398903
+        y: 467.5644438175801
+      positionAbsolute:
+        x: 340.6543581398903
+        y: 467.5644438175801
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        is_team_authorization: true
+        output_schema: null
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: Id of worldview
+            ja_JP: Id of worldview
+            pt_BR: Id of worldview
+            zh_Hans: Id of worldview
+          label:
+            en_US: worldview_id
+            ja_JP: worldview_id
+            pt_BR: worldview_id
+            zh_Hans: worldview_id
+          llm_description: Id of worldview
+          max: null
+          min: null
+          name: worldview_id
+          options: []
+          placeholder:
+            en_US: Id of worldview
+            ja_JP: Id of worldview
+            pt_BR: Id of worldview
+            zh_Hans: Id of worldview
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: page number, default 1
+            ja_JP: page number, default 1
+            pt_BR: page number, default 1
+            zh_Hans: page number, default 1
+          label:
+            en_US: page
+            ja_JP: page
+            pt_BR: page
+            zh_Hans: page
+          llm_description: page number, default 1
+          max: null
+          min: null
+          name: page
+          options: []
+          placeholder:
+            en_US: page number, default 1
+            ja_JP: page number, default 1
+            pt_BR: page number, default 1
+            zh_Hans: page number, default 1
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: number
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: limit of page data, default 200
+            ja_JP: limit of page data, default 200
+            pt_BR: limit of page data, default 200
+            zh_Hans: limit of page data, default 200
+          label:
+            en_US: limit
+            ja_JP: limit
+            pt_BR: limit
+            zh_Hans: limit
+          llm_description: limit of page data, default 200
+          max: null
+          min: null
+          name: limit
+          options: []
+          placeholder:
+            en_US: limit of page data, default 200
+            ja_JP: limit of page data, default 200
+            pt_BR: limit of page data, default 200
+            zh_Hans: limit of page data, default 200
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: number
+        params:
+          limit: ''
+          page: ''
+          worldview_id: ''
+        provider_id: 3ad4b587-4ea2-4585-a0d2-6a96bb88b6ed
+        provider_name: myworksite-novel
+        provider_type: api
+        selected: false
+        title: GetCharacterListOfWorldView
+        tool_configurations: {}
+        tool_description: Get all characters for a specific worldview
+        tool_label: GetCharacterListOfWorldView
+        tool_name: GetCharacterListOfWorldView
+        tool_parameters:
+          limit:
+            type: constant
+            value: 200
+          page:
+            type: constant
+            value: 1
+          worldview_id:
+            type: mixed
+            value: '{{#1750582881081.output#}}'
+        type: tool
+      height: 54
+      id: '1750585477034'
+      position:
+        x: 340.6543581398903
+        y: 659.9787606224853
+      positionAbsolute:
+        x: 340.6543581398903
+        y: 659.9787606224853
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        author: admin
+        desc: ''
+        height: 426
+        selected: false
+        showAuthor: true
+        text: '{"root":{"children":[{"children":[{"detail":0,"format":0,"mode":"normal","style":"","text":"由于世界观发散很快，需要使用cot对地理、阵营的树形结构进行前处理，总体提示词思路：","type":"text","version":1}],"direction":"ltr","format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":""},{"children":[],"direction":null,"format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":""},{"children":[{"detail":0,"format":0,"mode":"normal","style":"","text":"【任务】","type":"text","version":1}],"direction":"ltr","format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":""},{"children":[{"detail":0,"format":0,"mode":"normal","style":"","text":"1.你将会收到用户将要构思的情节描述","type":"text","version":1}],"direction":"ltr","format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":""},{"children":[{"detail":0,"format":0,"mode":"normal","style":"","text":"2.用户的描述会阐明章节情节，情节发生的大致地理位置、所属阵营","type":"text","version":1}],"direction":"ltr","format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":""},{"children":[{"detail":0,"format":0,"mode":"normal","style":"","text":"3.在阵营、地理设定中，你可以根据id、parent_id推理得到这些对象的父子关系，如果你选择的地理、阵营包含子阵营，你需要把子阵营也纳入考虑范围","type":"text","version":1}],"direction":"ltr","format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":""},{"children":[{"detail":0,"format":0,"mode":"normal","style":"","text":"4.请你挑选3~5个能够提供剧情人物，并以自然语言的方式描述","type":"text","version":1}],"direction":"ltr","format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":""},{"children":[{"detail":0,"format":0,"mode":"normal","style":"","text":"5.请你构思3~5个能够提供剧情的新人物，并以自然语言的方式描述","type":"text","version":1}],"direction":"ltr","format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":""},{"children":[],"direction":null,"format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":""},{"children":[{"detail":0,"format":0,"mode":"normal","style":"","text":"【任务解决步骤】","type":"text","version":1}],"direction":"ltr","format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":""},{"children":[{"detail":0,"format":0,"mode":"normal","style":"","text":"1.首先，你需要大致确定这个剧情关联到哪些阵营，选择3~5个","type":"text","version":1}],"direction":"ltr","format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":""},{"children":[{"detail":0,"format":0,"mode":"normal","style":"","text":"2.你会得到详尽的阵营描述，其中，必定包含阵营的id，你需要寻找parent_id与之一致的阵营，全部找出","type":"text","version":1}],"direction":"ltr","format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":""},{"children":[{"detail":0,"format":0,"mode":"normal","style":"","text":"3.根据剧情，与1~2步挑选的阵营，再从地理设定中选取相关的地理设定","type":"text","version":1}],"direction":"ltr","format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":""},{"children":[{"detail":0,"format":0,"mode":"normal","style":"","text":"4.你会得到详尽的地理描述，其中，必定包含地点的id，你需要寻找parent_id与之一致的地点，全部找出","type":"text","version":1}],"direction":"ltr","format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":""},{"children":[{"detail":0,"format":0,"mode":"normal","style":"","text":"5.根据剧情、1~2步挑选的阵营、3~4步挑选的地点，你已经有了相关的地理、文化设定基础，你现在可以挑选3~5个已有的，能够提供剧情人物","type":"text","version":1}],"direction":"ltr","format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":""},{"children":[{"detail":0,"format":0,"mode":"normal","style":"","text":"6.根据剧情、1~2步挑选的阵营、3~4步挑选的地点，你已经有了相关的地理、文化设定基础，再构思3~5个能够提供剧情的新人物","type":"text","version":1}],"direction":"ltr","format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":""}],"direction":"ltr","format":"","indent":0,"type":"root","version":1}}'
+        theme: blue
+        title: ''
+        type: ''
+        width: 1015
+      height: 426
+      id: '1750587406404'
+      position:
+        x: 443.23485881798763
+        y: -283.7753967684218
+      positionAbsolute:
+        x: 443.23485881798763
+        y: -283.7753967684218
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom-note
+      width: 1015
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: openai/gpt-4o
+          provider: langgenius/openrouter/openrouter
+        prompt_template:
+        - id: 1503487e-f132-46fc-8b8a-99437acfe924
+          role: system
+          text: '【你的角色与任务背景】
+
+            你现在的角色是一名资深的中文网络小说写手，现在，你正在考虑做人物设定的前期准备，当前正在准备地理背景。
+
+
+            【小说的世界观】
+
+            在用户设定的世界观里，已经有了比较详细的阵营设定，它将以JSON形式呈现：
+
+            ```json
+
+            {{#1750584714142.text#}}
+
+            ```
+
+
+
+            【任务】
+
+            1.你将会收到用户将要构思的情节描述
+
+            2.用户的描述会阐明章节情节，挑选发生的大致阵营
+
+            3.输出内容包含阵营的名称、简要描述
+
+
+            【任务解决步骤】
+
+            1.首先，你需要大致确定这个剧情关联到哪些阵营，选择1~5个，确保不要选中无关阵营
+
+            2.你会得到详尽的阵营描述，其中，阵营信息必定包含阵营的id，你需要继续寻找parent_id与之一致的阵营，全部找出，是为子阵营；
+
+            3.对第2步的结果再进行一次迭代，1、2、3步加起来即为最终输出的阵营；'
+        - id: 3b396d1f-2e65-4aa1-a783-09fb724cec59
+          role: user
+          text: '{{#1750581105528.chapter_prompt#}}'
+        selected: false
+        title: LLM - 阵营
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 90
+      id: '1750587811609'
+      position:
+        x: 976.2323144598458
+        y: 467.5644438175801
+      positionAbsolute:
+        x: 976.2323144598458
+        y: 467.5644438175801
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params:
+            temperature: 1
+          mode: chat
+          name: google/gemini-2.5-pro
+          provider: langgenius/openrouter/openrouter
+        prompt_template:
+        - id: e19720dc-a82e-40b5-9102-6374a97e0fbb
+          role: system
+          text: '【你的角色与任务背景】
+
+            你现在的角色是一名资深的中文网络小说写手，现在，你正在考虑做人物设定的前期准备，当前正在准备地理背景。
+
+
+            【任务】
+
+            1.你将会收到用户将要构思的情节描述
+
+            2.用户的描述会阐明章节情节，情节发生的大致地理位置、所属阵营
+
+            3.在阵营、地理设定中，你可以根据id、parent_id推理得到这些对象的父子关系，如果你选择的地理、阵营包含子阵营，你需要把子阵营也纳入考虑范围
+
+            4.请你挑选3~5个能够提供剧情人物，并以自然语言的方式描述
+
+            5.请你构思3~5个能够提供剧情的新人物，并以自然语言的方式描述
+
+
+            【任务解决步骤】
+
+            1.首先，需要大致确定这个剧情关联到哪些阵营
+
+            2.其次，再大致确定这个剧情关联到地理设定
+
+            3.根据剧情、1~2步挑选的阵营、3~4步挑选的地点，你已经有了相关的地理、文化设定基础，你现在可以挑选3~5个已有的，能够提供剧情人物。
+
+            4.根据剧情、1~2步挑选的阵营、3~4步挑选的地点，你已经有了相关的地理、文化设定基础，再构思3~5个能够提供剧情的新人物，要注明必要属性：姓名、背景出身、立场、性格、剧情行为。
+
+            5.对于4的补充，角色思想需具备深度和灵活性，不与身份锁死，考虑符合剧情的多种自由度'
+        - id: 53840802-441d-4078-9413-26f18273f60a
+          role: user
+          text: '章节提示词开始：
+
+            {{#1750581105528.chapter_prompt#}}
+
+
+            章节提示词结束。
+
+            首先，让我们构思一下关联阵营'
+        - id: 2a4da127-5f79-4104-b41f-f570115cad0a
+          role: assistant
+          text: '{{#1750587811609.text#}}'
+        - id: db45c4eb-b237-438c-9d32-ff761cdd0208
+          role: user
+          text: 再让我们构思一下关联地理
+        - id: 8af2393f-c57e-4ca2-b7a2-523fdbfa7677
+          role: assistant
+          text: '{{#1750581777766.text#}}'
+        - id: ac29570a-68ae-4afe-9dc6-5a66c99b094c
+          role: user
+          text: '现在，我提供一批已有的角色数据：{{#1750585477034.text#}}
+
+
+            让我们连续做两步：
+
+            1.挑选3~5个已有的，能够提供剧情人物；
+
+            2.构思6~8个能够提供剧情的新人物，采用{{#1750581105528.name_style#}}的命名风格
+
+            3.对于步骤2的额外要求，从下一行开始：
+
+            {{#1750581105528.extra_prompt#}}
+
+            对步骤2的额外要求结束；'
+        selected: true
+        title: LLM - 创造人物
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 90
+      id: '1750588748488'
+      position:
+        x: 1434.111141046033
+        y: 376.953337069211
+      positionAbsolute:
+        x: 1434.111141046033
+        y: 376.953337069211
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params:
+            temperature: 1
+          mode: chat
+          name: google/gemini-2.5-pro
+          provider: langgenius/openrouter/openrouter
+        prompt_template:
+        - id: e19720dc-a82e-40b5-9102-6374a97e0fbb
+          role: system
+          text: '【你的角色与任务背景】
+
+            你现在的角色是一名资深的中文网络小说写手，现在，你正在考虑做人物设定的前期准备，当前正在准备地理背景。
+
+
+            【任务】
+
+            1.你将会收到用户将要构思的情节描述
+
+            2.用户的描述会阐明章节情节，情节发生的大致地理位置、所属阵营
+
+            3.在阵营、地理设定中，你可以根据id、parent_id推理得到这些对象的父子关系，如果你选择的地理、阵营包含子阵营，你需要把子阵营也纳入考虑范围
+
+            4.请你挑选1~7个能够提供剧情人物，并以自然语言的方式描述
+
+
+            【任务解决步骤】
+
+            1.首先，需要大致确定这个剧情关联到哪些阵营
+
+            2.其次，再大致确定这个剧情关联到地理设定
+
+            3.根据剧情、1~2步挑选的阵营、3~4步挑选的地点，你已经有了相关的地理、文化设定基础，你现在可以挑选1~7个已有的，能够提供剧情人物。
+
+            5.对于3的补充，角色剧情需具备深度和灵活性，不与身份锁死，考虑符合剧情的多种自由度'
+        - id: 53840802-441d-4078-9413-26f18273f60a
+          role: user
+          text: '章节提示词开始：
+
+            {{#1750581105528.chapter_prompt#}}
+
+
+            章节提示词结束。
+
+            首先，让我们构思一下关联阵营'
+        - id: 2a4da127-5f79-4104-b41f-f570115cad0a
+          role: assistant
+          text: '{{#1750587811609.text#}}'
+        - id: db45c4eb-b237-438c-9d32-ff761cdd0208
+          role: user
+          text: 再让我们构思一下关联地理
+        - id: 8af2393f-c57e-4ca2-b7a2-523fdbfa7677
+          role: assistant
+          text: '{{#1750581777766.text#}}'
+        - id: ac29570a-68ae-4afe-9dc6-5a66c99b094c
+          role: user
+          text: '现在，我提供一批已有的角色数据：{{#1750585477034.text#}}
+
+
+            让我们连续做4步：
+
+            1.挑选能够提供剧情人物；
+
+            2.阐述剧情人物能够推动哪些剧情；
+
+            3.剧情可以往哪个方向发展？
+
+            4.额外要求，从下一行开始：
+
+            {{#1750581105528.extra_prompt#}}
+
+            额外要求结束；'
+        selected: false
+        title: LLM - 挑选人物
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 90
+      id: '17506832451020'
+      position:
+        x: 1434.111141046033
+        y: 598.4377776273541
+      positionAbsolute:
+        x: 1434.111141046033
+        y: 598.4377776273541
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: '='
+            id: e353ed36-e06a-42a8-b216-4f46c88584c5
+            value: '1'
+            varType: number
+            variable_selector:
+            - '1750581105528'
+            - is_create_character
+          id: 'true'
+          logical_operator: and
+        desc: ''
+        selected: false
+        title: 条件分支
+        type: if-else
+      height: 126
+      id: '1750683364969'
+      position:
+        x: 976.2323144598458
+        y: 659.9787606224853
+      positionAbsolute:
+        x: 976.2323144598458
+        y: 659.9787606224853
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        outputs:
+        - value_selector:
+          - '1750581777766'
+          - text
+          variable: related_geo
+        - value_selector:
+          - '1750587811609'
+          - text
+          variable: related_faction
+        - value_selector:
+          - '17506832451020'
+          - text
+          variable: related_roles
+        selected: false
+        title: 结束 (1)
+        type: end
+      height: 142
+      id: '17506835281500'
+      position:
+        x: 1941.4682073858469
+        y: 598.4377776273541
+      positionAbsolute:
+        x: 1941.4682073858469
+        y: 598.4377776273541
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: 697.3429736665804
+      y: -52.035030601298274
+      zoom: 1.0803309680209263
