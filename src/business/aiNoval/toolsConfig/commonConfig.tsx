@@ -14,14 +14,15 @@ const TOOL_CONFIG_FIELDS: FieldConfig[] = [
     { name: 'OPENROUTER_API_KEY', label: 'Openrouter API Key：', component: 'input' },
     { name: 'DEEPSEEK_API_KEY', label: 'DeepSeek API Key：', component: 'input' },
     { name: 'SILLICONFLOW_API_KEY', label: '硅基流动 API Key：', component: 'input' },
+    { name: 'DIFY_HOST', label: 'DIFY API入口：', component: 'input' },
     { name: 'DIFY_DATASET_BASE_URL', label: 'DIFY知识库API入口：', component: 'input' },
-    { name: 'DIFY_DATASET_API_KEY', label: 'DIFY知识库API Key：', component: 'input' },
-    { name: 'DIFY_PARAGRAPH_STRIPPER_API_KEY', label: '段落缩写工作流API Key：', component: 'input' },
-    { name: 'DIFY_PARAGRAPH_TITLE_API_KEY', label: '段落标题工作流API Key：', component: 'input' },
-    { name: 'DIFY_PARAGRAPH_ROLES_API_KEY', label: '提取角色工作流API Key：', component: 'input' },
-    { name: 'DIFY_PARAGRAPH_FACTIONS_API_KEY', label: '提取阵营工作流API Key：', component: 'input' },
-    { name: 'DIFY_PARAGRAPH_LOCATIONS_API_KEY', label: '提取地理工作流API Key：', component: 'input' },
-    { name: 'DIFY_PARAGRAPH_COMBINE_API_KEY', label: '融合文段工作流API Key：', component: 'input' },
+    // { name: 'DIFY_DATASET_API_KEY', label: 'DIFY知识库API Key：', component: 'input' },
+    // { name: 'DIFY_PARAGRAPH_STRIPPER_API_KEY', label: '段落缩写工作流API Key：', component: 'input' },
+    // { name: 'DIFY_PARAGRAPH_TITLE_API_KEY', label: '段落标题工作流API Key：', component: 'input' },
+    // { name: 'DIFY_PARAGRAPH_ROLES_API_KEY', label: '提取角色工作流API Key：', component: 'input' },
+    // { name: 'DIFY_PARAGRAPH_FACTIONS_API_KEY', label: '提取阵营工作流API Key：', component: 'input' },
+    // { name: 'DIFY_PARAGRAPH_LOCATIONS_API_KEY', label: '提取地理工作流API Key：', component: 'input' },
+    // { name: 'DIFY_PARAGRAPH_COMBINE_API_KEY', label: '融合文段工作流API Key：', component: 'input' },
 ];
 
 export function CommonConfig() {

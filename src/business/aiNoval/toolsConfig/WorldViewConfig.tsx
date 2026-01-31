@@ -127,7 +127,7 @@ export const WorldViewConfig = connect(mapStateToProps)(function({ difyFrontHost
                 }}/>
             </Form.Item>
 
-            <Form.Item name={'DIFY_GEO_DATASET_ID_' + selectedWorldView} label="地理知识库：">
+            {/* <Form.Item name={'DIFY_GEO_DATASET_ID_' + selectedWorldView} label="地理知识库：">
                 <Select options={llmDatasetOptions} disabled={!selectedWorldView}/>
             </Form.Item>
 
@@ -170,7 +170,7 @@ export const WorldViewConfig = connect(mapStateToProps)(function({ difyFrontHost
 
             <Form.Item name={'DIFY_GEN_CHARACTER_API_KEY_' + selectedWorldView} label="自动生成角色API Key：">
                 <Input disabled={!selectedWorldView}/>
-            </Form.Item>
+            </Form.Item> */}
 
             <Form.Item {...tailLayout}>
                 <Space>

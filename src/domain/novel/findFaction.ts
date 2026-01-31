@@ -45,12 +45,12 @@ export default async function findFaction(worldviewId: number, keywords: string[
     }
     let w_db = 1 - w_chroma;
 
-    console.debug('total_count ------------->> ', total_count);
-    console.debug('db_coverage ------------->> ', db_coverage);
-    console.debug('chroma_coverage ------------->> ', chroma_coverage);
-    console.debug('overlap_ratio ------------->> ', overlap_ratio);
-    console.debug('w_db ------------->> ', w_db);
-    console.debug('w_chroma ------------->> ', w_chroma);
+    // console.debug('total_count ------------->> ', total_count);
+    // console.debug('db_coverage ------------->> ', db_coverage);
+    // console.debug('chroma_coverage ------------->> ', chroma_coverage);
+    // console.debug('overlap_ratio ------------->> ', overlap_ratio);
+    // console.debug('w_db ------------->> ', w_db);
+    // console.debug('w_chroma ------------->> ', w_chroma);
 
     // if (Math.max(...db_data.map(item => item.score || 0)) === 0) {
     //     chroma_coef = 1;
@@ -160,7 +160,7 @@ async function rerankData(
                 db_score: original.db_score,
             };
         });
-        console.debug('rerank completed, reranked items count:', reranked.length);
+        // console.debug('rerank completed, reranked items count:', reranked.length);
         return reranked;
     } catch (error) {
         console.error('rerank failed:', error);

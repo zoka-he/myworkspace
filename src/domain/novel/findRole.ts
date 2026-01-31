@@ -45,12 +45,12 @@ export default async function findRole(worldviewId: number, keywords: string[], 
     }
     let w_chroma = 1 - w_db;
 
-    console.debug('total_count ------------->> ', total_count);
-    console.debug('db_coverage ------------->> ', db_coverage);
-    console.debug('chroma_coverage ------------->> ', chroma_coverage);
-    console.debug('overlap_ratio ------------->> ', overlap_ratio);
-    console.debug('w_db ------------->> ', w_db);
-    console.debug('w_chroma ------------->> ', w_chroma);
+    // console.debug('total_count ------------->> ', total_count);
+    // console.debug('db_coverage ------------->> ', db_coverage);
+    // console.debug('chroma_coverage ------------->> ', chroma_coverage);
+    // console.debug('overlap_ratio ------------->> ', overlap_ratio);
+    // console.debug('w_db ------------->> ', w_db);
+    // console.debug('w_chroma ------------->> ', w_chroma);
 
     // if (Math.max(...db_data.map(item => item.score || 0)) === 0) {
     //     chroma_coef = 1;
@@ -78,7 +78,7 @@ export default async function findRole(worldviewId: number, keywords: string[], 
     // let combined_data_normalized = normalizeScore(combined_data, 'combined_score', 'score').map(item => _.omit(item, ['combined_score']));
     let rerank_data = await rerankData(combined_data, keywords as string[]);
 
-    console.debug('threshold ------------->> ', thresholdNum);
+    // console.debug('threshold ------------->> ', thresholdNum);
     return rerank_data.filter(item => item.score >= thresholdNum);
 }
 
@@ -161,7 +161,7 @@ async function rerankData(
                 db_score: original.db_score,
             };
         });
-        console.debug('rerank completed, reranked items count:', reranked.length);
+        // console.debug('rerank completed, reranked items count:', reranked.length);
         return reranked;
     } catch (error) {
         console.error('rerank failed:', error);

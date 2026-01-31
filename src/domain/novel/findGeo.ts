@@ -53,12 +53,12 @@ export default async function findGeo(worldviewId: number, keywords: string[], t
     }
     let w_db = 1 - w_chroma;
 
-    console.debug('total_count ------------->> ', total_count);
-    console.debug('db_coverage ------------->> ', db_coverage);
-    console.debug('chroma_coverage ------------->> ', chroma_coverage);
-    console.debug('overlap_ratio ------------->> ', overlap_ratio);
-    console.debug('w_db ------------->> ', w_db);
-    console.debug('w_chroma ------------->> ', w_chroma);
+    // console.debug('total_count ------------->> ', total_count);
+    // console.debug('db_coverage ------------->> ', db_coverage);
+    // console.debug('chroma_coverage ------------->> ', chroma_coverage);
+    // console.debug('overlap_ratio ------------->> ', overlap_ratio);
+    // console.debug('w_db ------------->> ', w_db);
+    // console.debug('w_chroma ------------->> ', w_chroma);
 
     // if (Math.max(...db_data.map(item => item.score || 0)) === 0) {
     //     chroma_coef = 1;
@@ -112,7 +112,7 @@ export default async function findGeo(worldviewId: number, keywords: string[], t
             });
 
             combined_data = rerankedData;
-            console.debug('rerank completed, reranked items count:', combined_data.length);
+            // console.debug('rerank completed, reranked items count:', combined_data.length);
         } catch (error) {
             console.error('rerank failed:', error);
             // 如果 rerank 失败，使用原来的排序方式
@@ -136,7 +136,7 @@ export default async function findGeo(worldviewId: number, keywords: string[], t
     // let combined_data_normalized = normalizeScore(combined_data, 'combined_score', 'score').map(item => _.omit(item, ['combined_score']));
 
 
-    console.debug('threshold ------------->> ', thresholdNum);
+    // console.debug('threshold ------------->> ', thresholdNum);
     // res.status(200).json({ success: true, data: combined_data.sort((a, b) => b.combined_score - a.combined_score).filter(item => item.combined_score >= thresholdNum) });
     return combined_data.filter(item => item.rerank_score >= thresholdNum);
 }
