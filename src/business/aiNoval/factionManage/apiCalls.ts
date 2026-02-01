@@ -117,5 +117,17 @@ export default {
                 threshold: threshold || 0.5
             } 
         });
-    }
+    },
+
+    generateFactionGeoNamingRules: (params: {
+        cultureTags: string;
+        factionName?: string;
+        factionCulture?: string;
+        description?: string;
+    }) => {
+        return fetch.post<{ geo_naming_habit: string; geo_naming_suffix: string; geo_naming_prohibition: string }>(
+            '/api/web/aiNoval/llm/once/generateFactionGeoNamingRules',
+            params
+        );
+    },
 }
