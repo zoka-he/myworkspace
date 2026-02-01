@@ -1,4 +1,4 @@
-import { Modal, Form, Input, TreeSelect, Select, message, Space, Button } from 'antd';
+import { Modal, Form, Input, TreeSelect, Select, message, Space, Button, Divider } from 'antd';
 import { IFactionDefData } from '@/src/types/IAiNoval';
 import { useEffect, forwardRef, useImperativeHandle, useState } from 'react';
 import { useWorldViewId, useFactionTree, useWorldViewList, useLoadFactionList } from '../FactionManageContext';
@@ -17,6 +17,14 @@ export interface FactionEditRef {
     resetForm: () => void;
     showAndEdit: (values: IFactionDefData) => void;
 }
+
+const SCALE_OF_OPERATION_OPTIONS = [
+    { value: '地区级', label: '地区级' },
+    { value: '大陆级', label: '大陆级' },
+    { value: '行星级', label: '行星级' },
+    { value: '多星级', label: '多星级' },
+    { value: '文明级', label: '文明级' },
+];
 
 const FactionEdit = forwardRef<FactionEditRef, IFactionEditProps>(({
     // onCancel,
@@ -42,7 +50,19 @@ const FactionEdit = forwardRef<FactionEditRef, IFactionEditProps>(({
                 parent_id: values.parent_id,
                 name: values.name,
                 description: values.description,
-                embed_document: values.embed_document
+                embed_document: values.embed_document,
+                faction_type: values.faction_type,
+                faction_culture: values.faction_culture,
+                ideology_or_meme: values.ideology_or_meme,
+                scale_of_operation: values.scale_of_operation,
+                decision_taboo: values.decision_taboo,
+                primary_threat_model: values.primary_threat_model,
+                internal_contradictions: values.internal_contradictions,
+                legitimacy_source: values.legitimacy_source,
+                known_dysfunctions: values.known_dysfunctions,
+                geo_naming_habit: values.geo_naming_habit,
+                geo_naming_suffix: values.geo_naming_suffix,
+                geo_naming_prohibition: values.geo_naming_prohibition,
             };
             form.setFieldsValue(formValues);
         },
@@ -60,7 +80,19 @@ const FactionEdit = forwardRef<FactionEditRef, IFactionEditProps>(({
                 parent_id: values.parent_id,
                 name: values.name,
                 description: values.description,
-                embed_document: values.embed_document
+                embed_document: values.embed_document,
+                faction_type: values.faction_type,
+                faction_culture: values.faction_culture,
+                ideology_or_meme: values.ideology_or_meme,
+                scale_of_operation: values.scale_of_operation,
+                decision_taboo: values.decision_taboo,
+                primary_threat_model: values.primary_threat_model,
+                internal_contradictions: values.internal_contradictions,
+                legitimacy_source: values.legitimacy_source,
+                known_dysfunctions: values.known_dysfunctions,
+                geo_naming_habit: values.geo_naming_habit,
+                geo_naming_suffix: values.geo_naming_suffix,
+                geo_naming_prohibition: values.geo_naming_prohibition,
             };
             form.setFieldsValue(formValues);
         }
@@ -71,7 +103,19 @@ const FactionEdit = forwardRef<FactionEditRef, IFactionEditProps>(({
             setBackupData(initialValues);
             form.setFieldsValue({
                 name: initialValues.name,
-                description: initialValues.description
+                description: initialValues.description,
+                faction_type: initialValues.faction_type,
+                faction_culture: initialValues.faction_culture,
+                ideology_or_meme: initialValues.ideology_or_meme,
+                scale_of_operation: initialValues.scale_of_operation,
+                decision_taboo: initialValues.decision_taboo,
+                primary_threat_model: initialValues.primary_threat_model,
+                internal_contradictions: initialValues.internal_contradictions,
+                legitimacy_source: initialValues.legitimacy_source,
+                known_dysfunctions: initialValues.known_dysfunctions,
+                geo_naming_habit: initialValues.geo_naming_habit,
+                geo_naming_suffix: initialValues.geo_naming_suffix,
+                geo_naming_prohibition: initialValues.geo_naming_prohibition,
             });
         }
     }, [visible, initialValues, form]);
@@ -185,6 +229,56 @@ const FactionEdit = forwardRef<FactionEditRef, IFactionEditProps>(({
                         autoSize={{ minRows: 6 }}
                         placeholder="请输入阵营描述"
                     />
+                </Form.Item>
+
+                <Form.Item name="faction_type" label="阵营类型">
+                    <Input placeholder="阵营类型" />
+                </Form.Item>
+
+                <Form.Item name="faction_culture" label="阵营文化">
+                    <Input.TextArea rows={2} placeholder="阵营文化" />
+                </Form.Item>
+
+                <Form.Item name="ideology_or_meme" label="意识形态/梗文化">
+                    <Input.TextArea rows={2} placeholder="输出或用于整活的文化" />
+                </Form.Item>
+
+                <Form.Item name="scale_of_operation" label="决策尺度">
+                    <Select options={SCALE_OF_OPERATION_OPTIONS} placeholder="地区级、大陆级、行星级、多星级、文明级" allowClear />
+                </Form.Item>
+
+                <Form.Item name="decision_taboo" label="决策禁忌">
+                    <Input.TextArea rows={2} placeholder="阵营绝不会做的事情" />
+                </Form.Item>
+
+                <Form.Item name="primary_threat_model" label="最大威胁来源">
+                    <Input placeholder="最大威胁来源" />
+                </Form.Item>
+
+                <Form.Item name="internal_contradictions" label="内部矛盾">
+                    <Input.TextArea rows={2} placeholder="阵营内部允许被公开展示的矛盾" />
+                </Form.Item>
+
+                <Form.Item name="legitimacy_source" label="正统来源">
+                    <Input placeholder="阵营正统来源" />
+                </Form.Item>
+
+                <Form.Item name="known_dysfunctions" label="已知功能障碍">
+                    <Input.TextArea rows={2} placeholder="阵营创伤后遗症" />
+                </Form.Item>
+
+                <Divider orientation="left" plain>地理·命名规范</Divider>
+
+                <Form.Item name="geo_naming_habit" label="地理·命名习惯">
+                    <Input.TextArea rows={2} placeholder="风格、偏好、通用要求（如：唐风、简短、OOC）" />
+                </Form.Item>
+
+                <Form.Item name="geo_naming_suffix" label="地理·命名后缀">
+                    <Input.TextArea rows={2} placeholder="后缀及层级对应（如：道/州/郡/市/县）" />
+                </Form.Item>
+
+                <Form.Item name="geo_naming_prohibition" label="地理·命名禁忌">
+                    <Input.TextArea rows={2} placeholder="严禁事项（如：禁界、禁京都、禁神话倾向）" />
                 </Form.Item>
 
                 <Form.Item label="嵌入文档">

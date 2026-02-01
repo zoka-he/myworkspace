@@ -41,7 +41,27 @@ export default function FactionInfoPanel() {
             </Typography.Paragraph>
 
 
-            <FactionEmbedPanel factionData={currentFaction} />
+            <Descriptions title="阵营属性" column={1} size="small" bordered style={{ marginTop: 16 }} styles={{ label: { width: '100px' } }}>
+                <Descriptions.Item label="阵营类型">{currentFaction.faction_type || '-'}</Descriptions.Item>
+                <Descriptions.Item label="阵营文化">{currentFaction.faction_culture || '-'}</Descriptions.Item>
+                <Descriptions.Item label="意识形态/梗文化">{currentFaction.ideology_or_meme || '-'}</Descriptions.Item>
+                <Descriptions.Item label="决策尺度">{currentFaction.scale_of_operation || '-'}</Descriptions.Item>
+                <Descriptions.Item label="决策禁忌">{currentFaction.decision_taboo || '-'}</Descriptions.Item>
+                <Descriptions.Item label="最大威胁来源">{currentFaction.primary_threat_model || '-'}</Descriptions.Item>
+                <Descriptions.Item label="内部矛盾">{currentFaction.internal_contradictions || '-'}</Descriptions.Item>
+                <Descriptions.Item label="正统来源">{currentFaction.legitimacy_source || '-'}</Descriptions.Item>
+                <Descriptions.Item label="PTSD">{currentFaction.known_dysfunctions || '-'}</Descriptions.Item>
+            </Descriptions>
+
+            <Divider orientation="left" plain>地理·命名规范</Divider>
+
+            <Descriptions column={1} size="small" bordered style={{ marginTop: 8 }} styles={{ label: { width: '100px' } }}>
+                <Descriptions.Item label="地理·命名习惯">{currentFaction.geo_naming_habit || '-'}</Descriptions.Item>
+                <Descriptions.Item label="地理·命名后缀">{currentFaction.geo_naming_suffix || '-'}</Descriptions.Item>
+                <Descriptions.Item label="地理·命名禁忌">{currentFaction.geo_naming_prohibition || '-'}</Descriptions.Item>
+            </Descriptions>
+
+            <FactionEmbedPanel factionData={currentFaction} style={{ marginTop: 16 }} />
             
             <Divider />
 

@@ -67,17 +67,17 @@ export const WorldViewConfig = connect(mapStateToProps)(function({ difyFrontHost
 
     function getDefaultToolConfig(): { [key: string]: string } {
         return {
-            ['DIFY_GEO_DATASET_ID_' + selectedWorldView]: '',
-            ['DIFY_ROLE_DATASET_ID_' + selectedWorldView]: '',
-            ['DIFY_EVENTS_DATASET_ID_' + selectedWorldView]: '',
-            ['DIFY_FACTION_DATASET_ID_' + selectedWorldView]: '',
-            ['DIFY_ITEM_DATASET_ID_' + selectedWorldView]: '',
-            ['DIFY_SKILL_DATASET_ID_' + selectedWorldView]: '',
-            ['DIFY_AUTO_SKELETON_PROMPT_API_KEY_' + selectedWorldView]: '',
-            ['DIFY_AUTO_WRITE_API_KEY_' + selectedWorldView]: '',
-            ['DIFY_AUTO_WRITE_WITH_SKELETON_API_KEY_' + selectedWorldView]: '',
-            ['DIFY_AUTO_WRITE_WITH_CHAT_API_KEY_' + selectedWorldView]: '',
-            ['DIFY_GEN_CHARACTER_API_KEY_' + selectedWorldView]: '',
+            ['DIFY_GEN_GEO_NAMES_API_KEY_' + selectedWorldView]: '',
+            // ['DIFY_ROLE_DATASET_ID_' + selectedWorldView]: '',
+            // ['DIFY_EVENTS_DATASET_ID_' + selectedWorldView]: '',
+            // ['DIFY_FACTION_DATASET_ID_' + selectedWorldView]: '',
+            // ['DIFY_ITEM_DATASET_ID_' + selectedWorldView]: '',
+            // ['DIFY_SKILL_DATASET_ID_' + selectedWorldView]: '',
+            // ['DIFY_AUTO_SKELETON_PROMPT_API_KEY_' + selectedWorldView]: '',
+            // ['DIFY_AUTO_WRITE_API_KEY_' + selectedWorldView]: '',
+            // ['DIFY_AUTO_WRITE_WITH_SKELETON_API_KEY_' + selectedWorldView]: '',
+            // ['DIFY_AUTO_WRITE_WITH_CHAT_API_KEY_' + selectedWorldView]: '',
+            // ['DIFY_GEN_CHARACTER_API_KEY_' + selectedWorldView]: '',
         }
     }
 
@@ -127,11 +127,11 @@ export const WorldViewConfig = connect(mapStateToProps)(function({ difyFrontHost
                 }}/>
             </Form.Item>
 
-            {/* <Form.Item name={'DIFY_GEO_DATASET_ID_' + selectedWorldView} label="地理知识库：">
-                <Select options={llmDatasetOptions} disabled={!selectedWorldView}/>
+            <Form.Item name={'DIFY_GEN_GEO_NAMES_API_KEY_' + selectedWorldView} label="地理生成工作流 API Key：">
+                <Input disabled={!selectedWorldView}/>
             </Form.Item>
 
-            <Form.Item name={'DIFY_ROLE_DATASET_ID_' + selectedWorldView} label="角色知识库：">
+            {/* <Form.Item name={'DIFY_ROLE_DATASET_ID_' + selectedWorldView} label="角色知识库：">
                 <Select options={llmDatasetOptions} disabled={!selectedWorldView}/>
             </Form.Item>
 

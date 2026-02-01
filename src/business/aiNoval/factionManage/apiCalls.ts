@@ -113,7 +113,7 @@ export default {
         return fetch.get('/api/web/aiNoval/llm/once/findFaction', { 
             params: { 
                 worldviewId, 
-                keywords: keywords.length === 1 ? keywords[0] : keywords,
+                keywords: keywords.join(','),
                 threshold: threshold || 0.5
             } 
         });

@@ -127,6 +127,30 @@ export interface IFactionDefData {
     dify_document_id?: string | null,
     dify_dataset_id?: string | null,
     embed_document?: string | null,
+    /** 阵营类型 */
+    faction_type?: string | null,
+    /** 阵营文化 */
+    faction_culture?: string | null,
+    /** 输出或用于整活的文化 */
+    ideology_or_meme?: string | null,
+    /** 阵营决策尺度：地区级、大陆级、行星级、多星级、文明级 */
+    scale_of_operation?: string | null,
+    /** 阵营绝不会做的事情 */
+    decision_taboo?: string | null,
+    /** 最大威胁来源 */
+    primary_threat_model?: string | null,
+    /** 阵营内部允许被公开展示的矛盾 */
+    internal_contradictions?: string | null,
+    /** 阵营正统来源 */
+    legitimacy_source?: string | null,
+    /** 阵营创伤后遗症 */
+    known_dysfunctions?: string | null,
+    /** 地理·命名习惯：风格、偏好、通用要求 */
+    geo_naming_habit?: string | null,
+    /** 地理·命名后缀：后缀及层级对应 */
+    geo_naming_suffix?: string | null,
+    /** 地理·命名禁忌：严禁事项 */
+    geo_naming_prohibition?: string | null,
 }
 
 export interface IRoleData {

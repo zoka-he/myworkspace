@@ -9,10 +9,11 @@ import { useMemo } from "react";
 
 interface IFactionEmbedPanelProps {
     factionData?: IFactionDefData | null;
+    style?: React.CSSProperties;
 }
 
 export default function FactionEmbedPanel(props: IFactionEmbedPanelProps) {
-    const { factionData } = props;
+    const { factionData, style } = props;
 
     const [factionEmbedDocuments] = useFactionEmbedDocuments();
 
@@ -59,7 +60,7 @@ export default function FactionEmbedPanel(props: IFactionEmbedPanelProps) {
     }
 
     return (
-        <div>
+        <div style={style}>
             <Descriptions title="嵌入数据" size="small" bordered column={2} labelStyle={{ width: '100px' }}>
                 <Descriptions.Item label="条目ID">
                     {factionData?.id || '--'}

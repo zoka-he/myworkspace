@@ -13,6 +13,18 @@ export default class FactionDefService extends MysqlNovalService {
             'description',
             'parent_id',
             'embed_document',
+            'faction_type',
+            'faction_culture',
+            'ideology_or_meme',
+            'scale_of_operation',
+            'decision_taboo',
+            'primary_threat_model',
+            'internal_contradictions',
+            'legitimacy_source',
+            'known_dysfunctions',
+            'geo_naming_habit',
+            'geo_naming_suffix',
+            'geo_naming_prohibition',
         ]);
     }
 
@@ -66,6 +78,15 @@ export default class FactionDefService extends MysqlNovalService {
                     name, 
                     description,
                     parent_id,
+                    faction_type,
+                    faction_culture,
+                    ideology_or_meme,
+                    scale_of_operation,
+                    decision_taboo,
+                    primary_threat_model,
+                    internal_contradictions,
+                    legitimacy_source,
+                    known_dysfunctions,
                     (
                         (match(name) Against(${keywordStr})) * 4 + 
                         (match(description) Against(${keywordStr})) * 2
@@ -96,6 +117,15 @@ export default class FactionDefService extends MysqlNovalService {
                         name,
                         description,
                         parent_id,
+                        faction_type,
+                        faction_culture,
+                        ideology_or_meme,
+                        scale_of_operation,
+                        decision_taboo,
+                        primary_threat_model,
+                        internal_contradictions,
+                        legitimacy_source,
+                        known_dysfunctions,
                         (
                             (match(name) Against(${keywordStr})) * 4 + 
                             (match(description) Against(${keywordStr})) * 2
