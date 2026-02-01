@@ -87,6 +87,9 @@ export default class FactionDefService extends MysqlNovalService {
                     internal_contradictions,
                     legitimacy_source,
                     known_dysfunctions,
+                    geo_naming_habit,
+                    geo_naming_suffix,
+                    geo_naming_prohibition,
                     (
                         (match(name) Against(${keywordStr})) * 4 + 
                         (match(description) Against(${keywordStr})) * 2
@@ -126,6 +129,9 @@ export default class FactionDefService extends MysqlNovalService {
                         internal_contradictions,
                         legitimacy_source,
                         known_dysfunctions,
+                        geo_naming_habit,
+                        geo_naming_suffix,
+                        geo_naming_prohibition,
                         (
                             (match(name) Against(${keywordStr})) * 4 + 
                             (match(description) Against(${keywordStr})) * 2

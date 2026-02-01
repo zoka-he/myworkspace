@@ -126,6 +126,45 @@ function buildUserInput(prevContent: string, currContext: string): string {
     return parts.join('\n\n');
 }
 
+// 构建阵营设定内容（融入 faction 新字段：类型、文化、地理命名规范等）
+function buildFactionContent(faction: {
+    name?: string | null;
+    description?: string | null;
+    faction_type?: string | null;
+    faction_culture?: string | null;
+    ideology_or_meme?: string | null;
+    scale_of_operation?: string | null;
+    decision_taboo?: string | null;
+    primary_threat_model?: string | null;
+    internal_contradictions?: string | null;
+    legitimacy_source?: string | null;
+    known_dysfunctions?: string | null;
+    geo_naming_habit?: string | null;
+    geo_naming_suffix?: string | null;
+    geo_naming_prohibition?: string | null;
+}): string {
+    const lines: string[] = [];
+    if (faction.name) lines.push(`阵营：${faction.name}`);
+    if (faction.description) lines.push(faction.description);
+    if (faction.faction_type) lines.push(`类型：${faction.faction_type}`);
+    if (faction.faction_culture) lines.push(`文化：${faction.faction_culture}`);
+    if (faction.scale_of_operation) lines.push(`决策尺度：${faction.scale_of_operation}`);
+    if (faction.ideology_or_meme) lines.push(`意识形态/梗文化：${faction.ideology_or_meme}`);
+    if (faction.legitimacy_source) lines.push(`正统来源：${faction.legitimacy_source}`);
+    if (faction.decision_taboo) lines.push(`决策禁忌：${faction.decision_taboo}`);
+    if (faction.internal_contradictions) lines.push(`内部矛盾：${faction.internal_contradictions}`);
+    if (faction.primary_threat_model) lines.push(`最大威胁：${faction.primary_threat_model}`);
+    if (faction.known_dysfunctions) lines.push(`已知功能障碍：${faction.known_dysfunctions}`);
+    // 地理命名规范：扩写时涉及该阵营控制区内的地名，应遵循以下规则
+    if (faction.geo_naming_habit || faction.geo_naming_suffix || faction.geo_naming_prohibition) {
+        lines.push('--- 地理命名规范（涉及该阵营地名时请遵循）---');
+        if (faction.geo_naming_habit) lines.push(`命名习惯：${faction.geo_naming_habit}`);
+        if (faction.geo_naming_suffix) lines.push(`命名后缀：${faction.geo_naming_suffix}`);
+        if (faction.geo_naming_prohibition) lines.push(`命名禁忌：${faction.geo_naming_prohibition}`);
+    }
+    return lines.join('\n').trim();
+}
+
 // 聚合所有检索结果
 function aggregateContext(results: { roles: any[], factions: any[], geographies: any[] }): string {
     const parts: string[] = [];
@@ -301,7 +340,7 @@ async function handleGenChapter(req: NextApiRequest, res: NextApiResponse<Data>)
                 const factionResults = await findFaction(worldviewIdNum, [factionName], 0.5);
                 console.debug('[genChapter] findFaction result', { factionName, count: factionResults.length });
                 factionResults.forEach(faction => {
-                    const content = `${faction.name || ''}\n${faction.description || ''}`.trim();
+                    const content = buildFactionContent(faction);
                     if (content.length > 0) {
                         aggregatedResults.factions.push({ content });
                     }
