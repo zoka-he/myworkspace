@@ -74,6 +74,7 @@ export default class RoleDefService extends MysqlNovalService {
             with ranked as (
                 SELECT 
                     id,
+                    role_id,
                     version_name,
                     name_in_worldview, 
                     gender_in_worldview,
@@ -96,9 +97,12 @@ export default class RoleDefService extends MysqlNovalService {
                 limit ${limit}
             ) 
             select 
+                r.id,
+                r.version,
                 ranked.*,
                 score / MAX(score) OVER () AS match_percent
-            from ranked
+            from ranked, \`Role\` r 
+            where r.id=ranked.role_id and r.version=ranked.id
             order by score desc
         `;
 

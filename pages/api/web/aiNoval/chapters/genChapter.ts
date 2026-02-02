@@ -7,6 +7,8 @@ import { ChatDeepSeek } from "@langchain/deepseek";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { RunnableSequence } from "@langchain/core/runnables";
 import _ from 'lodash';
+import { getRelationTypeText } from "@/src/business/aiNoval/factionManage/utils/relationTypeMap";
+import type { IFactionRelation } from "@/src/types/IAiNoval";
 
 interface Data {
     message?: string;
@@ -126,8 +128,69 @@ function buildUserInput(prevContent: string, currContext: string): string {
     return parts.join('\n\n');
 }
 
+// 构建阵营设定内容（融入 faction 新字段：类型、文化、地理命名规范等）
+function buildFactionContent(faction: {
+    name?: string | null;
+    description?: string | null;
+    faction_type?: string | null;
+    faction_culture?: string | null;
+    ideology_or_meme?: string | null;
+    scale_of_operation?: string | null;
+    decision_taboo?: string | null;
+    primary_threat_model?: string | null;
+    internal_contradictions?: string | null;
+    legitimacy_source?: string | null;
+    known_dysfunctions?: string | null;
+    geo_naming_habit?: string | null;
+    geo_naming_suffix?: string | null;
+    geo_naming_prohibition?: string | null;
+}): string {
+    const lines: string[] = [];
+    if (faction.name) lines.push(`阵营：${faction.name}`);
+    if (faction.description) lines.push(faction.description);
+    if (faction.faction_type) lines.push(`类型：${faction.faction_type}`);
+    if (faction.faction_culture) lines.push(`文化：${faction.faction_culture}`);
+    if (faction.scale_of_operation) lines.push(`决策尺度：${faction.scale_of_operation}`);
+    if (faction.ideology_or_meme) lines.push(`意识形态/梗文化：${faction.ideology_or_meme}`);
+    if (faction.legitimacy_source) lines.push(`正统来源：${faction.legitimacy_source}`);
+    if (faction.decision_taboo) lines.push(`决策禁忌：${faction.decision_taboo}`);
+    if (faction.internal_contradictions) lines.push(`内部矛盾：${faction.internal_contradictions}`);
+    if (faction.primary_threat_model) lines.push(`最大威胁：${faction.primary_threat_model}`);
+    if (faction.known_dysfunctions) lines.push(`已知功能障碍：${faction.known_dysfunctions}`);
+    // 地理命名规范：扩写时涉及该阵营控制区内的地名，应遵循以下规则
+    if (faction.geo_naming_habit || faction.geo_naming_suffix || faction.geo_naming_prohibition) {
+        lines.push('--- 地理命名规范（涉及该阵营地名时请遵循）---');
+        if (faction.geo_naming_habit) lines.push(`命名习惯：${faction.geo_naming_habit}`);
+        if (faction.geo_naming_suffix) lines.push(`命名后缀：${faction.geo_naming_suffix}`);
+        if (faction.geo_naming_prohibition) lines.push(`命名禁忌：${faction.geo_naming_prohibition}`);
+    }
+    return lines.join('\n').trim();
+}
+
+// 按 relation 唯一键去重（优先 id，否则 来源-目标-类型）
+function deduplicateRelations(relations: IFactionRelation[]): IFactionRelation[] {
+    const seen = new Map<string, IFactionRelation>();
+    for (const r of relations) {
+        const key = r.id != null ? String(r.id) : `${r.source_faction_id}-${r.target_faction_id}-${r.relation_type}`;
+        if (!seen.has(key)) seen.set(key, r);
+    }
+    return Array.from(seen.values());
+}
+
+// 格式化单条阵营关系供上下文使用
+function formatRelationForContext(
+    relation: IFactionRelation,
+    factionIdToName: Map<number, string>
+): string {
+    const srcName = relation.source_faction_name ?? factionIdToName.get(relation.source_faction_id) ?? `阵营${relation.source_faction_id}`;
+    const tgtName = relation.target_faction_name ?? factionIdToName.get(relation.target_faction_id) ?? `阵营${relation.target_faction_id}`;
+    const typeText = getRelationTypeText(relation.relation_type);
+    const desc = relation.description?.trim() ? `：${relation.description}` : '';
+    return `${srcName} → ${tgtName}（${typeText}）${desc}`;
+}
+
 // 聚合所有检索结果
-function aggregateContext(results: { roles: any[], factions: any[], geographies: any[] }): string {
+function aggregateContext(results: { roles: any[], factions: any[], geographies: any[], factionRelationsSection?: string }): string {
     const parts: string[] = [];
 
     if (results.roles.length > 0) {
@@ -147,6 +210,12 @@ function aggregateContext(results: { roles: any[], factions: any[], geographies:
                 parts.push(faction.content);
             }
         });
+        parts.push('');
+    }
+
+    if (results.factionRelationsSection && results.factionRelationsSection.trim().length > 0) {
+        parts.push('【阵营关系】');
+        parts.push(results.factionRelationsSection);
         parts.push('');
     }
 
@@ -270,10 +339,15 @@ async function handleGenChapter(req: NextApiRequest, res: NextApiResponse<Data>)
     });
 
     const worldviewIdNum = _.toNumber(worldviewId);
-    const aggregatedResults = {
-        roles: [] as any[],
-        factions: [] as any[],
-        geographies: [] as any[]
+    const aggregatedResults: {
+        roles: any[];
+        factions: any[];
+        geographies: any[];
+        factionRelationsSection?: string;
+    } = {
+        roles: [],
+        factions: [],
+        geographies: []
     };
 
     try {
@@ -297,15 +371,32 @@ async function handleGenChapter(req: NextApiRequest, res: NextApiResponse<Data>)
         if (faction_names && faction_names.trim().length > 0) {
             const factionNameList = splitNames(faction_names);
             console.debug('[genChapter] findFaction', { factionNameList });
+            const factionIdToName = new Map<number, string>();
+            const allRelations: IFactionRelation[] = [];
             for (const factionName of factionNameList) {
                 const factionResults = await findFaction(worldviewIdNum, [factionName], 0.5);
                 console.debug('[genChapter] findFaction result', { factionName, count: factionResults.length });
                 factionResults.forEach(faction => {
-                    const content = `${faction.name || ''}\n${faction.description || ''}`.trim();
+                    if (faction.id != null && faction.name) {
+                        factionIdToName.set(faction.id, faction.name);
+                    }
+                    if (Array.isArray(faction.relations) && faction.relations.length > 0) {
+                        allRelations.push(...faction.relations);
+                    }
+                    const content = buildFactionContent(faction);
                     if (content.length > 0) {
                         aggregatedResults.factions.push({ content });
                     }
                 });
+            }
+            // 阵营关系去重并生成上下文片段
+            const uniqueRelations = deduplicateRelations(allRelations);
+            if (uniqueRelations.length > 0) {
+                aggregatedResults.factionRelationsSection = uniqueRelations
+                    .map(r => formatRelationForContext(r, factionIdToName))
+                    .filter(Boolean)
+                    .join('\n');
+                console.debug('[genChapter] faction relations', { total: allRelations.length, unique: uniqueRelations.length });
             }
         }
 

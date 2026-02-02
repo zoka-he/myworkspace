@@ -53,7 +53,11 @@ export default async function handler(
     }
 
     if (_.isString(keywords)) {
-        keywords = [keywords];
+        keywords = keywords.split(/[\s,，、]+/).map((s: string) => s.trim()).filter((k: string) => k.length > 0);
+        if (keywords.length === 0) {
+            res.status(400).json({ success: false, error: 'oh shit! keywords must be a non-empty string or array' });
+            return;
+        }
     }
 
     // 立体防御结束

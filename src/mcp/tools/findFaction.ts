@@ -25,7 +25,7 @@ function parseThreshold(v: unknown): number | null {
 export class FindFactionTool extends BaseMCPTool {
   readonly definition: MCPToolDefinition = {
     name: 'find_faction',
-    description: '在指定世界观下按关键词检索势力/组织，返回相似度≥threshold的结果。',
+    description: '在指定世界观下按关键词检索阵营/行政区划/组织，返回相似度≥threshold的结果。',
     inputSchema: {
       type: 'object',
       properties: {

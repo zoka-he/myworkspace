@@ -93,11 +93,15 @@
     "@types/react-dom": "19.2.3"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
     "@types/amqplib": "^0.10.8",
     "@types/spark-md5": "^3.0.5",
+    "autoprefixer": "^10.4.24",
     "dotenv-cli": "^8.0.0",
     "eslint": "9",
     "eslint-config-next": "16.0.10",
-    "ignore-loader": "^0.1.2"
+    "ignore-loader": "^0.1.2",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18"
   }
 }

@@ -16,4 +16,23 @@ export default class FactionDefService extends MysqlNovalService {
         ]);
     }
 
+    getRelationByFactionId(factionId) {
+        return this.queryBySql(
+`SELECT 
+    fr.id,
+    fr.worldview_id,
+    fr.source_faction_id,
+    fsrc.name source_faction_name,
+    fr.target_faction_id,
+    fdst.name target_faction_name, 
+    fr.relation_type,
+    fr.description 
+FROM faction_relation fr 
+left join Faction fsrc on fr.source_faction_id = fsrc.id
+left join Faction fdst on fr.target_faction_id = fdst.id
+WHERE source_faction_id = ? OR target_faction_id = ?`,
+            [factionId, factionId]
+        );
+    }
+
 }

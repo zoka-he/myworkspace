@@ -1,36 +1,20 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from 'next'
-import FactionDefService from '@/src/services/aiNoval/factionDefService';
+import FactionRelationService from '@/src/services/aiNoval/factionRelationService';
 import _ from 'lodash';
 import { ISqlCondMap } from '@/src/utils/mysql/types';
 
 type Data = Object;
 
-const service = new FactionDefService();
+const service = new FactionRelationService();
 
 
 async function research(req: NextApiRequest, res: NextApiResponse) {
-    const page = _.toNumber(req.query.page || 1);
-    const limit = _.toNumber(req.query.limit || 20);
+    console.debug('req query', req.query);
 
-    let queryObject: ISqlCondMap = {};
+    const factionId = _.toNumber(req.query.faction_id);
 
-    for (let [k, v] of Object.entries(req.query)) {
-        if (v === undefined) {
-            continue;
-        }
-
-        switch(k) {
-            case 'name':
-                queryObject.name = { $like: `%${v}%` };
-                break;
-            case 'worldview_id':
-                queryObject.worldview_id = v;
-                break;
-        }
-    }
-
-    let ret = await service.query(queryObject, [], ['name asc'], page, limit);
+    let ret = await service.getRelationByFactionId(factionId);
     res.status(200).json(ret);
 }
 

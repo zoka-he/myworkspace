@@ -1,700 +1,516 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import * as d3 from 'd3'
-import { message } from 'antd'
+import { message, Typography } from 'antd'
 import apiCalls from '../apiCalls';
+import styles from './factionRelationPanel.module.scss';
+import * as echarts from 'echarts';
+import { IFactionDefData, IFactionRelation } from '@/src/types/IAiNoval';
+import _ from 'lodash';
+import { useCurrentFactionId } from '../FactionManageContext';
+import { getRelationTypeText } from '../utils/relationTypeMap';
 
-// 阵营基础数据结构
-interface Faction {
-  id: string          // 阵营ID
-  name: string        // 阵营名称
-  parentId: string | null  // 父阵营ID，null表示根阵营
-}
+const {
+  Title,
+  Text
+} = Typography;
 
-// 阵营关系数据结构
-interface FactionRelation {
-  id: number
-  source_faction_id: number
-  target_faction_id: number
-  relation_type: 'ally' | 'enemy' | 'neutral' | 'vassal' | 'overlord' | 'rival' | 'protector' | 'dependent' | 'war'
-  relation_strength: number
-  description: string
-}
-
-// 阵营层级数据结构，用于构建树形结构
-interface HierarchyFaction extends Faction {
-  children?: HierarchyFaction[]  // 子阵营数组
-  value?: number                 // 节点值，用于计算大小
-  depth?: number                 // 节点深度
-}
-
-// 组件属性接口
 interface D3FactionViewProps {
-  worldViewId: string      // 世界视图ID
-  updateTimestamp: number  // 更新时间戳，用于触发重新渲染
+  factions: IFactionDefData[];
+  factionRelations: IFactionRelation[];
 }
 
-export function D3FactionView({ worldViewId, updateTimestamp }: D3FactionViewProps) {
-  // SVG元素引用
-  const svgRef = useRef<SVGSVGElement>(null)
-  // 容器元素引用
-  const containerRef = useRef<HTMLDivElement>(null)
-  // 阵营数据状态
-  const [factions, setFactions] = useState<Faction[]>([])
-  // 阵营关系数据状态
-  const [relations, setRelations] = useState<FactionRelation[]>([])
-  // 容器尺寸状态
-  const [containerSize, setContainerSize] = useState({ width: 800, height: 600 })
-  // 缩放状态
-  const [zoomState, setZoomState] = useState({ k: 1, x: 0, y: 0 })
+export function D3FactionView({ factions = [], factionRelations = [] }: D3FactionViewProps) {
+  return (
+    <div className={`${styles.container}`}>
+      <EChartsFactionView factions={factions} factionRelations={factionRelations} />
+    </div>
+  )
+}
 
-  // 监听容器尺寸变化
+export function EChartsFactionView({ factions, factionRelations }: D3FactionViewProps) {
+  const divRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<echarts.ECharts>(null);
+  const [currentFactionId, setCurrentFactionId] = useCurrentFactionId();
+  const setCurrentFactionIdRef = useRef(setCurrentFactionId);
+
+  // 保持 setCurrentFactionId 引用最新
   useEffect(() => {
-    const updateSize = () => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect()
-        
-        // 如果容器还没有完全渲染，使用默认尺寸
-        if (rect.width === 0 || rect.height === 0) {
-          // 尝试从父容器获取尺寸
-          const parentRect = containerRef.current.parentElement?.getBoundingClientRect()
-          if (parentRect && parentRect.width > 0 && parentRect.height > 0) {
-            const newWidth = Math.max(Math.min(parentRect.width, 1200), 400)
-            const newHeight = Math.max(Math.min(parentRect.height, window.innerHeight * 0.8), 300)
-            setContainerSize({ width: newWidth, height: newHeight })
-            return
-          }
-          // 如果父容器也没有尺寸，使用默认值
-          setContainerSize({ width: 800, height: 600 })
-          return
+    setCurrentFactionIdRef.current = setCurrentFactionId;
+  }, [setCurrentFactionId]);
+
+  // 初始化图表
+  useEffect(() => {
+    if (!divRef.current) return;
+
+    const chart = echarts.init(divRef.current);
+    chartRef.current = chart;
+    
+    // 添加点击事件监听器
+    chart.on('click', (params: any) => {
+      // 只处理节点点击，忽略边的点击
+      if (params.dataType === 'node' && params.data) {
+        const nodeId = params.data.id;
+        // 过滤掉占位节点（ID < 0）
+        if (nodeId >= 0) {
+          setCurrentFactionIdRef.current(nodeId);
         }
-        
-        // 设置合理的尺寸范围
-        const newWidth = Math.max(Math.min(rect.width, 1200), 400) // 宽度范围：400-1200px
-        const newHeight = Math.max(Math.min(rect.height, window.innerHeight * 0.8), 300) // 高度范围：300-600px
-        
-        setContainerSize({
-          width: newWidth,
-          height: newHeight
-        })
       }
-    }
-
-    // 延迟初始更新，确保DOM完全渲染
-    const initialTimer = setTimeout(updateSize, 100)
-
-    // 监听窗口大小变化
-    const handleWindowResize = () => {
-      clearTimeout((window as any).resizeTimer)
-      ;(window as any).resizeTimer = setTimeout(updateSize, 100)
-    }
-
-    window.addEventListener('resize', handleWindowResize)
-
+    });
+    
+    // 窗口大小改变时重新调整大小
+    const handleResize = () => {
+      chartRef.current?.resize();
+    };
+    window.addEventListener('resize', handleResize);
+    
     return () => {
-      clearTimeout(initialTimer)
-      window.removeEventListener('resize', handleWindowResize)
-      clearTimeout((window as any).resizeTimer)
-    }
-  }, []) // 只在组件挂载时执行一次
+      window.removeEventListener('resize', handleResize);
+      chart.off('click'); // 移除点击事件监听器
+      chart.dispose();
+    };
+  }, [divRef]);
 
-  // 数据刷新时重新计算容器尺寸
+  // 当 factions 或 factionRelations 变化时更新图表
   useEffect(() => {
-    const updateSizeOnDataRefresh = () => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect()
-        
-        // 如果容器还没有完全渲染，使用默认尺寸
-        if (rect.width === 0 || rect.height === 0) {
-          const parentRect = containerRef.current.parentElement?.getBoundingClientRect()
-          if (parentRect && parentRect.width > 0 && parentRect.height > 0) {
-            const newWidth = Math.max(Math.min(parentRect.width, 1200), 400)
-            const newHeight = Math.max(Math.min(parentRect.height, window.innerHeight * 0.8), 300)
-            setContainerSize({ width: newWidth, height: newHeight })
-            return
-          }
-          setContainerSize({ width: 800, height: 600 })
-          return
-        }
-        
-        // 设置合理的尺寸范围
-        const newWidth = Math.max(Math.min(rect.width, 1200), 400) // 宽度范围：400-1200px
-        const newHeight = Math.max(Math.min(rect.height, window.innerHeight * 0.8), 300) // 高度范围：300-600px
-        
-        setContainerSize({
-          width: newWidth,
-          height: newHeight
-        })
+    if (!chartRef.current) return;
+    updateChart();
+  }, [factions, factionRelations]);
+
+  function getFactionRootId(faction: IFactionDefData, factionsList: IFactionDefData[], depth: number = 0) {
+    if (!faction || typeof faction.parent_id === 'undefined' || faction.parent_id === null) {
+      return faction?.id;
+    }
+
+    let parent = factionsList.find(f => f.id === faction.parent_id);
+    if (!parent) {
+      return faction.id;
+    }
+
+    return getFactionRootId(parent, factionsList, depth + 1);
+  }
+
+  function getFactionDepth(faction: IFactionDefData, factionsList: IFactionDefData[], depth: number = 0) {
+    if (!faction || typeof faction.parent_id === 'undefined' || faction.parent_id === null) {
+      return depth;
+    } 
+
+    let parent = factionsList.find(f => f.id === faction.parent_id);
+    if (!parent) {
+      return depth;
+    }
+
+    return getFactionDepth(parent, factionsList, depth + 1);
+  }
+
+  function processData() {
+    const currentFactions = factions;
+    
+    const processedData = currentFactions.map((faction) => {
+      const rootId = getFactionRootId(faction, currentFactions);
+      const depth = getFactionDepth(faction, currentFactions);
+      return {
+        name: faction.name,
+        value: faction.name,
+        id: Number(faction.id),
+        parentId: faction.parent_id,
+        rootId: rootId,
+        depth: depth, // 保存深度信息，用于控制 label 显示
+        symbolSize: 15 - depth * 2,
+      };
+    });
+    
+    // 改进排序：让 parent 和 children 尽量靠在一起，不同 rootId 组之间拉开间距
+    // 使用深度优先的方式，先排父节点，再排其子节点
+    const sortedData: typeof processedData = [];
+    const processedSet = new Set<number>();
+    
+    // 按 rootId 分组
+    const rootGroups = new Map<number | null, typeof processedData>();
+    processedData.forEach(node => {
+      const rootId = node.rootId;
+      if (!rootGroups.has(rootId)) {
+        rootGroups.set(rootId, []);
       }
-    }
-
-    // 延迟执行，确保DOM更新完成
-    const timer = setTimeout(updateSizeOnDataRefresh, 50)
+      rootGroups.get(rootId)!.push(node);
+    });
     
-    return () => clearTimeout(timer)
-  }, [updateTimestamp]) // 当数据刷新时触发
-
-  // 获取阵营数据和关系数据
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // 获取阵营列表
-        const factionResponse = await apiCalls.getFactionList(Number(worldViewId));
-        if (factionResponse?.data) {
-          const factionData = factionResponse.data.map((faction: any) => ({
-            id: faction.id.toString(),
-            name: faction.name,
-            parentId: faction.parent_id ? faction.parent_id.toString() : null,
-          }));
-          setFactions(factionData);
-        }
-
-        // 获取阵营关系列表
-        const relationResponse = await apiCalls.getFactionRelationList(Number(worldViewId));
-        if (relationResponse?.data) {
-          setRelations(relationResponse.data);
-        }
-      } catch (error) {
-        message.error('获取数据失败');
-        console.error('Error fetching data:', error)
-      }
-    }
-
-    fetchData()
-  }, [worldViewId, updateTimestamp])
-
-  // 渲染阵营关系图
-  useEffect(() => {
-    if (!svgRef.current || factions.length === 0) return
-
-    // 清除之前的SVG内容
-    d3.select(svgRef.current).selectAll('*').remove()
-
-    // 设置SVG尺寸和边距
-    const width = containerSize.width
-    const height = containerSize.height
-    const margin = { top: 30, right: 100, bottom: 30, left: 100 }
-    const textMargin = { top: 30, right: 30, bottom: 30, left: 30 }
-
-    // 创建SVG容器
-    const svg = d3.select(svgRef.current)
-      .attr('width', width)
-      .attr('height', height)
-
-    // 创建缩放行为
-    const zoom = d3.zoom()
-      .scaleExtent([0.5, 3]) // 缩放范围：0.5x 到 3x
-      .on('zoom', (event) => {
-        // 更新缩放状态
-        setZoomState({
-          k: event.transform.k,
-          x: event.transform.x,
-          y: event.transform.y
-        })
-        
-        // 应用变换到主容器
-        svg.select('.zoom-container')
-          .attr('transform', event.transform)
-      })
-
-    // 应用缩放行为到SVG
-    svg.call(zoom as any)
-
-    // 添加双击重置缩放功能
-    svg.on('dblclick', () => {
-      svg.transition()
-        .duration(750)
-        .call(zoom.transform as any, d3.zoomIdentity)
-    })
-
-    // 创建可缩放的主容器
-    const zoomContainer = svg.append('g')
-      .attr('class', 'zoom-container')
-
-    // 创建内容容器
-    const contentContainer = zoomContainer.append('g')
-      .attr('transform', `translate(${margin.left},${margin.top})`)
-
-    // 创建根阵营节点
-    const rootFaction: HierarchyFaction = {
-      id: 'root',
-      name: 'Root',
-      parentId: null,
-      children: [],
-      value: 1,  // 给根节点一个基础值
-      depth: 0   // 根节点深度为0
-    }
-
-    // 使用Map存储所有阵营节点，提高查找效率
-    const factionMap = new Map<string, HierarchyFaction>()
-    factionMap.set('root', rootFaction)
-
-    // 第一步：创建所有阵营节点
-    factions.forEach(faction => {
-      factionMap.set(faction.id, {
-        ...faction,
-        children: [],
-        value: 1,  // 给每个节点一个基础值
-      })
-    })
-
-    // 第二步：建立父子关系
-    // 先收集所有根节点
-    const rootFactions = factions.filter(faction => !faction.parentId)
-    // 随机打乱根节点顺序
-    const shuffledRootFactions = rootFactions.sort(() => Math.random() - 0.5)
-    
-    // 先处理根节点
-    shuffledRootFactions.forEach(faction => {
-      const node = factionMap.get(faction.id)!
-      rootFaction.children!.push(node)
-    })
-    
-    // 再处理其他节点
-    factions.forEach(faction => {
-      if (faction.parentId) {
-        const node = factionMap.get(faction.id)!
-        const parent = factionMap.get(faction.parentId)
-        if (parent) {
-          parent.children = parent.children || []
-          parent.children.push(node)
-        }
-      }
-    })
-
-    // 第三步：遍历树形结构，设置深度
-    function setNodeDepth(node: HierarchyFaction, depth: number) {
-      node.depth = depth
-      if (node.children) {
-        node.children.forEach(child => setNodeDepth(child, depth + 1))
-      }
-    }
-    setNodeDepth(rootFaction, 0)
-
-    // 创建D3层级结构
-    const root = d3.hierarchy<HierarchyFaction>(rootFaction)
-      .sum(d => {
-        // 根据节点类型和子节点数量设置值
-        if (d.children && d.children.length > 0) {
-          // 父节点的值要大于所有子节点的值之和
-          return Math.max(d.children.length * 2, 3)
-        }
-        // 叶子节点的值较小
-        return 1
-      })
-
-    // 创建圆形布局
-    const pack = d3.pack<HierarchyFaction>()
-      .size([width - margin.left - margin.right, height - margin.top - margin.bottom])
-      .padding(100)  // 增加圆形之间的间距
-
-    // 计算每个阵营的位置和大小
-    const rootNode = pack(root)
-
-    // 按深度排序节点
-    const sortedNodes = rootNode.descendants()
-      .slice(1)  // 跳过根节点
-      .sort((a, b) => (a.data.depth || 0) - (b.data.depth || 0))
-
-    // 创建颜色比例尺
-    const maxDepth = d3.max(rootNode.descendants(), d => d.data.depth) || 0
-    
-    // 为每个根节点分配一个随机色相，并计算其子树的最大深度
-    const rootHues = new Map<string, number>()
-    const rootMaxDepths = new Map<string, number>()
-    
-    // 递归获取所有子节点
-    function getAllChildNodes(node: d3.HierarchyNode<HierarchyFaction>): d3.HierarchyNode<HierarchyFaction>[] {
-      const children = sortedNodes.filter(n => n.data.parentId === node.data.id)
-      return [node, ...children.flatMap(getAllChildNodes)]
-    }
-    
-    rootFaction.children?.forEach(rootChild => {
-      rootHues.set(rootChild.id, Math.random() * 360)
+    // 对每个 rootId 组进行排序
+    const groupSizes: number[] = [];
+    rootGroups.forEach((group, rootId) => {
+      // 创建 id 到节点的映射
+      const nodeMap = new Map<number, typeof processedData[0]>();
+      group.forEach(node => {
+        nodeMap.set(node.id, node);
+      });
       
-      // 计算该根节点子树的最大深度
-      const rootNode = sortedNodes.find(n => n.data.id === rootChild.id)
-      if (rootNode) {
-        const rootNodes = getAllChildNodes(rootNode)
-        const maxDepth = d3.max(rootNodes, d => d.data.depth || 0) || 0
-        rootMaxDepths.set(rootChild.id, maxDepth)
-      }
-    })
-    
-    // 创建默认颜色比例尺（用于根节点）
-    const defaultColorScale = d3.scaleSequential()
-      .domain([1, maxDepth])
-      .interpolator(d3.interpolate('#e6f7ff', '#1890ff'))
-
-    // 存储节点的随机偏移量
-    const nodeOffsets = new Map<string, { x: number; y: number }>()
-
-    // 创建阵营节点组
-    const node = contentContainer.append('g')
-      .selectAll('g')
-      .data(sortedNodes)
-      .enter()
-      .append('g')
-      .attr('transform', d => {
-        // 添加随机偏移
-        const randomAngle = Math.random() * Math.PI * 2
-        const randomDistance = Math.random() * 6 // 最大偏移6像素
-        const offsetX = Math.cos(randomAngle) * randomDistance
-        const offsetY = Math.sin(randomAngle) * randomDistance
-        // 存储偏移量
-        nodeOffsets.set(d.data.id, { x: offsetX, y: offsetY })
-        return `translate(${d.x + offsetX},${d.y + offsetY})`
-      })
-
-    // 计算每个节点的半径
-    const nodeRadius = node.data().map(d => {
-      if (d.children && d.children.length > 0) {
-        const maxChildRadius = Math.max(...d.children.map(child => child.r))
-        return Math.max(d.r, maxChildRadius + 16)  // 父节点至少比最大子节点大20像素
-      }
-      return Math.max(d.r, 8)  // 叶子节点最小为8px
-    })
-
-    // 第一步：绘制所有圆形
-    node.append('circle')
-      .attr('r', (d, i) => nodeRadius[i])
-      .attr('fill', d => {
-        // 找到所属的根节点
-        let current = d
-        while (current.parent && current.parent.data.id !== 'root') {
-          current = current.parent
-        }
-        
-        // 获取根节点的色相和最大深度
-        const hue = rootHues.get(current.data.id)
-        const maxDepth = rootMaxDepths.get(current.data.id)
-        
-        if (hue !== undefined && maxDepth !== undefined) {
-          // 使用HSL颜色空间，根据相对深度调整亮度
-          const depth = d.data.depth || 0
-          const lightness = 0.5 + 0.5 * (1 - (depth - 0.5) / maxDepth)
-          return d3.hsl(hue, 0.7, lightness).toString()
-        }
-        
-        // 如果找不到对应的色相，使用默认颜色
-        return defaultColorScale(d.data.depth || 0)
-      })
-
-    // 第二步：计算文本位置
-    const textGroups = new Map<string, { x: number; y: number; nodes: any[]; isLeft: boolean }>()
-    
-    // 计算所有根节点的平均x位置
-    const rootNodes = rootFaction.children?.map(child => 
-      sortedNodes.find(n => n.data.id === child.id)
-    ).filter(Boolean) || []
-    
-    const avgRootX = rootNodes.reduce((sum, node) => sum + node!.x, 0) / rootNodes.length
-    
-    // 收集左右两侧的根节点
-    const leftRoots: { node: any; y: number; size: number }[] = []
-    const rightRoots: { node: any; y: number; size: number }[] = []
-    
-    // 为每个根阵营创建文本组
-    rootFaction.children?.forEach((rootChild, rootIndex) => {
-      const rootNode = sortedNodes.find(n => n.data.id === rootChild.id)
-      if (rootNode) {
-        const rootIndex = sortedNodes.indexOf(rootNode)
-        const offset = nodeOffsets.get(rootNode.data.id) || { x: 0, y: 0 }
-        const nodeX = rootNode.x + offset.x
-        const nodeY = rootNode.y + offset.y
-        
-        // 根据当前根节点相对于平均x值的位置决定文本位置
-        const isLeftSide = nodeX < avgRootX
-        
-        // 收集该根阵营及其所有子阵营的节点
-        const groupNodes = getAllChildNodes(rootNode)
-        
-        // 将根节点添加到对应的数组中，同时记录文本组大小
-        if (isLeftSide) {
-          leftRoots.push({ node: rootNode, y: nodeY, size: groupNodes.length })
-        } else {
-          rightRoots.push({ node: rootNode, y: nodeY, size: groupNodes.length })
-        }
-        
-        textGroups.set(rootChild.id, {
-          x: isLeftSide ? 20 : width - 200,
-          y: nodeY,
-          nodes: groupNodes,
-          isLeft: isLeftSide
-        })
-      }
-    })
-    
-    // 对左右两侧的根节点按y值排序
-    leftRoots.sort((a, b) => a.y - b.y)
-    rightRoots.sort((a, b) => a.y - b.y)
-
-    const groupHeight = 40
-    
-    // 计算左右两侧文本组的总高度（包括组间距）
-    const leftTotalHeight = leftRoots.reduce((sum, root) => sum + root.size * 20, 0) + (leftRoots.length - 1) * groupHeight
-    const rightTotalHeight = rightRoots.reduce((sum, root) => sum + root.size * 20, 0) + (rightRoots.length - 1) * groupHeight
-    
-    // 计算左右两侧文本组的起始位置
-    const leftStartY = (height - leftTotalHeight) / 2
-    const rightStartY = (height - rightTotalHeight) / 2
-    
-    // 重新设置左右两侧文本组的位置
-    let currentLeftY = leftStartY
-    leftRoots.forEach((root, index) => {
-      const group = textGroups.get(root.node.data.id)
-      if (group) {
-        group.y = currentLeftY
-        currentLeftY += root.size * 20 + (index < leftRoots.length - 1 ? groupHeight : 0)
-      }
-    })
-    
-    let currentRightY = rightStartY
-    rightRoots.forEach((root, index) => {
-      const group = textGroups.get(root.node.data.id)
-      if (group) {
-        group.y = currentRightY
-        currentRightY += root.size * 20 + (index < rightRoots.length - 1 ? groupHeight : 0)
-      }
-    })
-
-    // 第三步：绘制跳线
-    textGroups.forEach((group, rootId) => {
-      group.nodes.forEach((node, index) => {
-        const nodeIndex = sortedNodes.indexOf(node)
-        if (nodeIndex === -1) return // 跳过无效节点
-        
-        const radius = nodeRadius[nodeIndex]
-        const textY = group.y + index * 20 // 垂直排列，每个文本间隔20像素
-        
-        // 获取节点的实际位置（包括随机偏移）
-        const offset = nodeOffsets.get(node.data.id) || { x: 0, y: 0 }
-        const nodeX = node.x + offset.x
-        const nodeY = node.y + offset.y
-        
-        // 计算从圆心到文本的角度
-        const endX = group.isLeft ? group.x + 5 : group.x - 5
-        const endY = textY
-        const dx = endX - nodeX
-        const dy = endY - nodeY
-        const angle = Math.atan2(dy, dx)
-        
-        // 计算圆形边缘的起点
-        const startX = nodeX + Math.cos(angle) * radius
-        const startY = nodeY + Math.sin(angle) * radius
-        
-        // 创建跳线路径
-        const path = d3.path()
-        path.moveTo(startX, startY)
-        path.lineTo(endX, endY)
-        
-        contentContainer.append('path')
-          .attr('d', path.toString())
-          .attr('stroke', '#aaaaaa')
-          .attr('stroke-width', 0.5)
-          .attr('fill', 'none')
-      })
-    })
-
-    // 第四步：绘制所有文本
-    textGroups.forEach((group, rootId) => {
-      group.nodes.forEach((node, index) => {
-        const nodeIndex = sortedNodes.indexOf(node)
-        if (nodeIndex === -1) return // 跳过无效节点
-        
-        const textY = group.y + index * 20 // 垂直排列，每个文本间隔20像素
-        
-        contentContainer.append('text')
-          .attr('x', group.x)
-          .attr('y', textY)
-          .style('text-anchor', group.isLeft ? 'end' : 'start')
-          .text(node.data.name)
-          .style('font-size', () => {
-            // 根节点使用14px，其他节点使用10px
-            return node.data.parentId === null ? '14px' : '10px'
-          })
-          .style('fill', '#333333')
-          .style('pointer-events', 'none')
-      })
-    })
-
-    // 第五步：绘制阵营关系
-    // 添加箭头标记定义
-    contentContainer.append('defs').append('marker')
-      .attr('id', 'arrowhead')
-      .attr('viewBox', '0 -5 10 10')
-      .attr('refX', 8)
-      .attr('refY', 0)
-      .attr('markerWidth', 4)  // 减小箭头宽度
-      .attr('markerHeight', 4) // 减小箭头高度
-      .attr('orient', 'auto')
-      .append('path')
-      .attr('d', 'M0,-5L10,0L0,5')
-      .attr('fill', '#999')
-
-    // 设置关系线的颜色
-    const relationColors: Record<FactionRelation['relation_type'], string> = {
-      ally: '#52c41a',      // 绿色
-      enemy: '#f5222d',     // 红色
-      neutral: '#d9d9d9',   // 灰色
-      vassal: '#faad14',    // 黄色
-      overlord: '#1890ff',  // 蓝色
-      rival: '#fa8c16',     // 橙色
-      protector: '#722ed1', // 紫色
-      dependent: '#13c2c2', // 青色
-      war: '#cf1322'        // 深红色
-    }
-
-    // 获取关系类型的中文文本
-    const getRelationTypeText = (type: FactionRelation['relation_type']): string => {
-      const typeMap: Record<FactionRelation['relation_type'], string> = {
-        ally: '盟友',
-        enemy: '敌对',
-        neutral: '中立',
-        vassal: '附庸',
-        overlord: '宗主',
-        rival: '竞争对手',
-        protector: '保护者',
-        dependent: '依附者',
-        war: '宣战'
-      }
-      return typeMap[type]
-    }
-
-    // 绘制关系线
-    // 计算根阵营的平均中心位置
-    const avgCenterX = rootNodes.reduce((sum, node) => sum + node!.x, 0) / rootNodes.length
-    const avgCenterY = rootNodes.reduce((sum, node) => sum + node!.y, 0) / rootNodes.length
-
-    relations.forEach(relation => {
-      const sourceNode = sortedNodes.find(n => n.data.id === relation.source_faction_id.toString())
-      const targetNode = sortedNodes.find(n => n.data.id === relation.target_faction_id.toString())
+      // 找到所有根节点（没有 parentId 或 parentId 不在当前组中）
+      const rootNodes = group.filter(node => {
+        if (!node.parentId) return true;
+        return !nodeMap.has(node.parentId);
+      });
       
-      if (sourceNode && targetNode) {
-        // 检查是否存在双边关系
-        const reverseRelation = relations.find(r => 
-          r.source_faction_id === relation.target_faction_id && 
-          r.target_faction_id === relation.source_faction_id
-        )
+      // 深度优先遍历：递归添加节点及其子节点
+      const groupStartIndex = sortedData.length;
+      const addNodeAndChildren = (node: typeof processedData[0]) => {
+        if (processedSet.has(node.id)) return;
         
-        const sourceOffset = nodeOffsets.get(sourceNode.data.id) || { x: 0, y: 0 }
-        const targetOffset = nodeOffsets.get(targetNode.data.id) || { x: 0, y: 0 }
+        sortedData.push(node);
+        processedSet.add(node.id);
         
-        const sourceX = sourceNode.x + sourceOffset.x
-        const sourceY = sourceNode.y + sourceOffset.y
-        const targetX = targetNode.x + targetOffset.x
-        const targetY = targetNode.y + targetOffset.y
+        // 添加所有子节点
+        const children = group.filter(n => n.parentId === node.id);
+        children.forEach(child => addNodeAndChildren(child));
+      };
+      
+      // 对根节点排序后，依次添加其子树
+      rootNodes.sort((a, b) => a.id - b.id);
+      rootNodes.forEach(root => addNodeAndChildren(root));
+      
+      // 记录当前组的节点数量
+      groupSizes.push(sortedData.length - groupStartIndex);
+    });
+    
+    // 在不同 rootId 组之间插入占位节点来拉开间距
+    // 占位节点不显示，只用于增加间距
+    const spacingNodesPerGroup = 3; // 每组之间插入3个占位节点
+    const finalData: typeof processedData = [];
+    let groupIndex = 0;
+    let currentGroupStart = 0;
+    
+    rootGroups.forEach((group, rootId) => {
+      const groupSize = groupSizes[groupIndex];
+      const groupNodes = sortedData.slice(currentGroupStart, currentGroupStart + groupSize);
+      
+      // 如果不是第一组，添加占位节点
+      if (groupIndex > 0) {
+        for (let i = 0; i < spacingNodesPerGroup; i++) {
+          finalData.push({
+            name: '',
+            value: '',
+            id: -1000 - groupIndex * 100 - i, // 使用负数 ID 避免冲突
+            parentId: null,
+            rootId: null,
+            symbolSize: 0, // 大小为0，不显示
+          } as any);
+        }
+      }
+      
+      // 添加当前组的节点
+      finalData.push(...groupNodes);
+      
+      currentGroupStart += groupSize;
+      groupIndex++;
+    });
+    
+    return finalData;
+  }
+
+  function updateChart() {
+    if (!chartRef.current) return;
+
+    const processedData = processData();
+    
+    // 为不同的 rootId 生成颜色映射
+    const rootIdSet = new Set(processedData.map(node => node.rootId));
+    const rootIdArray = Array.from(rootIdSet).sort((a, b) => Number(a) - Number(b));
+    
+    // 使用颜色调色板，为每个 rootId 分配不同的颜色
+    const colorPalette = [
+      '#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de',
+      '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc', '#ff9f7f',
+      '#ffdb5c', '#ff6e76', '#e690d1', '#7c7ce0', '#dd6b66',
+      '#759aa0', '#e69d87', '#8dc1a9', '#ea7ccc', '#ffd93d'
+    ];
+    
+    const rootIdColorMap = new Map<number, string>();
+    rootIdArray.forEach((rootId, index) => {
+      rootIdColorMap.set(Number(rootId), colorPalette[index % colorPalette.length]);
+    });
+    
+    // 为每个节点添加颜色和 category（只处理真实节点）
+    processedData.forEach(node => {
+      // 占位节点跳过
+      if (node.id < 0) {
+        (node as any).itemStyle = {
+          opacity: 0, // 完全透明，不显示
+        };
+        return;
+      }
+      
+      const rootId = Number(node.rootId);
+      const color = rootIdColorMap.get(rootId) || '#d9d9d9';
+      // 添加 itemStyle 来设置节点颜色
+      (node as any).itemStyle = {
+        color: color,
+        borderColor: '#fff',
+        borderWidth: 1,
+      };
+      // 设置 category 用于分组（ECharts graph 使用 category 来分组节点）
+      (node as any).category = rootIdArray.indexOf(rootId);
+    });
+    
+    // 创建节点 ID 到索引的映射
+    // 注意：ECharts graph 在使用 id 或 name 匹配时可能存在 bug，使用索引是最可靠的方式
+    const nodeIdToIndexMap = new Map<number, number>();
+    processedData.forEach((node, index) => {
+      // 只映射真实节点（ID >= 0），占位节点（ID < 0）不参与链接
+      if (node.id >= 0) {
+        nodeIdToIndexMap.set(Number(node.id), index);
+      }
+    });
+    
+    // 创建节点 ID 集合和映射，用于快速检查节点是否存在（只包含真实节点）
+    const realNodes = processedData.filter(node => node.id >= 0);
+    const nodeIdSet = new Set(realNodes.map(node => Number(node.id)));
+    const nodeIdMap = new Map(realNodes.map(node => [Number(node.id), node]));
+    
+    // 根据关系强度计算颜色：0=红色，50=淡黄色，100=蓝色，平滑渐变
+    const getRelationColor = (strength: number): string => {
+      // 将强度从 0-100 映射到颜色
+      // 0 -> 红色 (#ef4444)
+      // 50 -> 淡黄色 (#fbbf24)
+      // 100 -> 蓝色 (#3b82f6)
+      const normalized = Math.max(0, Math.min(100, strength)) / 100;
+      
+      let r, g, b;
+      
+      if (normalized <= 0.5) {
+        // 红色到淡黄色 (0 -> 0.5)
+        const t = normalized * 2; // 0 -> 1
+        // 红色: rgb(239, 68, 68) -> 淡黄色: rgb(255, 233, 178)
+        r = Math.round(239 + (255 - 239) * t);
+        g = Math.round(68 + (233 - 68) * t);
+        b = Math.round(68 + (178 - 68) * t);
+      } else {
+        // 淡黄色到蓝色 (0.5 -> 1)
+        const t = (normalized - 0.5) * 2; // 0 -> 1
+        // 淡黄色: rgb(255, 233, 178) -> 蓝色: rgb(151, 231, 255)
+        r = Math.round(255 + (151 - 255) * t);
+        g = Math.round(233 + (231 - 233) * t);
+        b = Math.round(178 + (255 - 178) * t);
+      }
+      
+      return `rgb(${r}, ${g}, ${b})`;
+    };
+    
+    // 根据关系强度计算线宽：50最细，0和100最粗
+    const getRelationWidth = (strength: number): number => {
+      // 距离50的绝对值，范围是 0-50
+      const distanceFrom50 = Math.abs(strength - 50);
+      // 归一化到 0-1
+      const normalized = distanceFrom50 / 50;
+      // 最小宽度 1，最大宽度 5
+      const minWidth = 0.5;
+      const maxWidth = 3;
+      return minWidth + (maxWidth - minWidth) * normalized;
+    };
+
+    // 处理 links：统一使用数字类型的 id
+    // ECharts graph 在使用 id 时，需要确保 id 类型一致
+    const validLinks = ((factionRelations || []) as IFactionRelation[])
+      .filter(relation => {
+        // 统一转换为数字进行比较
+        const sourceId = Number(relation.source_faction_id);
+        const targetId = Number(relation.target_faction_id);
         
-        // 计算连线的起点和终点（在圆形的边缘）
-        const dx = sourceX - targetX
-        const dy = sourceY - targetY
-        const angle = Math.atan2(dy, dx)
+        const sourceExists = nodeIdSet.has(sourceId);
+        const targetExists = nodeIdSet.has(targetId);
         
-        const sourceRadius = nodeRadius[sortedNodes.indexOf(sourceNode)]
-        const targetRadius = nodeRadius[sortedNodes.indexOf(targetNode)]
+        // 静默过滤无效链接（节点不存在）
         
-        // 计算连线的跨度
-        const spanX = targetX - sourceX
-        const spanY = targetY - sourceY
-        const spanLength = Math.sqrt(spanX * spanX + spanY * spanY)
+        return sourceExists && targetExists;
+      })
+      .map(relation => {
+        // 统一转换为数字类型，确保与节点 id 类型一致
+        const sourceId = Number(relation.source_faction_id);
+        const targetId = Number(relation.target_faction_id);
+        
+        const sourceNode = nodeIdMap.get(sourceId);
+        const targetNode = nodeIdMap.get(targetId);
+        
+        if (!sourceNode || !targetNode) {
+          return null;
+        }
+        
+        const sourceIndex = nodeIdToIndexMap.get(sourceId);
+        const targetIndex = nodeIdToIndexMap.get(targetId);
+        
+        if (sourceIndex === undefined || targetIndex === undefined) {
+          return null;
+        }
+        
+        const strength = relation.relation_strength;
+        return {
+          source: sourceIndex, // 使用节点的索引（数字）- ECharts graph 最可靠的方式
+          target: targetIndex, // 使用节点的索引（数字）- ECharts graph 最可靠的方式
+          value: strength,
+          label: {
+            show: true,
+            formatter: getRelationTypeText(relation.relation_type), // 显示中文关系类型
+          },
+          relationType: relation.relation_type, // 保留原始英文类型用于内部处理
+          relationTypeText: getRelationTypeText(relation.relation_type), // 添加中文文本字段
+          relationStrength: strength,
+          relationDescription: relation.description || '', // 添加关系描述
+          lineStyle: {
+            color: getRelationColor(strength), // 根据强度设置颜色：0=红色，100=蓝色
+            width: getRelationWidth(strength), // 根据强度设置宽度：50最细，0和100最粗
+            opacity: 0.8,
+            curveness: 0.2,
+          },
+        };
+      })
+      .filter(link => link !== null);
 
-        // 计算端点位置（不偏移）
-        const startX = targetX + Math.cos(angle) * targetRadius
-        const startY = targetY + Math.sin(angle) * targetRadius
-        const endX = sourceX + Math.cos(angle + Math.PI) * sourceRadius
-        const endY = sourceY + Math.sin(angle + Math.PI) * sourceRadius
+    // 为所有 parent-child 关系添加 links
+    const parentChildLinks = processedData
+      .filter(node => node.parentId != null)
+      .map(node => {
+        const childId = Number(node.id);
+        const parentId = Number(node.parentId);
+        
+        const childIndex = nodeIdToIndexMap.get(childId);
+        const parentIndex = nodeIdToIndexMap.get(parentId);
+        
+        if (childIndex === undefined || parentIndex === undefined) {
+          return null;
+        }
+        
+        return {
+          source: parentIndex, // parent 节点索引
+          target: childIndex,   // child 节点索引
+          value: 100, // parent-child 关系强度设为 100
+          label: {
+            show: false, // 不显示标签，避免混乱
+          },
+          relationType: 'parent-child',
+          relationStrength: 100,
+          lineStyle: {
+            color: '#999999', // 灰色虚线表示层级关系
+            width: 1,
+            opacity: 0.5,
+            curveness: 0.1,
+            type: 'dashed', // 虚线样式
+          },
+        };
+      })
+      .filter(link => link !== null);
 
-        // 计算控制点位置（直线不需要控制点，但为了代码一致性保留）
-        const controlX = (startX + endX) / 2
-        const controlY = (startY + endY) / 2
-        const pathCommand = 'L' // 始终使用直线
+    // 合并关系 links 和 parent-child links
+    const allLinks = [...validLinks, ...parentChildLinks];
 
-        // 计算线条偏移量（用于双线）
-        const lineOffset = 2
-        const offsetX = Math.cos(angle + Math.PI/2) * lineOffset
-        const offsetY = Math.sin(angle + Math.PI/2) * lineOffset
-
-        const lineWidth = 0.5
-
-        // 绘制关系线
-        if (reverseRelation) {
-          // 双边关系：绘制双线
-          const line1 = contentContainer.append('path')
-            .attr('d', `M${startX + offsetX},${startY + offsetY} ${pathCommand}${endX + offsetX},${endY + offsetY}`)
-            .attr('stroke', relationColors[relation.relation_type])
-            .attr('stroke-width', lineWidth)
-            .attr('fill', 'none')
+    chartRef.current.setOption({
+      title: {
+        text: '阵营关系图',
+      },
+      tooltip: {
+        trigger: 'item',
+        formatter: (params: any) => {
+          if (params.dataType === 'edge') {
+            // 边的提示信息：显示中文关系类型和关系说明
+            const relationTypeText = params.data.relationTypeText || getRelationTypeText(params.data.relationType || 'neutral');
+            const sourceName = processedData[params.data.source]?.name || '';
+            const targetName = processedData[params.data.target]?.name || '';
+            const description = params.data.relationDescription || '';
             
-          const line2 = contentContainer.append('path')
-            .attr('d', `M${startX - offsetX},${startY - offsetY} ${pathCommand}${endX - offsetX},${endY - offsetY}`)
-            .attr('stroke', relationColors[relation.relation_type])
-              .attr('stroke-width', lineWidth)
-            .attr('fill', 'none')
-        } else {
-          // 单边关系：绘制单线
-          const line = contentContainer.append('path')
-            .attr('d', `M${startX},${startY} ${pathCommand}${endX},${endY}`)
-            .attr('stroke', relationColors[relation.relation_type])
-            .attr('stroke-width', lineWidth)
-            .attr('fill', 'none')
-            .attr('marker-end', 'url(#arrowhead)')
-        }
-        
-        // 计算标签位置
-        const labelOffset = reverseRelation ? 1 : 1 // 减小标签偏移量：双边关系3px，单边关系1px
-        const labelX = controlX + Math.cos(angle + Math.PI/2) * labelOffset
-        const labelY = controlY + Math.sin(angle + Math.PI/2) * labelOffset
-        
-        // 只在以下情况显示标签：
-        // 1. 单边关系
-        // 2. 双边关系且关系类型相同，且是正向关系（避免重复显示）
-        const shouldShowLabel = !reverseRelation || 
-          (reverseRelation && 
-           getRelationTypeText(relation.relation_type) === getRelationTypeText(reverseRelation.relation_type) && 
-           relation.source_faction_id < reverseRelation.source_faction_id)
-        
-        if (shouldShowLabel) {
-          // 添加关系类型文本
-          contentContainer.append('text')
-            .attr('x', labelX)
-            .attr('y', labelY)
-            .attr('dy', '-0.5em')
-            .style('text-anchor', 'middle')
-            .style('font-size', '10px')
-            .style('fill', relationColors[relation.relation_type])
-            .text(getRelationTypeText(relation.relation_type))
-        }
-      }
-    })
-
-  }, [factions, relations, containerSize])
+            let tooltipContent = `${sourceName} → ${targetName}<br/>关系: ${relationTypeText}`;
+            
+            // 如果有关系说明，添加到浮层中
+            if (description && description.trim()) {
+              // 如果关系说明长度超过20个字，每20个字插入换行
+              let formattedDescription = description;
+              if (description.length > 20) {
+                // 每20个字符插入换行符
+                formattedDescription = description.match(/.{1,20}/g)?.join('<br/>') || description;
+              }
+              tooltipContent += `<br/>说明: ${formattedDescription}`;
+            }
+            
+            return tooltipContent;
+          } else {
+            // 节点的提示信息
+            return `${params.data.name}<br/>ID: ${params.data.id}`;
+          }
+        },
+      },
+      series: [{
+        type: 'graph',
+        layout: 'circular',
+        circular: {
+          rotateLabel: true,
+        },
+        roam: true, // 允许缩放和平移
+        focusNodeAdjacency: true, // 鼠标悬停时高亮相邻节点和边
+        // 明确指定使用 id 字段进行匹配
+        id: 'factionGraph',
+        label: {
+          show: true, // 默认显示节点标签，但会根据节点深度动态设置
+          position: 'right',
+          formatter: '{b}', // 显示节点名称
+        },
+        // 根据 rootId 设置不同的颜色类别
+        // categories 数组的索引对应节点的 category 值
+        categories: rootIdArray.map((rootId, index) => ({
+          name: `Root ${rootId}`, // 类别名称，可以显示在图例中
+          itemStyle: {
+            color: rootIdColorMap.get(Number(rootId)) || '#d9d9d9',
+          },
+        })),
+        data: processedData.map(node => {
+          // 占位节点设置为不可见
+          if (node.id < 0) {
+            return {
+              ...node,
+              symbolSize: 0, // 大小为0，不显示
+              itemStyle: {
+                opacity: 0, // 完全透明
+              },
+            };
+          }
+          
+          // 深度超过3级的节点不显示label（深度从0开始，所以 > 3 表示第4级及以下）
+          const nodeDepth = (node as any).depth;
+          const shouldShowLabel = nodeDepth === undefined || nodeDepth <= 3;
+          
+          return {
+            ...node,
+            label: {
+              show: shouldShowLabel,
+              position: 'right',
+              formatter: '{b}',
+            },
+          };
+        }),
+        links: allLinks, // 合并后的所有链接（关系链接 + parent-child 链接）
+        // 确保 ECharts 使用 id 字段进行匹配
+        // 如果使用 id，links 的 source/target 必须与 data 中节点的 id 完全匹配（每个 link 已包含 lineStyle 颜色配置）
+        // 全局 lineStyle 作为默认值（如果 link 对象中没有设置 lineStyle，会使用这个）
+        lineStyle: {
+          color: '#d9d9d9', // 默认灰色
+          width: 1,
+          opacity: 0.8,
+          curveness: 0.3, // 曲线度
+        },
+        edgeLabel: {
+          show: true, // 显示边的标签
+          formatter: '{c}', // 显示关系类型
+          fontSize: 10,
+        },
+        emphasis: {
+          // 高亮样式
+          focus: 'adjacency',
+          lineStyle: {
+            width: 4,
+            opacity: 1,
+          },
+        },
+      }]
+    }, true); // 第二个参数 true 表示不合并，完全替换配置，确保 links 被正确更新
+  }
 
   return (
-    <div ref={containerRef} className="f-fit-height" style={{ overflow: 'hidden', cursor: 'grab' }}>
-      <svg 
-        ref={svgRef} 
-        className="f-fit-height" 
-        style={{ 
-          maxHeight: '100%',
-          cursor: 'grab'
-        }}
-        onMouseDown={() => {
-          if (containerRef.current) {
-            containerRef.current.style.cursor = 'grabbing'
-          }
-        }}
-        onMouseUp={() => {
-          if (containerRef.current) {
-            containerRef.current.style.cursor = 'grab'
-          }
-        }}
-        onMouseLeave={() => {
-          if (containerRef.current) {
-            containerRef.current.style.cursor = 'grab'
-          }
-        }}
-      />
-    </div>
+    <div ref={divRef} className="w-full h-full"></div>
   )
 }

@@ -4,9 +4,11 @@ import { chromaService, QueryResult } from "@/src/server/chroma";
 import EmbedService from "@/src/services/aiNoval/embedService";
 import { rerankService } from "@/src/services/aiNoval/rerankService";
 import { distanceToSimilarity, sigmoid } from "@/src/utils/rag/scores";
-import { IFactionDefData } from "@/src/types/IAiNoval";
+import { IFactionDefData, IFactionRelation } from "@/src/types/IAiNoval";
+import FactionRelationService from "@/src/services/aiNoval/factionRelationService";
 
 const factionDefService = new FactionDefService();
+const factionRelationService = new FactionRelationService();
 const embedService = new EmbedService();
 
 export default async function findFaction(worldviewId: number, keywords: string[], thresholdNum: number = 0.5) {
@@ -45,12 +47,12 @@ export default async function findFaction(worldviewId: number, keywords: string[
     }
     let w_db = 1 - w_chroma;
 
-    console.debug('total_count ------------->> ', total_count);
-    console.debug('db_coverage ------------->> ', db_coverage);
-    console.debug('chroma_coverage ------------->> ', chroma_coverage);
-    console.debug('overlap_ratio ------------->> ', overlap_ratio);
-    console.debug('w_db ------------->> ', w_db);
-    console.debug('w_chroma ------------->> ', w_chroma);
+    // console.debug('total_count ------------->> ', total_count);
+    // console.debug('db_coverage ------------->> ', db_coverage);
+    // console.debug('chroma_coverage ------------->> ', chroma_coverage);
+    // console.debug('overlap_ratio ------------->> ', overlap_ratio);
+    // console.debug('w_db ------------->> ', w_db);
+    // console.debug('w_chroma ------------->> ', w_chroma);
 
     // if (Math.max(...db_data.map(item => item.score || 0)) === 0) {
     //     chroma_coef = 1;
@@ -78,8 +80,11 @@ export default async function findFaction(worldviewId: number, keywords: string[
     // let combined_data_normalized = normalizeScore(combined_data, 'combined_score', 'score').map(item => _.omit(item, ['combined_score']));
     let rerank_data = await rerankData(combined_data, keywords as string[]);
 
+    // 为每个Faction加载并添加阵营关系列表
+    let final_data = await loadFactionRelations(rerank_data, _.toNumber(worldviewId));
+
     // console.debug('threshold ------------->> ', thresholdNum);
-    return rerank_data.filter(item => item.score >= thresholdNum);
+    return final_data.filter(item => item.score >= thresholdNum);
 }
 
 
@@ -160,7 +165,7 @@ async function rerankData(
                 db_score: original.db_score,
             };
         });
-        console.debug('rerank completed, reranked items count:', reranked.length);
+        // console.debug('rerank completed, reranked items count:', reranked.length);
         return reranked;
     } catch (error) {
         console.error('rerank failed:', error);
@@ -171,5 +176,67 @@ async function rerankData(
                 db_score: item.db_score,
             }))
             .sort((a, b) => b.score - a.score);
+    }
+}
+
+/**
+ * 为每个Faction加载并添加阵营关系列表
+ */
+async function loadFactionRelations(
+    factions: (IFactionDefData & { score: number; db_score: number })[],
+    worldviewId: number
+): Promise<(IFactionDefData & { score: number; db_score: number; relations?: IFactionRelation[] })[]> {
+    if (factions.length === 0) {
+        return [];
+    }
+
+    try {
+        // 批量加载所有faction的关系
+        const factionIds = factions.map(f => f.id).filter((id): id is number => id !== null && id !== undefined);
+        
+        if (factionIds.length === 0) {
+            return factions.map(f => ({ ...f, relations: [] }));
+        }
+
+        // 为每个faction加载关系
+        const relationsPromises = factionIds.map(async (factionId) => {
+            try {
+                const relations = await factionRelationService.getRelationByFactionId(factionId);
+                // 转换数据格式，确保符合IFactionRelation接口
+                return {
+                    factionId,
+                    relations: (relations || []).map((rel: any) => ({
+                        id: rel.id,
+                        worldview_id: rel.worldview_id || worldviewId,
+                        source_faction_id: rel.source_faction_id,
+                        source_faction_name: rel.source_faction_name,
+                        target_faction_id: rel.target_faction_id,
+                        target_faction_name: rel.target_faction_name,
+                        relation_type: rel.relation_type,
+                        // relation_strength: rel.relation_strength || 50, // 默认值
+                        description: rel.description || '',
+                    } as IFactionRelation))
+                };
+            } catch (error) {
+                console.error(`Failed to load relations for faction ${factionId}:`, error);
+                return { factionId, relations: [] };
+            }
+        });
+
+        const relationsResults = await Promise.all(relationsPromises);
+        const relationsMap = new Map<number, IFactionRelation[]>();
+        relationsResults.forEach(result => {
+            relationsMap.set(result.factionId, result.relations);
+        });
+
+        // 将关系添加到对应的faction对象中
+        return factions.map(faction => ({
+            ...faction,
+            relations: faction.id ? (relationsMap.get(faction.id) || []) : []
+        }));
+    } catch (error) {
+        console.error('Failed to load faction relations:', error);
+        // 如果加载失败，返回原始数据，relations字段为空数组
+        return factions.map(f => ({ ...f, relations: [] }));
     }
 }

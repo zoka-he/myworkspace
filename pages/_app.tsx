@@ -1,4 +1,4 @@
-// import '@/styles/globals.css'
+import '@/styles/globals.css'
 import '@/styles/common.scss';
 import '@/styles/colors.scss';
 import '@/styles/antd-fix.scss';

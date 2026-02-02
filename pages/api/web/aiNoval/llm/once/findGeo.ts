@@ -45,7 +45,7 @@ export default async function handler(
     }
 
     if (_.isString(keywords)) {
-        keywords = keywords.split(' ').map(s => s.trim()).filter(k => k.length > 0);
+        keywords = keywords.split(/[\s,，、]+/).map((s: string) => s.trim()).filter((k: string) => k.length > 0);
         if (keywords.length === 0) {
             res.status(400).json({ success: false, error: 'oh shit! keywords must be an array of strings' });
             return;

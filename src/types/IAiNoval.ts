@@ -127,6 +127,32 @@ export interface IFactionDefData {
     dify_document_id?: string | null,
     dify_dataset_id?: string | null,
     embed_document?: string | null,
+    /** 阵营类型 */
+    faction_type?: string | null,
+    /** 阵营文化 */
+    faction_culture?: string | null,
+    /** 输出或用于整活的文化 */
+    ideology_or_meme?: string | null,
+    /** 阵营决策尺度：地区级、大陆级、行星级、多星级、文明级 */
+    scale_of_operation?: string | null,
+    /** 阵营绝不会做的事情 */
+    decision_taboo?: string | null,
+    /** 最大威胁来源 */
+    primary_threat_model?: string | null,
+    /** 阵营内部允许被公开展示的矛盾 */
+    internal_contradictions?: string | null,
+    /** 阵营正统来源 */
+    legitimacy_source?: string | null,
+    /** 阵营创伤后遗症 */
+    known_dysfunctions?: string | null,
+    /** 地理·命名习惯：风格、偏好、通用要求 */
+    geo_naming_habit?: string | null,
+    /** 地理·命名后缀：后缀及层级对应 */
+    geo_naming_suffix?: string | null,
+    /** 地理·命名禁忌：严禁事项 */
+    geo_naming_prohibition?: string | null,
+    /** 阵营关系列表 */
+    relations?: IFactionRelation[] | null,
 }
 
 export interface IRoleData {
@@ -216,13 +242,40 @@ export interface IRoleRelation {
     { value: 'other', label: '其他', color: 'default', presetStrength: 50 },
   ]
 
+  /**
+   * 阵营关系类型
+   * 支持复杂世界观的各种关系类型
+   */
+  export type FactionRelationType = 
+    // 政治关系
+    | 'ally' | 'enemy' | 'neutral' | 'vassal' | 'overlord' | 'rival' | 'protector' | 'dependent'
+    | 'confederation' | 'federation' | 'puppet' | 'exile_government' | 'successor_state'
+    | 'client_state' | 'suzerain' | 'tributary' | 'satellite' | 'buffer_state'
+    // 军事关系
+    | 'war' | 'ceasefire' | 'armistice' | 'military_cooperation' | 'defense_pact'
+    | 'non_aggression' | 'military_alliance' | 'arms_race' | 'military_observer'
+    | 'peacekeeping' | 'occupation' | 'liberation' | 'insurgency' | 'counter_insurgency'
+    // 经济关系
+    | 'trade_partner' | 'economic_union' | 'customs_union' | 'resource_dependency'
+    | 'market_dominance' | 'economic_exploitation' | 'aid_donor' | 'aid_recipient'
+    | 'sanctions' | 'embargo' | 'trade_war' | 'economic_cooperation'
+    // 社会关系
+    | 'cultural_exchange' | 'immigration' | 'refugee' | 'diaspora' | 'exile'
+    | 'cultural_dominance' | 'assimilation' | 'segregation' | 'integration'
+    // 宗教关系
+    | 'same_faith' | 'different_faith' | 'heresy' | 'crusade' | 'jihad'
+    | 'religious_alliance' | 'religious_supremacy' | 'tolerance' | 'persecution'
+    | 'missionary' | 'conversion';
+
   export interface IFactionRelation {
     id?: number
     worldview_id: number
     source_faction_id: number
+    source_faction_name?: string
     target_faction_id: number
-    relation_type: 'ally' | 'enemy' | 'neutral' | 'vassal' | 'overlord' | 'rival' | 'protector' | 'dependent' | 'war'
-    relation_strength: number
+    target_faction_name?: string
+    relation_type: FactionRelationType
+    relation_strength?: number
     description: string
   }
 

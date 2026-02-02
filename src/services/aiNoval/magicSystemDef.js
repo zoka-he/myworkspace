@@ -16,4 +16,11 @@ export default class MagicSystemDefService extends MysqlNovalService {
         ]);
     }
 
+    async getFullInfoOfWorldview(worldviewId) {
+        const sql = `select system_name, content from magic_system_def msd, magic_system_version msv where msd.version_id = msv.id and msd.worldview_id = ?`;
+        const params = [worldviewId];
+        const ret = await this.queryBySql(sql, params);
+        return ret;
+    }
+
 }

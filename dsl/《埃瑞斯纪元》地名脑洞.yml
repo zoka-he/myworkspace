@@ -1,0 +1,323 @@
+app:
+  description: ''
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: workflow
+  name: 《埃瑞斯纪元》地名脑洞
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.5.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        attachment_image_file_size_limit: 2
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        file_upload_limit: 20
+        image_file_batch_limit: 10
+        image_file_size_limit: 10
+        single_chunk_attachment_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: agent
+      id: 1769767006617-source-1769767011591-target
+      source: '1769767006617'
+      sourceHandle: source
+      target: '1769767011591'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: agent
+        targetType: end
+      id: 1769767011591-source-1769768001291-target
+      source: '1769767011591'
+      sourceHandle: source
+      target: '1769768001291'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        selected: false
+        title: 用户输入
+        type: start
+        variables:
+        - default: ''
+          hint: 世界观 ID
+          label: worldview_id
+          max_length: 48
+          options: []
+          placeholder: ''
+          required: true
+          type: number
+          variable: worldview_id
+        - default: ''
+          hint: 如：山脉、恒星间转移轨道
+          label: locationType
+          max_length: 64
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: locationType
+        - default: ''
+          hint: 描述该区域的地理、气候、环境等特征
+          label: regionFeature
+          max_length: 512
+          options: []
+          placeholder: ''
+          required: true
+          type: paragraph
+          variable: regionFeature
+        - default: ''
+          hint: 命名的历史背景、文化渊源
+          label: namingBackground
+          max_length: 512
+          options: []
+          placeholder: ''
+          required: false
+          type: paragraph
+          variable: namingBackground
+        - default: ''
+          hint: 如：某阵营、某文化
+          label: namingSource
+          max_length: 256
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: namingSource
+        - default: ''
+          hint: 阵营命名习惯（LLM2 可生成）
+          label: namingHabit
+          max_length: 512
+          options: []
+          placeholder: ''
+          required: false
+          type: paragraph
+          variable: namingHabit
+        - default: ''
+          hint: 对地名的特殊要求
+          label: specialRequirement
+          max_length: 512
+          options: []
+          placeholder: ''
+          required: false
+          type: paragraph
+          variable: specialRequirement
+        - default: ''
+          hint: 后缀及层级对应，如：道/州/郡/市/县
+          label: specialSuffix
+          max_length: 512
+          options: []
+          placeholder: ''
+          required: false
+          type: paragraph
+          variable: specialSuffix
+        - default: ''
+          hint: 严禁事项，分条列举
+          label: prohibition
+          max_length: 512
+          options: []
+          placeholder: ''
+          required: false
+          type: paragraph
+          variable: prohibition
+        - default: ''
+          hint: 相邻地点名称，逗号分隔，用于参考地点的性质（可选）
+          label: adjacentGeoNames
+          max_length: 256
+          options: []
+          placeholder: ''
+          required: false
+          type: text-input
+          variable: adjacentGeoNames
+        - default: ''
+          hint: 已有地名、势力名，逗号分隔，生成时需避免重名/谐音（由 FindGeo/FindFaction 等获取）
+          label: excludeNames
+          max_length: 1024
+          options: []
+          placeholder: ''
+          required: false
+          type: paragraph
+          variable: excludeNames
+      height: 109
+      id: '1769767006617'
+      position:
+        x: 80
+        y: 282
+      positionAbsolute:
+        x: 80
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        agent_parameters:
+          instruction:
+            type: constant
+            value: '你是一个“世界观约束下的命名生成组件”。
+
+
+              你的职责是在自由创作的同时，创造符合既定世界观内的【候选地点名】。
+
+
+              你必须遵守以下原则：
+
+              - 世界观中已有的地名、势力、角色具有最高优先级，不可冲突
+
+              - 不使用现实地球直译风格的词汇
+
+              - 适当为名字编造背景或解释，但必须与世界观建立联系
+
+              - 不假设你生成的名字一定会被采用
+
+
+              你不会做最终裁决，也不会决定是否采用你的输出。你需要彻底释放创造力
+
+
+
+              在本世界中，地名通常来源于不同文明的原始语言。
+
+              这些语言已经部分失传，现存名称多为音译或二次转写。
+
+
+              因此：
+
+              - 地名不需要能够被完全拆解为现代汉语含义
+
+              - 即使使用汉字，也优先承载“发音”而非“语义”
+
+              - 后世对地名的解释，可能是附会或误解'
+          maximum_iterations:
+            type: constant
+            value: 10
+          mcp_servers_config:
+            type: constant
+            value: "{\n  \"server_name1\": {\n    \"transport\": \"streamable_http\"\
+              ,\n    \"url\": \"http://host.docker.internal:3000/api/mcp\"\n  }\n}"
+          model:
+            type: constant
+            value:
+              completion_params:
+                frequency_penalty: 0.3
+                temperature: 1
+              mode: chat
+              model: deepseek-chat
+              model_type: llm
+              provider: langgenius/deepseek/deepseek
+              type: model-selector
+          query:
+            type: constant
+            value: "在以下条件下生成地名候选：\n\n- 世界观 ID：{{#1769767006617.worldview_id#}}\n- 地点类型：{{#1769767006617.locationType#}}\n\
+              - 区域特征：{{#1769767006617.regionFeature#}}\n- 命名权来源：{{#1769767006617.namingSource#}}\n\n命名背景：\n{{#1769767006617.namingBackground#}}\n\
+              \n命名约束：\n- 阵营命名习惯：{{#1769767006617.namingHabit#}}\n- 特殊要求：{{#1769767006617.specialRequirement#}}\n\
+              - 特殊后缀：{{#1769767006617.specialSuffix#}}\n- 严禁事项：{{#1769767006617.prohibition#}}\n\
+              - 相邻地点（参考地点的性质）：{{#1769767006617.adjacentGeoNames#}}\n\
+              - 需避免重名/谐音的名称（已有地名、势力名）：{{#1769767006617.excludeNames#}}\n\n请生成 6 个【候选地点名】。\n\n最终输出要求：\n\
+              - 所有输出内容都要是中文\n- 每个名字 2~10 个汉字\n- 先输出名字列表\n- 每个名字都要相应的解释，并且附上潜在的剧情设计\n\
+              - 在最终输出前，检查你生成的地名、相关设定是否和世界观已有的地名相近，以及这种相近是否合理\n\n注意：\n- 名称应当\"读起来顺，但不好解释\"\n\
+              - 如果一个名字可以被轻易翻译成一句话，说明它不合格"
+        agent_strategy_label: ReAct (支持 MCP 工具)
+        agent_strategy_name: mcp_sse_ReAct
+        agent_strategy_provider_name: junjiem/mcp_see_agent/mcp_see_agent
+        meta:
+          minimum_dify_version: null
+          version: 0.0.1
+        output_schema: {}
+        plugin_unique_identifier: junjiem/mcp_see_agent:0.2.4@82caf96890992e9dec2c43c3fac82bfce8bd18a41de7c2b6948151b2d7f7b7a2
+        selected: true
+        title: Agent
+        tool_node_version: '2'
+        type: agent
+      height: 136
+      id: '1769767011591'
+      position:
+        x: 396
+        y: 303
+      positionAbsolute:
+        x: 396
+        y: 303
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        outputs:
+        - value_selector:
+          - '1769767011591'
+          - text
+          value_type: string
+          variable: text
+        selected: false
+        title: 输出
+        type: end
+      height: 88
+      id: '1769768001291'
+      position:
+        x: 767.1294494367039
+        y: 303
+      positionAbsolute:
+        x: 767.1294494367039
+        y: 303
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    viewport:
+      x: -207.1928375923644
+      y: -15.598329183971288
+      zoom: 1.1486983549970353
+  rag_pipeline_variables: []
