@@ -20,6 +20,7 @@ export default class FactionDefService extends MysqlNovalService {
         return this.queryBySql(
 `SELECT 
     fr.id,
+    fr.worldview_id,
     fr.source_faction_id,
     fsrc.name source_faction_name,
     fr.target_faction_id,

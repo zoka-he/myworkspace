@@ -151,6 +151,8 @@ export interface IFactionDefData {
     geo_naming_suffix?: string | null,
     /** 地理·命名禁忌：严禁事项 */
     geo_naming_prohibition?: string | null,
+    /** 阵营关系列表 */
+    relations?: IFactionRelation[] | null,
 }
 
 export interface IRoleData {
@@ -269,9 +271,11 @@ export interface IRoleRelation {
     id?: number
     worldview_id: number
     source_faction_id: number
+    source_faction_name?: string
     target_faction_id: number
+    target_faction_name?: string
     relation_type: FactionRelationType
-    relation_strength: number
+    relation_strength?: number
     description: string
   }
 
