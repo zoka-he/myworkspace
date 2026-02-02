@@ -3,19 +3,21 @@ import { List, Button, Modal, Form, Input, Select, message, Tag, Empty, Typograp
 import { IFactionDefData, IWorldViewData, IFactionRelation } from '@/src/types/IAiNoval'
 import styles from './factionRelationPanel.module.scss'
 import apiCalls from '../apiCalls'
+import { D3FactionView } from './factionRelationMap'
+import { useWorldViewId } from '../FactionManageContext'
+import { 
+  getRelationTypeText as getSharedRelationTypeText,
+  RELATION_TYPE_DEFINITIONS,
+  getRelationTypeDefinition,
+  RelationCategory,
+  getRelationTypesByCategory
+} from '../utils/relationTypeMap'
 
-
-const DEFAULT_RELATION_STRENGTHS: Record<IFactionRelation['relation_type'], number> = {
-  ally: 90,        // 盟友关系默认强度高
-  enemy: 20,       // 敌对关系默认强度低
-  neutral: 50,     // 中立关系默认强度中等
-  vassal: 70,      // 附庸关系默认强度较高
-  overlord: 80,    // 宗主关系默认强度高
-  rival: 30,       // 竞争对手关系默认强度较低
-  protector: 85,   // 保护者关系默认强度高
-  dependent: 60,   // 依附者关系默认强度中等偏上
-  war: 0          // 宣战状态关系强度为0
-}
+// 使用科学的关系类型定义来设置默认强度
+const DEFAULT_RELATION_STRENGTHS: Record<IFactionRelation['relation_type'], number> = 
+  Object.fromEntries(
+    Object.values(RELATION_TYPE_DEFINITIONS).map(def => [def.key, def.defaultStrength])
+  ) as Record<IFactionRelation['relation_type'], number>;
 
 interface FactionRelationPanelProps {
   worldviewData: IWorldViewData[]
@@ -24,7 +26,9 @@ interface FactionRelationPanelProps {
   onRelationChange?: () => void
 }
 
-const RELATION_TYPE_COLORS: Record<IFactionRelation['relation_type'], string> = {
+// 关系类型颜色映射（根据分类自动生成，使用 Partial 以支持所有类型）
+const RELATION_TYPE_COLORS: Partial<Record<IFactionRelation['relation_type'], string>> = {
+  // 政治关系
   ally: 'success',
   enemy: 'error',
   neutral: 'default',
@@ -33,7 +37,66 @@ const RELATION_TYPE_COLORS: Record<IFactionRelation['relation_type'], string> = 
   rival: 'error',
   protector: 'success',
   dependent: 'warning',
-  war: 'error'
+  confederation: 'success',
+  federation: 'success',
+  puppet: 'error',
+  client_state: 'warning',
+  exile_government: 'default',
+  successor_state: 'default',
+  suzerain: 'warning',
+  tributary: 'warning',
+  satellite: 'warning',
+  buffer_state: 'default',
+  // 军事关系
+  war: 'error',
+  ceasefire: 'default',
+  armistice: 'default',
+  military_cooperation: 'success',
+  defense_pact: 'success',
+  non_aggression: 'default',
+  military_alliance: 'success',
+  arms_race: 'error',
+  military_observer: 'default',
+  peacekeeping: 'success',
+  occupation: 'error',
+  liberation: 'success',
+  insurgency: 'error',
+  counter_insurgency: 'warning',
+  // 经济关系
+  trade_partner: 'success',
+  economic_union: 'success',
+  customs_union: 'success',
+  resource_dependency: 'warning',
+  market_dominance: 'warning',
+  economic_exploitation: 'error',
+  aid_donor: 'success',
+  aid_recipient: 'default',
+  sanctions: 'error',
+  embargo: 'error',
+  trade_war: 'error',
+  economic_cooperation: 'success',
+  // 社会关系
+  cultural_exchange: 'success',
+  immigration: 'default',
+  refugee: 'default',
+  diaspora: 'default',
+  exile: 'default',
+  cultural_dominance: 'warning',
+  assimilation: 'default',
+  segregation: 'error',
+  integration: 'success',
+  // 宗教关系
+  same_faith: 'success',
+  different_faith: 'default',
+  heresy: 'error',
+  crusade: 'error',
+  jihad: 'error',
+  religious_alliance: 'success',
+  religious_supremacy: 'warning',
+  tolerance: 'success',
+  persecution: 'error',
+  missionary: 'default',
+  conversion: 'default',
 }
 
 const getStrengthBarColor = (strength: number) => {
@@ -56,6 +119,44 @@ interface TreeNode {
 }
 
 export function FactionRelationPanel({ worldviewData, currentFaction, factions, onRelationChange }: FactionRelationPanelProps) {
+  const props = { worldviewData, currentFaction, factions, onRelationChange: handleFactionRelationChange }
+  const [fullRelationList, setFullRelationList] = useState<IFactionRelation[]>([])
+  const [worldViewId] = useWorldViewId()
+
+  useEffect(() => {
+    updateFullRelationList()
+  }, [worldViewId])
+
+  function handleFactionRelationChange() {
+    updateFullRelationList()
+  }
+
+  async function updateFullRelationList() {
+    if (!worldViewId) return;
+
+    try {
+      let response = await apiCalls.getFactionRelationList(worldViewId)
+      setFullRelationList(response.data || [])
+    } catch (error) {
+      message.error('获取全量关系列表失败')
+      console.error('Failed to fetch full relation list:', error)
+    }
+  }
+
+  return (
+    <div className={`${styles.container} f-fit-height f-flex-col`}>
+      <div className={`${styles.containerMap}`}>
+        <D3FactionView factions={factions} factionRelations={fullRelationList} />
+      </div>
+      <div className={`${styles.controlContainer}`}>
+        <FactionRelationControl {...props} />
+      </div>
+    </div>
+  )
+
+}
+
+function FactionRelationControl({ worldviewData, currentFaction, factions, onRelationChange }: FactionRelationPanelProps) {
   const [relations, setRelations] = useState<IFactionRelation[]>([])
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [form] = Form.useForm()
@@ -95,20 +196,8 @@ export function FactionRelationPanel({ worldviewData, currentFaction, factions, 
     )
   }
 
-  const getRelationTypeText = (type: IFactionRelation['relation_type']) => {
-    const typeMap: Record<IFactionRelation['relation_type'], string> = {
-      ally: '盟友',
-      enemy: '敌对',
-      neutral: '中立',
-      vassal: '附庸',
-      overlord: '宗主',
-      rival: '竞争对手',
-      protector: '保护者',
-      dependent: '依附者',
-      war: '宣战'
-    }
-    return typeMap[type]
-  }
+  // 使用共享的关系类型映射
+  const getRelationTypeText = getSharedRelationTypeText
 
   const handleAdd = () => {
     setEditingRelation(null)
@@ -206,7 +295,29 @@ export function FactionRelationPanel({ worldviewData, currentFaction, factions, 
   }
 
   const handleRelationTypeChange = (value: IFactionRelation['relation_type']) => {
-    form.setFieldValue('relation_strength', DEFAULT_RELATION_STRENGTHS[value])
+    const def = getRelationTypeDefinition(value);
+    if (def) {
+      form.setFieldValue('relation_strength', def.defaultStrength);
+      // 更新关系强度输入框的提示信息
+      const [min, max] = def.strengthRange;
+      form.setFieldsValue({
+        relation_strength: def.defaultStrength
+      });
+    }
+  }
+  
+  // 获取当前选择的关系类型的强度范围提示
+  const getRelationStrengthLabel = () => {
+    const relationType = form.getFieldValue('relation_type');
+    if (!relationType) {
+      return '关系强度（0-100，0=关系恶劣，50=关系一般，100=关系良好）';
+    }
+    const def = getRelationTypeDefinition(relationType);
+    if (def) {
+      const [min, max] = def.strengthRange;
+      return `关系强度（${min}-${max}，${def.label}的合理范围，默认：${def.defaultStrength}）`;
+    }
+    return '关系强度（0-100，0=关系恶劣，50=关系一般，100=关系良好）';
   }
 
   const getFactionTreeData = (): TreeNode[] => {
@@ -232,7 +343,7 @@ export function FactionRelationPanel({ worldviewData, currentFaction, factions, 
   }
 
   return (
-    <div className={`${styles.container} f-fit-height f-flex-col`}>
+    <>
       <List
         header={
           <Row justify="space-between" align="middle">
@@ -361,34 +472,174 @@ export function FactionRelationPanel({ worldviewData, currentFaction, factions, 
             tooltip="对方是我方的？或对方对我方做了什么？"
             rules={[{ required: true, message: '请选择关系类型' }]}
           >
-            <Select onChange={handleRelationTypeChange}>
-              <Select.Option value="ally">盟友</Select.Option>
-              <Select.Option value="enemy">敌对</Select.Option>
-              <Select.Option value="neutral">中立</Select.Option>
-              <Select.Option value="vassal">附庸</Select.Option>
-              <Select.Option value="overlord">宗主</Select.Option>
-              <Select.Option value="rival">竞争对手</Select.Option>
-              <Select.Option value="protector">保护者</Select.Option>
-              <Select.Option value="dependent">依附者</Select.Option>
-              <Select.Option value="war">宣战</Select.Option>
+            <Select 
+              onChange={handleRelationTypeChange}
+              placeholder="选择关系类型"
+              optionLabelProp="label"
+              showSearch
+              filterOption={(input, option) => {
+                const def = getRelationTypeDefinition(option?.value as IFactionRelation['relation_type']);
+                return (def?.label || '').toLowerCase().includes(input.toLowerCase()) ||
+                       (def?.description || '').toLowerCase().includes(input.toLowerCase());
+              }}
+              style={{ width: '100%' }}
+            >
+              {/* 政治关系 */}
+              <Select.OptGroup label="政治关系">
+                {getRelationTypesByCategory(RelationCategory.POLITICAL).map(type => {
+                  const def = getRelationTypeDefinition(type);
+                  return (
+                    <Select.Option 
+                      key={type} 
+                      value={type}
+                      label={def?.label}
+                      title={def?.description}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 500 }}>{def?.label}</div>
+                        {def?.description && (
+                          <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>
+                            {def.description}
+                          </div>
+                        )}
+                      </div>
+                    </Select.Option>
+                  );
+                })}
+              </Select.OptGroup>
+              
+              {/* 军事关系 */}
+              <Select.OptGroup label="军事关系">
+                {getRelationTypesByCategory(RelationCategory.MILITARY).map(type => {
+                  const def = getRelationTypeDefinition(type);
+                  return (
+                    <Select.Option 
+                      key={type} 
+                      value={type}
+                      label={def?.label}
+                      title={def?.description}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 500 }}>{def?.label}</div>
+                        {def?.description && (
+                          <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>
+                            {def.description}
+                          </div>
+                        )}
+                      </div>
+                    </Select.Option>
+                  );
+                })}
+              </Select.OptGroup>
+              
+              {/* 经济关系 */}
+              <Select.OptGroup label="经济关系">
+                {getRelationTypesByCategory(RelationCategory.ECONOMIC).map(type => {
+                  const def = getRelationTypeDefinition(type);
+                  return (
+                    <Select.Option 
+                      key={type} 
+                      value={type}
+                      label={def?.label}
+                      title={def?.description}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 500 }}>{def?.label}</div>
+                        {def?.description && (
+                          <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>
+                            {def.description}
+                          </div>
+                        )}
+                      </div>
+                    </Select.Option>
+                  );
+                })}
+              </Select.OptGroup>
+              
+              {/* 社会关系 */}
+              <Select.OptGroup label="社会关系">
+                {getRelationTypesByCategory(RelationCategory.SOCIAL).map(type => {
+                  const def = getRelationTypeDefinition(type);
+                  return (
+                    <Select.Option 
+                      key={type} 
+                      value={type}
+                      label={def?.label}
+                      title={def?.description}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 500 }}>{def?.label}</div>
+                        {def?.description && (
+                          <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>
+                            {def.description}
+                          </div>
+                        )}
+                      </div>
+                    </Select.Option>
+                  );
+                })}
+              </Select.OptGroup>
+              
+              {/* 宗教关系 */}
+              <Select.OptGroup label="宗教关系">
+                {getRelationTypesByCategory(RelationCategory.RELIGIOUS).map(type => {
+                  const def = getRelationTypeDefinition(type);
+                  return (
+                    <Select.Option 
+                      key={type} 
+                      value={type}
+                      label={def?.label}
+                      title={def?.description}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 500 }}>{def?.label}</div>
+                        {def?.description && (
+                          <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>
+                            {def.description}
+                          </div>
+                        )}
+                      </div>
+                    </Select.Option>
+                  );
+                })}
+              </Select.OptGroup>
             </Select>
           </Form.Item>
 
           <Form.Item
             name="relation_strength"
-            label="关系强度（0-100，0=关系恶劣，50=关系一般，100=关系良好）"
+            label={getRelationStrengthLabel()}
             rules={[
               { required: true, message: '请输入关系强度' },
               { 
                 type: 'number',
                 transform: (value) => Number(value),
-                min: 0,
-                max: 100,
-                message: '关系强度必须在0-100之间'
+                validator: (_, value) => {
+                  const relationType = form.getFieldValue('relation_type');
+                  if (!relationType) {
+                    if (value < 0 || value > 100) {
+                      return Promise.reject(new Error('关系强度必须在0-100之间'));
+                    }
+                    return Promise.resolve();
+                  }
+                  const def = getRelationTypeDefinition(relationType);
+                  if (def) {
+                    const [min, max] = def.strengthRange;
+                    if (value < min || value > max) {
+                      return Promise.reject(new Error(`关系强度应在${min}-${max}之间（${def.label}的合理范围）`));
+                    }
+                  }
+                  return Promise.resolve();
+                }
               }
             ]}
           >
-            <Input type="number" min={0} max={100} />
+            <Input 
+              type="number" 
+              min={0} 
+              max={100}
+              placeholder="输入关系强度"
+            />
           </Form.Item>
 
           <Form.Item
@@ -399,6 +650,6 @@ export function FactionRelationPanel({ worldviewData, currentFaction, factions, 
           </Form.Item>
         </Form>
       </Modal>
-    </div>
+      </>
   )
 }

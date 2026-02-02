@@ -240,12 +240,37 @@ export interface IRoleRelation {
     { value: 'other', label: '其他', color: 'default', presetStrength: 50 },
   ]
 
+  /**
+   * 阵营关系类型
+   * 支持复杂世界观的各种关系类型
+   */
+  export type FactionRelationType = 
+    // 政治关系
+    | 'ally' | 'enemy' | 'neutral' | 'vassal' | 'overlord' | 'rival' | 'protector' | 'dependent'
+    | 'confederation' | 'federation' | 'puppet' | 'exile_government' | 'successor_state'
+    | 'client_state' | 'suzerain' | 'tributary' | 'satellite' | 'buffer_state'
+    // 军事关系
+    | 'war' | 'ceasefire' | 'armistice' | 'military_cooperation' | 'defense_pact'
+    | 'non_aggression' | 'military_alliance' | 'arms_race' | 'military_observer'
+    | 'peacekeeping' | 'occupation' | 'liberation' | 'insurgency' | 'counter_insurgency'
+    // 经济关系
+    | 'trade_partner' | 'economic_union' | 'customs_union' | 'resource_dependency'
+    | 'market_dominance' | 'economic_exploitation' | 'aid_donor' | 'aid_recipient'
+    | 'sanctions' | 'embargo' | 'trade_war' | 'economic_cooperation'
+    // 社会关系
+    | 'cultural_exchange' | 'immigration' | 'refugee' | 'diaspora' | 'exile'
+    | 'cultural_dominance' | 'assimilation' | 'segregation' | 'integration'
+    // 宗教关系
+    | 'same_faith' | 'different_faith' | 'heresy' | 'crusade' | 'jihad'
+    | 'religious_alliance' | 'religious_supremacy' | 'tolerance' | 'persecution'
+    | 'missionary' | 'conversion';
+
   export interface IFactionRelation {
     id?: number
     worldview_id: number
     source_faction_id: number
     target_faction_id: number
-    relation_type: 'ally' | 'enemy' | 'neutral' | 'vassal' | 'overlord' | 'rival' | 'protector' | 'dependent' | 'war'
+    relation_type: FactionRelationType
     relation_strength: number
     description: string
   }

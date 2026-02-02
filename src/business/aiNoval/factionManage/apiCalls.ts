@@ -49,7 +49,7 @@ export default {
         const response = await fetch.get(
             '/api/aiNoval/faction/list', 
             {
-                params: { worldViewId, limit: 200 }
+                params: { worldview_id: worldViewId, limit: 200 }
             }
         );
         return response;
@@ -64,7 +64,7 @@ export default {
         const response = await fetch.get(
             '/api/aiNoval/faction/list', 
             {
-                params: { worldViewId }
+                params: { worldview_id: worldViewId }
             }
         );
 
@@ -100,15 +100,25 @@ export default {
         return response;
     },
 
-    getFactionRelationList: async (worldViewId: number, factionId: number | null = null) => {
+    getFactionRelationList: async (worldViewId: number, factionId: number | null = null, limit: number = 2000) => {
+        let params: { worldview_id: number; source_faction_id?: number; limit: number } = {
+            worldview_id: worldViewId,
+            limit: limit
+        }
+
+        if (typeof factionId === 'number') {
+            params.source_faction_id = factionId;
+        }
+
         const response = await fetch.get(
             '/api/aiNoval/faction/relation/list', 
             {
-                params: { worldview_id: worldViewId, source_faction_id: factionId }
+                params: params,
             }
         );
         return response;
     },
+
     findFaction: (worldviewId: number, keywords: string[], threshold?: number) => {
         return fetch.get('/api/web/aiNoval/llm/once/findFaction', { 
             params: { 
