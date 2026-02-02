@@ -1,9 +1,13 @@
-import { Button, Card, Descriptions, Divider, Typography } from 'antd';
-import { IFactionDefData } from '@/src/types/IAiNoval';
+import { Button, Card, Descriptions, Divider, message, Table, Typography } from 'antd';
+import { FactionRelationType, IFactionDefData, IFactionRelation } from '@/src/types/IAiNoval';
 import { EditOutlined } from '@ant-design/icons';
 import FactionRecallTest from './factionRecallTest';
 import { useCurrentFactionId, useCurrentFaction, useGetEditModal, useWorldViewId } from '../FactionManageContext';
 import FactionEmbedPanel from './factionEmbedPanel';
+import { useState } from 'react';
+import { useEffect } from 'react';
+import apiCalls from '../apiCalls';
+import { getRelationTypeText } from '../utils/relationTypeMap';
 
 // interface FactionInfoPanelProps {
 //     worldViewId?: number | null;
@@ -62,12 +66,58 @@ export default function FactionInfoPanel() {
             </Descriptions>
 
             <FactionEmbedPanel factionData={currentFaction} style={{ marginTop: 16 }} />
-            
-            <Divider />
+        
+            <Divider>阵营关系</Divider>
 
-            <Typography.Title level={4}>知识库召回测试</Typography.Title>
+            <FactionRelationList factionId={currentFaction.id || null} />
+
+            {/* <Typography.Title level={4}>知识库召回测试</Typography.Title> */}
                 
-            <FactionRecallTest worldViewId={worldViewId} recommandQuery={recommandQuery} />
+            {/* <FactionRecallTest worldViewId={worldViewId} recommandQuery={recommandQuery} /> */}
         </div>
     );
+}
+
+function FactionRelationList({ factionId }: { factionId?: number | null }) {
+    const [relations, setRelations] = useState<IFactionRelation[]>([])
+    const [loading, setLoading] = useState(false)
+
+    useEffect(() => {
+        fetchRelations()
+    }, [factionId])
+
+    const fetchRelations = async () => {
+        if (!factionId) { 
+            setRelations([])
+            return;
+        }
+
+        setLoading(true)
+        try {
+            const response = await apiCalls.getUsableFactionRelationsById(factionId)
+            // 兼容数组和对象两种响应格式
+            const data = Array.isArray(response) ? response : (response.data || [])
+            setRelations(data)
+        } catch (error) {
+            message.error('获取关系列表失败')
+            console.error('Failed to fetch relations:', error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    function renderRelationType(relationType: FactionRelationType) {
+        return getRelationTypeText(relationType)
+    }
+
+    return (
+        <div>
+            <Table dataSource={relations} loading={loading} rowKey="id">
+                <Table.Column title="来源阵营" dataIndex="source_faction_name" key="source_faction_name" />
+                <Table.Column title="目标阵营" dataIndex="target_faction_name" key="target_faction_name" />
+                <Table.Column title="关系类型（目标是来源的什么？）" dataIndex="relation_type" key="relation_type" render={renderRelationType} />
+                <Table.Column title="关系说明" dataIndex="description" key="description" />
+            </Table>
+        </div>
+    )
 }

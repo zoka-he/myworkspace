@@ -140,4 +140,14 @@ export default {
             params
         );
     },
+
+    getUsableFactionRelationsById: async (factionId: number) => {
+        const response = await fetch.get(
+            '/api/web/aiNoval/faction/relation/usable', 
+            {
+                params: { faction_id: factionId }
+            }
+        );
+        return response;
+    }
 }

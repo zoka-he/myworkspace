@@ -116,6 +116,7 @@ export function EChartsFactionView({ factions, factionRelations }: D3FactionView
         id: Number(faction.id),
         parentId: faction.parent_id,
         rootId: rootId,
+        depth: depth, // 保存深度信息，用于控制 label 显示
         symbolSize: 15 - depth * 2,
       };
     });
@@ -352,6 +353,7 @@ export function EChartsFactionView({ factions, factionRelations }: D3FactionView
           relationType: relation.relation_type, // 保留原始英文类型用于内部处理
           relationTypeText: getRelationTypeText(relation.relation_type), // 添加中文文本字段
           relationStrength: strength,
+          relationDescription: relation.description || '', // 添加关系描述
           lineStyle: {
             color: getRelationColor(strength), // 根据强度设置颜色：0=红色，100=蓝色
             width: getRelationWidth(strength), // 根据强度设置宽度：50最细，0和100最粗
@@ -407,11 +409,26 @@ export function EChartsFactionView({ factions, factionRelations }: D3FactionView
         trigger: 'item',
         formatter: (params: any) => {
           if (params.dataType === 'edge') {
-            // 边的提示信息：显示中文关系类型
+            // 边的提示信息：显示中文关系类型和关系说明
             const relationTypeText = params.data.relationTypeText || getRelationTypeText(params.data.relationType || 'neutral');
             const sourceName = processedData[params.data.source]?.name || '';
             const targetName = processedData[params.data.target]?.name || '';
-            return `${sourceName} → ${targetName}<br/>关系: ${relationTypeText}<br/>强度: ${params.data.relationStrength}`;
+            const description = params.data.relationDescription || '';
+            
+            let tooltipContent = `${sourceName} → ${targetName}<br/>关系: ${relationTypeText}`;
+            
+            // 如果有关系说明，添加到浮层中
+            if (description && description.trim()) {
+              // 如果关系说明长度超过20个字，每20个字插入换行
+              let formattedDescription = description;
+              if (description.length > 20) {
+                // 每20个字符插入换行符
+                formattedDescription = description.match(/.{1,20}/g)?.join('<br/>') || description;
+              }
+              tooltipContent += `<br/>说明: ${formattedDescription}`;
+            }
+            
+            return tooltipContent;
           } else {
             // 节点的提示信息
             return `${params.data.name}<br/>ID: ${params.data.id}`;
@@ -429,7 +446,7 @@ export function EChartsFactionView({ factions, factionRelations }: D3FactionView
         // 明确指定使用 id 字段进行匹配
         id: 'factionGraph',
         label: {
-          show: true, // 显示节点标签
+          show: true, // 默认显示节点标签，但会根据节点深度动态设置
           position: 'right',
           formatter: '{b}', // 显示节点名称
         },
@@ -452,7 +469,19 @@ export function EChartsFactionView({ factions, factionRelations }: D3FactionView
               },
             };
           }
-          return node;
+          
+          // 深度超过3级的节点不显示label（深度从0开始，所以 > 3 表示第4级及以下）
+          const nodeDepth = (node as any).depth;
+          const shouldShowLabel = nodeDepth === undefined || nodeDepth <= 3;
+          
+          return {
+            ...node,
+            label: {
+              show: shouldShowLabel,
+              position: 'right',
+              formatter: '{b}',
+            },
+          };
         }),
         links: allLinks, // 合并后的所有链接（关系链接 + parent-child 链接）
         // 确保 ECharts 使用 id 字段进行匹配
