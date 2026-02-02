@@ -894,7 +894,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
                             {/* <span>自动续写结果 - {selectedChapter?.chapter_number} {selectedChapter?.title || '未命名章节'}:v{selectedChapter?.version}&nbsp;</span> */}
                             <span>自动续写结果&nbsp;</span>
                             <Tag>{autoWriteStatus}</Tag>
-                            { autoWriteElapsed > 0 ? <Tag color="orange">{autoWriteElapsed}秒</Tag> : null }
+                            { autoWriteElapsed > 0 ? <Tag color="orange">({(autoWriteElapsed / 1000).toFixed(2)}秒)</Tag> : null }
                           </div>
                           <Space>
                             {/* <Button type="primary" size="small" disabled={isLoading || isContinuing || !autoWriteResult} onClick={handleClearThinking}>清除think</Button> */}
