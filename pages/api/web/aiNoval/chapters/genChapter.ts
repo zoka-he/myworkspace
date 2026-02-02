@@ -7,6 +7,8 @@ import { ChatDeepSeek } from "@langchain/deepseek";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { RunnableSequence } from "@langchain/core/runnables";
 import _ from 'lodash';
+import { getRelationTypeText } from "@/src/business/aiNoval/factionManage/utils/relationTypeMap";
+import type { IFactionRelation } from "@/src/types/IAiNoval";
 
 interface Data {
     message?: string;
@@ -165,8 +167,30 @@ function buildFactionContent(faction: {
     return lines.join('\n').trim();
 }
 
+// 按 relation 唯一键去重（优先 id，否则 来源-目标-类型）
+function deduplicateRelations(relations: IFactionRelation[]): IFactionRelation[] {
+    const seen = new Map<string, IFactionRelation>();
+    for (const r of relations) {
+        const key = r.id != null ? String(r.id) : `${r.source_faction_id}-${r.target_faction_id}-${r.relation_type}`;
+        if (!seen.has(key)) seen.set(key, r);
+    }
+    return Array.from(seen.values());
+}
+
+// 格式化单条阵营关系供上下文使用
+function formatRelationForContext(
+    relation: IFactionRelation,
+    factionIdToName: Map<number, string>
+): string {
+    const srcName = relation.source_faction_name ?? factionIdToName.get(relation.source_faction_id) ?? `阵营${relation.source_faction_id}`;
+    const tgtName = relation.target_faction_name ?? factionIdToName.get(relation.target_faction_id) ?? `阵营${relation.target_faction_id}`;
+    const typeText = getRelationTypeText(relation.relation_type);
+    const desc = relation.description?.trim() ? `：${relation.description}` : '';
+    return `${srcName} → ${tgtName}（${typeText}）${desc}`;
+}
+
 // 聚合所有检索结果
-function aggregateContext(results: { roles: any[], factions: any[], geographies: any[] }): string {
+function aggregateContext(results: { roles: any[], factions: any[], geographies: any[], factionRelationsSection?: string }): string {
     const parts: string[] = [];
 
     if (results.roles.length > 0) {
@@ -186,6 +210,12 @@ function aggregateContext(results: { roles: any[], factions: any[], geographies:
                 parts.push(faction.content);
             }
         });
+        parts.push('');
+    }
+
+    if (results.factionRelationsSection && results.factionRelationsSection.trim().length > 0) {
+        parts.push('【阵营关系】');
+        parts.push(results.factionRelationsSection);
         parts.push('');
     }
 
@@ -309,10 +339,15 @@ async function handleGenChapter(req: NextApiRequest, res: NextApiResponse<Data>)
     });
 
     const worldviewIdNum = _.toNumber(worldviewId);
-    const aggregatedResults = {
-        roles: [] as any[],
-        factions: [] as any[],
-        geographies: [] as any[]
+    const aggregatedResults: {
+        roles: any[];
+        factions: any[];
+        geographies: any[];
+        factionRelationsSection?: string;
+    } = {
+        roles: [],
+        factions: [],
+        geographies: []
     };
 
     try {
@@ -336,15 +371,32 @@ async function handleGenChapter(req: NextApiRequest, res: NextApiResponse<Data>)
         if (faction_names && faction_names.trim().length > 0) {
             const factionNameList = splitNames(faction_names);
             console.debug('[genChapter] findFaction', { factionNameList });
+            const factionIdToName = new Map<number, string>();
+            const allRelations: IFactionRelation[] = [];
             for (const factionName of factionNameList) {
                 const factionResults = await findFaction(worldviewIdNum, [factionName], 0.5);
                 console.debug('[genChapter] findFaction result', { factionName, count: factionResults.length });
                 factionResults.forEach(faction => {
+                    if (faction.id != null && faction.name) {
+                        factionIdToName.set(faction.id, faction.name);
+                    }
+                    if (Array.isArray(faction.relations) && faction.relations.length > 0) {
+                        allRelations.push(...faction.relations);
+                    }
                     const content = buildFactionContent(faction);
                     if (content.length > 0) {
                         aggregatedResults.factions.push({ content });
                     }
                 });
+            }
+            // 阵营关系去重并生成上下文片段
+            const uniqueRelations = deduplicateRelations(allRelations);
+            if (uniqueRelations.length > 0) {
+                aggregatedResults.factionRelationsSection = uniqueRelations
+                    .map(r => formatRelationForContext(r, factionIdToName))
+                    .filter(Boolean)
+                    .join('\n');
+                console.debug('[genChapter] faction relations', { total: allRelations.length, unique: uniqueRelations.length });
             }
         }
 
