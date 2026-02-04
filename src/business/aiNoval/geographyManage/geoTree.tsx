@@ -2,7 +2,7 @@ import { Button, Tree, message, Input, Tag, Space } from 'antd';
 import { IGeoStarSystemData } from '@/src/types/IAiNoval';
 import React, { Key, useEffect, useRef, useState, useMemo } from 'react';
 import { type IGeoTreeItem, loadGeoTree } from '../common/geoDataUtil';
-import { CheckOutlined, CheckCircleOutlined, IssuesCloseOutlined, SearchOutlined } from '@ant-design/icons';
+import { IssuesCloseOutlined, SearchOutlined } from '@ant-design/icons';
 import { useGeoData, useGeoEmbedDocuments } from './GeoDataProvider';
 import { useManageState, useObjectCode, useObjectType } from './ManageStateProvider';
 
@@ -195,9 +195,6 @@ export default function(props: IGeoTreeProps) {
     }, [searchValue, geoTree]);
 
     function renderNode(nodeData: any) {
-        let hasDocument = nodeData?.data?.dify_document_id && nodeData?.data?.dify_dataset_id;
-
-        let hasRefDocument = !hasDocument && nodeData?.data?.described_in_llm;
 
         const titleText = nodeData?.title?.toString() || '';
         const highlightedTitle = searchValue ? highlightText(titleText, searchValue) : titleText;
@@ -226,12 +223,6 @@ export default function(props: IGeoTreeProps) {
                 </Space>
                 <Space>
                     {embed_state}
-                    {hasDocument ? <span style={{color: 'green'}}>
-                        <CheckCircleOutlined />
-                    </span> : null}
-                    {hasRefDocument ? <span style={{color: 'orange'}}>
-                        <IssuesCloseOutlined />
-                    </span> : null}
                     
                 </Space>
             </div>
