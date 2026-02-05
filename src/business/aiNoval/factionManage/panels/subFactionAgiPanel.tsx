@@ -26,6 +26,15 @@ interface GenerateResult {
     text5?: string[]; // 生成的子阵营列表（数组）
 }
 
+interface SubFactionSeedsOutput {
+    relation_to_upper: string;
+    orthodox: string;
+    ptsd: string;
+    survival_mechanism: string;
+    daily_stabilizer: string;
+    contradiction_shifter: string;
+}
+
 // Mock 数据生成函数
 function generateMockData(count: number = 1): GenerateResult {
     return {
@@ -162,6 +171,7 @@ Common False Tropes（模型容易犯的错）:
 export default function SubFactionAgiPanel() {
     const [form] = Form.useForm<GenerateParams>();
     const [loading, setLoading] = useState(false);
+    const [seedLoading, setSeedLoading] = useState(false);
     const [result, setResult] = useState<GenerateResult | null>(null);
     const [useMockData, setUseMockData] = useState(false);
     const currentFaction = useCurrentFaction();
@@ -180,6 +190,41 @@ export default function SubFactionAgiPanel() {
             form.setFieldValue('upper_faction_name', currentFaction.name);
         } else {
             message.warning('请先选择一个阵营');
+        }
+    };
+
+    // 根据上级名称自动生成种子字段（除上级阵营外的 6 项）
+    const handleGenerateSeeds = async () => {
+        const upper = form.getFieldValue('upper_faction_name')?.trim();
+        if (!upper) {
+            message.warning('请先填写上级名称');
+            return;
+        }
+        const relationToUpper = form.getFieldValue('relation_to_upper')?.trim();
+        setSeedLoading(true);
+        try {
+            const response = await fetch.post<ApiResponse<SubFactionSeedsOutput>>(
+                '/api/web/aiNoval/llm/once/generateSubFactionSeeds',
+                { upper_faction_name: upper, ...(relationToUpper ? { relation_to_upper: relationToUpper } : {}) }
+            );
+            const result = response as unknown as ApiResponse<SubFactionSeedsOutput>;
+            if (result?.success && result.data) {
+                form.setFieldsValue({
+                    relation_to_upper: result.data.relation_to_upper,
+                    orthodox: result.data.orthodox,
+                    ptsd: result.data.ptsd,
+                    survival_mechanism: result.data.survival_mechanism,
+                    daily_stabilizer: result.data.daily_stabilizer,
+                    contradiction_shifter: result.data.contradiction_shifter,
+                });
+                message.success('种子已生成');
+            } else {
+                throw new Error(result?.error || '生成失败');
+            }
+        } catch (err: any) {
+            message.error(err?.message || '种子生成失败');
+        } finally {
+            setSeedLoading(false);
         }
     };
 
@@ -314,14 +359,24 @@ export default function SubFactionAgiPanel() {
                                 <Input
                                     placeholder="例如：帝国"
                                     suffix={
-                                        <Button
-                                            type="link"
-                                            size="small"
-                                            onClick={handleFillCurrentFaction}
-                                            disabled={!currentFaction}
-                                        >
-                                            使用当前阵营
-                                        </Button>
+                                        <Space size="small">
+                                            <Button
+                                                type="link"
+                                                size="small"
+                                                onClick={handleFillCurrentFaction}
+                                                disabled={!currentFaction}
+                                            >
+                                                使用当前阵营
+                                            </Button>
+                                            <Button
+                                                type="link"
+                                                size="small"
+                                                loading={seedLoading}
+                                                onClick={handleGenerateSeeds}
+                                            >
+                                                自动生成种子
+                                            </Button>
+                                        </Space>
                                     }
                                 />
                             </Form.Item>

@@ -32,6 +32,8 @@ export interface DifyGenSubFactionsOutput {
  * 请求体：DifyGenSubFactionsInput
  * 返回：ApiResponse<DifyGenSubFactionsOutput>
  */
+const LOG_TAG = "[difyGenSubFactions]";
+
 export default async function handler(
     req: NextApiRequest,
     res: NextApiResponse<ApiResponse<DifyGenSubFactionsOutput>>
@@ -45,8 +47,14 @@ export default async function handler(
     }
 
     try {
-        const { worldview_id, upper_faction_name, relation_to_upper, orthodox, ptsd, survival_mechanism, daily_stabilizer, contradiction_shifter, count } =
-            req.body as DifyGenSubFactionsInput;
+        console.log(LOG_TAG, "request start");
+        const body = req.body as DifyGenSubFactionsInput | undefined;
+        if (!body || typeof body !== "object") {
+            console.warn(LOG_TAG, "missing or invalid body", typeof req.body);
+            res.status(400).json({ success: false, error: "请求体无效" });
+            return;
+        }
+        const { worldview_id, upper_faction_name, relation_to_upper, orthodox, ptsd, survival_mechanism, daily_stabilizer, contradiction_shifter, count } = body;
 
         if (!worldview_id || worldview_id === null || worldview_id === undefined) {
             res.status(400).json({ success: false, error: "worldview_id is required" });
@@ -103,7 +111,7 @@ export default async function handler(
             return;
         }
 
-        const inputs = {
+        const inputs: Record<string, string | number> = {
             upper_faction_name: String(upper_faction_name).trim(),
             relation_to_upper: String(relation_to_upper).trim(),
             orthodox: String(orthodox).trim(),
@@ -113,8 +121,13 @@ export default async function handler(
             contradiction_shifter: String(contradiction_shifter).trim(),
             count: count ? Number(count) : 1,
         };
+        // 若 workflow 需要 worldview 上下文（如 MCP），一并传入
+        if (worldview_id != null && worldview_id !== undefined) {
+            inputs.worldview_id = Number(worldview_id);
+        }
 
         const externalApiUrl = difyBaseUrl.replace(/\/$/, "") + "/workflows/run";
+        console.log(LOG_TAG, "calling Dify", externalApiUrl);
         const response = await fetch(externalApiUrl, {
             method: "POST",
             headers: {
@@ -129,9 +142,9 @@ export default async function handler(
             timeout: 1000 * 60 * 10, // 10 minutes (工作流可能较长)
         });
 
+        const responseText = await response.text();
         if (!response.ok) {
-            const responseText = await response.text();
-            console.error("[difyGenSubFactions] Dify API error:", response.status, responseText);
+            console.error(LOG_TAG, "Dify API error", response.status, responseText?.slice(0, 500));
             res.status(500).json({
                 success: false,
                 error: `Dify 接口调用失败: ${response.status} ${response.statusText}`,
@@ -139,7 +152,7 @@ export default async function handler(
             return;
         }
 
-        const data = (await response.json()) as {
+        let data: {
             data?: {
                 outputs?: {
                     text1?: string;
@@ -153,16 +166,39 @@ export default async function handler(
             };
             workflow_run_id?: string;
         };
+        try {
+            data = JSON.parse(responseText) as typeof data;
+        } catch (parseErr: any) {
+            console.error(LOG_TAG, "Dify response JSON parse error", parseErr?.message, responseText?.slice(0, 300));
+            res.status(500).json({
+                success: false,
+                error: "Dify 返回数据无法解析",
+            });
+            return;
+        }
 
         const status = data?.data?.status;
         const error = data?.data?.error;
         const outputs = data?.data?.outputs;
 
         if (status === "failed" || error) {
-            res.status(500).json({
-                success: false,
-                error: error || "Dify 工作流执行失败",
-            });
+            const rawError = error || "Dify 工作流执行失败";
+            const isModelUnavailable =
+                /Server Unavailable|Connection aborted|Remote end closed|RemoteDisconnected|read llm model failed|PluginInvokeError/i.test(
+                    String(rawError)
+                );
+            console.error(LOG_TAG, "workflow failed", rawError?.slice(0, 500));
+            if (isModelUnavailable) {
+                res.status(503).json({
+                    success: false,
+                    error: "模型服务暂时不可用或连接中断，请稍后重试。若多次出现，请检查 Dify 中配置的 LLM 服务是否稳定。",
+                });
+            } else {
+                res.status(500).json({
+                    success: false,
+                    error: rawError,
+                });
+            }
             return;
         }
 
@@ -183,15 +219,20 @@ export default async function handler(
             text5: Array.isArray(outputs.text5) ? outputs.text5 : undefined,
         };
 
+        console.log(LOG_TAG, "success");
         res.status(200).json({
             success: true,
             data: result,
         });
     } catch (error: any) {
-        console.error("[difyGenSubFactions] Error:", error);
-        res.status(500).json({
-            success: false,
-            error: error?.message || "生成失败",
-        });
+        const msg = error?.message ?? String(error);
+        const stack = error?.stack;
+        console.error(LOG_TAG, "Error", msg, stack || "");
+        if (!res.writableEnded) {
+            res.status(500).json({
+                success: false,
+                error: msg || "生成失败",
+            });
+        }
     }
 }
