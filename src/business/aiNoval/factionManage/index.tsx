@@ -12,6 +12,7 @@ import apiCalls from "./apiCalls";
 import FactionManageContextProvider, { useLoadWorldViewList, useLoadFactionList, useCurrentFactionId, useFactionList, useFactionTree, useWorldViewId, useWorldViewList, useCurrentFaction, useGetEditModal, useSetEditModalRef, useLoadFactionEmbedDocuments, useFactionEmbedDocuments } from "./FactionManageContext";
 import { useMQ } from "@/src/components/context/aiNovel";
 import { IMessage } from "@stomp/stompjs";
+import SubFactionAgiPanel from "./panels/subFactionAgiPanel";
 
 export default function FactionManage() {
     return (
@@ -231,8 +232,9 @@ function RightPanel() {
         >
             <Radio.Button value="factionInfo">阵营属性</Radio.Button>
             <Radio.Button value="factionRelation">阵营关系</Radio.Button>
-            <Radio.Button value="factionStatus">阵营状态</Radio.Button>
+            {/* <Radio.Button value="factionStatus">阵营状态</Radio.Button> */}
             <Radio.Button value="factionQuery">召回测试</Radio.Button>
+            <Radio.Button value="subFactionAgi">子阵营AGI生成</Radio.Button>
         </Radio.Group>
     )
 
@@ -259,6 +261,9 @@ function RightPanel() {
                 <FactionQueryTest 
                     worldViewId={worldViewId}
                 />
+            )}
+            {factionInfoPanelId === 'subFactionAgi' && (
+                <SubFactionAgiPanel />
             )}
         </Card>
     )

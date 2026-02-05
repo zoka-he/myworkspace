@@ -68,6 +68,9 @@ export const WorldViewConfig = connect(mapStateToProps)(function({ difyFrontHost
     function getDefaultToolConfig(): { [key: string]: string } {
         return {
             ['DIFY_GEN_GEO_NAMES_API_KEY_' + selectedWorldView]: '',
+            ['DIFY_GEN_FACTIONS_DETAILS_API_KEY_' + selectedWorldView]: '',
+            // ['DIFY_GEN_FACTION_CANDIDATES_API_KEY_' + selectedWorldView]: '',
+            ['DIFY_GEN_SUB_FACTIONS_API_KEY_' + selectedWorldView]: '',
             // ['DIFY_ROLE_DATASET_ID_' + selectedWorldView]: '',
             // ['DIFY_EVENTS_DATASET_ID_' + selectedWorldView]: '',
             // ['DIFY_FACTION_DATASET_ID_' + selectedWorldView]: '',
@@ -131,7 +134,17 @@ export const WorldViewConfig = connect(mapStateToProps)(function({ difyFrontHost
                 <Input disabled={!selectedWorldView}/>
             </Form.Item>
 
-            
+            <Form.Item name={'DIFY_GEN_FACTIONS_DETAILS_API_KEY_' + selectedWorldView} label="阵营详情生成工作流 API Key：">
+                <Input disabled={!selectedWorldView}/>
+            </Form.Item>
+
+            {/* <Form.Item name={'DIFY_GEN_FACTION_CANDIDATES_API_KEY_' + selectedWorldView} label="阵营候选生成工作流 API Key：">
+                <Input disabled={!selectedWorldView}/>
+            </Form.Item> */}
+
+            <Form.Item name={'DIFY_GEN_SUB_FACTIONS_API_KEY_' + selectedWorldView} label="子阵营生成工作流 API Key：">
+                <Input disabled={!selectedWorldView}/>
+            </Form.Item>
 
             <Form.Item {...tailLayout}>
                 <Space>

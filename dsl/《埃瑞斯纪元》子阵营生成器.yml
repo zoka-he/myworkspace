@@ -1,0 +1,882 @@
+app:
+  description: 很贵，效果很好，一次5毛钱
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: workflow
+  name: 《埃瑞斯纪元》子阵营生成器
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.5.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        attachment_image_file_size_limit: 2
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        file_upload_limit: 20
+        image_file_batch_limit: 10
+        image_file_size_limit: 10
+        single_chunk_attachment_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: agent
+      id: 1770189994926-source-1770190211555-target
+      source: '1770189994926'
+      sourceHandle: source
+      target: '1770190211555'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: agent
+        targetType: end
+      id: 1770190211555-source-1770191208874-target
+      source: '1770190211555'
+      sourceHandle: source
+      target: '1770191208874'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: agent
+        targetType: agent
+      id: 1770190211555-source-1770191560181-target
+      source: '1770190211555'
+      sourceHandle: source
+      target: '1770191560181'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: agent
+        targetType: end
+      id: 1770191560181-source-1770191208874-target
+      source: '1770191560181'
+      sourceHandle: source
+      target: '1770191208874'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: agent
+        targetType: agent
+      id: 1770191560181-source-1770193011901-target
+      source: '1770191560181'
+      sourceHandle: source
+      target: '1770193011901'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: agent
+        targetType: end
+      id: 1770193011901-source-1770191208874-target
+      source: '1770193011901'
+      sourceHandle: source
+      target: '1770191208874'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: agent
+        targetType: agent
+      id: 1770191560181-source-1770194511569-target
+      source: '1770191560181'
+      sourceHandle: source
+      target: '1770194511569'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: agent
+        targetType: end
+      id: 1770194511569-source-1770191208874-target
+      source: '1770194511569'
+      sourceHandle: source
+      target: '1770191208874'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: agent
+        targetType: iteration
+      id: 1770193011901-source-1770199150025-target
+      source: '1770193011901'
+      sourceHandle: source
+      target: '1770199150025'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: code
+      id: 1770189994926-source-1770199506350-target
+      source: '1770189994926'
+      sourceHandle: source
+      target: '1770199506350'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: agent
+        targetType: iteration
+      id: 1770194511569-source-1770199150025-target
+      source: '1770194511569'
+      sourceHandle: source
+      target: '1770199150025'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: iteration
+      id: 1770199506350-source-1770199150025-target
+      source: '1770199506350'
+      sourceHandle: source
+      target: '1770199150025'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1770199150025'
+        sourceType: iteration-start
+        targetType: agent
+      id: 1770199150025start-source-1770199732175-target
+      source: 1770199150025start
+      sourceHandle: source
+      target: '1770199732175'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInLoop: false
+        sourceType: iteration
+        targetType: end
+      id: 1770199150025-source-1770191208874-target
+      source: '1770199150025'
+      sourceHandle: source
+      target: '1770191208874'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        selected: false
+        title: 用户输入
+        type: start
+        variables:
+        - default: ''
+          hint: ''
+          label: 上级名称
+          max_length: 48
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: upper_faction_name
+        - default: ''
+          hint: ''
+          label: 与上级关系
+          max_length: 256
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: relation_to_upper
+        - default: ''
+          hint: ''
+          label: 阵营正统
+          max_length: 256
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: orthodox
+        - default: ''
+          hint: ''
+          label: 阵营创伤
+          max_length: 256
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: ptsd
+        - default: '1'
+          hint: ''
+          label: 生成数量
+          max_length: 48
+          options: []
+          placeholder: ''
+          required: false
+          type: number
+          variable: count
+      height: 212
+      id: '1770189994926'
+      position:
+        x: -33.99999999999994
+        y: 282
+      positionAbsolute:
+        x: -33.99999999999994
+        y: 282
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        agent_parameters:
+          instruction:
+            type: constant
+            value: '你正在为“{目标阵营/地点}”裁切世界常量。
+
+
+              用户输入包含：
+
+              上级阵营名称
+
+
+              隐含条件：
+
+              1.任何需要填写worldview_id的场合，worldview_id=1
+
+
+              你可以从mcp中获取：
+
+              1. 当前世界观的不可变物理/宇宙规则
+
+              2. 魔法/异能体系的存在形式与禁区
+
+              3. 上级阵营的世界观、技术上限、禁忌
+
+              4. 其他可能相关的阵营的信息
+
+              5. 提及或关联的地理区域
+
+
+              任务：
+
+              - 仅保留对当前阵营/地点“可感知、可接触、可误解”的部分
+
+              - 明确哪些能力/力量【不存在】、【不可被假设】
+
+              - 明确地理区域中【不应自动生成冲突或势力】
+
+
+
+              '
+          maximum_iterations:
+            type: constant
+            value: 8
+          mcp_servers_config:
+            type: constant
+            value: "{\n  \"server_name\": {\n    \"transport\": \"streamable_http\"\
+              ,\n    \"url\": \"http://host.docker.internal:3000/api/mcp\"\n  }\n}"
+          model:
+            type: constant
+            value:
+              completion_params:
+                temperature: 0.8
+              mode: chat
+              model: deepseek-chat
+              model_type: llm
+              provider: langgenius/deepseek/deepseek
+              type: model-selector
+          query:
+            type: constant
+            value: '输入：
+
+              上级阵营名称：{{#1770189994926.upper_faction_name#}}
+
+
+              输出格式：
+
+              - Allowed Assumptions
+
+              - Forbidden Assumptions
+
+              - Common False Tropes（模型容易犯的错）'
+        agent_strategy_label: ReAct (支持 MCP 工具)
+        agent_strategy_name: mcp_sse_ReAct
+        agent_strategy_provider_name: junjiem/mcp_see_agent/mcp_see_agent
+        meta:
+          minimum_dify_version: null
+          version: 0.0.1
+        output_schema: {}
+        plugin_unique_identifier: junjiem/mcp_see_agent:0.2.4@82caf96890992e9dec2c43c3fac82bfce8bd18a41de7c2b6948151b2d7f7b7a2
+        selected: false
+        title: Agent - 约束层
+        tool_node_version: '2'
+        type: agent
+      height: 135
+      id: '1770190211555'
+      position:
+        x: 464
+        y: 303
+      positionAbsolute:
+        x: 464
+        y: 303
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        outputs:
+        - value_selector:
+          - '1770190211555'
+          - text
+          value_type: string
+          variable: text1
+        - value_selector:
+          - '1770191560181'
+          - text
+          value_type: string
+          variable: text2
+        - value_selector:
+          - '1770193011901'
+          - text
+          value_type: string
+          variable: text3
+        - value_selector:
+          - '1770194511569'
+          - text
+          value_type: string
+          variable: text4
+        - value_selector:
+          - '1770199150025'
+          - output
+          value_type: array[string]
+          variable: text5
+        selected: false
+        title: 输出
+        type: end
+      height: 193
+      id: '1770191208874'
+      position:
+        x: 1741.2010594716935
+        y: 303
+      positionAbsolute:
+        x: 1741.2010594716935
+        y: 303
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        agent_parameters:
+          instruction:
+            type: constant
+            value: '你正在设定某个世界观中的子阵营的文化风格
+
+              请展开一种文化风格，用于科幻/异世界阵营设定。
+
+
+              要求：
+
+              1. 描述其美学偏好、权力象征、秩序感来源
+
+              2. 描述其对“他者”“异端”“失败”的态度
+
+              3. 指出该文化最容易走向的极端状态
+
+              4. 明确哪些刻板印象【不成立】
+
+
+              用户输入包含：
+
+              上级阵营名称
+
+              子阵营的设定约束
+
+
+              隐含条件：
+
+              1.任何需要填写worldview_id的场合，worldview_id=1
+
+
+              你可以从mcp中获取：
+
+              1. 上级阵营的语言风格、文化风格、行政区和地理命名风格
+
+              2. 上级阵营的技术层级范围
+
+              3. 上级阵营对子阵营的压迫或影响方式（如果有）
+
+
+              隐含条件：
+
+              1.任何需要填写worldview_id的场合，worldview_id=1
+
+
+              输出应偏向“生成约束”，而非百科解释。'
+          maximum_iterations:
+            type: constant
+            value: 8
+          mcp_servers_config:
+            type: constant
+            value: "{\n  \"server_name\": {\n    \"transport\": \"streamable_http\"\
+              ,\n    \"url\": \"http://host.docker.internal:3000/api/mcp\"\n  }\n}"
+          model:
+            type: constant
+            value:
+              completion_params:
+                temperature: 0.8
+              mode: chat
+              model: deepseek-chat
+              model_type: llm
+              provider: langgenius/deepseek/deepseek
+              type: model-selector
+          query:
+            type: constant
+            value: '输入：
+
+              上级阵营：{{#1770189994926.upper_faction_name#}}
+
+              子阵营的设定约束：{{#1770190211555.text#}}'
+        agent_strategy_label: ReAct (支持 MCP 工具)
+        agent_strategy_name: mcp_sse_ReAct
+        agent_strategy_provider_name: junjiem/mcp_see_agent/mcp_see_agent
+        meta:
+          minimum_dify_version: null
+          version: 0.0.1
+        output_schema: {}
+        plugin_unique_identifier: junjiem/mcp_see_agent:0.2.4@82caf96890992e9dec2c43c3fac82bfce8bd18a41de7c2b6948151b2d7f7b7a2
+        selected: false
+        title: Agent - 风格展开层
+        tool_node_version: '2'
+        type: agent
+      height: 135
+      id: '1770191560181'
+      position:
+        x: 464
+        y: 504.6653930748072
+      positionAbsolute:
+        x: 464
+        y: 504.6653930748072
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        agent_parameters:
+          instruction:
+            type: constant
+            value: '你正在设定某个世界观中的子阵营的命名规则，注意，不是具体名称。
+
+
+              用户输入包含：
+
+              上级阵营名称
+
+              子阵营与上级的关系
+
+              阵营文化展开
+
+              阵营历史创伤或正统来源
+
+
+              隐含条件：
+
+              1.任何需要填写worldview_id的场合，worldview_id=1
+
+
+              任务：
+
+              1. 子阵营的音系倾向（如：硬辅音/长元音/复合词）
+
+              2. 子阵营名称常见词根来源（宗教、官僚、军事、自然）
+
+              3. 命名中隐含的价值取向
+
+              4. 禁止使用的命名风格（防止串味）'
+          mcp_servers_config:
+            type: constant
+            value: "{\n  \"server_name\": {\n    \"transport\": \"streamable_http\"\
+              ,\n    \"url\": \"http://host.docker.internal:3000/api/mcp\"\n  }\n}"
+          model:
+            type: constant
+            value:
+              completion_params:
+                temperature: 0.8
+              mode: chat
+              model: deepseek-chat
+              model_type: llm
+              provider: langgenius/deepseek/deepseek
+              type: model-selector
+          query:
+            type: constant
+            value: '输入：
+
+              - 与上级阵营的关系：{{#1770189994926.relation_to_upper#}}
+
+              - 阵营文化展开：{{#1770191560181.text#}}
+
+              - 阵营正统来源：{{#1770189994926.orthodox#}}
+
+              - 阵营历史创伤：{{#1770189994926.ptsd#}}'
+        agent_strategy_label: ReAct (支持 MCP 工具)
+        agent_strategy_name: mcp_sse_ReAct
+        agent_strategy_provider_name: junjiem/mcp_see_agent/mcp_see_agent
+        meta:
+          minimum_dify_version: null
+          version: 0.0.1
+        output_schema: {}
+        plugin_unique_identifier: junjiem/mcp_see_agent:0.2.4@82caf96890992e9dec2c43c3fac82bfce8bd18a41de7c2b6948151b2d7f7b7a2
+        selected: false
+        title: Agent - 命名与语言规则
+        tool_node_version: '2'
+        type: agent
+      height: 135
+      id: '1770193011901'
+      position:
+        x: 464
+        y: 709.2871295537103
+      positionAbsolute:
+        x: 464
+        y: 709.2871295537103
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        agent_parameters:
+          instruction:
+            type: constant
+            value: '你正在设定某个世界观中的子阵营生成其“不可解张力结构”。
+
+
+              用户输入：
+
+              - 上级阵营名称
+
+              - 与上级阵营的关系
+
+              - 子阵营的正统来源
+
+              - 子阵营的历史创伤
+
+
+              隐含条件：
+
+              1.任何需要填写worldview_id的场合，worldview_id=1
+
+
+              你可以从mcp中获得：
+
+              - 上级阵营已发生的重大撕裂事件
+
+              - 当前上级阵营面临的最大外部压力源
+
+
+              任务输出：
+
+              1. 阵营正在同时追求、但无法同时满足的目标
+
+              2. 阵营最恐惧但无法回避的未来
+
+              3. 若维持现状，最可能走向的极端行为
+
+              4. 阵营对外叙事中刻意掩盖的真相'
+          maximum_iterations:
+            type: constant
+            value: 8
+          mcp_servers_config:
+            type: constant
+            value: "{\n  \"server_name\": {\n    \"transport\": \"streamable_http\"\
+              ,\n    \"url\": \"http://host.docker.internal:3000/api/mcp\"\n  }\n}"
+          model:
+            type: constant
+            value:
+              completion_params:
+                temperature: 0.8
+              mode: chat
+              model: deepseek-chat
+              model_type: llm
+              provider: langgenius/deepseek/deepseek
+              type: model-selector
+          query:
+            type: constant
+            value: '输入：
+
+              - 上级阵营名称：{{#1770189994926.upper_faction_name#}}
+
+              - 与上级阵营的关系：{{#1770189994926.relation_to_upper#}}
+
+              - 子阵营的正统来源：{{#1770189994926.orthodox#}}
+
+              - 子阵营的历史创伤：{{#1770189994926.ptsd#}}'
+        agent_strategy_label: ReAct (支持 MCP 工具)
+        agent_strategy_name: mcp_sse_ReAct
+        agent_strategy_provider_name: junjiem/mcp_see_agent/mcp_see_agent
+        meta:
+          minimum_dify_version: null
+          version: 0.0.1
+        output_schema: {}
+        plugin_unique_identifier: junjiem/mcp_see_agent:0.2.4@82caf96890992e9dec2c43c3fac82bfce8bd18a41de7c2b6948151b2d7f7b7a2
+        selected: false
+        title: Agent - 结构张力层
+        tool_node_version: '2'
+        type: agent
+      height: 135
+      id: '1770194511569'
+      position:
+        x: 464
+        y: 913.4271711354924
+      positionAbsolute:
+        x: 464
+        y: 913.4271711354924
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        error_handle_mode: terminated
+        flatten_output: true
+        height: 230
+        is_parallel: true
+        iterator_input_type: array[number]
+        iterator_selector:
+        - '1770199506350'
+        - result
+        output_selector:
+        - '1770199732175'
+        - text
+        output_type: array[string]
+        parallel_nums: 10
+        selected: false
+        start_node_id: 1770199150025start
+        title: 迭代
+        type: iteration
+        width: 460
+      height: 230
+      id: '1770199150025'
+      position:
+        x: 1040.002120394143
+        y: 913.4271711354924
+      positionAbsolute:
+        x: 1040.002120394143
+        y: 913.4271711354924
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 460
+      zIndex: 1
+    - data:
+        desc: ''
+        isInIteration: true
+        selected: false
+        title: ''
+        type: iteration-start
+      draggable: false
+      height: 48
+      id: 1770199150025start
+      parentId: '1770199150025'
+      position:
+        x: 24
+        y: 68
+      positionAbsolute:
+        x: 1064.002120394143
+        y: 981.4271711354924
+      selectable: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom-iteration-start
+      width: 44
+      zIndex: 1002
+    - data:
+        code: "\nfunction main({count}) {\n    return {\n        result: Array.from({\
+          \ length: count }, (v, k) => k)\n    }\n}\n"
+        code_language: javascript
+        outputs:
+          result:
+            children: null
+            type: array[number]
+        selected: false
+        title: 代码执行 - 迭代序列
+        type: code
+        variables:
+        - value_selector:
+          - '1770189994926'
+          - count
+          value_type: number
+          variable: count
+      height: 51
+      id: '1770199506350'
+      position:
+        x: 464
+        y: 1139.443868470149
+      positionAbsolute:
+        x: 464
+        y: 1139.443868470149
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        agent_parameters:
+          instruction:
+            type: constant
+            value: '你正在设定某个世界观中的子阵营生成详细设定。
+
+
+              用户将会提供详细的约束条件。
+
+
+              隐含条件：
+
+              1.任何需要填写worldview_id的场合，worldview_id=1
+
+
+              你可以从mcp中获得：
+
+              - 用户未提及，而你可能需要的设定，涵盖世界观、阵营结构和设定、地理结构和设定
+
+
+              要求：
+
+              1. 名称需暗示阵营价值，而非直白描述地理
+
+              2. 不得假设未给定的敌对势力
+
+              3. 名称应能承载未来事件的象征意义
+
+              4.名称应符合该子阵营与上级阵营地关系：{{#1770189994926.relation_to_upper#}}
+
+
+              输出：
+
+              - 阵营名称
+
+              - 词源拆解
+
+              - 阵营潜在叙事用途'
+          mcp_servers_config:
+            type: constant
+            value: "{\n  \"server_name\": {\n    \"transport\": \"streamable_http\"\
+              ,\n    \"url\": \"http://host.docker.internal:3000/api/mcp\"\n  }\n}"
+          model:
+            type: constant
+            value:
+              completion_params:
+                temperature: 0.8
+              mode: chat
+              model: deepseek-chat
+              model_type: llm
+              provider: langgenius/deepseek/deepseek
+              type: model-selector
+          query:
+            type: constant
+            value: '约束如下：
+
+              - 阵营类型：{{#1770189994926.relation_to_upper#}}
+
+              - 命名规则（引用，不复述）：{{#1770193011901.text#}}
+
+              - 详细约束：{{#1770190211555.text#}}
+
+              - 阵营结构张力摘要（隐性）：{{#1770194511569.text#}}'
+        agent_strategy_label: ReAct (支持 MCP 工具)
+        agent_strategy_name: mcp_sse_ReAct
+        agent_strategy_provider_name: junjiem/mcp_see_agent/mcp_see_agent
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1770199150025'
+        meta:
+          minimum_dify_version: null
+          version: 0.0.1
+        output_schema: {}
+        plugin_unique_identifier: junjiem/mcp_see_agent:0.2.4@82caf96890992e9dec2c43c3fac82bfce8bd18a41de7c2b6948151b2d7f7b7a2
+        selected: false
+        title: Agent 6
+        tool_node_version: '2'
+        type: agent
+      height: 135
+      id: '1770199732175'
+      parentId: '1770199150025'
+      position:
+        x: 178.54272761986954
+        y: 66.85130164500288
+      positionAbsolute:
+        x: 1218.5448480140126
+        y: 980.2784727804952
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 1002
+    viewport:
+      x: 250.42152219122818
+      y: -21.663673263810267
+      zoom: 0.5743491774985184
+  rag_pipeline_variables: []

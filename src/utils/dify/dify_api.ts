@@ -217,5 +217,61 @@ export default class DifyApi {
         }
     }
 
+    /**
+     * 根据输入的 Object 构建 dify agent 调用的请求体
+     * @param inputs 输入的参数对象
+     * @param options 可选配置
+     * @param options.responseMode 响应模式，默认为 'blocking'
+     * @param options.user 用户标识，默认为 'dify-api-client'
+     * @returns 构建好的请求体
+     */
+    buildAgentRequest(
+        inputs: Record<string, any>,
+        options?: {
+            responseMode?: 'blocking' | 'streaming';
+            user?: string;
+        }
+    ) {
+        return {
+            inputs,
+            response_mode: options?.responseMode || 'blocking',
+            user: options?.user || 'dify-api-client'
+        };
+    }
+
+    /**
+     * 对 dify agent 的返回进行拆包，暴露返回的 Object
+     * @param response dify agent 的响应数据
+     * @returns 拆包后的输出对象，如果失败则抛出错误
+     */
+    unwrapAgentResponse(response: {
+        data?: {
+            outputs?: Record<string, any>;
+            status?: string;
+            error?: string;
+        };
+        workflow_run_id?: string;
+    }): Record<string, any> {
+        const data = response?.data;
+        
+        if (!data) {
+            throw new Error('Invalid response: missing data field');
+        }
+
+        const status = data.status;
+        const error = data.error;
+
+        if (status === 'failed' || error) {
+            throw new Error(error || 'Dify agent execution failed');
+        }
+
+        const outputs = data.outputs;
+        
+        if (!outputs) {
+            throw new Error('Invalid response: missing outputs field');
+        }
+
+        return outputs;
+    }
 
 }
