@@ -1,6 +1,7 @@
 import fetch from '@/src/fetch';
 import { IChapter, INovalData, IWorldRuleGroup, IWorldRuleItem, IWorldRuleSnapshot, IWorldViewData, IWorldViewDataWithExtra } from '../types/IAiNoval';
 import _ from 'lodash';
+import DifyApi from '../utils/dify/dify_api';
 
 function splitIds(ids: any) {
     if (!ids) {
@@ -320,4 +321,30 @@ export async function createOrUpdateWorldRuleSnapshot(data: IWorldRuleSnapshot) 
 export async function deleteWorldRuleSnapshot(id: number) {
     const response = await fetch.delete('/api/aiNoval/worldrule/snapshot', { params: { id } });
     return response.data;
+}
+
+/**
+ * 获取工具配置
+ * @param name 
+ * @returns 
+ */
+export async function getToolConfig(name: string): Promise<string | null> {
+    const response = await fetch.get('/api/aiNoval/toolConfig/params', { params: { name } });
+    if (!(response && response.data && response.data.length === 0)) {
+        return null;
+    }
+
+    return response.data.find((item: any) => item.cfg_name === name)?.cfg_value_string || null;
+}
+
+/**
+ * 运行Dify应用
+ * @param appKey 
+ * @param inputs 
+ * @param options 
+ * @returns 
+ */
+export async function runDifyApp(host: string, appKey: string, inputs: Record<string, any>, options?: { user?: string; responseMode?: 'blocking' | 'streaming' }) {
+    const difyUtil = new DifyApi(host ? `http://${host}/v1` : '');
+    return await difyUtil.runApp(appKey, inputs, options);
 }

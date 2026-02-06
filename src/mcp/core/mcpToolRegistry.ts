@@ -1,9 +1,11 @@
 // lib/mcp/core/registry.ts
 import type { BaseMCPTool } from './baseMcpTool';
 import type { MCPToolDefinition } from './mcpTypes';
+import { allTools } from '../index';
 
 export class MCPToolRegistry {
   private tools: Map<string, BaseMCPTool> = new Map();
+  private _initialized: boolean = false;
   
   // 单例模式
   private static instance: MCPToolRegistry;
@@ -12,6 +14,17 @@ export class MCPToolRegistry {
       MCPToolRegistry.instance = new MCPToolRegistry();
     }
     return MCPToolRegistry.instance;
+  }
+
+  /**
+   * 确保工具已初始化（懒加载）
+   */
+  private ensureInitialized(): void {
+    if (!this._initialized) {
+      console.log('[MCPToolRegistry] 自动初始化工具注册...');
+      this.registerAll(allTools);
+      this._initialized = true;
+    }
   }
   
   // 注册工具
@@ -35,6 +48,7 @@ export class MCPToolRegistry {
   
   // 获取所有工具定义（用于tools/list响应）
   getAllToolDefinitions(): MCPToolDefinition[] {
+    this.ensureInitialized();
     return Array.from(this.tools.values()).map(tool => tool.definition);
   }
   
@@ -43,6 +57,7 @@ export class MCPToolRegistry {
     name: string, 
     args: Record<string, any>
   ): Promise<any> {
+    this.ensureInitialized();
     const tool = this.getTool(name);
     if (!tool) {
       return {
@@ -81,7 +96,15 @@ export class MCPToolRegistry {
   
   // 获取工具数量
   getToolCount(): number {
+    this.ensureInitialized();
     return this.tools.size;
+  }
+
+  /**
+   * 手动初始化（可选，通常不需要调用，会自动初始化）
+   */
+  initialize(): void {
+    this.ensureInitialized();
   }
 }
 

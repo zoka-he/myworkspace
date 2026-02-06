@@ -6,11 +6,9 @@ const fetch = axios.create({
 
 
 export default class DifyApi {
-    private apiKey: string;
     private serverUrl: string;
 
-    constructor(apiKey: string = 'dataset-CND54hW0XBgB1UTOA5ZB9xjr', serverUrl: string = 'http://localhost/v1') {
-        this.apiKey = apiKey;
+    constructor(serverUrl: string = 'http://localhost/v1') {
         this.serverUrl = serverUrl;
     }
 
@@ -20,10 +18,10 @@ export default class DifyApi {
      * @param limit 
      * @returns 
      */
-    async getDatasets(page: number = 1, limit: number = 20) {
+    async getDatasets(apiKey: string, page: number = 1, limit: number = 20) {
 
         console.log('dify服务地址', this.serverUrl);
-        console.log('查询dataset的apikey', this.apiKey);
+        console.log('查询dataset的apikey', apiKey);
         console.log('页码', page);
         console.log('每页数量', limit);
 
@@ -31,7 +29,7 @@ export default class DifyApi {
             const response = await fetch(`${this.serverUrl}/datasets`, {
                 method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${this.apiKey}`
+                    'Authorization': `Bearer ${apiKey}`
                 },
                 params: {
                     page,
@@ -55,12 +53,12 @@ export default class DifyApi {
         }
     }
 
-    async queryDataset(datasetId: string, query: string) {
+    async queryDataset(apiKey: string, datasetId: string, query: string) {
         try {
             const response = await fetch.post(
                 `${this.serverUrl}/datasets/${datasetId}/retrieve`, 
                 { query },
-                { headers: { 'Authorization': `Bearer ${this.apiKey}` } }
+                { headers: { 'Authorization': `Bearer ${apiKey}` } }
             );
 
             if (response.status >= 400) {
@@ -74,7 +72,7 @@ export default class DifyApi {
         }
     }
 
-    async getDocumentList(datasetId: string, page: number = 1, limit: number = 20, keyword: string = '') {
+    async getDocumentList(apiKey: string, datasetId: string, page: number = 1, limit: number = 20, keyword: string = '') {
         try {   
             let params: any = {
                 page,
@@ -89,7 +87,7 @@ export default class DifyApi {
                 `${this.serverUrl}/datasets/${datasetId}/documents`, 
                 { 
                     headers: { 
-                        'Authorization': `Bearer ${this.apiKey}` 
+                        'Authorization': `Bearer ${apiKey}` 
                     },
                     params
                 }
@@ -106,11 +104,11 @@ export default class DifyApi {
         }
     }
 
-    async getDocumentContent(datasetId: string, documentId: string) {
+    async getDocumentContent(apiKey: string, datasetId: string, documentId: string) {
         try {
             const response = await fetch.get(
                 `${this.serverUrl}/datasets/${datasetId}/documents/${documentId}/segments`,
-                { headers: { 'Authorization': `Bearer ${this.apiKey}` } }
+                { headers: { 'Authorization': `Bearer ${apiKey}` } }
             );
 
             if (response.status >= 400) {
@@ -154,7 +152,7 @@ export default class DifyApi {
         mode: 'automatic'
     }
 
-    async createDocument(datasetId: string, title: string, content: string) {
+    async createDocument(apiKey: string, datasetId: string, title: string, content: string) {
         try {
             const response = await fetch.post(
                 `${this.serverUrl}/datasets/${datasetId}/document/create-by-text`,
@@ -165,7 +163,7 @@ export default class DifyApi {
                     process_rule: this.documentStrategy
                 },
                 { headers: { 
-                    'Authorization': `Bearer ${this.apiKey}`,
+                    'Authorization': `Bearer ${apiKey}`,
                     'Content-Type': 'application/json'
                 } }   
             );
@@ -181,13 +179,13 @@ export default class DifyApi {
         }
     }
 
-    async updateDocument(datasetId: string, documentId: string, title: string, content: string) {
+    async updateDocument(apiKey: string, datasetId: string, documentId: string, title: string, content: string) {
         try {
             const response = await fetch.post(
                 `${this.serverUrl}/datasets/${datasetId}/documents/${documentId}/update-by-text`,
                 { name: title, text: content },
                 { headers: { 
-                    'Authorization': `Bearer ${this.apiKey}`,
+                    'Authorization': `Bearer ${apiKey}`,
                     'Content-Type': 'application/json'
                 } }   
             );
@@ -203,16 +201,50 @@ export default class DifyApi {
         }
     }
 
-    async deleteDocument(datasetId: string, documentId: string) {
+    async deleteDocument(apiKey: string, datasetId: string, documentId: string) {
         try {
             const response = await fetch.delete(    
                 `${this.serverUrl}/datasets/${datasetId}/documents/${documentId}`,
-                { headers: { 'Authorization': `Bearer ${this.apiKey}` } }
+                { headers: { 'Authorization': `Bearer ${apiKey}` } }
             );
             
             return response.data;            
         } catch (error) {
             console.error('Error deleting document:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 直接调用 Dify 应用（工作流），同步阻塞直到返回
+     * @param appKey 目标应用的 API Key（在 Dify 应用设置中获取）
+     * @param inputs 应用入参，键值对，与工作流中定义的变量对应
+     * @param options 可选：user 用户标识；responseMode 响应模式，默认 blocking
+     * @returns 应用执行结果的 outputs 对象
+     */
+    async runApp(
+        appKey: string,
+        inputs: Record<string, any>,
+        options?: { user?: string; responseMode?: 'blocking' | 'streaming' }
+    ): Promise<Record<string, any>> {
+        try {
+            const body = this.buildAgentRequest(inputs, {
+                responseMode: options?.responseMode ?? 'blocking',
+                user: options?.user ?? 'dify-api-client'
+            });
+            const response = await fetch.post(
+                `${this.serverUrl}/workflows/run`,
+                body,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${appKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+            return this.unwrapAgentResponse(response.data);
+        } catch (error) {
+            console.error('Error running Dify app:', error);
             throw error;
         }
     }
