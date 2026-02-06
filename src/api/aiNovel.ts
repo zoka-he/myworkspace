@@ -1,5 +1,5 @@
 import fetch from '@/src/fetch';
-import { IChapter, INovalData, IWorldRuleGroup, IWorldRuleItem, IWorldRuleSnapshot, IWorldViewData, IWorldViewDataWithExtra } from '../types/IAiNoval';
+import { IChapter, INovalData, IWorldRuleGroup, IWorldRuleItem, IWorldRuleSnapshot, IWorldViewData, IWorldViewDataWithExtra, IBrainstorm } from '../types/IAiNoval';
 import _ from 'lodash';
 import DifyApi from '../utils/dify/dify_api';
 
@@ -347,4 +347,84 @@ export async function getToolConfig(name: string): Promise<string | null> {
 export async function runDifyApp(host: string, appKey: string, inputs: Record<string, any>, options?: { user?: string; responseMode?: 'blocking' | 'streaming' }) {
     const difyUtil = new DifyApi(host ? `http://${host}/v1` : '');
     return await difyUtil.runApp(appKey, inputs, options);
+}
+
+// ==================== 脑洞模块 API ====================
+
+/**
+ * 获取脑洞列表
+ * @param params 查询参数
+ * @param page 页码
+ * @param limit 每页数量
+ * @returns 
+ */
+export async function getBrainstormList(params: {
+    worldview_id: number;
+    search?: string;
+    brainstorm_type?: string;
+    status?: string | string[];
+    priority?: string;
+    category?: string;
+    parent_id?: number | null;
+}, page: number = 1, limit: number = 20) {
+    const response = await fetch.get<{ data: IBrainstorm[], count: number }>(
+        '/api/web/aiNoval/brainstorm/list',
+        { params: { ...params, page, limit } }
+    );
+    return {
+        data: response.data?.data || [],
+        count: response.data?.count || 0
+    };
+}
+
+/**
+ * 根据ID获取脑洞详情
+ * @param id 脑洞ID
+ * @returns 
+ */
+export async function getBrainstormById(id: number): Promise<IBrainstorm> {
+    const response = await fetch.get<IBrainstorm>(
+        '/api/web/aiNoval/brainstorm',
+        { params: { id } }
+    );
+    return response.data;
+}
+
+/**
+ * 创建脑洞
+ * @param data 脑洞数据
+ * @returns 
+ */
+export async function createBrainstorm(data: Partial<IBrainstorm>): Promise<IBrainstorm> {
+    const processedData = _.omit(data, ['id', 'created_at', 'updated_at']);
+    const response = await fetch.post<IBrainstorm>(
+        '/api/web/aiNoval/brainstorm',
+        processedData
+    );
+    return response.data;
+}
+
+/**
+ * 更新脑洞
+ * @param id 脑洞ID
+ * @param data 要更新的数据
+ * @returns 
+ */
+export async function updateBrainstorm(id: number, data: Partial<IBrainstorm>): Promise<IBrainstorm> {
+    const processedData = _.omit(data, ['id', 'created_at', 'updated_at']);
+    const response = await fetch.post<IBrainstorm>(
+        '/api/web/aiNoval/brainstorm',
+        processedData,
+        { params: { id } }
+    );
+    return response.data;
+}
+
+/**
+ * 删除脑洞
+ * @param id 脑洞ID
+ * @returns 
+ */
+export async function deleteBrainstorm(id: number): Promise<void> {
+    await fetch.delete('/api/web/aiNoval/brainstorm', { params: { id } });
 }

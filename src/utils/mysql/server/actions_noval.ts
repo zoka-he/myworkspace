@@ -32,8 +32,9 @@ async function insertOne(table: string, obj: ISqlCondMap) {
     }
 
     let conn = await novalPool.getConnection();
-    await conn.execute(`insert into ${table}(${names.join(',')}) values(${placeholders.join(',')})`, values);
+    const [result] = await conn.execute(`insert into ${table}(${names.join(',')}) values(${placeholders.join(',')})`, values);
     conn.release();
+    return result.insertId;
 }
 
 async function insertMany(table: string, obj: ISqlCondMap) {

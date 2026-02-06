@@ -199,7 +199,8 @@ class MysqlService {
 
         console.debug('insert', this.tableName, obj2);
         // @ts-ignore
-        return await this.mysqlApi.insertOne(this.tableName, obj2, ...args);
+        const insertId = await this.mysqlApi.insertOne(this.tableName, obj2, ...args);
+        return insertId;
     }
 
     async updateOne(oldObj: ISqlCondMap, obj: ISqlCondMap, ...args: any[]) {
