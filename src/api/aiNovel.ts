@@ -1,5 +1,5 @@
 import fetch from '@/src/fetch';
-import { IChapter, INovalData, IWorldRuleGroup, IWorldRuleItem, IWorldRuleSnapshot, IWorldViewData, IWorldViewDataWithExtra, IBrainstorm } from '../types/IAiNoval';
+import { IChapter, INovalData, IWorldRuleGroup, IWorldRuleItem, IWorldRuleSnapshot, IWorldViewData, IWorldViewDataWithExtra, IBrainstorm, IWorldState } from '../types/IAiNoval';
 import _ from 'lodash';
 import DifyApi from '../utils/dify/dify_api';
 
@@ -427,4 +427,119 @@ export async function updateBrainstorm(id: number, data: Partial<IBrainstorm>): 
  */
 export async function deleteBrainstorm(id: number): Promise<void> {
     await fetch.delete('/api/web/aiNoval/brainstorm', { params: { id } });
+}
+
+// ==================== 世界态模块 API ====================
+
+/**
+ * 获取世界态列表
+ * @param params 查询参数
+ * @param page 页码
+ * @param limit 每页数量
+ */
+export async function getWorldStateList(params: {
+    worldview_id: number;
+    state_type?: string;
+    status?: string;
+    impact_level?: string;
+}, page: number = 1, limit: number = 20): Promise<{ data: IWorldState[]; count: number }> {
+    const response = await fetch.get<{ data: IWorldState[]; count: number }>(
+        '/api/web/aiNoval/worldState/list',
+        { params: { ...params, page, limit } }
+    );
+    const payload = (response as any)?.data;
+    return {
+        data: payload?.data ?? [],
+        count: payload?.count ?? 0,
+    };
+}
+
+/**
+ * 根据ID获取世界态详情
+ * @param id 世界态ID
+ */
+export async function getWorldStateById(id: number): Promise<IWorldState> {
+    const response = await fetch.get<IWorldState>(
+        '/api/web/aiNoval/worldState',
+        { params: { id } }
+    );
+    return (response as any)?.data;
+}
+
+/**
+ * 创建世界态
+ * @param data 世界态数据
+ */
+export async function createWorldState(data: Partial<IWorldState>): Promise<IWorldState> {
+    const processedData = _.omit(data, ['id', 'created_at', 'updated_at']);
+    const response = await fetch.post<IWorldState>(
+        '/api/web/aiNoval/worldState',
+        processedData
+    );
+    return (response as any)?.data;
+}
+
+/**
+ * 更新世界态
+ * @param id 世界态ID
+ * @param data 要更新的数据
+ */
+export async function updateWorldState(id: number, data: Partial<IWorldState>): Promise<IWorldState> {
+    const processedData = _.omit(data, ['id', 'created_at', 'updated_at']);
+    const response = await fetch.post<IWorldState>(
+        '/api/web/aiNoval/worldState',
+        processedData,
+        { params: { id } }
+    );
+    return (response as any)?.data;
+}
+
+/**
+ * 删除世界态
+ * @param id 世界态ID
+ */
+export async function deleteWorldState(id: number): Promise<void> {
+    await fetch.delete('/api/web/aiNoval/worldState', { params: { id } });
+}
+
+/** 世界态编辑时拉取关联选项用：阵营列表（id + name） */
+export async function getFactionOptionsForWorldState(worldviewId: number): Promise<{ id: number; name?: string }[]> {
+    const res = await fetch.get<{ data?: any[] }>('/api/web/aiNoval/faction/list', {
+        params: { worldview_id: worldviewId, page: 1, limit: 500 },
+    });
+    const data = (res as any)?.data ?? [];
+    return Array.isArray(data) ? data : [];
+}
+
+/** 世界态编辑时拉取关联选项用：角色列表（id + name） */
+export async function getRoleOptionsForWorldState(worldviewId: number): Promise<{ id: number; name?: string }[]> {
+    const res = await fetch.get<{ data?: any[] }>('/api/web/aiNoval/role/list', {
+        params: { worldview_id: worldviewId, page: 1, limit: 500 },
+    });
+    const data = (res as any)?.data ?? [];
+    return Array.isArray(data) ? data : [];
+}
+
+/** 世界态编辑时拉取关联选项用：全量地理列表（覆盖星系/恒星/行星/卫星/地理单元，code + name） */
+export async function getGeoUnitOptionsForWorldState(worldviewId: number): Promise<{ code: string; name?: string }[]> {
+    const params = { worldview_id: worldviewId, limit: 1000 };
+    const base = '/api/web/aiNoval/geo';
+    const [starSystemRes, starRes, planetRes, satelliteRes, geoUnitRes] = await Promise.all([
+        fetch.get<{ data?: any[] }>(`${base}/starSystem/list`, { params }),
+        fetch.get<{ data?: any[] }>(`${base}/star/list`, { params }),
+        fetch.get<{ data?: any[] }>(`${base}/planet/list`, { params }),
+        fetch.get<{ data?: any[] }>(`${base}/satellite/list`, { params }),
+        fetch.get<{ data?: any[] }>(`${base}/geoUnit/list`, { params }),
+    ]);
+    const toItems = (data: any[]): { code: string; name?: string }[] =>
+        (Array.isArray(data) ? data : [])
+            .filter((item) => item?.code != null && String(item.code).trim() !== '')
+            .map((item) => ({ code: String(item.code), name: item.name ?? item.title }));
+    const list: { code: string; name?: string }[] = [];
+    list.push(...toItems((starSystemRes as any)?.data ?? []));
+    list.push(...toItems((starRes as any)?.data ?? []));
+    list.push(...toItems((planetRes as any)?.data ?? []));
+    list.push(...toItems((satelliteRes as any)?.data ?? []));
+    list.push(...toItems((geoUnitRes as any)?.data ?? []));
+    return list;
 }

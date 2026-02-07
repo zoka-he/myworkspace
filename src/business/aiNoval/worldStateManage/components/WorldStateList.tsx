@@ -39,18 +39,19 @@ export default function WorldStateList({ onEdit, onDelete, onSelect }: WorldStat
 
   const columns = [
     {
-      title: '标题',
-      dataIndex: 'title',
-      key: 'title',
-      ellipsis: true,
-    },
-    {
       title: '类型',
       dataIndex: 'state_type',
       key: 'state_type',
       width: 120,
       render: (type: WorldStateType) => <Tag>{stateTypeMap[type]}</Tag>,
     },
+    {
+      title: '标题',
+      dataIndex: 'title',
+      key: 'title',
+      ellipsis: true,
+    },
+    
     {
       title: '状态',
       dataIndex: 'status',
@@ -74,7 +75,7 @@ export default function WorldStateList({ onEdit, onDelete, onSelect }: WorldStat
     {
       title: '操作',
       key: 'action',
-      width: 120,
+      width: 160,
       render: (_: any, record: IWorldState) => (
         <Space>
           <Button

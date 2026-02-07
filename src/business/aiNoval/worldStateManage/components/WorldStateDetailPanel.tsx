@@ -51,9 +51,21 @@ export default function WorldStateDetailPanel() {
                 <Tag key={tag}>{tag}</Tag>
               )) || '无'}
             </Descriptions.Item>
+            <Descriptions.Item label="影响描述">
+              {currentWorldState.impact_description || '暂无'}
+            </Descriptions.Item>
+            <Descriptions.Item label="受影响领域">
+              {currentWorldState.affected_areas?.length ? (
+                currentWorldState.affected_areas.map(area => (
+                  <Tag key={area}>{area}</Tag>
+                ))
+              ) : (
+                '无'
+              )}
+            </Descriptions.Item>
           </Descriptions>
         </TabPane>
-        
+
         <TabPane tab="关联关系" key="relations">
           <Descriptions column={1} size="small" bordered>
             <Descriptions.Item label="关联阵营">
@@ -69,17 +81,6 @@ export default function WorldStateDetailPanel() {
               {currentWorldState.related_world_state_ids?.join(', ') || '无'}
             </Descriptions.Item>
           </Descriptions>
-        </TabPane>
-        
-        <TabPane tab="影响分析" key="impact">
-          <div>
-            <p><strong>影响描述：</strong></p>
-            <p>{currentWorldState.impact_description || '暂无'}</p>
-            <p><strong>受影响领域：</strong></p>
-            {currentWorldState.affected_areas?.map(area => (
-              <Tag key={area}>{area}</Tag>
-            )) || '无'}
-          </div>
         </TabPane>
       </Tabs>
     </Card>

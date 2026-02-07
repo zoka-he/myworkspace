@@ -52,6 +52,7 @@ export default function BrainstormDetailPanel({ onAnalyze }: BrainstormDetailPan
         </div>
       }
       size="small"
+      style={{ marginTop: '12px' }}
     >
       {/* 基础信息 */}
       <div style={{ marginBottom: '16px', paddingBottom: '12px', borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
@@ -80,12 +81,12 @@ export default function BrainstormDetailPanel({ onAnalyze }: BrainstormDetailPan
       </div>
       
       {/* 内容 */}
-      <div style={{ whiteSpace: 'pre-wrap', maxHeight: '300px', overflow: 'auto', marginBottom: '16px' }}>
+      <div style={{ whiteSpace: 'pre-wrap', overflow: 'auto', marginBottom: '16px' }}>
         {currentBrainstorm.content}
       </div>
 
       {/* 分析按钮 - 仅展示 */}
-      {currentBrainstorm.analysis_status !== 'analyzing' && (
+      {/* {currentBrainstorm.analysis_status !== 'analyzing' && (
         <div style={{ marginBottom: '16px', paddingTop: '12px', borderTop: `1px solid ${token.colorBorderSecondary}` }}>
           <Button
             type="primary"
@@ -98,7 +99,7 @@ export default function BrainstormDetailPanel({ onAnalyze }: BrainstormDetailPan
             分析（请在编辑界面操作）
           </Button>
         </div>
-      )}
+      )} */}
 
       {/* 分析结果 */}
       {currentBrainstorm.analysis_status === 'completed' && currentBrainstorm.analysis_result ? (
