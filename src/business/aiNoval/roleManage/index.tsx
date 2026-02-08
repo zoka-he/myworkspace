@@ -294,13 +294,23 @@ function RolePanel(props: RolePanelProps) {
     };
 
     // 创建角色
-    const handleCreateRole = async (values: { name?: string }) => {
+    const handleCreateRole = async (values: { name?: string; is_enabled?: 'Y' | 'N' }) => {
         console.debug('createRole', values);
 
         await apiCalls.createRole({
-            ...values,
+            name: values.name,
+            is_enabled: values.is_enabled ?? 'Y',
         });
         // 重新加载角色列表
+        loadRoleDefList();
+        loadRoleInfoList();
+    };
+
+    // 更新角色定义
+    const handleUpdateRole = async (values: { name?: string; id?: number; is_enabled?: 'Y' | 'N' }) => {
+        if (!values.id) return;
+        await apiCalls.updateRole({ id: values.id, name: values.name || '', is_enabled: values.is_enabled ?? 'Y' } as IRoleData);
+        message.success('更新成功');
         loadRoleDefList();
         loadRoleInfoList();
     };
@@ -358,17 +368,19 @@ function RolePanel(props: RolePanelProps) {
                     <Tree 
                         className="f-flex-1" 
                         treeData={roleManageTreeData}
-                        onClick={(e, node) => {
-                            if (node.key.startsWith('def-')) {
+                        onClick={(e, node: any) => {
+                            const keyStr = String(node.key);
+                            if (keyStr.startsWith('def-') && node.data) {
                                 setRoleDefId(node.data.id);
                                 setRoleInfoId(node.data.version);
-                            } else if (node.key.startsWith('info-')) {
+                            } else if (keyStr.startsWith('info-') && node.data) {
                                 setRoleDefId(node.data.role_id);
                                 setRoleInfoId(node.data.id);
                             }
                         }}
                         blockNode={true}
-                        titleRender={(node: DataNode) => {
+                        titleRender={(node: any) => {
+                            const keyStr = String(node.key);
                             let suffix = [];
                             let actions = [];
                             let hasChildren = node.children?.length || false;
@@ -376,16 +388,17 @@ function RolePanel(props: RolePanelProps) {
                             let info_id = '';
                             let node_data_to_compare: any = {};
 
-                            if (node.key.startsWith('def-')) {
-                                suffix.push(<Tag key="version" color="green">{node.data?.version_name}</Tag>);
-                                node_data_to_compare = node.children?.find((child: any) => child.isCurrent)?.data;
-                                info_id = node_data_to_compare?.id || '';
-                            } else if (node.key.startsWith('info-')) {
+                            if (keyStr.startsWith('def-')) {
+                                const defData = node.data as IRoleData | undefined;
+                                suffix.push(<Tag key="version" color="green">{defData?.version_name}</Tag>);
+                                node_data_to_compare = (node.children as any[])?.find((child: any) => child.isCurrent)?.data;
+                                info_id = node_data_to_compare?.id != null ? String(node_data_to_compare.id) : '';
+                            } else if (keyStr.startsWith('info-')) {
                                 if (node.isCurrent) {
                                     suffix.push(<Tag key="current" color="blue">当前</Tag>);
                                 }
                                 node_data_to_compare = node.data;
-                                info_id = node.data?.id || '';
+                                info_id = (node.data as IRoleInfo)?.id != null ? String((node.data as IRoleInfo).id) : '';
                             }
 
                             // 在渲染时计算 fingerprint
@@ -410,16 +423,36 @@ function RolePanel(props: RolePanelProps) {
                                 // suffix.push(<Tag key="vector" color="orange">未向量化</Tag>);
                             }
 
+                            const handleEditClick = (e: React.MouseEvent) => {
+                                e.stopPropagation();
+                                if (keyStr.startsWith('def-') && node.data) {
+                                    const roleData = node.data as IRoleData;
+                                    openModal({ name: roleData.name ?? '', id: roleData.id ?? undefined, is_enabled: (roleData.is_enabled as 'Y' | 'N') ?? 'Y' });
+                                }
+                                // info 节点编辑由 RoleInfoEditModal 处理，此处仅处理 def 节点
+                            };
+
+                            const handleDeleteClick = (e: React.MouseEvent) => {
+                                e.stopPropagation();
+                                if (keyStr.startsWith('def-') && node.data) {
+                                    showDeleteConfirm(node.data as IRoleData);
+                                }
+                            };
+
+                            const isDefDisabled = keyStr.startsWith('def-') && (node.data as IRoleData)?.is_enabled?.toUpperCase() === 'N';
+
                             return (
                                 <div className="f-flex-two-side">
                                     <Space>
-                                        <span>{node.title}</span>
+                                        <span style={isDefDisabled ? { textDecoration: 'line-through' } : undefined}>{node.title}</span>
                                         {suffix}
                                     </Space>
                                     <Space>
                                         {actions}
-                                        <Button type="link" size="small" icon={<EditOutlined />} />
-                                        <Button type="link" size="small" disabled={hasChildren} danger icon={<DeleteOutlined />} />
+                                        {keyStr.startsWith('def-') && (
+                                            <Button type="link" size="small" icon={<EditOutlined />} onClick={handleEditClick} />
+                                        )}
+                                        <Button type="link" size="small" disabled={!!hasChildren} danger icon={<DeleteOutlined />} onClick={handleDeleteClick} />
                                     </Space>
                                 </div>
                             )
@@ -430,9 +463,9 @@ function RolePanel(props: RolePanelProps) {
             <RoleDefModal
                 open={isOpen}
                 onCancel={closeModal}
-                onOk={values => handleCreateRole(values)}
+                onOk={values => presetValues?.id ? handleUpdateRole(values) : handleCreateRole(values)}
                 initialValues={presetValues}
-                title="创建角色"
+                title={presetValues?.id ? '编辑角色' : '创建角色'}
             />
         </>
     )

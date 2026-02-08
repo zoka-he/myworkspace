@@ -162,6 +162,7 @@ export interface IRoleData {
     name?: string | null,
     version?: number | null,
     created_at?: Date | null,
+    is_enabled?: 'Y' | 'N' | null,
 }
 
 export interface IRoleInfo {

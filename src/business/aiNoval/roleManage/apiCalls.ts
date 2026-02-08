@@ -5,7 +5,7 @@ const apiCalls = {
     getRoleList: (worldViewId?: number | null, page: number = 1, limit: number = 100) => {
         return fetch.get('/api/aiNoval/role/list', { params: { worldview_id: worldViewId, page, limit } });
     },
-    createRole: (data: { name?: string; }) => {
+    createRole: (data: { name?: string; is_enabled?: 'Y' | 'N' }) => {
         return fetch.post('/api/aiNoval/role', data);
     },
     updateRole: (data: IRoleData) => {
