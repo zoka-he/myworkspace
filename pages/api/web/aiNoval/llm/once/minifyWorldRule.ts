@@ -87,10 +87,20 @@ export default async function handler(
         // 2. 获取工具列表
         const tools = mcpToolRegistry.getAllToolDefinitions();
 
-        // 3. 创建工具执行函数（自动添加worldview_id）
-        const toolExecutor = async (name: string, args: Record<string, any>) => {
-            // 确保worldview_id为1
-            const finalArgs = { ...args, worldview_id: WORLDVIEW_ID };
+        // 3. 创建工具执行函数（自动添加 worldview_id；兼容 args 为对象或 JSON 字符串）
+        const toolExecutor = async (name: string, args: Record<string, any> | string) => {
+            let obj: Record<string, any> = {};
+            if (typeof args === 'object' && args !== null && !Array.isArray(args)) {
+                obj = args;
+            } else if (typeof args === 'string') {
+                try {
+                    const parsed = JSON.parse(args);
+                    if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) obj = parsed;
+                } catch {
+                    // 保持 obj = {}
+                }
+            }
+            const finalArgs = { ...obj, worldview_id: WORLDVIEW_ID };
             return await mcpToolRegistry.executeTool(name, finalArgs);
         };
 

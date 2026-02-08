@@ -3,6 +3,7 @@ import * as d3 from 'd3'
 import { IStoryLine, IWorldViewDataWithExtra } from '@/src/types/IAiNoval'
 import { TimelineDateFormatter } from '../../common/novelDateUtils'
 import { IGeoTreeItem } from '../../geographyManage/geoTree'
+import { appendEventStateMarker, EVENT_STATE_CONFIG, type EventStateKey } from './config'
 
 interface TimelineEvent {
   id: string
@@ -13,6 +14,7 @@ interface TimelineEvent {
   faction: string[]
   characters: string[]
   storyLine: string
+  state?: 'enabled' | 'questionable' | 'not_yet' | 'blocked' | 'closed'
   faction_ids?: number[]
   role_ids?: number[]
 }
@@ -175,9 +177,7 @@ export function FactionView({
           .datum(event)
           .style('cursor', 'pointer')
           .on('mouseover', function(mouseEvent, d) {
-            d3.select(this).select('circle')
-              .attr('r', 6)
-              .attr('stroke-width', 3)
+            d3.select(this).select('.event-marker').attr('transform', 'scale(1.25)')
 
             const tooltip = d3.select('body').select('.tooltip')
             tooltip
@@ -186,6 +186,7 @@ export function FactionView({
                 <div style="font-weight: bold; margin-bottom: 5px;">${d.title}</div>
                 <div style="color: #666; margin-bottom: 5px;">${d.description}</div>
                 <div style="color: #999; font-size: 12px;">
+                  <div>状态: ${EVENT_STATE_CONFIG[(d.state as EventStateKey) || 'enabled']?.title ?? '启用'}</div>
                   <div>时间: ${formatTimestamp(d.date, worldviews, worldview_id)}</div>
                   <div>地点: ${d.location}</div>
                   <div>阵营: ${d.faction.join(', ')}</div>
@@ -196,9 +197,7 @@ export function FactionView({
               .style('top', (mouseEvent.pageY - 10) + 'px')
           })
           .on('mouseout', function() {
-            d3.select(this).select('circle')
-              .attr('r', 4)
-              .attr('stroke-width', 2)
+            d3.select(this).select('.event-marker').attr('transform', 'scale(1)')
             d3.select('body').select('.tooltip').style('visibility', 'hidden')
           })
           .on('click', function(mouseEvent, d) {
@@ -212,20 +211,15 @@ export function FactionView({
               faction: eventData.faction || [],
               characters: eventData.characters || [],
               storyLine: eventData.storyLine,
+              state: eventData.state ?? 'enabled',
               faction_ids: eventData.faction_ids || [],
               role_ids: eventData.role_ids || []
             }
             onEventSelect(originalEvent)
           })
 
-        // Add event marker (circle)
-        eventGroup.append('circle')
-          .attr('cx', 0)
-          .attr('cy', 0)
-          .attr('r', 4)
-          .attr('fill', lineColor)
-          .attr('stroke', lineColor)
-          .attr('stroke-width', 2)
+        // Add event marker (shape by state)
+        appendEventStateMarker(eventGroup as d3.Selection<SVGGElement, any, null, undefined>, (event.state as EventStateKey) || 'enabled', lineColor)
 
         // 只在最左侧 node 左侧显示日期
         if (isLeftMost) {
@@ -237,15 +231,17 @@ export function FactionView({
             .attr('fill', lineColor)
             .text(formatTimestamp(event.date, worldviews, worldview_id))
         }
-        // 只在最右侧 node 右侧显示标题
+        // 只在最右侧 node 右侧显示标题（前加状态图标）
         if (isRightMost) {
+          const stateKey = (event.state as EventStateKey) || 'enabled'
+          const stateLabel = EVENT_STATE_CONFIG[stateKey]?.label ?? '●'
           eventGroup.append('text')
             .attr('x', 10)
             .attr('y', 4)
             .attr('text-anchor', 'start')
             .attr('font-size', '12px')
             .attr('fill', lineColor)
-            .text(event.title)
+            .text(`${stateLabel} ${event.title}`)
         }
 
         // 在最后一个节点上方添加阵营名称

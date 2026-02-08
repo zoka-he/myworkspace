@@ -14,7 +14,8 @@ export default class FactionDefService extends MysqlNovalService {
             'faction_ids',
             'role_ids',
             'story_line_id',
-            'worldview_id'
+            'worldview_id',
+            'state'
         ]);
     }
 
@@ -30,7 +31,8 @@ export default class FactionDefService extends MysqlNovalService {
                 ${document_column_def} document, 
                 md5(${document_column_def}) fingerprint,
                 date seconds_of_date,
-                ${location_column_def} location
+                ${location_column_def} location,
+                te.state
             from timeline_events te 
             LEFT JOIN Faction tf ON FIND_IN_SET(tf.id, te.faction_ids) > 0
             LEFT JOIN geo_planet gp ON te.location=gp.code COLLATE utf8mb4_unicode_ci

@@ -23,6 +23,7 @@ interface TimelineEvent {
   faction: string[]
   characters: string[]
   storyLine: string
+  state?: 'enabled' | 'questionable' | 'not_yet' | 'blocked' | 'closed'
   faction_ids?: number[]
   role_ids?: number[]
 }
@@ -113,16 +114,16 @@ function processEventsWithGeo(events: TimelineEvent[], geoTree?: IGeoTreeItem<an
   // console.log('Processing events with geo tree:', events)
   // console.log('Geo tree available:', !!geoTree)
   
+  const VALID_STATES = ['enabled', 'questionable', 'not_yet', 'blocked', 'closed'] as const
   const processed = events.map(event => {
-    // console.log('Processing event:', event)
-    // 保持原始的 location code
-    const result = {
+    const rawState = event.state
+    const state = (typeof rawState === 'string' && VALID_STATES.includes(rawState)) ? rawState : 'enabled'
+    return {
       ...event,
       location: event.location,
-      date: event.date
+      date: event.date,
+      state
     }
-    // console.log('Processed event result:', result)
-    return result
   }).sort((a, b) => a.date - b.date)
   
   // console.log('Final processed events:', processed)

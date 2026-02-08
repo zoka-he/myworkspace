@@ -16,6 +16,8 @@ export default {
     state_type?: string;
     status?: string;
     impact_level?: string;
+    sort_by?: 'impact_level' | 'status' | 'id';
+    sort_order?: 'asc' | 'desc';
     page?: number;
     limit?: number;
   }) => {
@@ -27,6 +29,8 @@ export default {
         state_type: params.state_type,
         status: params.status,
         impact_level: params.impact_level,
+        sort_by: params.sort_by,
+        sort_order: params.sort_order,
       },
       page,
       limit

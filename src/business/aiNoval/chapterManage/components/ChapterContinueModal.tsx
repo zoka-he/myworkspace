@@ -867,10 +867,11 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
 
                   <Typography.Text>模型：</Typography.Text>
                   <Select value={llmType} onChange={(value) => setLlmType(value)} disabled={isContinuing}>
-                    <Select.Option value="gemini">Gemini</Select.Option>
+                    {/* <Select.Option value="gemini">Gemini2.5</Select.Option> */}
                     <Select.Option value="gemini3">Gemini3</Select.Option>
-                    <Select.Option value="deepseek">DeepSeek（实验）</Select.Option>
-                    <Select.Option value="gpt" disabled>GPT-4o</Select.Option>
+                    <Select.Option value="deepseek">DeepSeek</Select.Option>
+                    <Select.Option value="deepseek-chat">DeepSeek-Chat（实验）</Select.Option>
+                    <Select.Option value="gpt" disabled>GPT-4o（实验）</Select.Option>
                   </Select>
 
                   <Checkbox checked={isReferSelf} onChange={(e) => setIsReferSelf(e.target.checked)} disabled={isContinuing}>参考本章已有内容</Checkbox>

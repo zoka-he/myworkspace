@@ -8,8 +8,10 @@ const stateTypeMap: Record<WorldStateType, string> = {
   natural_disaster: '天灾',
   faction_agreement: '阵营协约',
   faction_misunderstanding: '阵营误判',
+  faction_tech_limit: '阵营科技限制',
   character_agreement: '人物协议',
   character_perception_gap: '人物认知差',
+  character_long_term_action: '人物长期行动',
 };
 
 export default function WorldStateDetailPanel() {

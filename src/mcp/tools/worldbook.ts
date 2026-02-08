@@ -36,9 +36,11 @@ export class WorldbookTool extends BaseMCPTool {
     const worldviewId = typeof args.worldview_id === 'string'
       ? _.toNumber(args.worldview_id)
       : args.worldview_id;
-    const content = await getWorkbook(worldviewId);
+    const rawContent = await getWorkbook(worldviewId);
+    const hint = '\n\n---\n建议：可调用 world_state 工具（参数 worldview_id 与当前一致）获取该世界观下的世界态等宏观设定。';
+    const text = rawContent + hint;
     return {
-      content: [{ type: 'text' as const, text: content }],
+      content: [{ type: 'text' as const, text }],
     };
   }
 }

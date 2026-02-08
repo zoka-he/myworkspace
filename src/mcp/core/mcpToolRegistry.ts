@@ -52,10 +52,31 @@ export class MCPToolRegistry {
     return Array.from(this.tools.values()).map(tool => tool.definition);
   }
   
+  /**
+   * 规范化工具参数：MCP 客户端/模型常将 arguments 以 JSON 字符串形式传入，此处统一转为对象。
+   * 返回 { ok: true, args } 或 { ok: false, error }。
+   */
+  private normalizeToolArgs(
+    args: Record<string, any> | string | null | undefined
+  ): { ok: true; args: Record<string, any> } | { ok: false; error: string } {
+    if (args == null) return { ok: true, args: {} };
+    if (typeof args === 'object' && !Array.isArray(args)) return { ok: true, args };
+    if (typeof args === 'string') {
+      try {
+        const parsed = JSON.parse(args) as Record<string, any>;
+        const obj = typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) ? parsed : {};
+        return { ok: true, args: obj };
+      } catch (e) {
+        return { ok: false, error: 'arguments 为 JSON 字符串时解析失败，请传入合法 JSON 对象字符串，例如：{"worldview_id": 1}' };
+      }
+    }
+    return { ok: true, args: {} };
+  }
+
   // 执行工具
   async executeTool(
-    name: string, 
-    args: Record<string, any>
+    name: string,
+    args: Record<string, any> | string | null | undefined
   ): Promise<any> {
     this.ensureInitialized();
     const tool = this.getTool(name);
@@ -68,9 +89,18 @@ export class MCPToolRegistry {
         isError: true
       };
     }
-    
+
+    const normalized = this.normalizeToolArgs(args);
+    if (!normalized.ok) {
+      return {
+        content: [{ type: 'text', text: `参数格式错误: ${normalized.error}` }],
+        isError: true
+      };
+    }
+    const normalizedArgs = normalized.args;
+
     // 验证参数
-    const validationError = tool.validateArgs(args);
+    const validationError = tool.validateArgs(normalizedArgs);
     if (validationError) {
       return {
         content: [{
@@ -80,9 +110,9 @@ export class MCPToolRegistry {
         isError: true
       };
     }
-    
+
     try {
-      return await tool.execute(args);
+      return await tool.execute(normalizedArgs);
     } catch (error: any) {
       return {
         content: [{

@@ -1,9 +1,17 @@
 import React, { useEffect } from 'react'
 import { Form, Input, TreeSelect, Select, Button, Divider } from 'antd'
 import { SaveOutlined, CloseOutlined } from '@ant-design/icons'
-import { IStoryLine, IFactionDefData, IRoleData, IGeoStarSystemData, IGeoStarData, IGeoPlanetData, ITimelineDef } from '@/src/types/IAiNoval'
+import { IStoryLine, IFactionDefData, IRoleData, IGeoStarSystemData, IGeoStarData, IGeoPlanetData, ITimelineDef, type TimelineEventState } from '@/src/types/IAiNoval'
 import { type IGeoTreeItem } from '../../common/geoDataUtil'
 import NovelTimeEdit from './NovelTimeEdit'
+
+const TIMELINE_EVENT_STATE_OPTIONS: { value: TimelineEventState; label: string }[] = [
+  { value: 'enabled', label: '启用' },
+  { value: 'questionable', label: '存疑' },
+  { value: 'not_yet', label: '未到' },
+  { value: 'blocked', label: '阻塞' },
+  { value: 'closed', label: '关闭' }
+]
 
 interface TimelineEvent {
   id: string
@@ -14,6 +22,7 @@ interface TimelineEvent {
   faction: string[]
   characters: string[]
   storyLine: string
+  state?: TimelineEventState
   faction_ids?: number[]
   role_ids?: number[]
 }
@@ -56,21 +65,29 @@ function EventEditPanel({
         title: '',
         description: '',
         location: undefined,
-        storyLine: undefined
+        storyLine: undefined,
+        state: 'enabled'
       })
     }
   }, [isAddingEvent, form])
 
-  // Update form when selectedEvent changes
+  // Update form when selectedEvent changes（先 reset 再 setValues，确保 state 等字段正确刷新）
   useEffect(() => {
     if (selectedEvent) {
       console.log('Updating form with selected event:', selectedEvent)
-      form.setFieldsValue({
-        ...selectedEvent,
+
+      const values = {
+        title: selectedEvent.title,
+        description: selectedEvent.description,
         date: selectedEvent.date || 0,
-        faction: selectedEvent.faction_ids || [],
-        characters: selectedEvent.role_ids || []
-      })
+        location: selectedEvent.location,
+        faction: selectedEvent.faction_ids ?? [],
+        characters: selectedEvent.role_ids ?? [],
+        storyLine: selectedEvent.storyLine,
+        state: selectedEvent.state ?? 'enabled'
+      }
+      form.resetFields()
+      form.setFieldsValue(values)
     }
   }, [selectedEvent, form])
 
@@ -148,6 +165,7 @@ function EventEditPanel({
       <Divider style={{ margin: '12px 0' }} />
       {(selectedEvent || isAddingEvent) ? (
         <Form
+          key={selectedEvent ? `event-${selectedEvent.id}` : 'event-new'}
           form={form}
           layout="vertical"
           style={{ flex: 1, overflow: 'auto' }}
@@ -155,11 +173,13 @@ function EventEditPanel({
             ...selectedEvent,
             date: selectedEvent.date || 0,
             faction: selectedEvent.faction_ids || [],
-            characters: selectedEvent.role_ids || []
+            characters: selectedEvent.role_ids || [],
+            state: selectedEvent.state ?? 'enabled'
           } : {
             date: 0,
             faction: [],
-            characters: []
+            characters: [],
+            state: 'enabled'
           }}
         >
           <Form.Item
@@ -175,6 +195,9 @@ function EventEditPanel({
             rules={[{ required: true, message: '请输入事件描述' }]}
           >
             <Input.TextArea rows={4} />
+          </Form.Item>
+          <Form.Item name="state" label="状态">
+            <Select options={TIMELINE_EVENT_STATE_OPTIONS} placeholder="请选择状态" />
           </Form.Item>
           <Form.Item
             name="date"

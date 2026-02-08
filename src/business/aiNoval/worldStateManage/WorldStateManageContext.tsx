@@ -28,6 +28,8 @@ interface WorldStateManageContextType {
     state_type?: string;
     status?: string;
     impact_level?: string;
+    sort_by?: 'impact_level' | 'status' | 'id';
+    sort_order?: 'asc' | 'desc';
   };
   setFilters: (filters: any) => void;
 }
@@ -40,7 +42,10 @@ export function WorldStateManageContextProvider({ children }: { children: React.
   const [worldStateList, setWorldStateList] = useState<IWorldState[]>([]);
   const [currentWorldStateId, setCurrentWorldStateId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'timeline' | 'graph'>('list');
-  const [filters, setFilters] = useState<any>({});
+  const [filters, setFilters] = useState<any>({
+    sort_by: 'impact_level',
+    sort_order: 'desc',
+  });
 
   const loadWorldviewList = useCallback(async () => {
     const result = await getWorldViews();

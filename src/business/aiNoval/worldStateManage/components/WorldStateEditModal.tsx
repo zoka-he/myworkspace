@@ -17,8 +17,10 @@ const stateTypeOptions: { value: WorldStateType; label: string }[] = [
   { value: 'natural_disaster', label: '天灾' },
   { value: 'faction_agreement', label: '阵营协约' },
   { value: 'faction_misunderstanding', label: '阵营误判' },
+  { value: 'faction_tech_limit', label: '阵营科技限制' },
   { value: 'character_agreement', label: '人物协议' },
   { value: 'character_perception_gap', label: '人物认知差' },
+  { value: 'character_long_term_action', label: '人物长期行动' },
 ];
 
 const statusOptions: { value: WorldStateStatus; label: string }[] = [
@@ -142,7 +144,7 @@ export default function WorldStateEditModal({ visible, worldState, onCancel, onS
         </Form.Item>
 
         <Form.Item name="description" label="描述">
-          <TextArea rows={4} placeholder="请输入描述" />
+          <TextArea autoSize={{ minRows: 4 }} placeholder="请输入描述" />
         </Form.Item>
 
         <Form.Item name="impact_level" label="影响级别">
@@ -156,7 +158,7 @@ export default function WorldStateEditModal({ visible, worldState, onCancel, onS
         </Form.Item>
 
         <Form.Item name="impact_description" label="影响描述">
-          <TextArea rows={3} placeholder="请输入影响描述" />
+          <TextArea autoSize={{ minRows: 3 }} placeholder="请输入影响描述" />
         </Form.Item>
 
         <Form.Item name="related_faction_ids" label="关联阵营">

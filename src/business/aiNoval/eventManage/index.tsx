@@ -6,7 +6,7 @@ import dayjs from 'dayjs'
 import { StoryLineList } from './storyLineView'
 import { UnifiedEventView, ViewType } from './eventViews/UnifiedEventView'
 import { TIMELINE_CONFIG } from './eventViews/config'
-import { IWorldViewData, IStoryLine, IFactionDefData, IRoleData, IGeoStarSystemData, IGeoStarData, IGeoPlanetData, ITimelineDef, IWorldViewDataWithExtra, ITimelineEvent } from '@/src/types/IAiNoval'
+import { IWorldViewData, IStoryLine, IFactionDefData, IRoleData, IGeoStarSystemData, IGeoStarData, IGeoPlanetData, ITimelineDef, IWorldViewDataWithExtra, ITimelineEvent, type TimelineEventState } from '@/src/types/IAiNoval'
 import * as worldviewApiCalls from '../worldViewManage/apiCalls'
 import * as eventApiCalls from './apiCalls'
 import factionApiCalls from '../factionManage/apiCalls'
@@ -34,6 +34,7 @@ interface TimelineEvent {
   faction: string[]
   characters: string[]
   storyLine: string
+  state?: TimelineEventState
   faction_ids?: number[]
   role_ids?: number[]
 }
@@ -235,7 +236,9 @@ function EventManager() {
             return role?.name || id.toString()
           })
 
-          const transformed = {
+          const rawState = event.state ?? (event as unknown as Record<string, string>).State;
+        const state = (typeof rawState === 'string' && ['enabled', 'questionable', 'not_yet', 'blocked', 'closed'].includes(rawState)) ? rawState : 'enabled';
+        const transformed = {
             id: event.id?.toString() || '',
             title: event.title || '',
             description: event.description || '',
@@ -244,6 +247,7 @@ function EventManager() {
             faction: factionNames,
             characters: characterNames,
             storyLine: event.story_line_id?.toString() || '',
+            state,
             faction_ids: factionIds,
             role_ids: roleIds
           }
@@ -314,6 +318,7 @@ function EventManager() {
       faction: event.faction || [],
       characters: event.characters || [],
       storyLine: event.storyLine,
+      state: event.state ?? 'enabled',
       faction_ids: event.faction_ids || [],
       role_ids: event.role_ids || []
     }
@@ -362,6 +367,7 @@ function EventManager() {
             key={`location-${refreshKey}`}
             events={filteredEvents.map(event => ({
               ...event,
+              state: event.state ?? 'enabled',
               faction: event.faction_ids?.map(id => {
                 const faction = factions.find(f => f.id === id)
                 return faction?.name || id.toString()
@@ -393,6 +399,7 @@ function EventManager() {
             key={`faction-${refreshKey}`}
             events={filteredEvents.map(event => ({
               ...event,
+              state: event.state ?? 'enabled',
               faction: event.faction_ids?.map(id => {
                 const faction = factions.find(f => f.id === id)
                 return faction?.name || id.toString()
@@ -424,6 +431,7 @@ function EventManager() {
             key={`character-${refreshKey}`}
             events={filteredEvents.map(event => ({
               ...event,
+              state: event.state ?? 'enabled',
               faction: event.faction_ids?.map(id => {
                 const faction = factions.find(f => f.id === id)
                 return faction?.name || id.toString()
@@ -547,7 +555,8 @@ function EventManager() {
         faction_ids: values.faction?.map(Number) || [],
         role_ids: values.characters?.map(Number) || [],
         story_line_id: Number(values.storyLine),
-        worldview_id: Number(selectedWorld)
+        worldview_id: Number(selectedWorld),
+        state: values.state ?? 'enabled'
       }
 
       await eventApiCalls.createOrUpdateEvent(eventData)
@@ -585,6 +594,7 @@ function EventManager() {
             faction: factionNames,
             characters: characterNames,
             storyLine: event.story_line_id?.toString() || '',
+            state: event.state ?? 'enabled',
             faction_ids: factionIds,
             role_ids: roleIds
           }

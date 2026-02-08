@@ -10,8 +10,10 @@ export const stateTypeOptions: { value: WorldStateType; label: string }[] = [
   { value: 'natural_disaster', label: '天灾' },
   { value: 'faction_agreement', label: '阵营协约' },
   { value: 'faction_misunderstanding', label: '阵营误判' },
+  { value: 'faction_tech_limit', label: '阵营科技限制' },
   { value: 'character_agreement', label: '人物协议' },
   { value: 'character_perception_gap', label: '人物认知差' },
+  { value: 'character_long_term_action', label: '人物长期行动' },
 ];
 
 export const statusOptions: { value: WorldStateStatus; label: string }[] = [
@@ -65,6 +67,28 @@ export default function WorldStateFilterPanel() {
         {impactLevelOptions.map(opt => (
           <Option key={opt.value} value={opt.value}>{opt.label}</Option>
         ))}
+      </Select>
+      <Select
+        style={{ width: 120 }}
+        placeholder="排序"
+        allowClear
+        value={filters.sort_by ? `${filters.sort_by}:${filters.sort_order || 'asc'}` : undefined}
+        onChange={(value) => {
+          if (value == null || value === '') {
+            const { sort_by, sort_order, ...rest } = filters;
+            setFilters(rest);
+            return;
+          }
+          const [sort_by, sort_order] = value.split(':');
+          setFilters({ ...filters, sort_by, sort_order: sort_order || 'asc' });
+        }}
+      >
+        <Option value="impact_level:asc">影响级别 升序</Option>
+        <Option value="impact_level:desc">影响级别 降序</Option>
+        <Option value="status:asc">状态 升序</Option>
+        <Option value="status:desc">状态 降序</Option>
+        {/* <Option value="id:asc">ID 升序</Option>
+        <Option value="id:desc">ID 降序</Option> */}
       </Select>
     </Space>
   );

@@ -266,6 +266,30 @@ async function callLLM(
         const response = await chain.invoke({});
         
         return response.content as string;
+    } else if (effectiveType === 'deepseek-chat') {
+        console.debug('[genChapter] callLLM using deepseek-chat');
+        const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
+        if (!DEEPSEEK_API_KEY) {
+            throw new Error('DEEPSEEK_API_KEY is not configured');
+        }
+
+        const model = new ChatDeepSeek({
+            apiKey: DEEPSEEK_API_KEY,
+            model: "deepseek-chat",
+            temperature: 0.9,
+        });
+
+        // 使用 ChatPromptTemplate 构建消息
+        const prompt = ChatPromptTemplate.fromMessages([
+            ["system", systemPromptWithContext],
+            ["user", userInput]
+        ]);
+        
+        const chain = RunnableSequence.from([prompt, model]);
+        const response = await chain.invoke({});
+        
+        return response.content as string;
+
     } else {
         // 默认使用 Gemini（通过 OpenRouter）
         const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
@@ -432,7 +456,7 @@ async function handleGenChapter(req: NextApiRequest, res: NextApiResponse<Data>)
         console.debug('[genChapter] userInput length', userInput.length);
 
         // 6. 调用 LLM
-        const effectiveLlmType = llm_type || 'gemini';
+        const effectiveLlmType = llm_type || 'deepseek';
         console.debug('[genChapter] callLLM', { llmType: effectiveLlmType });
         const llmStart = Date.now();
         const output = await callLLM(effectiveLlmType, systemPrompt, userInput, context);

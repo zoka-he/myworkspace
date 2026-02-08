@@ -50,6 +50,12 @@ async function getList(req: NextApiRequest, res: NextApiResponse<Data>) {
     if (req.query.impact_level != null && req.query.impact_level !== '') {
       params.impact_level = String(req.query.impact_level);
     }
+    if (req.query.sort_by != null && req.query.sort_by !== '') {
+      params.sort_by = String(req.query.sort_by);
+    }
+    if (req.query.sort_order != null && req.query.sort_order !== '') {
+      params.sort_order = String(req.query.sort_order);
+    }
 
     if (params.worldview_id == null) {
       res.status(400).json({

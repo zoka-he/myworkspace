@@ -442,6 +442,8 @@ export async function getWorldStateList(params: {
     state_type?: string;
     status?: string;
     impact_level?: string;
+    sort_by?: 'impact_level' | 'status' | 'id';
+    sort_order?: 'asc' | 'desc';
 }, page: number = 1, limit: number = 20): Promise<{ data: IWorldState[]; count: number }> {
     const response = await fetch.get<{ data: IWorldState[]; count: number }>(
         '/api/web/aiNoval/worldState/list',

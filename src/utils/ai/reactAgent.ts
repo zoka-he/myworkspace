@@ -69,6 +69,11 @@ Thought: 现在我需要查找上级阵营的详细信息。
 Action: find_faction
 Action Input: {"worldview_id": 1, "keywords": "上级阵营名称", "threshold": 0.5}
 
+示例3 - 获取世界态列表（worldview_id 必填，如 1）：
+Thought: 需要获取当前世界观下的世界态列表。
+Action: world_state
+Action Input: {"worldview_id": 1}
+
 重要规则：
 1. 每次响应必须包含 Thought 和 Action（或 Final Answer）
 2. Action Input 必须是有效的JSON格式
@@ -104,6 +109,10 @@ Thought: 现在我需要查找上级阵营的详细信息。
 Action: find_faction
 Action Input: {"worldview_id": 1, "keywords": "上级阵营名称", "threshold": 0.5}
 
+示例3 - 世界态（worldview_id 必填）：
+Action: world_state
+Action Input: {"worldview_id": 1}
+
 重要规则：
 1. 每次响应必须包含 Thought 和 Action（或 Final Answer）
 2. Action Input 必须是有效的JSON格式
@@ -113,25 +122,55 @@ Action Input: {"worldview_id": 1, "keywords": "上级阵营名称", "threshold":
 }
 
 /**
+ * 从 "Action Input: {...}" 中提取完整 JSON 对象（支持多键、嵌套，按括号平衡匹配）
+ */
+function extractActionInputJson(text: string): string | null {
+    const prefix = /Action Input:\s*/i;
+    const idx = text.search(prefix);
+    if (idx < 0) return null;
+    const start = idx + text.slice(idx).match(prefix)![0].length;
+    const rest = text.slice(start);
+    const firstBrace = rest.indexOf('{');
+    if (firstBrace < 0) return null;
+    let depth = 0;
+    let end = -1;
+    for (let i = firstBrace; i < rest.length; i++) {
+        const c = rest[i];
+        if (c === '{') depth++;
+        else if (c === '}') {
+            depth--;
+            if (depth === 0) {
+                end = i;
+                break;
+            }
+        }
+    }
+    if (end < 0) return null;
+    return rest.slice(firstBrace, end + 1).trim();
+}
+
+/**
  * 解析LLM输出中的Action
  */
 function parseAction(text: string): { action: string; actionInput: any } | null {
-    const actionMatch = text.match(/Action:\s*(\w+)/i);
+    const actionMatch = text.match(/Action:\s*([\w_]+)/i);
     if (!actionMatch) {
         return null;
     }
-    
+
     const action = actionMatch[1].trim();
-    const inputMatch = text.match(/Action Input:\s*(\{[\s\S]*?\})(?=\n|$)/i);
+    const jsonStr = extractActionInputJson(text);
     let actionInput: any = {};
-    
-    if (inputMatch) {
+
+    if (jsonStr) {
         try {
-            const jsonStr = inputMatch[1].trim();
             actionInput = JSON.parse(jsonStr);
-        } catch (e) {
-            // 如果JSON解析失败，尝试提取键值对
-            const keyValuePairs = inputMatch[1].match(/(\w+)\s*:\s*([^,\n}]+)/g);
+            if (typeof actionInput !== 'object' || actionInput === null || Array.isArray(actionInput)) {
+                actionInput = {};
+            }
+        } catch {
+            // 若 JSON 解析失败，尝试提取简单键值对
+            const keyValuePairs = jsonStr.match(/(\w+)\s*:\s*([^,\n}]+)/g);
             if (keyValuePairs) {
                 actionInput = {};
                 keyValuePairs.forEach(pair => {
@@ -146,7 +185,7 @@ function parseAction(text: string): { action: string; actionInput: any } | null 
             }
         }
     }
-    
+
     return { action, actionInput };
 }
 

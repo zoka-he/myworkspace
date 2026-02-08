@@ -321,6 +321,9 @@ export interface IStoryLine {
   }
 
 
+/** timeline_events.state 可选值 */
+export type TimelineEventState = 'enabled' | 'questionable' | 'not_yet' | 'blocked' | 'closed'
+
 export interface ITimelineEvent {
     id: number
     title: string
@@ -331,6 +334,8 @@ export interface ITimelineEvent {
     role_ids: number[]
     story_line_id: number
     worldview_id: number
+    /** 状态：enabled | questionable | not_yet | blocked | closed */
+    state?: TimelineEventState
 }
 
 // Chapter types
@@ -455,8 +460,10 @@ export type WorldStateType =
   | 'natural_disaster'      // 天灾
   | 'faction_agreement'     // 阵营协约
   | 'faction_misunderstanding' // 阵营误判
+  | 'faction_tech_limit'    // 阵营科技限制
   | 'character_agreement'  // 人物协议
-  | 'character_perception_gap'; // 人物认知差
+  | 'character_perception_gap' // 人物认知差
+  | 'character_long_term_action'; // 人物长期行动
 
 export type WorldStateStatus = 
   | 'active'     // 活跃中
