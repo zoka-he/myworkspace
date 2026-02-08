@@ -62,6 +62,7 @@ export default function BrainstormEditModal({ visible, brainstorm, onCancel, onS
   const [brainstormList] = useBrainstormList();
   const [currentBrainstorm, setCurrentBrainstorm] = useState<IBrainstorm | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [expandingDirection, setExpandingDirection] = useState(false);
   const [showParentPreview, setShowParentPreview] = useState(false);
   const [parentBrainstorm, setParentBrainstorm] = useState<IBrainstorm | null>(null);
   const { token } = useToken();
@@ -132,6 +133,35 @@ export default function BrainstormEditModal({ visible, brainstorm, onCancel, onS
     } catch (error) {
       console.error('Validation failed:', error);
       message.error('保存失败');
+    }
+  };
+
+  /** 方案 A：先分析问题（ReAct + MCP），将扩展问题 + 限制性假设回写到「分析方向」 */
+  const handleExpandAnalysisDirection = async () => {
+    if (!worldviewId) {
+      message.error('缺少世界观上下文');
+      return;
+    }
+    const { title = '', content = '', analysis_direction = '' } = form.getFieldsValue(['title', 'content', 'analysis_direction']);
+    if (!title?.trim() && !content?.trim()) {
+      message.warning('请先填写标题或内容');
+      return;
+    }
+    try {
+      setExpandingDirection(true);
+      message.loading({ content: '正在生成分析方向（ReAct 推演中）...', key: 'expandDirection' });
+      const result = await apiCalls.expandAnalysisDirection({
+        worldview_id: worldviewId,
+        title: title?.trim() || '',
+        content: content?.trim() || '',
+        analysis_direction: analysis_direction?.trim() || undefined,
+      });
+      form.setFieldValue('analysis_direction', result.analysis_direction);
+      message.success({ content: '已回写到分析方向', key: 'expandDirection' });
+    } catch (e: any) {
+      message.error({ content: e?.message || '生成分析方向失败', key: 'expandDirection' });
+    } finally {
+      setExpandingDirection(false);
     }
   };
 
@@ -383,10 +413,10 @@ export default function BrainstormEditModal({ visible, brainstorm, onCancel, onS
         </Button>,
       ]}
     >
+      <Form form={form} layout="vertical">
       <Row gutter={24}>
         {/* 左侧表单 */}
-        <Col span={14}>
-          <Form form={form} layout="vertical">
+        <Col span={10}>
             <Form.Item name="title" label="标题" rules={[{ required: true, message: '请输入标题' }]}>
               <Input placeholder="请输入标题" />
             </Form.Item>
@@ -423,7 +453,7 @@ export default function BrainstormEditModal({ visible, brainstorm, onCancel, onS
             </Row>
 
             <Form.Item name="content" label="内容" rules={[{ required: true, message: '请输入内容' }]}>
-              <TextArea rows={12} placeholder="请输入内容（支持Markdown）" />
+              <TextArea autoSize={{ minRows: 8 }} placeholder="请输入内容（支持Markdown）" />
             </Form.Item>
 
             <Form.Item name="category" label="内容分类">
@@ -440,7 +470,7 @@ export default function BrainstormEditModal({ visible, brainstorm, onCancel, onS
                 allowClear
                 showSearch
                 filterOption={(input, option) =>
-                  (option?.children as string)?.toLowerCase().includes(input.toLowerCase())
+                  String(option?.label ?? option?.children ?? '').toLowerCase().includes(input.toLowerCase())
                 }
               >
                 {brainstormList
@@ -461,16 +491,39 @@ export default function BrainstormEditModal({ visible, brainstorm, onCancel, onS
                 tokenSeparators={[',', '，']}
               />
             </Form.Item>
-          </Form>
         </Col>
 
-        {/* 右侧分析区域 */}
-        <Col span={10}>
+        {/* 右侧：分析方向 + 分析区域 */}
+        <Col span={14}>
           <div style={{ 
             borderLeft: `1px solid ${token.colorBorderSecondary}`, 
             paddingLeft: '24px',
             height: '100%'
           }}>
+            <div className='f-flex-two-side' style={{ width: '100%', marginBottom: '10px' }}>
+              <span style={{ fontWeight: 'bold' }}>分析方向</span>
+              <Space size="middle">
+                <Button
+                  type="default"
+                  size="small"
+                  loading={expandingDirection}
+                  disabled={!worldviewId}
+                  onClick={handleExpandAnalysisDirection}
+                >
+                  生成分析方向
+                </Button>
+              </Space>
+            </div>
+            <Form.Item
+              name="analysis_direction"
+              label={false}
+            >
+              <Input.TextArea
+                autoSize={{ minRows: 3 }}
+                placeholder="希望 AI 分析时侧重或关注的方向（可选）；可点击「生成分析方向」通过 ReAct+MCP 自动生成扩展问题与限制性假设"
+                allowClear
+              />
+            </Form.Item>
             <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h4 style={{ margin: 0 }}>分析</h4>
               <Space>
@@ -489,6 +542,7 @@ export default function BrainstormEditModal({ visible, brainstorm, onCancel, onS
           </div>
         </Col>
       </Row>
+      </Form>
     </Modal>
   );
 }

@@ -15,6 +15,7 @@ export default class BrainstormService extends MysqlNovalService {
             'status',
             'priority',
             'category',
+            'analysis_direction',
             'tags',
             'related_faction_ids',
             'related_role_ids',

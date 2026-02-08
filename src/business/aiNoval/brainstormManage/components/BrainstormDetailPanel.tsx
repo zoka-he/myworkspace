@@ -85,6 +85,14 @@ export default function BrainstormDetailPanel({ onAnalyze }: BrainstormDetailPan
         {currentBrainstorm.content}
       </div>
 
+      {/* 分析方向：正文下方 */}
+      {currentBrainstorm.analysis_direction != null && currentBrainstorm.analysis_direction !== '' && (
+        <div style={{ marginBottom: '16px', paddingTop: '12px', borderTop: `1px solid ${token.colorBorderSecondary}` }}>
+          <span style={{ fontSize: '12px', color: token.colorTextSecondary }}>分析方向：</span>
+          <div style={{ marginTop: '4px', fontSize: '13px' }}>{currentBrainstorm.analysis_direction}</div>
+        </div>
+      )}
+
       {/* 分析按钮 - 仅展示 */}
       {/* {currentBrainstorm.analysis_status !== 'analyzing' && (
         <div style={{ marginBottom: '16px', paddingTop: '12px', borderTop: `1px solid ${token.colorBorderSecondary}` }}>

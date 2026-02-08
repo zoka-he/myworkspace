@@ -600,6 +600,8 @@ export interface IBrainstorm {
   status?: BrainstormStatus;
   priority?: Priority;
   category?: BrainstormCategory;
+  /** 分析方向：希望 AI 分析时侧重或关注的方向说明 */
+  analysis_direction?: string;
   tags?: string[];
   related_faction_ids?: number[];
   related_role_ids?: number[];

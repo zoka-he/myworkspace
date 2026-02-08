@@ -1,4 +1,6 @@
 import { IBrainstorm } from '@/src/types/IAiNoval';
+import { ApiResponse } from '@/src/types/ApiResponse';
+import fetch from '@/src/fetch';
 import {
   getBrainstormList,
   getBrainstormById,
@@ -6,6 +8,17 @@ import {
   updateBrainstorm,
   deleteBrainstorm,
 } from '@/src/api/aiNovel';
+
+export interface ExpandAnalysisDirectionPayload {
+  worldview_id: number;
+  title: string;
+  content: string;
+  analysis_direction?: string;
+}
+
+export interface ExpandAnalysisDirectionResult {
+  analysis_direction: string;
+}
 
 export default {
   // 获取脑洞列表
@@ -45,6 +58,20 @@ export default {
   deleteBrainstorm: async (id: number) => {
     await deleteBrainstorm(id);
     return { success: true };
+  },
+
+  /** 方案 A：先分析问题，生成扩展问题 + 限制性假设，回写到「分析方向」（ReAct + MCP，deepseek-chat） */
+  expandAnalysisDirection: async (payload: ExpandAnalysisDirectionPayload): Promise<ExpandAnalysisDirectionResult> => {
+    const res = await fetch.post<ApiResponse<ExpandAnalysisDirectionResult>>(
+      '/api/web/aiNoval/llm/once/brainstormExpandQuestions',
+      payload,
+      {
+        timeout: 1000 * 60 * 5,
+      }
+    );
+    if (!res.success || res.error) throw new Error(res.error || '生成分析方向失败');
+    if (!res.data) throw new Error('未返回分析方向内容');
+    return res.data;
   },
 
   // LLM分析脑洞
