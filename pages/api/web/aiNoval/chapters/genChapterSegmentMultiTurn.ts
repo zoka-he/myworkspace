@@ -12,6 +12,7 @@ const SNIPPET_MAX_CHARS = 800;
 export interface GenChapterSegmentMultiTurnInput {
   worldview_id: number;
   curr_context: string;
+  prev_content?: string; // 前序章节缩写后的内容
   role_names?: string;
   faction_names?: string;
   geo_names?: string;
@@ -87,9 +88,14 @@ function buildSystemPrompt(attensionText: string, segmentIndex: number, targetCh
 function buildUserInputForSegment(
   segmentOutline: string,
   previousSnippet: string,
-  targetChars: number
+  targetChars: number,
+  prevContent?: string
 ): string {
   const parts: string[] = [];
+  // 如果有前序章节内容，只在第一段添加
+  if (prevContent && prevContent.trim()) {
+    parts.push(`【前情提要（前序章节缩写，仅作背景参考）】\n${prevContent.trim()}`);
+  }
   parts.push(`【本段提纲要点（必须严格遵循，这是当前段落的唯一写作目标）】\n${segmentOutline.trim()}`);
   parts.push(`【已写内容末尾（必须严格衔接，这是续写的起点）】\n${(previousSnippet || "").trim() || "（本段为第一段，无前文）"}`);
   parts.push(`请严格接着「已写内容末尾」续写本段，约 ${targetChars} 字；仅输出本段正文，不要重复前文。`);
@@ -111,6 +117,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   const body = req.body as GenChapterSegmentMultiTurnInput;
   const {
     curr_context = "",
+    prev_content = "",
     role_names = "",
     faction_names = "",
     geo_names = "",
@@ -167,7 +174,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       }
       
       // 添加当前段落的 user 输入
-      const userInput = buildUserInputForSegment(segment_outline, snippet, targetChars);
+      // 前序章节内容只在第一段添加
+      const userInput = buildUserInputForSegment(
+        segment_outline, 
+        snippet, 
+        targetChars,
+        segment_index === 1 ? prev_content : undefined
+      );
       messages.push(new HumanMessage(userInput));
     }
     
@@ -184,7 +197,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       updatedHistory.push({ role: 'user', content: "请确认你已理解上述要求，回复「确认」即可。" });
       updatedHistory.push({ role: 'assistant', content: output });
     } else {
-      updatedHistory.push({ role: 'user', content: buildUserInputForSegment(segment_outline, snippet, targetChars) });
+      updatedHistory.push({ 
+        role: 'user', 
+        content: buildUserInputForSegment(
+          segment_outline, 
+          snippet, 
+          targetChars,
+          segment_index === 1 ? prev_content : undefined
+        ) 
+      });
       updatedHistory.push({ role: 'assistant', content: output });
     }
     

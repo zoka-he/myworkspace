@@ -506,11 +506,11 @@ export const genChapterSegment = async (
         { params: { worldviewId }, timeout: 1000 * 60 * 5 }
     )
     const data = response?.data ?? response
-    const body = data?.data ?? data
+    const body = (data as any)?.data ?? data
     return {
-        content: body?.outputs?.output ?? '',
-        status: body?.status ?? 'error',
-        error: body?.error ?? '',
+        content: (body as any)?.outputs?.output ?? '',
+        status: (body as any)?.status ?? 'error',
+        error: (body as any)?.error ?? '',
     }
 }
 
@@ -518,6 +518,7 @@ export const genChapterSegmentMultiTurn = async (
     worldviewId: number,
     params: {
         curr_context: string
+        prev_content?: string
         role_names?: string
         faction_names?: string
         geo_names?: string
@@ -544,6 +545,7 @@ export const genChapterSegmentMultiTurn = async (
         {
             worldview_id: worldviewId,
             curr_context: params.curr_context || '',
+            prev_content: params.prev_content || '',
             role_names: params.role_names || '',
             faction_names: params.faction_names || '',
             geo_names: params.geo_names || '',
@@ -560,12 +562,12 @@ export const genChapterSegmentMultiTurn = async (
         { params: { worldviewId }, timeout: 1000 * 60 * 5 }
     )
     const data = response?.data ?? response
-    const body = data?.data ?? data
+    const body = (data as any)?.data ?? data
     return {
-        content: body?.outputs?.output ?? '',
-        status: body?.status ?? 'error',
-        error: body?.error ?? '',
-        conversation_history: body?.conversation_history || [],
+        content: (body as any)?.outputs?.output ?? '',
+        status: (body as any)?.status ?? 'error',
+        error: (body as any)?.error ?? '',
+        conversation_history: (body as any)?.conversation_history || [],
     }
 }
 

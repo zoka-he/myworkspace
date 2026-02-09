@@ -120,6 +120,11 @@ function GenChapterByDetailModal({
   const pauseRequestedRef = useRef(false)
   const stopRequestedRef = useRef(false)
 
+  // 前序章节相关
+  const [relatedChapterIds, setRelatedChapterIds] = useState<number[]>([])
+  const [prevContent, setPrevContent] = useState<string>('') // 缩写后的前序章节内容
+  const [isStrippingChapters, setIsStrippingChapters] = useState(false)
+
   // 当弹窗打开且存在章节 id 时，拉取续写信息
   useEffect(() => {
     if (!open || !selectedChapter?.id) {
@@ -146,6 +151,29 @@ function GenChapterByDetailModal({
     }
   }, [open, selectedChapter?.id])
 
+  // 获取章节列表（用于前序章节多选框）
+  const [chapterList, setChapterList] = useState<IChapter[]>([])
+  useEffect(() => {
+    if (!open || !selectedChapter?.novel_id || !selectedChapter?.chapter_number) {
+      setChapterList([])
+      return
+    }
+    const novelId = selectedChapter.novel_id
+    const chapterNumber = selectedChapter.chapter_number
+    const from = Math.max(1, chapterNumber - 100)
+    const to = chapterNumber
+    apiCalls.getChapterListFrom(novelId, from, to).then(res => {
+      const ret = res.data || []
+      if (ret && ret.length > 0) {
+        setChapterList(ret.reverse()) // 按章节号倒序
+      } else {
+        setChapterList([])
+      }
+    }).catch(() => {
+      setChapterList([])
+    })
+  }, [open, selectedChapter?.novel_id, selectedChapter?.chapter_number])
+
   // 回填角色、阵营、地理、章节提示词、注意事项、额外设置（与 ChapterContinueModal 一致）
   useEffect(() => {
     if (!continueInfo) return
@@ -166,24 +194,83 @@ function GenChapterByDetailModal({
     setChapterStyle(continueInfo.chapter_style || continueInfo.overall_style || '')
   }, [continueInfo])
 
+  // 从章节元数据加载前序章节ID
+  useEffect(() => {
+    if (!selectedChapter?.related_chapter_ids) {
+      setRelatedChapterIds([])
+      return
+    }
+    // related_chapter_ids 可能是数组或逗号分隔的字符串
+    let ids: number[] = []
+    const relatedIds = selectedChapter.related_chapter_ids as any
+    if (Array.isArray(relatedIds)) {
+      ids = relatedIds.filter((id: any) => id != null && id > 0)
+    } else if (typeof relatedIds === 'string' && String(relatedIds).trim()) {
+      const strIds = String(relatedIds)
+      ids = strIds
+        .split(',')
+        .map((s: string) => s.trim())
+        .filter((s: string) => s.length > 0)
+        .map((s: string) => Number(s))
+        .filter((id: number) => !isNaN(id) && id > 0)
+    }
+    setRelatedChapterIds(ids)
+  }, [selectedChapter?.related_chapter_ids])
+
+  // 缩写前序章节内容（内部函数，供生成提纲时调用）
+  const stripPreviousChapters = async (): Promise<string> => {
+    if (relatedChapterIds.length === 0) {
+      return ''
+    }
+    setIsStrippingChapters(true)
+    try {
+      const strippedContents: string[] = []
+      for (const chapterId of relatedChapterIds) {
+        const chapter = await apiCalls.getChapterById(chapterId)
+        if (chapter.content) {
+          const stripped = await apiCalls.stripText(chapter.content, 300)
+          if (stripped) {
+            strippedContents.push(`【第 ${chapter.chapter_number} 章 ${chapter.title || '未命名'}】\n${stripped}`)
+          }
+        }
+      }
+      const combinedContent = strippedContents.join('\n\n')
+      setPrevContent(combinedContent)
+      return combinedContent
+    } catch (e: any) {
+      console.error('[stripPreviousChapters]', e?.message || e)
+      message.error(e?.message || '缩写前序章节失败')
+      return ''
+    } finally {
+      setIsStrippingChapters(false)
+    }
+  }
+
   const isBusy =
     phase === 'mcp_gathering' ||
     phase === 'segment_planning' ||
     phase === 'writing_segment'
   const isFormDisabled = isBusy || (phase === 'idle' && isLoadingContinueInfo)
 
-  /** 生成分段提纲：可选先 mock MCP，再调接口生成提纲 */
+  /** 生成分段提纲：可选先 mock MCP，再调接口生成提纲；自动完成前序章节缩写 */
   const handleGenerateOutline = async () => {
     setErrorMessage('')
     if (useMcpContext) {
       setPhase('mcp_gathering')
       await new Promise((r) => setTimeout(r, 600))
     }
+    
+    // 如果有前序章节且尚未缩写，先完成缩写
+    let finalPrevContent = prevContent
+    if (relatedChapterIds.length > 0 && !prevContent) {
+      finalPrevContent = await stripPreviousChapters()
+    }
+    
     setPhase('segment_planning')
     try {
       const { outlines } = await apiCalls.genChapterSegmentOutline({
         curr_context: seedPrompt,
-        prev_content: '',
+        prev_content: finalPrevContent || '',
         mcp_context: undefined,
         role_names: roleNames,
         faction_names: factionNames,
@@ -192,7 +279,7 @@ function GenChapterByDetailModal({
         chapter_style: chapterStyle,
         max_segments: maxSegments,
         segment_target_chars: segmentTargetChars,
-        model: outlineModel || 'deepseek-reasoner',
+        model: outlineModel || 'deepseek-chat',
       })
       setSegmentOutlineList(Array.isArray(outlines) && outlines.length > 0 ? outlines : defaultOutlines)
       setPhase('awaiting_confirmation')
@@ -243,6 +330,7 @@ function GenChapterByDetailModal({
       try {
         const res = await apiCalls.genChapterSegmentMultiTurn(worldviewId, {
           curr_context: seedPrompt,
+          prev_content: prevContent || '',
           role_names: roleNames,
           faction_names: factionNames,
           geo_names: geoNames,
@@ -306,6 +394,7 @@ function GenChapterByDetailModal({
       try {
         const res = await apiCalls.genChapterSegmentMultiTurn(worldviewId, {
           curr_context: seedPrompt,
+          prev_content: prevContent || '',
           role_names: roleNames,
           faction_names: factionNames,
           geo_names: geoNames,
@@ -516,6 +605,8 @@ function GenChapterByDetailModal({
     setSegmentIndex(1)
     setErrorMessage('')
     setConversationHistory([])
+    setRelatedChapterIds([])
+    setPrevContent('')
     onCancel()
   }
 
@@ -661,10 +752,8 @@ function GenChapterByDetailModal({
 
           {/* 右侧：主操作 / 提纲回显；所有按钮始终可见，通过 loading/disabled 控制 */}
           <Col span={12}>
-            
-
-            {/* 注意事项 - 移动到右侧 */}
-            <Divider orientation="left" style={{ marginTop: 16 }}>注意事项</Divider>
+            {/* 1. 注意事项 */}
+            <Divider orientation="left">注意事项</Divider>
             <div className={styles.prompt_title}>
               <span>扩写注意事项：</span>
               <Button
@@ -686,21 +775,31 @@ function GenChapterByDetailModal({
               style={{ marginBottom: 16 }}
             />
 
-            {/* Loading 状态提示 */}
-            {(phase === 'mcp_gathering' || phase === 'segment_planning') && (
-              <Card size="small" style={{ marginBottom: 16 }}>
-                <Spin spinning />
-                <Typography.Paragraph style={{ marginTop: 16, marginBottom: 0 }}>
-                  {phase === 'mcp_gathering'
-                    ? '正在通过 MCP 收集设定…'
-                    : '正在生成分段提纲…'}
-                </Typography.Paragraph>
-              </Card>
-            )}
+            {/* 2. 前序章节多选框 */}
+            <Divider orientation="left">前序章节</Divider>
+            <Select
+              mode="multiple"
+              placeholder="请选择前序章节（从章节元数据自动加载）"
+              style={{ width: '100%', marginBottom: 16 }}
+              allowClear
+              value={relatedChapterIds}
+              onChange={(value) => {
+                setRelatedChapterIds(value)
+                if (value.length === 0) {
+                  setPrevContent('')
+                }
+              }}
+              disabled={isFormDisabled}
+            >
+              {chapterList.map(chapter => (
+                <Select.Option key={chapter.id} value={chapter.id}>
+                  {chapter.chapter_number} {chapter.title || '未命名章节'} : v{chapter.version}
+                </Select.Option>
+              ))}
+            </Select>
 
+            {/* 3. 分段设置：提纲模型选择和生成分段提纲按钮 */}
             <Divider orientation="left">分段设置</Divider>
-            
-            {/* 分段设置选项 */}
             <Space wrap style={{ marginBottom: 16 }}>
               <Typography.Text>提纲模型：</Typography.Text>
               <Select
@@ -713,22 +812,46 @@ function GenChapterByDetailModal({
                 <Select.Option value="deepseek-chat">DeepSeek-Chat（默认）</Select.Option>
                 <Select.Option value="gemini3">Gemini3</Select.Option>
               </Select>
-            {/* </Space> */}
-            
-            {/* 生成分段提纲按钮 - 放在列表上方 */}
-            {/* <Space style={{ marginBottom: 16 }} wrap> */}
               <Button
                 type="primary"
                 icon={<RobotOutlined />}
                 onClick={handleGenerateOutline}
-                loading={phase === 'mcp_gathering' || phase === 'segment_planning'}
+                loading={phase === 'mcp_gathering' || phase === 'segment_planning' || isStrippingChapters}
                 disabled={isFormDisabled}
               >
                 生成分段提纲
+                {relatedChapterIds.length > 0 && !prevContent && '（将自动缩写前序章节）'}
               </Button>
             </Space>
 
-            {/* 分段提纲列表（生成后显示） */}
+            {/* Loading 状态提示 */}
+            {(phase === 'mcp_gathering' || phase === 'segment_planning') && (
+              <Card size="small" style={{ marginBottom: 16 }}>
+                <Spin spinning />
+                <Typography.Paragraph style={{ marginTop: 16, marginBottom: 0 }}>
+                  {phase === 'mcp_gathering'
+                    ? '正在通过 MCP 收集设定…'
+                    : '正在生成分段提纲…'}
+                </Typography.Paragraph>
+              </Card>
+            )}
+
+            {/* 4. 前序章节缩写的结果（TextArea，可编辑） */}
+            {prevContent && (
+              <>
+                <Divider orientation="left">前序章节缩写结果</Divider>
+                <TextArea
+                  autoSize={{ minRows: 4, maxRows: 10 }}
+                  value={prevContent}
+                  onChange={(e) => setPrevContent(e.target.value)}
+                  placeholder="前序章节缩写后的内容（可编辑）"
+                  style={{ marginBottom: 16 }}
+                  disabled={isFormDisabled}
+                />
+              </>
+            )}
+
+            {/* 5. 分段提纲列表（生成后显示） */}
             {segmentOutlineList.length > 0 && (
               <Card 
                 size="small" 
