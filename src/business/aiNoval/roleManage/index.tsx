@@ -354,6 +354,8 @@ function RolePanel(props: RolePanelProps) {
         </Space>
     );
 
+    // console.debug('roleChromaMetadataList --->> ', roleChromaMetadataList);
+
     return (
         <>
             <Card className="f-fit-height" title={roleListTitle}>
@@ -408,10 +410,12 @@ function RolePanel(props: RolePanelProps) {
                             }
 
                             let chromaFingerprint = roleChromaMetadataList.find(
-                                (item: IRoleChromaMetadata) => item.metadata.id === info_id
+                                (item: IRoleChromaMetadata) => item.id === info_id
                             )?.metadata.fingerprint || '';
                             
-                            // console.debug('fingerprint compare --->> ', { info_id, localFingerprint, chromaFingerprint });
+                            // console.debug('fingerprint compare --->> ', { info_id, localFingerprint, chromaFingerprint, chromaItem: roleChromaMetadataList.find(
+                            //     (item: IRoleChromaMetadata) => item.id === info_id
+                            // ) });
 
                             if (chromaFingerprint) {
                                 if (chromaFingerprint === localFingerprint) {
