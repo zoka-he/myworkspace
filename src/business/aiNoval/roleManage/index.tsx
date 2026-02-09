@@ -441,10 +441,12 @@ function RolePanel(props: RolePanelProps) {
 
                             const isDefDisabled = keyStr.startsWith('def-') && (node.data as IRoleData)?.is_enabled?.toUpperCase() === 'N';
 
+                            const isInfoDisabled = keyStr.startsWith('info-') && (node.data as IRoleInfo)?.is_enabled?.toUpperCase() === 'N';
+
                             return (
                                 <div className="f-flex-two-side">
                                     <Space>
-                                        <span style={isDefDisabled ? { textDecoration: 'line-through' } : undefined}>{node.title}</span>
+                                        <span style={(isDefDisabled || isInfoDisabled) ? { textDecoration: 'line-through' } : undefined}>{node.title}</span>
                                         {suffix}
                                     </Space>
                                     <Space>

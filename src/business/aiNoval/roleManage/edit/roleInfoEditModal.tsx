@@ -1,4 +1,4 @@
-import { Modal, Form, Input, InputNumber, Select, Button, Row, Col, Divider, TreeSelect, Space, message } from 'antd'
+import { Modal, Form, Input, InputNumber, Select, Button, Row, Col, Divider, TreeSelect, Space, Radio, message } from 'antd'
 import { useState, useEffect, forwardRef, useImperativeHandle, useMemo } from 'react'
 import { IRoleInfo, IRoleData, IWorldViewData, IFactionDefData } from '@/src/types/IAiNoval'
 import factionApiCalls from '@/src/business/aiNoval/factionManage/apiCalls'
@@ -256,6 +256,24 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
         wrapperCol={{ span: 18 }}
       >
         <Divider orientation="left">设定版本</Divider>
+
+        <Row gutter={16}>
+          <Col span={24}>
+            <Form.Item
+              name="is_enabled"
+              label="启用状态"
+              initialValue="Y"
+              rules={[{ required: true }]}
+              labelCol={{ span: 3 }}
+              wrapperCol={{ span: 21 }}
+            >
+              <Radio.Group>
+                <Radio value="Y">启用</Radio>
+                <Radio value="N">禁用</Radio>
+              </Radio.Group>
+            </Form.Item>
+          </Col>
+        </Row>
 
         <Row gutter={16}>
           <Col span={24}>

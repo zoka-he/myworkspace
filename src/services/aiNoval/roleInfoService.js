@@ -27,6 +27,7 @@ export default class RoleDefService extends MysqlNovalService {
             'match_percent',
             'score',
             'embed_document',
+            'is_enabled',
         ]);
     }
 
@@ -76,6 +77,7 @@ export default class RoleDefService extends MysqlNovalService {
                     id,
                     role_id,
                     version_name,
+                    is_enabled,
                     name_in_worldview, 
                     gender_in_worldview,
                     age_in_worldview,
@@ -114,6 +116,7 @@ export default class RoleDefService extends MysqlNovalService {
                 with ranked as (
                     select 
                         id,
+                        is_enabled,
                         name_in_worldview,
                         background,
                         personality,

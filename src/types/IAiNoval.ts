@@ -182,6 +182,7 @@ export interface IRoleInfo {
     dify_document_id?: string | null,
     dify_dataset_id?: string | null,
     embed_document?: string | null,
+    is_enabled?: 'Y' | 'N' | null,
 }
 
 

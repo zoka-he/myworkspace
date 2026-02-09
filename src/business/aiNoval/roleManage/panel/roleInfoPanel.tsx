@@ -262,7 +262,7 @@ export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
         ) : (
           <>
             <div className='f-flex-two-side'>
-              <Title level={5} style={{ margin: 0 }}>版本信息</Title>
+              <Title level={5} style={{ margin: 0 }}>版本信息{roleInfo.is_enabled === 'Y' ? '' : [" ", <Tag color="red">禁用</Tag>]}</Title>
 
               {/* 版本操作按钮 */}
               <Space style={{ marginBottom: 10}} align='center'>
