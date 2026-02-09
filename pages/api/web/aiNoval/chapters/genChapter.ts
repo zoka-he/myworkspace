@@ -29,8 +29,8 @@ function splitNames(names: string): string[] {
     return names.replace('，', ',').split(',').map(n => n.trim()).filter(n => n.length > 0);
 }
 
-// 构建提示词模板
-function buildPromptTemplate(attension: string): string {
+// 构建提示词模板（供 genChapter 与 genChapterSegment 复用）
+export function buildPromptTemplate(attension: string): string {
     const defaultAttension = `* 扩写时，请仔细分析用户提供的片段，理解其含义和作用。
 * 扩写时，请充分利用前情提要和相关设定，为故事增加细节和深度。
 * 扩写时，请注意人物的心理活动和行为动机，使人物更加立体和真实。
@@ -95,6 +95,8 @@ function buildPromptTemplate(attension: string): string {
 * 扩写后的内容应流畅自然，易于理解。
 
 * 输出内容应为纯文本，严禁包含任何XML标签。
+
+* **严禁简略对话**：所有对话必须完整写出，不得使用「他说」「她问」等间接引语替代直接引语，不得省略对话内容，不得用概括性描述代替具体对话。对话应保持完整、自然、符合人物性格。
 
 </section>
 
@@ -232,8 +234,64 @@ function aggregateContext(results: { roles: any[], factions: any[], geographies:
     return parts.join('\n');
 }
 
+/** 聚合角色/阵营/地理设定为 context 字符串（供 genChapter 与 genChapterSegment 复用） */
+export async function getAggregatedContext(
+    worldviewIdNum: number,
+    role_names: string,
+    faction_names: string,
+    geo_names: string
+): Promise<string> {
+    const aggregatedResults: { roles: any[]; factions: any[]; geographies: any[]; factionRelationsSection?: string } = {
+        roles: [],
+        factions: [],
+        geographies: []
+    };
+    if (role_names && role_names.trim().length > 0) {
+        const roleNameList = splitNames(role_names);
+        for (const roleName of roleNameList) {
+            const roleResults = await findRole(worldviewIdNum, [roleName], 0.5);
+            roleResults.forEach(role => {
+                const content = `角色：${role.name_in_worldview || ''}\n${role.background || ''}\n${role.personality || ''}`.trim();
+                if (content.length > 0) aggregatedResults.roles.push({ content });
+            });
+        }
+    }
+    if (faction_names && faction_names.trim().length > 0) {
+        const factionNameList = splitNames(faction_names);
+        const factionIdToName = new Map<number, string>();
+        const allRelations: IFactionRelation[] = [];
+        for (const factionName of factionNameList) {
+            const factionResults = await findFaction(worldviewIdNum, [factionName], 0.5);
+            factionResults.forEach(faction => {
+                if (faction.id != null && faction.name) factionIdToName.set(faction.id, faction.name);
+                if (Array.isArray(faction.relations) && faction.relations.length > 0) allRelations.push(...faction.relations);
+                const content = buildFactionContent(faction);
+                if (content.length > 0) aggregatedResults.factions.push({ content });
+            });
+        }
+        const uniqueRelations = deduplicateRelations(allRelations);
+        if (uniqueRelations.length > 0) {
+            aggregatedResults.factionRelationsSection = uniqueRelations
+                .map(r => formatRelationForContext(r, factionIdToName))
+                .filter(Boolean)
+                .join('\n');
+        }
+    }
+    if (geo_names && geo_names.trim().length > 0) {
+        const geoNameList = splitNames(geo_names);
+        for (const geoName of geoNameList) {
+            const geoResults = await findGeo(worldviewIdNum, [geoName], 0.5);
+            geoResults.forEach(geo => {
+                const content = `${geo.name || ''}\n${geo.description || ''}`.trim();
+                if (content.length > 0) aggregatedResults.geographies.push({ content });
+            });
+        }
+    }
+    return aggregateContext(aggregatedResults);
+}
+
 // 调用 LLM
-async function callLLM(
+export async function callLLM(
     llmType: string,
     systemPrompt: string,
     userInput: string,
@@ -363,91 +421,10 @@ async function handleGenChapter(req: NextApiRequest, res: NextApiResponse<Data>)
     });
 
     const worldviewIdNum = _.toNumber(worldviewId);
-    const aggregatedResults: {
-        roles: any[];
-        factions: any[];
-        geographies: any[];
-        factionRelationsSection?: string;
-    } = {
-        roles: [],
-        factions: [],
-        geographies: []
-    };
 
     try {
-        // 1. 处理角色名（使用 findRole，已融合知识库+数据库）
-        if (role_names && role_names.trim().length > 0) {
-            const roleNameList = splitNames(role_names);
-            console.debug('[genChapter] findRole', { roleNameList });
-            for (const roleName of roleNameList) {
-                const roleResults = await findRole(worldviewIdNum, [roleName], 0.5);
-                console.debug('[genChapter] findRole result', { roleName, count: roleResults.length });
-                roleResults.forEach(role => {
-                    const content = `角色：${role.name_in_worldview || ''}\n${role.background || ''}\n${role.personality || ''}`.trim();
-                    if (content.length > 0) {
-                        aggregatedResults.roles.push({ content });
-                    }
-                });
-            }
-        }
-
-        // 2. 处理阵营名（使用 findFaction，已融合知识库+数据库）
-        if (faction_names && faction_names.trim().length > 0) {
-            const factionNameList = splitNames(faction_names);
-            console.debug('[genChapter] findFaction', { factionNameList });
-            const factionIdToName = new Map<number, string>();
-            const allRelations: IFactionRelation[] = [];
-            for (const factionName of factionNameList) {
-                const factionResults = await findFaction(worldviewIdNum, [factionName], 0.5);
-                console.debug('[genChapter] findFaction result', { factionName, count: factionResults.length });
-                factionResults.forEach(faction => {
-                    if (faction.id != null && faction.name) {
-                        factionIdToName.set(faction.id, faction.name);
-                    }
-                    if (Array.isArray(faction.relations) && faction.relations.length > 0) {
-                        allRelations.push(...faction.relations);
-                    }
-                    const content = buildFactionContent(faction);
-                    if (content.length > 0) {
-                        aggregatedResults.factions.push({ content });
-                    }
-                });
-            }
-            // 阵营关系去重并生成上下文片段
-            const uniqueRelations = deduplicateRelations(allRelations);
-            if (uniqueRelations.length > 0) {
-                aggregatedResults.factionRelationsSection = uniqueRelations
-                    .map(r => formatRelationForContext(r, factionIdToName))
-                    .filter(Boolean)
-                    .join('\n');
-                console.debug('[genChapter] faction relations', { total: allRelations.length, unique: uniqueRelations.length });
-            }
-        }
-
-        // 3. 处理地理名（使用 findGeo，已融合知识库+数据库）
-        if (geo_names && geo_names.trim().length > 0) {
-            const geoNameList = splitNames(geo_names);
-            console.debug('[genChapter] findGeo', { geoNameList });
-            for (const geoName of geoNameList) {
-                const geoResults = await findGeo(worldviewIdNum, [geoName], 0.5);
-                console.debug('[genChapter] findGeo result', { geoName, count: geoResults.length });
-                geoResults.forEach(geo => {
-                    const content = `${geo.name || ''}\n${geo.description || ''}`.trim();
-                    if (content.length > 0) {
-                        aggregatedResults.geographies.push({ content });
-                    }
-                });
-            }
-        }
-
-        console.debug('[genChapter] aggregated', {
-            roles: aggregatedResults.roles.length,
-            factions: aggregatedResults.factions.length,
-            geographies: aggregatedResults.geographies.length
-        });
-
         // 4. 聚合上下文
-        const context = aggregateContext(aggregatedResults);
+        const context = await getAggregatedContext(worldviewIdNum, role_names, faction_names, geo_names);
         console.debug('[genChapter] context length', context.length);
 
         // 5. 构建提示词

@@ -30,7 +30,9 @@ function buildReActSystemPrompt(): string {
 2. 调用 world_state：获取该世界观下的世界态列表，了解当前有哪些宏观状态。
 3. 调用 faction_structure：获取势力树结构。
 4. 若脑洞内容或用户问题中涉及具体势力/组织名称，可调用 find_faction 按关键词检索相关阵营详情。
-5. 在收集到足够信息后，给出 Final Answer，不要继续调用工具。
+5. 若脑洞内容或用户问题中涉及具体地理/地点名称，可调用 find_geo 按关键词检索相关地理详情。
+6. 若脑洞内容或用户问题中涉及具体角色名称，可调用 find_role 按关键词检索相关角色详情。
+7. 在收集到足够信息后，给出 Final Answer，不要继续调用工具。
 
 Final Answer 必须是一段完整文本，将直接写入脑洞的「分析方向」字段，供后续分析使用。格式要求：
 
