@@ -514,6 +514,61 @@ export const genChapterSegment = async (
     }
 }
 
+export const genChapterSegmentMultiTurn = async (
+    worldviewId: number,
+    params: {
+        curr_context: string
+        role_names?: string
+        faction_names?: string
+        geo_names?: string
+        attention?: string
+        llm_type?: string
+        segment_index: number
+        segment_outline: string
+        previous_content_snippet: string
+        segment_target_chars?: number
+        mcp_context?: string
+        conversation_history?: Array<{ role: 'user' | 'assistant'; content: string }>
+        is_first_turn?: boolean
+    }
+): Promise<{ content: string; status: string; error: string; conversation_history?: Array<{ role: 'user' | 'assistant'; content: string }> }> => {
+    const response = await fetch.post<{
+        data?: { 
+            outputs?: { output?: string }
+            status?: string
+            error?: string
+            conversation_history?: Array<{ role: 'user' | 'assistant'; content: string }>
+        }
+    }>(
+        '/api/aiNoval/chapters/genChapterSegmentMultiTurn',
+        {
+            worldview_id: worldviewId,
+            curr_context: params.curr_context || '',
+            role_names: params.role_names || '',
+            faction_names: params.faction_names || '',
+            geo_names: params.geo_names || '',
+            attention: params.attention || '',
+            llm_type: params.llm_type || 'deepseek-chat',
+            segment_index: params.segment_index,
+            segment_outline: params.segment_outline || '',
+            previous_content_snippet: params.previous_content_snippet || '',
+            segment_target_chars: params.segment_target_chars ?? 600,
+            mcp_context: params.mcp_context || '',
+            conversation_history: params.conversation_history || [],
+            is_first_turn: params.is_first_turn ?? false,
+        },
+        { params: { worldviewId }, timeout: 1000 * 60 * 5 }
+    )
+    const data = response?.data ?? response
+    const body = data?.data ?? data
+    return {
+        content: body?.outputs?.output ?? '',
+        status: body?.status ?? 'error',
+        error: body?.error ?? '',
+        conversation_history: body?.conversation_history || [],
+    }
+}
+
 // 生成章节
 export const genChapterBlocking = async (worldviewId: number, inputs: any, difyHost: string = ''): Promise<{ content: string, status: string, error: string, elapsed_time: number }> => {
     const response = await fetch.post(

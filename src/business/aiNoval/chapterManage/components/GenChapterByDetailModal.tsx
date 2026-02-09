@@ -98,8 +98,11 @@ function GenChapterByDetailModal({
   const [phase, setPhase] = useState<Phase>('idle')
   const [segmentOutlineList, setSegmentOutlineList] = useState<SegmentOutlineItem[]>([])
   const [segmentIndex, setSegmentIndex] = useState(1)
-  const [segmentedContent, setSegmentedContent] = useState('')
+  const [segmentedContent, setSegmentedContent] = useState('') // 保留用于兼容性，实际使用 segmentedContentList
+  const [segmentedContentList, setSegmentedContentList] = useState<string[]>([]) // 按段存储的内容数组
   const [errorMessage, setErrorMessage] = useState('')
+  // 多轮对话历史
+  const [conversationHistory, setConversationHistory] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([])
 
   // 表单（与现有续写对齐，PRD 3.3）
   const [seedPrompt, setSeedPrompt] = useState('')
@@ -203,7 +206,7 @@ function GenChapterByDetailModal({
   const worldviewId = selectedChapter?.worldview_id ?? continueInfo?.worldview_id
   const SNIPPET_MAX_CHARS = 800
 
-  /** 逐段生成并逐段输出；支持暂停、停止 */
+  /** 逐段生成并逐段输出；支持暂停、停止（多轮对话模式） */
   const runSegmentLoop = async (startFromIndex: number) => {
     if (!worldviewId) {
       message.error('无法获取世界观 ID')
@@ -217,23 +220,81 @@ function GenChapterByDetailModal({
       setPhase('awaiting_confirmation')
       return
     }
-    let content = startFromIndex === 1 ? '' : segmentedContent
+    let contentList = startFromIndex === 1 ? [] : [...segmentedContentList]
+    let content = contentList.join('\n\n') // 用于计算 previousSnippet
+    let history = startFromIndex === 1 ? [] : conversationHistory
     if (startFromIndex === 1) {
       setSegmentedContent('')
+      setSegmentedContentList([])
+      setConversationHistory([])
+      history = []
+      contentList = []
+      content = ''
     }
     setPhase('writing_segment')
     setSegmentIndex(startFromIndex)
     setErrorMessage('')
-    for (let i = startFromIndex; i <= list.length; i++) {
+    
+    // 第一轮：确认理解（仅在第一次启动时）
+    if (startFromIndex === 1 && history.length === 0) {
+      if (stopRequestedRef.current || pauseRequestedRef.current) {
+        return
+      }
+      try {
+        const res = await apiCalls.genChapterSegmentMultiTurn(worldviewId, {
+          curr_context: seedPrompt,
+          role_names: roleNames,
+          faction_names: factionNames,
+          geo_names: geoNames,
+          attention,
+          llm_type: llmType,
+          segment_index: 1,
+          segment_outline: list[0]?.outline ?? '',
+          previous_content_snippet: '',
+          segment_target_chars: segmentTargetChars,
+          mcp_context: undefined,
+          conversation_history: [],
+          is_first_turn: true,
+        })
+        if (res.status === 'error' || res.error) {
+          setErrorMessage(res.error || '确认阶段失败')
+          setPhase('error')
+          return
+        }
+        // 更新对话历史
+        if (res.conversation_history) {
+          history = res.conversation_history
+          setConversationHistory(history)
+        }
+        // 检查是否确认（简单检查是否包含"确认"）
+        if (!res.content.includes('确认') && !res.content.includes('确认')) {
+          console.warn('[runSegmentLoop] LLM 未确认，但继续执行')
+        }
+      } catch (e: any) {
+        setErrorMessage(e?.message || '确认阶段失败')
+        setPhase('error')
+        return
+      }
+    }
+    
+    // 逐段生成（确认后从第一段开始）
+    const actualStartIndex = (startFromIndex === 1 && history.length > 0) ? 1 : startFromIndex
+    for (let i = actualStartIndex; i <= list.length; i++) {
       if (stopRequestedRef.current) {
-        setSegmentedContent(content)
+        const finalContent = contentList.join('\n\n')
+        setSegmentedContent(finalContent)
+        setSegmentedContentList(contentList)
+        setConversationHistory(history)
         setPhase('done')
         setSegmentIndex(i)
         stopRequestedRef.current = false
         return
       }
       if (pauseRequestedRef.current) {
-        setSegmentedContent(content)
+        const finalContent = contentList.join('\n\n')
+        setSegmentedContent(finalContent)
+        setSegmentedContentList(contentList)
+        setConversationHistory(history)
         setPhase('paused')
         setSegmentIndex(i)
         pauseRequestedRef.current = false
@@ -243,38 +304,63 @@ function GenChapterByDetailModal({
       const outlineItem = list[i - 1]
       const previousSnippet = content.slice(-SNIPPET_MAX_CHARS)
       try {
-        const res = await apiCalls.genChapterSegment(worldviewId, {
+        const res = await apiCalls.genChapterSegmentMultiTurn(worldviewId, {
           curr_context: seedPrompt,
-          prev_content: '',
           role_names: roleNames,
           faction_names: factionNames,
           geo_names: geoNames,
           attention,
           llm_type: llmType,
           segment_index: i,
+          segment_outline: outlineItem?.outline ?? '',
           previous_content_snippet: previousSnippet,
-          current_segment_outline: outlineItem?.outline ?? '',
           segment_target_chars: segmentTargetChars,
           mcp_context: undefined,
+          conversation_history: history,
+          is_first_turn: false,
         })
         if (res.status === 'error' || res.error) {
           setErrorMessage(res.error || '本段生成失败')
           setPhase('error')
-          setSegmentedContent(content)
+          const finalContent = contentList.join('\n\n')
+          setSegmentedContent(finalContent)
+          setSegmentedContentList(contentList)
+          setConversationHistory(history)
           return
         }
-        content += (res.content || '').trim()
-        if ((res.content || '').trim()) content += '\n\n'
-        setSegmentedContent(content)
+        // 更新对话历史和内容
+        if (res.conversation_history) {
+          history = res.conversation_history
+          setConversationHistory(history)
+        }
+        const segmentText = (res.content || '').trim()
+        // 更新对应段的内容（索引 i-1）
+        if (contentList.length < i) {
+          contentList.push(segmentText)
+        } else {
+          contentList[i - 1] = segmentText
+        }
+        const finalContent = contentList.join('\n\n')
+        setSegmentedContentList([...contentList])
+        setSegmentedContent(finalContent)
+        // 更新 content 用于下一段的 previousSnippet
+        content = finalContent
       } catch (e: any) {
         setErrorMessage(e?.message || '本段生成失败')
         setPhase('error')
-        setSegmentedContent(content)
+        const finalContent = contentList.join('\n\n')
+        setSegmentedContent(finalContent)
+        setSegmentedContentList(contentList)
+        setConversationHistory(history)
         return
       }
     }
     setPhase('done')
     setSegmentIndex(list.length + 1)
+    const finalContent = contentList.join('\n\n')
+    setSegmentedContent(finalContent)
+    setSegmentedContentList(contentList)
+    setConversationHistory(history)
   }
 
   const handleConfirmAndStart = () => {
@@ -282,7 +368,9 @@ function GenChapterByDetailModal({
     stopRequestedRef.current = false
     setSegmentIndex(1)
     setSegmentedContent('')
+    setSegmentedContentList([])
     setErrorMessage('')
+    setConversationHistory([])
     runSegmentLoop(1)
   }
 
@@ -344,9 +432,25 @@ function GenChapterByDetailModal({
   }
 
   const handleCopyContent = () => {
-    if (segmentedContent) {
-      navigator.clipboard.writeText(segmentedContent)
+    const content = segmentedContentList.length > 0 
+      ? segmentedContentList.join('\n\n') 
+      : segmentedContent
+    if (content) {
+      navigator.clipboard.writeText(content)
+      message.success('已复制到剪贴板')
     }
+  }
+
+  /** 编辑单段内容 */
+  const handleEditSegment = (index: number, value: string) => {
+    const newList = [...segmentedContentList]
+    if (newList.length <= index) {
+      newList.push(value)
+    } else {
+      newList[index] = value
+    }
+    setSegmentedContentList(newList)
+    setSegmentedContent(newList.join('\n\n'))
   }
 
   /** 重写：清空已生成内容，重新启动续写流程 */
@@ -355,8 +459,10 @@ function GenChapterByDetailModal({
     pauseRequestedRef.current = false
     stopRequestedRef.current = false
     setSegmentedContent('')
+    setSegmentedContentList([])
     setSegmentIndex(1)
     setErrorMessage('')
+    setConversationHistory([]) // 清空对话历史
     // 如果有分段提纲，直接重新开始续写流程
     if (segmentOutlineList.length > 0) {
       message.info('已清空内容，正在重新开始续写...')
@@ -368,12 +474,48 @@ function GenChapterByDetailModal({
     }
   }
 
+  /** 从指定段落开始重写 */
+  const handleRewriteFromSegment = (segmentIndex: number) => {
+    console.log('[handleRewriteFromSegment] 从第', segmentIndex, '段开始重写')
+    if (segmentIndex < 1 || segmentIndex > segmentedContentList.length + 1) {
+      message.warning('无效的段落索引')
+      return
+    }
+    if (segmentOutlineList.length === 0) {
+      message.warning('请先生成分段提纲')
+      return
+    }
+    if (phase === 'writing_segment' || phase === 'paused') {
+      message.warning('请先停止或完成当前续写')
+      return
+    }
+    
+    pauseRequestedRef.current = false
+    stopRequestedRef.current = false
+    
+    // 保留前面的段落，清空从该段开始的所有后续段落
+    const newContentList = segmentedContentList.slice(0, segmentIndex - 1)
+    const newContent = newContentList.join('\n\n')
+    
+    setSegmentedContentList(newContentList)
+    setSegmentedContent(newContent)
+    setSegmentIndex(segmentIndex)
+    setErrorMessage('')
+    
+    // 保留对话历史（前面的段落已经生成，对话历史应该保留）
+    // 从指定段落开始重新生成
+    message.info(`已清空第 ${segmentIndex} 段及之后的内容，正在重新生成...`)
+    runSegmentLoop(segmentIndex)
+  }
+
   const handleClose = () => {
     setPhase('idle')
     setSegmentOutlineList([])
     setSegmentedContent('')
+    setSegmentedContentList([])
     setSegmentIndex(1)
     setErrorMessage('')
+    setConversationHistory([])
     onCancel()
   }
 
@@ -504,27 +646,6 @@ function GenChapterByDetailModal({
                 />
 
                 <div className={styles.prompt_title}>
-                  <span>注意事项：</span>
-                  <Button
-                    type="link"
-                    size="small"
-                    loading={isGeneratingAttention}
-                    disabled={isFormDisabled}
-                    onClick={handleGenAttention}
-                  >
-                    AI 生成
-                  </Button>
-                </div>
-                <TextArea
-                  autoSize={{ minRows: 2 }}
-                  disabled={isFormDisabled}
-                  value={attention}
-                  onChange={(e) => setAttention(e.target.value)}
-                  placeholder="扩写注意事项，可点击「AI 生成」由 AI 根据本章要点与设定生成（生成后直接覆盖）"
-                  style={{ marginBottom: 8 }}
-                />
-
-                <div className={styles.prompt_title}>
                   <span>章节提示词（本章待写要点）：</span>
                 </div>
                 <TextArea
@@ -540,6 +661,43 @@ function GenChapterByDetailModal({
 
           {/* 右侧：主操作 / 提纲回显；所有按钮始终可见，通过 loading/disabled 控制 */}
           <Col span={12}>
+            
+
+            {/* 注意事项 - 移动到右侧 */}
+            <Divider orientation="left" style={{ marginTop: 16 }}>注意事项</Divider>
+            <div className={styles.prompt_title}>
+              <span>扩写注意事项：</span>
+              <Button
+                type="link"
+                size="small"
+                loading={isGeneratingAttention}
+                disabled={isFormDisabled}
+                onClick={handleGenAttention}
+              >
+                AI 生成
+              </Button>
+            </div>
+            <TextArea
+              autoSize={{ minRows: 3 }}
+              disabled={isFormDisabled}
+              value={attention}
+              onChange={(e) => setAttention(e.target.value)}
+              placeholder="扩写注意事项，可点击「AI 生成」由 AI 根据本章要点与设定生成（生成后直接覆盖）"
+              style={{ marginBottom: 16 }}
+            />
+
+            {/* Loading 状态提示 */}
+            {(phase === 'mcp_gathering' || phase === 'segment_planning') && (
+              <Card size="small" style={{ marginBottom: 16 }}>
+                <Spin spinning />
+                <Typography.Paragraph style={{ marginTop: 16, marginBottom: 0 }}>
+                  {phase === 'mcp_gathering'
+                    ? '正在通过 MCP 收集设定…'
+                    : '正在生成分段提纲…'}
+                </Typography.Paragraph>
+              </Card>
+            )}
+
             <Divider orientation="left">分段设置</Divider>
             
             {/* 分段设置选项 */}
@@ -569,18 +727,6 @@ function GenChapterByDetailModal({
                 生成分段提纲
               </Button>
             </Space>
-
-            {/* Loading 状态提示 */}
-            {(phase === 'mcp_gathering' || phase === 'segment_planning') && (
-              <Card size="small" style={{ marginBottom: 16 }}>
-                <Spin spinning />
-                <Typography.Paragraph style={{ marginTop: 16, marginBottom: 0 }}>
-                  {phase === 'mcp_gathering'
-                    ? '正在通过 MCP 收集设定…'
-                    : '正在生成分段提纲…'}
-                </Typography.Paragraph>
-              </Card>
-            )}
 
             {/* 分段提纲列表（生成后显示） */}
             {segmentOutlineList.length > 0 && (
@@ -727,21 +873,24 @@ function GenChapterByDetailModal({
                 size="small" 
                 icon={<CopyOutlined />} 
                 onClick={handleCopyContent}
-                disabled={!segmentedContent}
+                disabled={segmentedContentList.length === 0 && !segmentedContent}
               >
-                复制
+                复制全部
               </Button>
               {onOk && (
                 <Button
                   size="small"
                   type="primary"
                   onClick={() => {
-                    if (segmentedContent) {
-                      onOk(segmentedContent)
+                    const content = segmentedContentList.length > 0 
+                      ? segmentedContentList.join('\n\n') 
+                      : segmentedContent
+                    if (content) {
+                      onOk(content)
                       handleClose()
                     }
                   }}
-                  disabled={!segmentedContent}
+                  disabled={segmentedContentList.length === 0 && !segmentedContent}
                 >
                   采用并关闭
                 </Button>
@@ -760,18 +909,66 @@ function GenChapterByDetailModal({
               </Button>
             </Space>
 
-            {/* 已生成内容显示 - 始终显示，不隐藏 */}
-            <Card size="small" style={{ overflow: 'auto' }}>
-              {segmentedContent ? (
-                <Typography.Paragraph style={{ whiteSpace: 'pre-wrap' }} copyable>
-                  {segmentedContent}
-                </Typography.Paragraph>
+            {/* 已生成内容显示 - 分段显示，每段可编辑 */}
+            <div style={{ overflow: 'auto' }}>
+              {segmentedContentList.length > 0 ? (
+                segmentedContentList.map((segmentContent, index) => (
+                  <Card 
+                    key={index}
+                    size="small" 
+                    title={`第 ${index + 1} 段`}
+                    style={{ marginBottom: 16 }}
+                    extra={
+                      <Space>
+                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                          {segmentContent.length} 字
+                        </Typography.Text>
+                        <Button
+                          size="small"
+                          icon={<CopyOutlined />}
+                          onClick={() => {
+                            navigator.clipboard.writeText(segmentContent)
+                            message.success('已复制本段')
+                          }}
+                        >
+                          复制本段
+                        </Button>
+                        <Button
+                          size="small"
+                          type="primary"
+                          danger
+                          icon={<RobotOutlined />}
+                          onClick={() => handleRewriteFromSegment(index + 1)}
+                          disabled={phase === 'writing_segment' || phase === 'paused' || segmentOutlineList.length === 0}
+                        >
+                          从此处开始重写
+                        </Button>
+                      </Space>
+                    }
+                  >
+                    <TextArea
+                      value={segmentContent}
+                      onChange={(e) => handleEditSegment(index, e.target.value)}
+                      autoSize={{ minRows: 6 }}
+                      style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}
+                      placeholder={`第 ${index + 1} 段内容`}
+                    />
+                  </Card>
+                ))
+              ) : segmentedContent ? (
+                <Card size="small" style={{ overflow: 'auto' }}>
+                  <Typography.Paragraph style={{ whiteSpace: 'pre-wrap' }} copyable>
+                    {segmentedContent}
+                  </Typography.Paragraph>
+                </Card>
               ) : (
-                <Typography.Text type="secondary">
-                  {phase === 'writing_segment' ? '正在生成第一段…' : '暂无内容'}
-                </Typography.Text>
+                <Card size="small">
+                  <Typography.Text type="secondary">
+                    {phase === 'writing_segment' ? '正在生成第一段…' : '暂无内容'}
+                  </Typography.Text>
+                </Card>
               )}
-            </Card>
+            </div>
           </Col>
         </Row>
       </div>
