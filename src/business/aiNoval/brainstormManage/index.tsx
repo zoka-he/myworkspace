@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Row, Col, Select, Button, Space, Input, message } from 'antd';
-import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { PlusOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 import { BrainstormManageContextProvider, useWorldviewId, useWorldviewList, useBrainstormList, useFilters, useCurrentBrainstorm } from './BrainstormManageContext';
 import BrainstormList from './components/BrainstormList';
 import BrainstormDetailPanel from './components/BrainstormDetailPanel';
@@ -108,6 +108,8 @@ function BrainstormManageContent() {
           </Space.Compact>
           
           <BrainstormFilterPanel />
+
+          <Button type="primary" icon={<ReloadOutlined />} onClick={() => {loadBrainstormList();}} disabled={!worldviewId}>刷新</Button>
         </Space>
         
         <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate} disabled={!worldviewId}>
