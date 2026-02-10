@@ -1,8 +1,9 @@
 import React from 'react';
 import { Card, Tag, Button, Collapse, Space, theme } from 'antd';
 import { RobotOutlined } from '@ant-design/icons';
-import { useCurrentBrainstorm } from '../BrainstormManageContext';
+import { useCurrentBrainstorm, useBrainstormList } from '../BrainstormManageContext';
 import { IBrainstorm, BrainstormType, BrainstormStatus, Priority } from '@/src/types/IAiNoval';
+import AnalysisResultDisplay from './AnalysisResultDisplay';
 
 const statusMap: Record<BrainstormStatus, { text: string; color: string }> = {
   draft: { text: '草稿', color: 'default' },
@@ -29,6 +30,7 @@ interface BrainstormDetailPanelProps {
 
 export default function BrainstormDetailPanel({ onAnalyze }: BrainstormDetailPanelProps) {
   const { currentBrainstorm } = useCurrentBrainstorm();
+  const [brainstormList] = useBrainstormList();
   const { token } = useToken();
 
   if (!currentBrainstorm) {
@@ -73,7 +75,7 @@ export default function BrainstormDetailPanel({ onAnalyze }: BrainstormDetailPan
             <span style={{ fontSize: '12px', color: token.colorTextSecondary }}>标签：</span>
             <Space wrap size="small" style={{ marginLeft: '8px' }}>
               {currentBrainstorm.tags.map(tag => (
-                <Tag key={tag} size="small">{tag}</Tag>
+                <Tag key={tag}>{tag}</Tag>
               ))}
             </Space>
           </div>
@@ -85,13 +87,76 @@ export default function BrainstormDetailPanel({ onAnalyze }: BrainstormDetailPan
         {currentBrainstorm.content}
       </div>
 
-      {/* 分析方向：正文下方 */}
-      {currentBrainstorm.analysis_direction != null && currentBrainstorm.analysis_direction !== '' && (
+      {/* 用户原始问题 */}
+      {currentBrainstorm.user_question && currentBrainstorm.user_question.trim() && (
         <div style={{ marginBottom: '16px', paddingTop: '12px', borderTop: `1px solid ${token.colorBorderSecondary}` }}>
-          <span style={{ fontSize: '12px', color: token.colorTextSecondary }}>分析方向：</span>
-          <div style={{ marginTop: '4px', fontSize: '13px' }}>{currentBrainstorm.analysis_direction}</div>
+          <div style={{ fontSize: '12px', color: token.colorTextSecondary, marginBottom: '4px', fontWeight: 'bold' }}>
+            用户原始问题：
+          </div>
+          <div style={{ fontSize: '13px', whiteSpace: 'pre-wrap' }}>{currentBrainstorm.user_question}</div>
         </div>
       )}
+
+      {/* 扩展后的问题 */}
+      {currentBrainstorm.expanded_questions && currentBrainstorm.expanded_questions.trim() && (
+        <div style={{ marginBottom: '16px', paddingTop: '12px', borderTop: `1px solid ${token.colorBorderSecondary}` }}>
+          <div style={{ fontSize: '12px', color: token.colorTextSecondary, marginBottom: '4px', fontWeight: 'bold' }}>
+            扩展后的问题：
+          </div>
+          <div style={{ fontSize: '13px', whiteSpace: 'pre-wrap', color: token.colorText }}>{currentBrainstorm.expanded_questions}</div>
+        </div>
+      )}
+
+      {/* 剧情规划 */}
+      {currentBrainstorm.plot_planning && currentBrainstorm.plot_planning.trim() && (
+        <div style={{ marginBottom: '16px', paddingTop: '12px', borderTop: `1px solid ${token.colorBorderSecondary}` }}>
+          <div style={{ fontSize: '12px', color: token.colorTextSecondary, marginBottom: '4px', fontWeight: 'bold' }}>
+            剧情规划：
+          </div>
+          <div style={{ fontSize: '13px', whiteSpace: 'pre-wrap', color: token.colorText }}>{currentBrainstorm.plot_planning}</div>
+        </div>
+      )}
+
+      {/* 章节纲要 */}
+      {currentBrainstorm.chapter_outline && currentBrainstorm.chapter_outline.trim() && (
+        <div style={{ marginBottom: '16px', paddingTop: '12px', borderTop: `1px solid ${token.colorBorderSecondary}` }}>
+          <div style={{ fontSize: '12px', color: token.colorTextSecondary, marginBottom: '4px', fontWeight: 'bold' }}>
+            章节纲要：
+          </div>
+          <div style={{ fontSize: '13px', whiteSpace: 'pre-wrap', color: token.colorText }}>{currentBrainstorm.chapter_outline}</div>
+        </div>
+      )}
+
+      {/* 父脑洞 */}
+      {(() => {
+        const parentIds = currentBrainstorm.parent_ids || 
+                         (currentBrainstorm.parent_id ? [currentBrainstorm.parent_id] : []);
+        if (parentIds.length > 0) {
+          const parentBrainstorms = brainstormList.filter(b => b.id && parentIds.includes(b.id));
+          if (parentBrainstorms.length > 0) {
+            return (
+              <div style={{ marginBottom: '16px', paddingTop: '12px', borderTop: `1px solid ${token.colorBorderSecondary}` }}>
+                <div style={{ fontSize: '12px', color: token.colorTextSecondary, marginBottom: '8px', fontWeight: 'bold' }}>
+                  父脑洞{parentIds.length > 1 ? `（${parentIds.length}个）` : ''}：
+                </div>
+                <Space wrap size="small">
+                  {parentBrainstorms.map(parent => (
+                    <Tag 
+                      key={parent.id} 
+                      color="blue"
+                      style={{ cursor: 'pointer' }}
+                      title={parent.content?.substring(0, 100)}
+                    >
+                      {parent.title}
+                    </Tag>
+                  ))}
+                </Space>
+              </div>
+            );
+          }
+        }
+        return null;
+      })()}
 
       {/* 分析按钮 - 仅展示 */}
       {/* {currentBrainstorm.analysis_status !== 'analyzing' && (
@@ -109,67 +174,36 @@ export default function BrainstormDetailPanel({ onAnalyze }: BrainstormDetailPan
         </div>
       )} */}
 
-      {/* 分析结果 */}
-      {currentBrainstorm.analysis_status === 'completed' && currentBrainstorm.analysis_result ? (
-        <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: `1px solid ${token.colorBorderSecondary}` }}>
-          {(() => {
-            const result = currentBrainstorm.analysis_result!;
-            const activeKeys: string[] = [];
-            if (result.impact_analysis) activeKeys.push('impact');
-            if (result.consistency_check) activeKeys.push('consistency');
-            if (result.suggestions && result.suggestions.length > 0) activeKeys.push('suggestions');
-            if (result.opportunities && result.opportunities.length > 0) activeKeys.push('opportunities');
-            
-            return (
-              <Collapse 
-                defaultActiveKey={activeKeys}
-                size="small"
-              >
-            {currentBrainstorm.analysis_result.impact_analysis && (
-              <Panel header="影响分析" key="impact">
-                <p style={{ margin: 0 }}>{currentBrainstorm.analysis_result.impact_analysis.description}</p>
-              </Panel>
-            )}
-            {currentBrainstorm.analysis_result.consistency_check && (
-              <Panel header="一致性检查" key="consistency">
-                <p style={{ margin: '0 0 8px 0' }}>一致性评分: {currentBrainstorm.analysis_result.consistency_check.consistency_score}</p>
-                {currentBrainstorm.analysis_result.consistency_check.conflicts?.map((conflict, idx) => (
-                  <div key={idx} style={{ marginTop: 8 }}>
-                    <Tag color="red">{conflict.severity}</Tag>
-                    {conflict.description}
-                  </div>
-                ))}
-              </Panel>
-            )}
-            {currentBrainstorm.analysis_result.suggestions && currentBrainstorm.analysis_result.suggestions.length > 0 && (
-              <Panel header="建议" key="suggestions">
-                {currentBrainstorm.analysis_result.suggestions.map((suggestion, idx) => (
-                  <div key={idx} style={{ marginTop: idx === 0 ? 0 : 8 }}>
-                    <Tag color="blue">{suggestion.priority}</Tag>
-                    {suggestion.content}
-                  </div>
-                ))}
-              </Panel>
-            )}
-            {currentBrainstorm.analysis_result.opportunities && currentBrainstorm.analysis_result.opportunities.length > 0 && (
-              <Panel header="机会" key="opportunities">
-                {currentBrainstorm.analysis_result.opportunities.map((opp, idx) => (
-                  <div key={idx} style={{ marginTop: idx === 0 ? 0 : 8 }}>
-                    <Tag color="green">{opp.potential}</Tag>
-                    {opp.description}
-                  </div>
-                ))}
-              </Panel>
-            )}
-              </Collapse>
-            );
-          })()}
-        </div>
-      ) : currentBrainstorm.analysis_status === 'analyzing' ? (
-        <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: `1px solid ${token.colorBorderSecondary}`, textAlign: 'center', color: token.colorTextSecondary }}>
-          分析中...
-        </div>
-      ) : null}
+      {/* 分析结果 - 使用统一的 AnalysisResultDisplay 组件，支持自然语言和结构化格式 */}
+      {(() => {
+        const result = currentBrainstorm.analysis_result;
+        const hasResult =
+          result &&
+          (!!(result.analysis_text && result.analysis_text.trim()) ||
+            !!result.impact_analysis ||
+            !!(result.suggestions && result.suggestions.length) ||
+            !!(result.opportunities && result.opportunities.length) ||
+            !!(result.risks && result.risks.length) ||
+            !!result.consistency_check);
+
+        if (currentBrainstorm.analysis_status === 'analyzing') {
+          return (
+            <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: `1px solid ${token.colorBorderSecondary}`, textAlign: 'center', color: token.colorTextSecondary }}>
+              分析中...
+            </div>
+          );
+        }
+
+        if (hasResult) {
+          return (
+            <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: `1px solid ${token.colorBorderSecondary}` }}>
+              <AnalysisResultDisplay analysisResult={result} />
+            </div>
+          );
+        }
+
+        return null;
+      })()}
     </Card>
   );
 }

@@ -120,8 +120,43 @@ export default function BrainstormList({ onEdit, onDelete, onSelect }: Brainstor
                 )}
                 
                 {/* 分析结果摘要 */}
-                {item.analysis_status === 'completed' && item.analysis_result && (
-                  <>
+                {item.analysis_status === 'completed' && item.analysis_result && (() => {
+                  const result = item.analysis_result;
+                  let summary: string | null = null;
+                  
+                  // 优先显示自然语言全文（新格式）
+                  if (result.analysis_text && result.analysis_text.trim()) {
+                    const text = result.analysis_text.trim();
+                    // 提取第一个段落或第一个 ## 标题后的内容
+                    const firstSection = text.split(/\n\n/)[0] || text.split(/\n##\s+/)[1] || text;
+                    const preview = firstSection.replace(/^##\s+[^\n]+\n?/m, '').trim();
+                    if (preview) {
+                      summary = `💡 ${preview.substring(0, 80)}${preview.length > 80 ? '...' : ''}`;
+                    }
+                  }
+                  
+                  // 兼容旧格式：优先显示影响分析
+                  if (!summary && result.impact_analysis?.description) {
+                    summary = `💡 ${result.impact_analysis.description.substring(0, 80)}${result.impact_analysis.description.length > 80 ? '...' : ''}`;
+                  }
+                  // 其次显示冲突
+                  if (!summary && result.consistency_check?.conflicts && result.consistency_check.conflicts.length > 0) {
+                    const conflict = result.consistency_check.conflicts[0];
+                    summary = `⚠️ ${conflict.description.substring(0, 80)}${conflict.description.length > 80 ? '...' : ''}`;
+                  }
+                  // 再次显示建议
+                  if (!summary && result.suggestions && result.suggestions.length > 0) {
+                    summary = `💬 ${result.suggestions[0].content.substring(0, 80)}${result.suggestions[0].content.length > 80 ? '...' : ''}`;
+                  }
+                  // 最后显示机会
+                  if (!summary && result.opportunities && result.opportunities.length > 0) {
+                    summary = `✨ ${result.opportunities[0].description.substring(0, 80)}${result.opportunities[0].description.length > 80 ? '...' : ''}`;
+                  }
+                  
+                  // 如果有摘要才显示，避免重复显示"已分析"（title 中已有 Tag）
+                  if (!summary) return null;
+                  
+                  return (
                     <div style={{ 
                       marginTop: '12px', 
                       marginBottom: '8px', 
@@ -129,31 +164,11 @@ export default function BrainstormList({ onEdit, onDelete, onSelect }: Brainstor
                       paddingTop: '8px'
                     }}>
                       <div style={{ fontSize: '12px', color: token.colorTextSecondary }}>
-                        {(() => {
-                          const result = item.analysis_result;
-                          // 优先显示影响分析
-                          if (result.impact_analysis?.description) {
-                            return `💡 ${result.impact_analysis.description.substring(0, 80)}${result.impact_analysis.description.length > 80 ? '...' : ''}`;
-                          }
-                          // 其次显示冲突
-                          if (result.consistency_check?.conflicts && result.consistency_check.conflicts.length > 0) {
-                            const conflict = result.consistency_check.conflicts[0];
-                            return `⚠️ ${conflict.description.substring(0, 80)}${conflict.description.length > 80 ? '...' : ''}`;
-                          }
-                          // 再次显示建议
-                          if (result.suggestions && result.suggestions.length > 0) {
-                            return `💬 ${result.suggestions[0].content.substring(0, 80)}${result.suggestions[0].content.length > 80 ? '...' : ''}`;
-                          }
-                          // 最后显示机会
-                          if (result.opportunities && result.opportunities.length > 0) {
-                            return `✨ ${result.opportunities[0].description.substring(0, 80)}${result.opportunities[0].description.length > 80 ? '...' : ''}`;
-                          }
-                          return '已分析';
-                        })()}
+                        {summary}
                       </div>
                     </div>
-                  </>
-                )}
+                  );
+                })()}
               </div>
             </Card>
           </List.Item>

@@ -115,9 +115,9 @@ function BrainstormManageContent() {
         </Button>
       </div>
 
-      <Row gutter={16} style={{ flex: 1, overflow: 'hidden' }}>
+      <Row gutter={10} style={{ flex: 1, overflow: 'hidden' }}>
         {/* 主列表 */}
-        <Col span={14} style={{ height: '100%', overflow: 'auto' }}>
+        <Col span={10} style={{ height: '100%', overflow: 'auto' }}>
           <BrainstormList
             onEdit={handleEdit}
             onDelete={handleDelete}
@@ -126,7 +126,7 @@ function BrainstormManageContent() {
         </Col>
 
         {/* 右侧详情面板 */}
-        <Col span={10} style={{ height: '100%', overflow: 'auto' }}>
+        <Col span={14} style={{ height: '100%', overflow: 'auto' }}>
           <BrainstormDetailPanel onAnalyze={handleAnalyze} />
         </Col>
       </Row>

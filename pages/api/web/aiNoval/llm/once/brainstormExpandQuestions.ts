@@ -11,13 +11,19 @@ export interface BrainstormExpandQuestionsInput {
     title: string;
     /** 脑洞内容 */
     content: string;
-    /** 用户已提出的问题或当前分析方向（可选），将在此基础上补全 */
+    /** 用户原始问题（可选） */
+    user_question?: string;
+    /** 已扩展的问题（可选），将在此基础上补全 */
+    expanded_questions?: string;
+    /** 分析方向（可选，向后兼容，已废弃） */
     analysis_direction?: string;
 }
 
 export interface BrainstormExpandQuestionsOutput {
-    /** 可直接写入「分析方向」的完整文本：扩展问题 + 限制性假设 */
-    analysis_direction: string;
+    /** 扩展后的问题：通过 ReAct+MCP 生成的扩展问题与限制性假设 */
+    expanded_questions?: string;
+    /** 分析方向（向后兼容，已废弃） */
+    analysis_direction?: string;
 }
 
 const LOG_TAG = "[brainstormExpandQuestions]";
@@ -34,12 +40,13 @@ function buildReActSystemPrompt(): string {
 6. 若脑洞内容或用户问题中涉及具体角色名称，可调用 find_role 按关键词检索相关角色详情。
 7. 在收集到足够信息后，给出 Final Answer，不要继续调用工具。
 
-Final Answer 必须是一段完整文本，将直接写入脑洞的「分析方向」字段，供后续分析使用。格式要求：
+Final Answer 必须是一段完整文本，将直接写入脑洞的「扩展后的问题」字段，供后续分析使用。格式要求：
 
 ---
 【扩展问题】
-- 列出用户已提出的问题（若输入中有 analysis_direction，则视为用户问题）。
-- 在此基础上补全与当前脑洞相关的潜在问题（如：与世界观/世界态/阵营的一致性、影响范围、情节逻辑等），每条可简要说明理由。
+- 首先必须明确引用并列出「用户原始问题」（若输入中提供了「用户原始问题」，则逐条列出，不要遗漏）。
+- 在用户原始问题的基础上，补全与当前脑洞相关的潜在问题（如：与世界观/世界态/阵营的一致性、影响范围、情节逻辑等），每条可简要说明理由。
+- 若未提供用户原始问题，则根据脑洞内容自行提炼需要探索的问题并补全。
 
 【限制性假设】
 - 范围：本次分析应限定的阵营、世界态、地理或时间线（根据你查到的信息具体写出名称或 ID）。
@@ -87,7 +94,7 @@ export default async function handler(
             return;
         }
 
-        const { worldview_id, title, content, analysis_direction } = body;
+        const { worldview_id, title, content, user_question, expanded_questions, analysis_direction } = body;
         if (worldview_id == null || Number(worldview_id) < 1) {
             res.status(400).json({ success: false, error: "worldview_id 必填且为正整数" });
             return;
@@ -103,7 +110,9 @@ export default async function handler(
         try {
             model = createDeepSeekModel({
                 model: "deepseek-chat",
-                temperature: 0.5,
+                temperature: 0.75, // 提高温度，增强创意性
+                frequencyPenalty: 0.35, // 重复惩罚，减少套路化
+                presencePenalty: 0.25, // 存在惩罚，鼓励多样表达
             });
         } catch (e: any) {
             console.error(LOG_TAG, "DeepSeek 模型初始化失败", e?.message);
@@ -133,15 +142,20 @@ export default async function handler(
         };
 
         const systemPrompt = buildReActSystemPrompt();
+        const userQuestionPart = user_question?.trim()
+            ? `- 用户原始问题（必须在下文【扩展问题】中首先逐条引用）：\n${user_question.trim()}`
+            : "- 用户原始问题：（未提供，请根据脑洞内容自行提炼需要探索的问题）";
+        const expandedPart = expanded_questions?.trim()
+            ? `- 已有扩展问题（可在此基础上补全）：\n${expanded_questions.trim()}`
+            : "";
         const userQuery = [
             "输入：",
             `- 世界观 ID：${worldviewId}`,
             `- 脑洞标题：${title?.trim() || "（无）"}`,
             `- 脑洞内容：\n${(content || "").trim() || "（无）"}`,
-            analysis_direction?.trim()
-                ? `- 用户已提出的问题/分析方向：\n${analysis_direction.trim()}`
-                : "- 用户已提出的问题/分析方向：（无，请根据脑洞内容自行提炼需要探索的问题并补全）",
-        ].join("\n");
+            userQuestionPart,
+            expandedPart,
+        ].filter(Boolean).join("\n");
 
         console.log(LOG_TAG, "开始 ReAct，工具数:", tools.length);
         const llmOutput = await executeReAct(
@@ -159,14 +173,17 @@ export default async function handler(
         );
 
         console.log(LOG_TAG, "ReAct 完成，llmOutput 长度:", llmOutput?.length ?? 0, "前500字符:", (llmOutput || "").slice(0, 500));
-        const analysisDirection = extractFinalAnswerText(llmOutput) || llmOutput;
-        if (!analysisDirection || analysisDirection.trim().length < 10) {
-            console.warn(LOG_TAG, "分析方向内容过短或为空，llmOutput 原始长度:", llmOutput?.length ?? 0);
+        const expandedQuestions = extractFinalAnswerText(llmOutput) || llmOutput;
+        if (!expandedQuestions || expandedQuestions.trim().length < 10) {
+            console.warn(LOG_TAG, "扩展问题内容过短或为空，llmOutput 原始长度:", llmOutput?.length ?? 0);
         }
 
         res.status(200).json({
             success: true,
-            data: { analysis_direction: analysisDirection || "(未生成有效内容，请查看服务端日志)" },
+            data: { 
+                expanded_questions: expandedQuestions || "(未生成有效内容，请查看服务端日志)",
+                analysis_direction: expandedQuestions || "(未生成有效内容，请查看服务端日志)", // 向后兼容
+            },
         });
     } catch (error: any) {
         const msg = error?.message ?? String(error);

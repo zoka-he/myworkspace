@@ -1,4 +1,4 @@
-import { IBrainstorm } from '@/src/types/IAiNoval';
+import { IBrainstorm, IBrainstormAnalysisResult } from '@/src/types/IAiNoval';
 import { ApiResponse } from '@/src/types/ApiResponse';
 import fetch from '@/src/fetch';
 import {
@@ -13,11 +13,12 @@ export interface ExpandAnalysisDirectionPayload {
   worldview_id: number;
   title: string;
   content: string;
-  analysis_direction?: string;
+  user_question?: string;
+  expanded_questions?: string;
 }
 
 export interface ExpandAnalysisDirectionResult {
-  analysis_direction: string;
+  expanded_questions?: string;
 }
 
 export default {
@@ -74,14 +75,46 @@ export default {
     return res.data;
   },
 
-  // LLM分析脑洞
-  // TODO: 这个功能需要后续实现分析API
-  analyzeBrainstorm: async (id: number) => {
-    // 先更新状态为分析中
-    await updateBrainstorm(id, { analysis_status: 'analyzing' });
+  // LLM分析脑洞（后端会先保存表单数据再分析）
+  analyzeBrainstorm: async (id: number, formData?: Partial<IBrainstorm>): Promise<IBrainstormAnalysisResult> => {
+    // 调用分析API，传递表单数据（后端会先保存再分析）
+    const res = await fetch.post<ApiResponse<IBrainstormAnalysisResult>>(
+      `/api/web/aiNoval/brainstorm/analyze?id=${id}`,
+      { formData }, // 传递表单数据，后端先保存再分析
+      {
+        timeout: 1000 * 60 * 10, // 10分钟超时
+      }
+    );
     
-    // TODO: 调用分析API
-    // 这里暂时返回一个占位符，实际应该调用分析服务
-    throw new Error('分析功能待实现');
+    if (!res.success || res.error) {
+      throw new Error(res.error || '分析失败');
+    }
+    
+    if (!res.data) {
+      throw new Error('未返回分析结果');
+    }
+    
+    return res.data;
+  },
+
+  // 生成章节纲要
+  generateChapterOutline: async (id: number): Promise<string> => {
+    const res = await fetch.post<ApiResponse<{ chapter_outline: string }>>(
+      `/api/web/aiNoval/brainstorm/generateChapterOutline?id=${id}`,
+      {},
+      {
+        timeout: 1000 * 60 * 5, // 5分钟超时
+      }
+    );
+    
+    if (!res.success || res.error) {
+      throw new Error(res.error || '生成章节纲要失败');
+    }
+    
+    if (!res.data?.chapter_outline) {
+      throw new Error('未返回章节纲要内容');
+    }
+    
+    return res.data.chapter_outline;
   },
 };

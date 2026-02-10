@@ -10,6 +10,10 @@ export interface DeepSeekModelConfig {
     model: "deepseek-chat" | "deepseek-reasoner";
     /** 温度，默认 0.7 */
     temperature?: number;
+    /** 重复惩罚（按出现频率惩罚），0-2，默认不传 */
+    frequencyPenalty?: number;
+    /** 存在惩罚（对已出现过的 token 惩罚），0-2，默认不传 */
+    presencePenalty?: number;
 }
 
 /**
@@ -37,13 +41,19 @@ export function createDeepSeekModel(config: DeepSeekModelConfig): BaseLanguageMo
     const {
         model,
         temperature = 0.7,
+        frequencyPenalty,
+        presencePenalty,
     } = config;
 
-    return new ChatDeepSeek({
+    const fields: Record<string, any> = {
         apiKey: DEEPSEEK_API_KEY,
         model,
         temperature,
-    });
+    };
+    if (frequencyPenalty !== undefined) fields.frequencyPenalty = frequencyPenalty;
+    if (presencePenalty !== undefined) fields.presencePenalty = presencePenalty;
+
+    return new ChatDeepSeek(fields);
 }
 
 /**

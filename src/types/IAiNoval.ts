@@ -557,6 +557,8 @@ export type BrainstormCategory =
   | 'other';    // 其他
 
 export interface IBrainstormAnalysisResult {
+  /** 自然语言分析全文（与下方结构化字段二选一，优先展示） */
+  analysis_text?: string;
   impact_analysis?: {
     description: string;
     affected_entities?: {
@@ -602,7 +604,15 @@ export interface IBrainstorm {
   status?: BrainstormStatus;
   priority?: Priority;
   category?: BrainstormCategory;
-  /** 分析方向：希望 AI 分析时侧重或关注的方向说明 */
+  /** 用户原始问题：用户提出的原始问题或关注点 */
+  user_question?: string;
+  /** 扩展后的问题：通过 ReAct+MCP 扩展生成的问题列表（JSON字符串或数组） */
+  expanded_questions?: string;
+  /** 剧情规划：用户对脑洞的剧情规划或期望的发展方向 */
+  plot_planning?: string;
+  /** 章节纲要：该脑洞对应的章节纲要或结构 */
+  chapter_outline?: string;
+  /** 分析方向：希望 AI 分析时侧重或关注的方向说明（保留用于向后兼容） */
   analysis_direction?: string;
   tags?: string[];
   related_faction_ids?: number[];
@@ -611,6 +621,9 @@ export interface IBrainstorm {
   related_event_ids?: number[];
   related_chapter_ids?: number[];
   related_world_state_ids?: number[];
+  /** 父脑洞ID列表（支持多个父脑洞） */
+  parent_ids?: number[];
+  /** 父脑洞ID（单个，已废弃，保留用于向后兼容） */
   parent_id?: number;
   analysis_status?: AnalysisStatus;
   analysis_result?: IBrainstormAnalysisResult;
