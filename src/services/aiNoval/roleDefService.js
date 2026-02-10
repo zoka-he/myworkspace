@@ -10,7 +10,8 @@ export default class RoleDefService extends MysqlNovalService {
             'id',
             'name',
             'version',
-            'created_at'
+            'created_at',
+            'is_enabled'
         ]);
     }
 
@@ -53,7 +54,7 @@ export default class RoleDefService extends MysqlNovalService {
         }
 
         let sql = `
-            select r.id, r.name, r.version, COALESCE(ri_1.version_count, 0) version_count, ri_2.version_name
+            select r.id, r.name, r.version, r.is_enabled, COALESCE(ri_1.version_count, 0) version_count, ri_2.version_name
             from Role r
             left join (
                 select role_id, count(0) version_count from role_info ${sqlRoleInfoCond} group by role_id

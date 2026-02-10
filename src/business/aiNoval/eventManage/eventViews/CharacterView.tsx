@@ -3,6 +3,7 @@ import * as d3 from 'd3'
 import { IStoryLine, IWorldViewDataWithExtra } from '@/src/types/IAiNoval'
 import { IGeoTreeItem } from '../../common/geoDataUtil'
 import { TimelineDateFormatter } from '../../common/novelDateUtils'
+import { appendEventStateMarker, EVENT_STATE_CONFIG, type EventStateKey } from './config'
 
 interface TimelineEvent {
   id: string
@@ -13,6 +14,9 @@ interface TimelineEvent {
   faction: string[]
   characters: string[]
   storyLine: string
+  state?: 'enabled' | 'questionable' | 'not_yet' | 'blocked' | 'closed'
+  faction_ids?: number[]
+  role_ids?: number[]
 }
 
 interface CharacterViewProps {
@@ -180,15 +184,14 @@ export function CharacterView({
           .datum(event)
           .style('cursor', 'pointer')
           .on('mouseover', function(mouseEvent, d) {
-            d3.select(this).select('circle')
-              .attr('r', 6)
-              .attr('stroke-width', 3)
+            d3.select(this).select('.event-marker').attr('transform', 'scale(1.25)')
             tooltip
               .style('visibility', 'visible')
               .html(`
                 <div style=\"font-weight: bold; margin-bottom: 5px;\">${d.title}</div>
                 <div style=\"color: #666; margin-bottom: 5px;\">${d.description}</div>
                 <div style=\"color: #999; font-size: 12px;\">
+                  <div>状态: ${EVENT_STATE_CONFIG[(d.state as EventStateKey) || 'enabled']?.title ?? '启用'}</div>
                   <div>时间: ${formatTimestamp(d.date, worldviews, worldview_id)}</div>
                   <div>地点: ${d.location}</div>
                   <div>阵营: ${d.faction.join(', ')}</div>
@@ -199,22 +202,14 @@ export function CharacterView({
               .style('top', (mouseEvent.pageY - 10) + 'px')
           })
           .on('mouseout', function() {
-            d3.select(this).select('circle')
-              .attr('r', 4)
-              .attr('stroke-width', 2)
+            d3.select(this).select('.event-marker').attr('transform', 'scale(1)')
             tooltip.style('visibility', 'hidden')
           })
           .on('click', function(mouseEvent, d) {
             onEventSelect(d)
           })
-        // Add event marker (circle)
-        eventGroup.append('circle')
-          .attr('cx', 0)
-          .attr('cy', 0)
-          .attr('r', 4)
-          .attr('fill', lineColor)
-          .attr('stroke', lineColor)
-          .attr('stroke-width', 2)
+        // Add event marker (shape by state)
+        appendEventStateMarker(eventGroup as d3.Selection<SVGGElement, any, null, undefined>, (event.state as EventStateKey) || 'enabled', lineColor)
         // 判断是否为该event的最左/最右节点
         const eventInfo = eventNodeMap.get(event.id)
         if (eventInfo && x === eventInfo.minX) {
@@ -227,13 +222,15 @@ export function CharacterView({
             .text(formatTimestamp(event.date, worldviews, worldview_id))
         }
         if (eventInfo && x === eventInfo.maxX) {
+          const stateKey = (event.state as EventStateKey) || 'enabled'
+          const stateLabel = EVENT_STATE_CONFIG[stateKey]?.label ?? '●'
           eventGroup.append('text')
             .attr('x', 10)
             .attr('y', 4)
             .attr('text-anchor', 'start')
             .attr('font-size', '12px')
             .attr('fill', lineColor)
-            .text(event.title)
+            .text(`${stateLabel} ${event.title}`)
         }
         // 最后一个node上方显示角色名称
         if (idx === sortedGroup.length - 1) {

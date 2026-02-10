@@ -513,10 +513,10 @@ function Plot(props: IPlotProps) {
 
 
         container.attr('transform', `translate(5, ${CONFIG.dataViewHeight + 5})`);
-        container.selectAll('.container')
+        container.selectAll('.legend_container')
             .data([{}]).join(
                 enter => {
-                    let g = enter.append('rect').attr('class', 'container');
+                    let g = enter.append('rect').attr('class', 'legend_container');
                     return g;
                 },
                 update => update,

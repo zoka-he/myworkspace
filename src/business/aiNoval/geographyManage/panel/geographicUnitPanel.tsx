@@ -1,8 +1,5 @@
 import { IGeoGeographyUnitData } from "@/src/types/IAiNoval";
-import { Col, Row, Button, Space, Divider, Tabs } from "antd";
-import GeoRecallTest from "../subPanel/geoRecallTest";
-import GeoDifyDocument from "../subPanel/geoDifyDocument";
-import { useSimpleWorldviewContext } from "../../common/SimpleWorldviewProvider";
+import { Col, Row, Button, Space } from "antd";
 import { isParentObject, useManageState, useObject } from "../ManageStateProvider";
 import GeoEmbedDocument from "../subPanel/geoEmbedDocument";
 
@@ -14,9 +11,6 @@ interface IGeographyUnitPanelProps {
 }
 
 export default function(props: IGeographyUnitPanelProps) {
-
-    const { state: worldviewState } = useSimpleWorldviewContext();
-    const { worldviewId } = worldviewState;
 
     // const { state: manageState } = useManageState();
     // const { treeRaisedObject } = manageState;
@@ -45,18 +39,6 @@ export default function(props: IGeographyUnitPanelProps) {
         }
     }
 
-    let tabItems = [
-        {
-            label: `Dify文档`,
-            key: '1',
-            children: <GeoDifyDocument worldViewId={worldviewId} geoDataType="geoUnit" geoData={data} onRequestUpdate={props.onRequestUpdate} />,
-        },
-        {
-            label: `LLM召回测试`,
-            key: '2',
-            children: <GeoRecallTest worldViewId={worldviewId} recommandQuery={`${data?.name} 设定`} />,
-        }
-    ];
 
     return (
         <div style={{ height: '100%' }}>
@@ -89,14 +71,6 @@ export default function(props: IGeographyUnitPanelProps) {
             </Row>
 
             <GeoEmbedDocument geoData={data} />
-            <Divider style={{ margin: '10px 0' }} />
-            <Tabs
-                defaultActiveKey="1"
-                type="card"
-                size="small"
-                style={{ marginBottom: 32 }}
-                items={tabItems}
-            />
         </div>
     )
 }

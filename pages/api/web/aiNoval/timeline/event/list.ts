@@ -66,10 +66,9 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
 
     let ret = await service.query(queryObject, [], ['date asc'], page, limit);
 
-    // 拆解阵营id和角色id
-    let dataList = ret.data.map(item => {
-
-        // console.debug('event item --> ', item);
+    // 拆解阵营id和角色id，并保证 state 字段存在（enabled|questionable|not_yet|blocked|closed）
+    const VALID_STATES = ['enabled', 'questionable', 'not_yet', 'blocked', 'closed'];
+    let dataList = ret.data.map((item: Record<string, any>) => {
 
         if (item.faction_ids) {
             item.faction_ids = item.faction_ids.split(',').filter((id: string) => id.trim() !== '').map((id: string) => _.toNumber(id));
@@ -79,6 +78,8 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
             item.role_ids = item.role_ids.split(',').filter((id: string) => id.trim() !== '').map((id: string) => _.toNumber(id));
         }
 
+        const rawState = item.state ?? item.State;
+        item.state = VALID_STATES.includes(rawState) ? rawState : 'enabled';
         return item;
     })
 

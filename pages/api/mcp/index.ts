@@ -3,13 +3,6 @@
 // 如需 SSE 模式，请使用 /api/mcp/sse 端点
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { mcpToolRegistry } from '../../../src/mcp/core/mcpToolRegistry';
-import { allTools } from '../../../src/mcp/index';
-
-// 初始化注册（确保只执行一次）
-if (mcpToolRegistry.getToolCount() === 0) {
-  console.log('初始化MCP工具注册...');
-  mcpToolRegistry.registerAll(allTools);
-}
 
 export default async function handler(
   req: NextApiRequest,

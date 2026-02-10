@@ -218,7 +218,7 @@ async function getGeoMatchingByKeyword(worldviewId: number, keywords: string[], 
         return `
             select code, (match(name) Against(${keywordStr})) * 4 + (match(description) Against(${keywordStr})) as score
             from ${config.name}
-            where worldview_id = ${worldviewId} and match(name, description) Against(${keywordStr})
+            where worldview_id = ${worldviewId} and match(name, description) Against(${keywordStr}) or code in(${keywordStr})
         `;
     });
 
@@ -233,6 +233,12 @@ async function getGeoMatchingByKeyword(worldviewId: number, keywords: string[], 
     `;
 
     let keyword_matched = await geoGeographyService.queryBySql(sql_for_keyword, []);
+    keyword_matched.forEach(item => {
+        if (keywords.includes(item.code)) {
+            item.score = 1;
+            item.match_percent = 1;
+        }
+    }); // 如果关键词匹配到了code，则将score和match_percent设置为1
     
     // 2. 合并所有 codes（关键词匹配 + extraCodes），去重
     let allCodes = _.uniq(_.concat(

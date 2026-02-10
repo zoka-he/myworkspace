@@ -1,17 +1,19 @@
-import { Modal, Form, Input, message } from 'antd'
+import { Modal, Form, Input, Radio, message } from 'antd'
 import { useEffect, useRef, useState } from 'react'
+
+export type RoleDefFormValues = { name: string; id?: number; is_enabled?: 'Y' | 'N' }
 
 interface RoleDefModalProps {
   open: boolean
   onCancel: () => void
-  onOk: (values: { name: string }) => Promise<void> | void
-  initialValues?: { name: string }
+  onOk: (values: RoleDefFormValues) => Promise<void> | void
+  initialValues?: RoleDefFormValues
   title: string
 }
 
 export function RoleDefModal({ open, onCancel, onOk, initialValues, title }: RoleDefModalProps) {
   const [form] = Form.useForm()
-  const backupValues = useRef<{ name: string } | null>(null)
+  const backupValues = useRef<RoleDefFormValues | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -76,6 +78,17 @@ export function RoleDefModal({ open, onCancel, onOk, initialValues, title }: Rol
         >
           <Input placeholder="请输入角色名称" />
         </Form.Item>
+        <Form.Item
+          name="is_enabled"
+          label="启用状态"
+          initialValue="Y"
+          rules={[{ required: true }]}
+        >
+          <Radio.Group>
+            <Radio value="Y">启用</Radio>
+            <Radio value="N">禁用</Radio>
+          </Radio.Group>
+        </Form.Item>
       </Form>
     </Modal>
   )
@@ -84,9 +97,9 @@ export function RoleDefModal({ open, onCancel, onOk, initialValues, title }: Rol
 // 提供给父组件使用的接口
 export const useRoleDefModal = () => {
   const [isOpen, setIsOpen] = useState(false)
-  const [presetValues, setPresetValues] = useState<{ name: string } | undefined>()
+  const [presetValues, setPresetValues] = useState<RoleDefFormValues | undefined>()
 
-  const openModal = (values?: { name: string }) => {
+  const openModal = (values?: RoleDefFormValues) => {
     setPresetValues(values)
     setIsOpen(true)
   }

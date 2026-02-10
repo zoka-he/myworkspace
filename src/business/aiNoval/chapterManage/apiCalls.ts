@@ -390,6 +390,67 @@ export const getContinueInfo = async (chapterId: number): Promise<any> => {
     return response;
 }
 
+/** 生成分段提纲（先回显、用户确认后再写），支持 model 选项，默认 deepseek-reasoner */
+export const genChapterSegmentOutline = async (params: {
+    curr_context: string
+    prev_content?: string
+    mcp_context?: string
+    role_names?: string
+    faction_names?: string
+    geo_names?: string
+    attention?: string
+    chapter_style?: string
+    max_segments?: number
+    segment_target_chars?: number
+    model?: string
+}): Promise<{ outlines: Array<{ index: number; outline: string }> }> => {
+    const response = await fetch.post<{ success?: boolean; data?: { outlines: Array<{ index: number; outline: string }> } }>(
+        '/api/aiNoval/chapters/genChapterSegmentOutline',
+        {
+            curr_context: params.curr_context || '',
+            prev_content: params.prev_content || '',
+            mcp_context: params.mcp_context || '',
+            role_names: params.role_names || '',
+            faction_names: params.faction_names || '',
+            geo_names: params.geo_names || '',
+            attention: params.attention || '',
+            chapter_style: params.chapter_style || '',
+            max_segments: params.max_segments ?? 20,
+            segment_target_chars: params.segment_target_chars ?? 600,
+            model: params.model || 'deepseek-reasoner',
+        },
+        { timeout: 1000 * 60 * 3 }
+    )
+    const body = response?.data ?? response
+    const outlines = body?.data?.outlines ?? (body as any)?.outlines ?? []
+    return { outlines: Array.isArray(outlines) ? outlines : [] }
+}
+
+/** 生成章节扩写注意事项（MCP + ReAct 生成严格注意事项，直接覆盖当前注意事项） */
+export const genChapterAttention = async (params: {
+    worldview_id: number
+    curr_context: string
+    role_names?: string
+    faction_names?: string
+    geo_names?: string
+    chapter_style?: string
+}): Promise<string> => {
+    const response = await fetch.post<{ success?: boolean; data?: { attention: string }; attention?: string }>(
+        '/api/aiNoval/llm/once/genChapterAttention',
+        {
+            worldview_id: params.worldview_id,
+            curr_context: params.curr_context || '',
+            role_names: params.role_names || '',
+            faction_names: params.faction_names || '',
+            geo_names: params.geo_names || '',
+            chapter_style: params.chapter_style || '',
+        },
+        { timeout: 1000 * 60 * 3 }
+    )
+    const body = response?.data ?? response
+    return (body?.data?.attention ?? (body as any)?.attention) ?? ''
+}
+
 // 从文本中提取目标数据
 export const pickFromText = async (target: string, src_text: string): Promise<any> => {
     const response = await fetch.post(`/api/aiNoval/chapters/pick`, 
@@ -403,6 +464,111 @@ export const pickFromText = async (target: string, src_text: string): Promise<an
     let text = response.data?.outputs?.output || '';
     text = text.replace(/<think>.*?<\/think>/gs, '');
     return text || '';
+}
+
+/** 单段续写（按提纲逐段调用，返回本段正文） */
+export const genChapterSegment = async (
+    worldviewId: number,
+    params: {
+        curr_context: string
+        prev_content?: string
+        role_names?: string
+        faction_names?: string
+        geo_names?: string
+        attention?: string
+        llm_type?: string
+        segment_index: number
+        previous_content_snippet: string
+        current_segment_outline?: string
+        segment_target_chars?: number
+        mcp_context?: string
+    }
+): Promise<{ content: string; status: string; error: string }> => {
+    const response = await fetch.post<{
+        data?: { outputs?: { output?: string }; status?: string; error?: string }
+    }>(
+        '/api/aiNoval/chapters/genChapterSegment',
+        {
+            worldview_id: worldviewId,
+            curr_context: params.curr_context || '',
+            prev_content: params.prev_content || '',
+            role_names: params.role_names || '',
+            faction_names: params.faction_names || '',
+            geo_names: params.geo_names || '',
+            attention: params.attention || '',
+            llm_type: params.llm_type || 'deepseek',
+            segment_index: params.segment_index,
+            previous_content_snippet: params.previous_content_snippet || '',
+            current_segment_outline: params.current_segment_outline || '',
+            segment_target_chars: params.segment_target_chars ?? 600,
+            mcp_context: params.mcp_context || '',
+        },
+        { params: { worldviewId }, timeout: 1000 * 60 * 5 }
+    )
+    const data = response?.data ?? response
+    const body = (data as any)?.data ?? data
+    return {
+        content: (body as any)?.outputs?.output ?? '',
+        status: (body as any)?.status ?? 'error',
+        error: (body as any)?.error ?? '',
+    }
+}
+
+export const genChapterSegmentMultiTurn = async (
+    worldviewId: number,
+    params: {
+        curr_context: string
+        prev_content?: string
+        role_names?: string
+        faction_names?: string
+        geo_names?: string
+        attention?: string
+        llm_type?: string
+        segment_index: number
+        segment_outline: string
+        previous_content_snippet: string
+        segment_target_chars?: number
+        mcp_context?: string
+        conversation_history?: Array<{ role: 'user' | 'assistant'; content: string }>
+        is_first_turn?: boolean
+    }
+): Promise<{ content: string; status: string; error: string; conversation_history?: Array<{ role: 'user' | 'assistant'; content: string }> }> => {
+    const response = await fetch.post<{
+        data?: { 
+            outputs?: { output?: string }
+            status?: string
+            error?: string
+            conversation_history?: Array<{ role: 'user' | 'assistant'; content: string }>
+        }
+    }>(
+        '/api/aiNoval/chapters/genChapterSegmentMultiTurn',
+        {
+            worldview_id: worldviewId,
+            curr_context: params.curr_context || '',
+            prev_content: params.prev_content || '',
+            role_names: params.role_names || '',
+            faction_names: params.faction_names || '',
+            geo_names: params.geo_names || '',
+            attention: params.attention || '',
+            llm_type: params.llm_type || 'deepseek-chat',
+            segment_index: params.segment_index,
+            segment_outline: params.segment_outline || '',
+            previous_content_snippet: params.previous_content_snippet || '',
+            segment_target_chars: params.segment_target_chars ?? 600,
+            mcp_context: params.mcp_context || '',
+            conversation_history: params.conversation_history || [],
+            is_first_turn: params.is_first_turn ?? false,
+        },
+        { params: { worldviewId }, timeout: 1000 * 60 * 5 }
+    )
+    const data = response?.data ?? response
+    const body = (data as any)?.data ?? data
+    return {
+        content: (body as any)?.outputs?.output ?? '',
+        status: (body as any)?.status ?? 'error',
+        error: (body as any)?.error ?? '',
+        conversation_history: (body as any)?.conversation_history || [],
+    }
 }
 
 // 生成章节

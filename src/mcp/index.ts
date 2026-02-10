@@ -9,12 +9,14 @@ import { FactionStructureTool } from './tools/factionStructure';
 import { GeoStructureTool } from './tools/geoStructure';
 import { WorldbookTool } from './tools/worldbook';
 import { MagicSystemTool } from './tools/magicSystem';
+import { WorldStateTool } from './tools/worldState';
 
 // 导出所有工具类
 export {
   // ResolveEntityTool,
   // DecomposeCommandTool,
   WorldbookTool,
+  WorldStateTool,
   MagicSystemTool,
   FactionStructureTool,
   GeoStructureTool,
@@ -28,6 +30,7 @@ export const allTools: BaseMCPTool[] = [
   // new ResolveEntityTool(),
   // new DecomposeCommandTool(),
   new WorldbookTool(),
+  new WorldStateTool(),
   new MagicSystemTool(),
   new FactionStructureTool(),
   new GeoStructureTool(),

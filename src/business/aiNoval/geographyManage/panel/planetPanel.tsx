@@ -1,9 +1,6 @@
 import { IGeoPlanetData } from "@/src/types/IAiNoval";
-import { Col, Row, Button, Space, Divider, Tabs } from "antd";
+import { Col, Row, Button, Space } from "antd";
 import { type IGeoTreeItem } from "../geoTree";
-import GeoRecallTest from "../subPanel/geoRecallTest";
-import GeoDifyDocument from "../subPanel/geoDifyDocument";
-import { useSimpleWorldviewContext } from "../../common/SimpleWorldviewProvider";
 import { isParentObject, useManageState, useObject } from "../ManageStateProvider";
 import GeoEmbedDocument from "../subPanel/geoEmbedDocument";
 
@@ -16,9 +13,6 @@ interface IStarEditProps {
 }
 
 export default function(props: IStarEditProps) {
-
-    const { state: worldviewState } = useSimpleWorldviewContext();
-    const { worldviewId } = worldviewState;
 
     // const { state: manageState } = useManageState();
     // const { treeRaisedObject } = manageState;
@@ -53,18 +47,6 @@ export default function(props: IStarEditProps) {
         }
     }
 
-    let tabItems = [
-        {
-            label: `Dify文档`,
-            key: '1',
-            children: <GeoDifyDocument worldViewId={worldviewId} geoDataType="planet" geoData={data} onRequestUpdate={props.onRequestUpdate} />,
-        },
-        {
-            label: `LLM召回测试`,
-            key: '2',
-            children: <GeoRecallTest worldViewId={worldviewId} recommandQuery={`行星 ${data?.name} 设定`} />,
-        },
-    ];
 
     return (
         <div style={{ height: '100%' }}>
@@ -98,14 +80,6 @@ export default function(props: IStarEditProps) {
             </Row>
 
             <GeoEmbedDocument geoData={data} />
-            <Divider style={{ margin: '10px 0' }} />
-            <Tabs
-                defaultActiveKey="1"
-                type="card"
-                size="small"
-                style={{ marginBottom: 32 }}
-                items={tabItems}
-            />
         </div>
     )
 }

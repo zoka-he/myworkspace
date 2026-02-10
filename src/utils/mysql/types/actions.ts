@@ -9,8 +9,9 @@ export interface IMysqlActions {
      * Insert a single row into the specified table
      * @param table - The table name
      * @param obj - The object containing column names and values
+     * @returns Promise<number> - Returns the insertId
      */
-    insertOne(table: string, obj: ISqlCondMap): Promise<void>;
+    insertOne(table: string, obj: ISqlCondMap): Promise<number>;
 
     /**
      * Insert multiple rows into the specified table

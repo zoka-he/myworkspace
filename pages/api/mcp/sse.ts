@@ -2,13 +2,6 @@
 // 专门用于 SSE (Server-Sent Events) 模式的 MCP 端点
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { mcpToolRegistry } from '../../../src/mcp/core/mcpToolRegistry';
-import { allTools } from '../../../src/mcp/index';
-
-// 初始化注册（确保只执行一次）
-if (mcpToolRegistry.getToolCount() === 0) {
-  console.log('初始化MCP工具注册...');
-  mcpToolRegistry.registerAll(allTools);
-}
 
 // SSE 辅助函数：发送 SSE 格式的数据
 function sendSSE(res: NextApiResponse, data: any) {

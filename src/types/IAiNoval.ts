@@ -162,6 +162,7 @@ export interface IRoleData {
     name?: string | null,
     version?: number | null,
     created_at?: Date | null,
+    is_enabled?: 'Y' | 'N' | null,
 }
 
 export interface IRoleInfo {
@@ -181,6 +182,7 @@ export interface IRoleInfo {
     dify_document_id?: string | null,
     dify_dataset_id?: string | null,
     embed_document?: string | null,
+    is_enabled?: 'Y' | 'N' | null,
 }
 
 
@@ -321,6 +323,9 @@ export interface IStoryLine {
   }
 
 
+/** timeline_events.state 可选值 */
+export type TimelineEventState = 'enabled' | 'questionable' | 'not_yet' | 'blocked' | 'closed'
+
 export interface ITimelineEvent {
     id: number
     title: string
@@ -331,6 +336,8 @@ export interface ITimelineEvent {
     role_ids: number[]
     story_line_id: number
     worldview_id: number
+    /** 状态：enabled | questionable | not_yet | blocked | closed */
+    state?: TimelineEventState
 }
 
 // Chapter types
@@ -447,4 +454,190 @@ export interface IMagicSystemVersion {
     content: string,       // 系统内容
     created_at: Date,      // 创建时间
     updated_at: Date,      // 更新时间
+}
+
+// 世界态类型
+export type WorldStateType = 
+  | 'world_event'           // 世界大事件
+  | 'natural_disaster'      // 天灾
+  | 'faction_agreement'     // 阵营协约
+  | 'faction_misunderstanding' // 阵营误判
+  | 'faction_tech_limit'    // 阵营科技限制
+  | 'character_agreement'  // 人物协议
+  | 'character_perception_gap' // 人物认知差
+  | 'character_long_term_action'; // 人物长期行动
+
+export type WorldStateStatus = 
+  | 'active'     // 活跃中
+  | 'expired'    // 已过期
+  | 'resolved'   // 已解决
+  | 'suspended'; // 已暂停
+
+export type ImpactLevel = 
+  | 'low'      // 低影响
+  | 'medium'   // 中等影响
+  | 'high'     // 高影响
+  | 'critical'; // 关键影响
+
+export type AffectedArea = 
+  | 'politics'  // 政治
+  | 'economy'   // 经济
+  | 'military'  // 军事
+  | 'society'   // 社会
+  | 'culture'   // 文化
+  | 'other';    // 其他
+
+export interface IWorldState {
+  id?: number;
+  worldview_id: number;
+  state_type: WorldStateType;
+  title: string;
+  description?: string;
+  status?: WorldStateStatus;
+  start_time?: number;  // 时间线秒数
+  end_time?: number;    // 时间线秒数，null表示持续
+  duration_days?: number;
+  related_faction_ids?: number[];
+  related_role_ids?: number[];
+  related_geo_codes?: string[];
+  related_event_ids?: number[];
+  related_chapter_ids?: number[];
+  related_world_state_ids?: number[];  // 引用关系：本世界态引用了哪些其他世界态
+  impact_level?: ImpactLevel;
+  impact_description?: string;
+  affected_areas?: AffectedArea[];
+  tags?: string[];
+  created_at?: Date;
+  updated_at?: Date;
+  created_by?: string;
+}
+
+export interface IWorldStateHistory {
+  id?: number;
+  world_state_id: number;
+  old_status?: WorldStateStatus;
+  new_status: WorldStateStatus;
+  change_reason?: string;
+  changed_at?: Date;
+  changed_by?: string;
+}
+
+// 脑洞类型
+export type BrainstormType = 
+  | 'inspiration'  // 灵感
+  | 'problem'      // 问题
+  | 'idea'         // 想法
+  | 'note'         // 笔记
+  | 'to_verify';   // 待验证
+
+export type BrainstormStatus = 
+  | 'draft'            // 草稿
+  | 'feasible_unused'  // 可行未使用
+  | 'in_use'           // 使用中
+  | 'used'             // 已使用
+  | 'suspended';       // 暂时搁置
+
+export type AnalysisStatus = 
+  | 'pending'    // 待分析
+  | 'analyzing'  // 分析中
+  | 'completed'  // 已完成
+  | 'failed';    // 分析失败
+
+export type Priority = 
+  | 'low'     // 低
+  | 'medium'  // 中
+  | 'high'    // 高
+  | 'urgent'; // 紧急
+
+export type BrainstormCategory = 
+  | 'plot'      // 情节
+  | 'character' // 角色
+  | 'worldview' // 世界观
+  | 'style'     // 风格
+  | 'other';    // 其他
+
+export interface IBrainstormAnalysisResult {
+  /** 自然语言分析全文（与下方结构化字段二选一，优先展示） */
+  analysis_text?: string;
+  impact_analysis?: {
+    description: string;
+    affected_entities?: {
+      factions?: number[];
+      roles?: number[];
+      geos?: string[];
+      events?: number[];
+      chapters?: number[];
+    };
+  };
+  consistency_check?: {
+    conflicts?: Array<{
+      type: string;
+      description: string;
+      severity: 'low' | 'medium' | 'high';
+    }>;
+    consistency_score?: number; // 0-100
+  };
+  suggestions?: Array<{
+    type: string;
+    content: string;
+    priority: Priority;
+  }>;
+  risks?: Array<{
+    type: string;
+    description: string;
+    severity: 'low' | 'medium' | 'high';
+  }>;
+  opportunities?: Array<{
+    type: string;
+    description: string;
+    potential: 'low' | 'medium' | 'high';
+  }>;
+}
+
+export interface IBrainstorm {
+  id?: number;
+  worldview_id: number;
+  novel_id?: number;
+  brainstorm_type: BrainstormType;
+  title: string;
+  content: string;  // Markdown格式
+  status?: BrainstormStatus;
+  priority?: Priority;
+  category?: BrainstormCategory;
+  /** 用户原始问题：用户提出的原始问题或关注点 */
+  user_question?: string;
+  /** 扩展后的问题：通过 ReAct+MCP 扩展生成的问题列表（JSON字符串或数组） */
+  expanded_questions?: string;
+  /** 剧情规划：用户对脑洞的剧情规划或期望的发展方向 */
+  plot_planning?: string;
+  /** 章节纲要：该脑洞对应的章节纲要或结构 */
+  chapter_outline?: string;
+  /** 分析方向：希望 AI 分析时侧重或关注的方向说明（保留用于向后兼容） */
+  analysis_direction?: string;
+  tags?: string[];
+  related_faction_ids?: number[];
+  related_role_ids?: number[];
+  related_geo_codes?: string[];
+  related_event_ids?: number[];
+  related_chapter_ids?: number[];
+  related_world_state_ids?: number[];
+  /** 父脑洞ID列表（支持多个父脑洞） */
+  parent_ids?: number[];
+  /** 父脑洞ID（单个，已废弃，保留用于向后兼容） */
+  parent_id?: number;
+  analysis_status?: AnalysisStatus;
+  analysis_result?: IBrainstormAnalysisResult;
+  analyzed_at?: Date;
+  analysis_model?: string;
+  created_at?: Date;
+  updated_at?: Date;
+  created_by?: string;
+}
+
+export interface IBrainstormAnalysisHistory {
+  id?: number;
+  brainstorm_id: number;
+  analysis_result: IBrainstormAnalysisResult;
+  analysis_model?: string;
+  analyzed_at?: Date;
 }

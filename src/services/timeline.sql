@@ -19,8 +19,14 @@ CREATE TABLE IF NOT EXISTS timeline_events (
     faction_ids JSON COMMENT 'Array of faction IDs stored as JSON string',
     role_ids JSON COMMENT 'Array of role IDs stored as JSON string',
     story_line_id INT NOT NULL,
+    state VARCHAR(32) DEFAULT 'enabled' COMMENT 'enabled|questionable|not_yet|blocked|closed',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_story_line (story_line_id),
-    INDEX idx_date (date)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci; 
+    INDEX idx_date (date),
+    INDEX idx_state (state)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 已有表时追加 state 字段（迁移用）
+-- ALTER TABLE timeline_events ADD COLUMN state VARCHAR(32) DEFAULT 'enabled' COMMENT 'enabled|questionable|not_yet|blocked|closed' AFTER story_line_id;
+-- ALTER TABLE timeline_events ADD INDEX idx_state (state); 

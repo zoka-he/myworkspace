@@ -1,6 +1,7 @@
 import fetch from '@/src/fetch';
-import { IChapter, INovalData, IWorldRuleGroup, IWorldRuleItem, IWorldRuleSnapshot, IWorldViewData, IWorldViewDataWithExtra } from '../types/IAiNoval';
+import { IChapter, INovalData, IWorldRuleGroup, IWorldRuleItem, IWorldRuleSnapshot, IWorldViewData, IWorldViewDataWithExtra, IBrainstorm, IWorldState } from '../types/IAiNoval';
 import _ from 'lodash';
+import DifyApi from '../utils/dify/dify_api';
 
 function splitIds(ids: any) {
     if (!ids) {
@@ -320,4 +321,227 @@ export async function createOrUpdateWorldRuleSnapshot(data: IWorldRuleSnapshot) 
 export async function deleteWorldRuleSnapshot(id: number) {
     const response = await fetch.delete('/api/aiNoval/worldrule/snapshot', { params: { id } });
     return response.data;
+}
+
+/**
+ * 获取工具配置
+ * @param name 
+ * @returns 
+ */
+export async function getToolConfig(name: string): Promise<string | null> {
+    const response = await fetch.get('/api/aiNoval/toolConfig/params', { params: { name } });
+    if (!(response && response.data && response.data.length === 0)) {
+        return null;
+    }
+
+    return response.data.find((item: any) => item.cfg_name === name)?.cfg_value_string || null;
+}
+
+/**
+ * 运行Dify应用
+ * @param appKey 
+ * @param inputs 
+ * @param options 
+ * @returns 
+ */
+export async function runDifyApp(host: string, appKey: string, inputs: Record<string, any>, options?: { user?: string; responseMode?: 'blocking' | 'streaming' }) {
+    const difyUtil = new DifyApi(host ? `http://${host}/v1` : '');
+    return await difyUtil.runApp(appKey, inputs, options);
+}
+
+// ==================== 脑洞模块 API ====================
+
+/**
+ * 获取脑洞列表
+ * @param params 查询参数
+ * @param page 页码
+ * @param limit 每页数量
+ * @returns 
+ */
+export async function getBrainstormList(params: {
+    worldview_id: number;
+    search?: string;
+    brainstorm_type?: string;
+    status?: string | string[];
+    priority?: string;
+    category?: string;
+    parent_id?: number | null;
+}, page: number = 1, limit: number = 20) {
+    const response = await fetch.get<{ data: IBrainstorm[], count: number }>(
+        '/api/web/aiNoval/brainstorm/list',
+        { params: { ...params, page, limit } }
+    );
+    return {
+        data: response.data?.data || [],
+        count: response.data?.count || 0
+    };
+}
+
+/**
+ * 根据ID获取脑洞详情
+ * @param id 脑洞ID
+ * @returns 
+ */
+export async function getBrainstormById(id: number): Promise<IBrainstorm> {
+    const response = await fetch.get<IBrainstorm>(
+        '/api/web/aiNoval/brainstorm',
+        { params: { id } }
+    );
+    return response.data;
+}
+
+/**
+ * 创建脑洞
+ * @param data 脑洞数据
+ * @returns 
+ */
+export async function createBrainstorm(data: Partial<IBrainstorm>): Promise<IBrainstorm> {
+    const processedData = _.omit(data, ['id', 'created_at', 'updated_at']);
+    const response = await fetch.post<IBrainstorm>(
+        '/api/web/aiNoval/brainstorm',
+        processedData
+    );
+    return response.data;
+}
+
+/**
+ * 更新脑洞
+ * @param id 脑洞ID
+ * @param data 要更新的数据
+ * @returns 
+ */
+export async function updateBrainstorm(id: number, data: Partial<IBrainstorm>): Promise<IBrainstorm> {
+    const processedData = _.omit(data, ['id', 'created_at', 'updated_at']);
+    const response = await fetch.post<IBrainstorm>(
+        '/api/web/aiNoval/brainstorm',
+        processedData,
+        { params: { id } }
+    );
+    return response.data;
+}
+
+/**
+ * 删除脑洞
+ * @param id 脑洞ID
+ * @returns 
+ */
+export async function deleteBrainstorm(id: number): Promise<void> {
+    await fetch.delete('/api/web/aiNoval/brainstorm', { params: { id } });
+}
+
+// ==================== 世界态模块 API ====================
+
+/**
+ * 获取世界态列表
+ * @param params 查询参数
+ * @param page 页码
+ * @param limit 每页数量
+ */
+export async function getWorldStateList(params: {
+    worldview_id: number;
+    state_type?: string;
+    status?: string;
+    impact_level?: string;
+    sort_by?: 'impact_level' | 'status' | 'id';
+    sort_order?: 'asc' | 'desc';
+}, page: number = 1, limit: number = 20): Promise<{ data: IWorldState[]; count: number }> {
+    const response = await fetch.get<{ data: IWorldState[]; count: number }>(
+        '/api/web/aiNoval/worldState/list',
+        { params: { ...params, page, limit } }
+    );
+    const payload = (response as any)?.data;
+    return {
+        data: payload?.data ?? [],
+        count: payload?.count ?? 0,
+    };
+}
+
+/**
+ * 根据ID获取世界态详情
+ * @param id 世界态ID
+ */
+export async function getWorldStateById(id: number): Promise<IWorldState> {
+    const response = await fetch.get<IWorldState>(
+        '/api/web/aiNoval/worldState',
+        { params: { id } }
+    );
+    return (response as any)?.data;
+}
+
+/**
+ * 创建世界态
+ * @param data 世界态数据
+ */
+export async function createWorldState(data: Partial<IWorldState>): Promise<IWorldState> {
+    const processedData = _.omit(data, ['id', 'created_at', 'updated_at']);
+    const response = await fetch.post<IWorldState>(
+        '/api/web/aiNoval/worldState',
+        processedData
+    );
+    return (response as any)?.data;
+}
+
+/**
+ * 更新世界态
+ * @param id 世界态ID
+ * @param data 要更新的数据
+ */
+export async function updateWorldState(id: number, data: Partial<IWorldState>): Promise<IWorldState> {
+    const processedData = _.omit(data, ['id', 'created_at', 'updated_at']);
+    const response = await fetch.post<IWorldState>(
+        '/api/web/aiNoval/worldState',
+        processedData,
+        { params: { id } }
+    );
+    return (response as any)?.data;
+}
+
+/**
+ * 删除世界态
+ * @param id 世界态ID
+ */
+export async function deleteWorldState(id: number): Promise<void> {
+    await fetch.delete('/api/web/aiNoval/worldState', { params: { id } });
+}
+
+/** 世界态编辑时拉取关联选项用：阵营列表（id + name） */
+export async function getFactionOptionsForWorldState(worldviewId: number): Promise<{ id: number; name?: string }[]> {
+    const res = await fetch.get<{ data?: any[] }>('/api/web/aiNoval/faction/list', {
+        params: { worldview_id: worldviewId, page: 1, limit: 500 },
+    });
+    const data = (res as any)?.data ?? [];
+    return Array.isArray(data) ? data : [];
+}
+
+/** 世界态编辑时拉取关联选项用：角色列表（id + name） */
+export async function getRoleOptionsForWorldState(worldviewId: number): Promise<{ id: number; name?: string }[]> {
+    const res = await fetch.get<{ data?: any[] }>('/api/web/aiNoval/role/list', {
+        params: { worldview_id: worldviewId, page: 1, limit: 500 },
+    });
+    const data = (res as any)?.data ?? [];
+    return Array.isArray(data) ? data : [];
+}
+
+/** 世界态编辑时拉取关联选项用：全量地理列表（覆盖星系/恒星/行星/卫星/地理单元，code + name） */
+export async function getGeoUnitOptionsForWorldState(worldviewId: number): Promise<{ code: string; name?: string }[]> {
+    const params = { worldview_id: worldviewId, limit: 1000 };
+    const base = '/api/web/aiNoval/geo';
+    const [starSystemRes, starRes, planetRes, satelliteRes, geoUnitRes] = await Promise.all([
+        fetch.get<{ data?: any[] }>(`${base}/starSystem/list`, { params }),
+        fetch.get<{ data?: any[] }>(`${base}/star/list`, { params }),
+        fetch.get<{ data?: any[] }>(`${base}/planet/list`, { params }),
+        fetch.get<{ data?: any[] }>(`${base}/satellite/list`, { params }),
+        fetch.get<{ data?: any[] }>(`${base}/geoUnit/list`, { params }),
+    ]);
+    const toItems = (data: any[]): { code: string; name?: string }[] =>
+        (Array.isArray(data) ? data : [])
+            .filter((item) => item?.code != null && String(item.code).trim() !== '')
+            .map((item) => ({ code: String(item.code), name: item.name ?? item.title }));
+    const list: { code: string; name?: string }[] = [];
+    list.push(...toItems((starSystemRes as any)?.data ?? []));
+    list.push(...toItems((starRes as any)?.data ?? []));
+    list.push(...toItems((planetRes as any)?.data ?? []));
+    list.push(...toItems((satelliteRes as any)?.data ?? []));
+    list.push(...toItems((geoUnitRes as any)?.data ?? []));
+    return list;
 }
