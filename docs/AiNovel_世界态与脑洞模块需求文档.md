@@ -1274,89 +1274,97 @@ POST   /api/web/aiNoval/worldState/extractFromChapters  # 从章节内容提取�
 
 ## 实施计划
 
+### 完成状态图例
+
+- ✅ 已完成
+- 🟡 部分完成
+- ❌ 未完成
+
+---
+
 ### 6.1 阶段一：基础功能（预计5-7天）
 
 #### 6.1.1 世界态模块基础功能
 
-- [ ] 数据库表创建
-- [ ] TypeScript类型定义
-- [ ] Service层实现
-- [ ] API接口实现（CRUD）
-- [ ] 前端列表和编辑组件
-- [ ] 基础测试
+- [x] ✅ 数据库表创建（world_state 表，由 worldStateService 使用）
+- [x] ✅ TypeScript类型定义（IAiNoval.ts：IWorldState、WorldStateType、WorldStateStatus 等）
+- [x] ✅ Service层实现（worldStateService.js）
+- [x] ✅ API接口实现（CRUD：index.ts、list.ts）
+- [x] ✅ 前端列表和编辑组件（WorldStateList、WorldStateEditModal、WorldStateDetailPanel、WorldStateFilterPanel）
+- [ ] ❌ 基础测试
 
 #### 6.1.2 脑洞模块基础功能
 
-- [ ] 数据库表创建
-- [ ] TypeScript类型定义
-- [ ] Service层实现
-- [ ] API接口实现（CRUD）
-- [ ] 前端列表和编辑组件（支持Markdown）
-- [ ] 基础测试
+- [x] ✅ 数据库表创建（brainstorm、brainstorm_analysis_history 表）
+- [x] ✅ TypeScript类型定义（IAiNoval.ts：IBrainstorm、BrainstormType、IBrainstormAnalysisResult 等）
+- [x] ✅ Service层实现（brainstormService.js、brainstormAnalysisHistoryService.js）
+- [x] ✅ API接口实现（CRUD：index.ts、list.ts）
+- [x] ✅ 前端列表和编辑组件（BrainstormList、BrainstormEditModal、BrainstormDetailPanel、BrainstormFilterPanel，支持 Markdown 内容编辑）
+- [ ] ❌ 基础测试
 
 **工作量**: 5-7天  
 **优先级**: P0（最高）
 
 ### 6.2 阶段二：关联和查询功能（预计4-5天）
 
-- [ ] 世界态关联管理功能
-- [ ] **世界态引用关系管理功能**（新增）
-  - [ ] 引用关系数据库字段和类型定义
-  - [ ] 引用关系CRUD功能
-  - [ ] 引用关系规则验证（检查引用关系是否符合规则）
-  - [ ] 引用关系查询API（查询引用了哪些、被哪些引用）
-- [ ] 脑洞关联管理功能
-- [ ] 高级查询和过滤功能
-- [ ] 全文搜索功能（脑洞）
-- [ ] 关联关系可视化
-- [ ] **引用关系可视化**（新增）
-  - [ ] 引用关系图组件（有向图）
-  - [ ] 引用链展示组件
+- [x] ✅ 世界态关联管理功能（编辑时可选阵营、角色、地理；详情展示关联）
+- [x] 🟡 **世界态引用关系管理功能**（部分完成）
+  - [x] ✅ 引用关系数据库字段和类型定义（related_world_state_ids）
+  - [x] ✅ 引用关系 CRUD 功能（编辑时选择引用世界态）
+  - [ ] ❌ 引用关系规则验证（检查引用关系是否符合规则）
+  - [ ] ❌ 引用关系查询 API（references、validateReferences、referenceGraph）
+- [x] ✅ 脑洞关联管理功能（关联阵营、角色、地理、事件、章节、世界态；parent_ids 父子关系）
+- [x] ✅ 高级查询和过滤功能（世界态：类型/状态/影响级别/排序；脑洞：类型/状态/优先级/分类/搜索）
+- [ ] 🟡 全文搜索功能（脑洞：list API 支持 search 参数，❌ 无独立 search.ts 全文检索 API）
+- [ ] ❌ 关联关系可视化
+- [ ] ❌ **引用关系可视化**
+  - [ ] ❌ 引用关系图组件（有向图）
+  - [ ] ❌ 引用链展示组件
 
 **工作量**: 4-5天  
 **优先级**: P1（高）
 
 ### 6.3 阶段三：LLM分析功能（预计4-5天）
 
-- [ ] 世界态影响分析LLM集成（使用DeepSeek）
-- [ ] **引用关系影响传播分析**（新增）
-  - [ ] 通过引用关系追踪影响传播链
-  - [ ] 分析引用链的累积影响
-- [ ] 脑洞分析LLM集成（使用DeepSeek）
-- [ ] 分析结果展示组件
-- [ ] 分析配置（深度、重点等，模型已固定为DeepSeek）
-- [ ] 分析历史记录
+- [ ] ❌ 世界态影响分析 LLM 集成（使用 DeepSeek）
+- [ ] ❌ **引用关系影响传播分析**
+  - [ ] ❌ 通过引用关系追踪影响传播链
+  - [ ] ❌ 分析引用链的累积影响
+- [x] ✅ 脑洞分析 LLM 集成（使用 DeepSeek，analyze.ts）
+- [x] ✅ 分析结果展示组件（BrainstormAnalysisPanel、AnalysisResultDisplay、BrainstormDetailPanel）
+- [x] 🟡 分析配置（expandAnalysisDirection、generateChapterOutline 等扩展能力已有，❌ 无通用深度/重点配置）
+- [x] ✅ 分析历史记录（brainstorm_analysis_history 表及 brainstormAnalysisHistoryService）
 
 **工作量**: 4-5天  
 **优先级**: P1（高）
 
 ### 6.4 阶段四：高级功能（预计4-5天）
 
-- [ ] 世界态时间线视图
-- [ ] 世界态状态管理
-- [ ] **引用关系冲突检测**（新增）
-  - [ ] 检测循环引用
-  - [ ] 检测时间顺序不合理
-  - [ ] 检测引用不存在的世界态
-- [ ] 脑洞状态流转
-- [ ] 批量操作功能
-- [ ] 数据导入/导出
-- [ ] **数据迁移功能**：从章节内容提取世界态信息
-  - [ ] 章节范围选择界面（手动指定章节范围）
-  - [ ] DeepSeek LLM提取世界态信息
-  - [ ] 提取结果展示界面（结论展示，用户选择性导入）
-  - [ ] **提取时识别引用关系**（新增）
+- [ ] ❌ 世界态时间线视图（❌ 无 timeline API 及 WorldStateTimelineView 组件）
+- [ ] 🟡 世界态状态管理（有 status 字段及筛选，❌ 无状态转换、提醒、状态历史）
+- [ ] ❌ **引用关系冲突检测**
+  - [ ] ❌ 检测循环引用
+  - [ ] ❌ 检测时间顺序不合理
+  - [ ] ❌ 检测引用不存在的世界态
+- [ ] 🟡 脑洞状态流转（有 status 筛选，❌ 无批量状态流转）
+- [ ] ❌ 批量操作功能
+- [ ] ❌ 数据导入/导出
+- [ ] ❌ **数据迁移功能**：从章节内容提取世界态信息
+  - [ ] ❌ 章节范围选择界面（仅有「数据迁移」按钮，无实际面板）
+  - [ ] ❌ extractFromChapters API
+  - [ ] ❌ 提取结果展示界面
+  - [ ] ❌ 提取时识别引用关系
 
 **工作量**: 4-5天  
 **优先级**: P2（中）
 
 ### 6.5 阶段五：优化和测试（预计2-3天）
 
-- [ ] 性能优化
-- [ ] UI/UX优化
-- [ ] 单元测试
-- [ ] 集成测试
-- [ ] 文档编写
+- [ ] ❌ 性能优化
+- [ ] ❌ UI/UX优化
+- [ ] ❌ 单元测试
+- [ ] ❌ 集成测试
+- [ ] 🟡 文档编写（README 等已有，需求文档已更新完成状态）
 
 **工作量**: 2-3天  
 **优先级**: P2（中）
@@ -1367,50 +1375,59 @@ POST   /api/web/aiNoval/worldState/extractFromChapters  # 从章节内容提取�
 - **建议优先级**: 先完成阶段一和阶段二，再根据用户反馈决定后续功能
 - **引用关系功能**: 引用关系是核心功能，建议在阶段二重点实现
 
+### 6.7 完成状态汇总
+
+| 模块 | 已实现 | 未实现 |
+|------|--------|--------|
+| **世界态** | CRUD、列表/编辑/详情/筛选、关联与引用字段编辑、引用关系展示 | analyze/timeline/extractFromChapters/references/validateReferences/referenceGraph API；时间线/关系图视图；数据迁移面板；引用规则验证与冲突检测 |
+| **脑洞** | CRUD、列表/编辑/详情/筛选、Markdown 内容、LLM 分析、分析结果展示、扩展问题、章节纲要、父子关联、list 支持 search | 独立 search 全文检索 API；关联/引用可视化；批量操作 |
+
 ---
 
 ## 附录
 
 ### A. 相关文件清单
 
-#### 需要创建的文件
+#### 需要创建的文件（✅=已存在，❌=未创建）
 
 **数据库**:
-- `src/services/aiNoval/worldState.sql`
-- `src/services/aiNoval/brainstorm.sql`
+- ❌ `src/services/aiNoval/worldState.sql`（表由 worldStateService 使用，SQL 文件未见）
+- ❌ `src/services/aiNoval/brainstorm.sql`（表已使用，SQL 文件未见）
 
 **后端**:
-- `pages/api/web/aiNoval/worldState/index.ts`
-- `pages/api/web/aiNoval/worldState/list.ts`
-- `pages/api/web/aiNoval/worldState/analyze.ts` (使用DeepSeek)
-- `pages/api/web/aiNoval/worldState/timeline.ts`
-- `pages/api/web/aiNoval/worldState/references.ts` (引用关系查询)
-- `pages/api/web/aiNoval/worldState/validateReferences.ts` (引用关系验证)
-- `pages/api/web/aiNoval/worldState/referenceGraph.ts` (引用关系图)
-- `pages/api/web/aiNoval/worldState/extractFromChapters.ts` (使用DeepSeek)
-- `pages/api/web/aiNoval/brainstorm/index.ts`
-- `pages/api/web/aiNoval/brainstorm/list.ts`
-- `pages/api/web/aiNoval/brainstorm/analyze.ts` (使用DeepSeek)
-- `pages/api/web/aiNoval/brainstorm/search.ts`
-- `src/services/aiNoval/worldStateService.js`
-- `src/services/aiNoval/brainstormService.js`
+- ✅ `pages/api/web/aiNoval/worldState/index.ts`
+- ✅ `pages/api/web/aiNoval/worldState/list.ts`
+- ❌ `pages/api/web/aiNoval/worldState/analyze.ts` (使用DeepSeek)
+- ❌ `pages/api/web/aiNoval/worldState/timeline.ts`
+- ❌ `pages/api/web/aiNoval/worldState/references.ts` (引用关系查询)
+- ❌ `pages/api/web/aiNoval/worldState/validateReferences.ts` (引用关系验证)
+- ❌ `pages/api/web/aiNoval/worldState/referenceGraph.ts` (引用关系图)
+- ❌ `pages/api/web/aiNoval/worldState/extractFromChapters.ts` (使用DeepSeek)
+- ✅ `pages/api/web/aiNoval/brainstorm/index.ts`
+- ✅ `pages/api/web/aiNoval/brainstorm/list.ts`
+- ✅ `pages/api/web/aiNoval/brainstorm/analyze.ts` (使用DeepSeek)
+- ❌ `pages/api/web/aiNoval/brainstorm/search.ts`
+- ✅ `src/services/aiNoval/worldStateService.js`
+- ✅ `src/services/aiNoval/brainstormService.js`
+- ✅ `src/services/aiNoval/brainstormAnalysisHistoryService.js`
 
 **前端**:
-- `src/types/IAiNoval.ts` (修改，添加新类型)
-- `src/api/aiNovel.ts` (修改，添加API调用)
-- `src/business/aiNoval/worldStateManage/index.tsx`
-- `src/business/aiNoval/worldStateManage/components/` (多个组件)
-  - `WorldStateExtractPanel.tsx` (数据迁移面板)
-  - `WorldStateReferenceView.tsx` (引用关系视图)
-  - `WorldStateReferenceGraph.tsx` (引用关系图可视化)
-  - `WorldStateReferenceSelector.tsx` (引用关系选择器)
-- `src/business/aiNoval/worldStateManage/worldStateManageContext.tsx`
-- `src/business/aiNoval/brainstormManage/index.tsx`
-- `src/business/aiNoval/brainstormManage/components/` (多个组件)
-- `src/business/aiNoval/brainstormManage/brainstormManageContext.tsx`
+- ✅ `src/types/IAiNoval.ts` (已添加世界态、脑洞类型)
+- ✅ `src/api/aiNovel.ts` (已添加API调用)
+- ✅ `src/business/aiNoval/worldStateManage/index.tsx`
+- ✅ `src/business/aiNoval/worldStateManage/components/`
+  - ✅ `WorldStateList.tsx`、`WorldStateDetailPanel.tsx`、`WorldStateEditModal.tsx`、`WorldStateFilterPanel.tsx`
+  - 🟡 `WorldStateReferenceSelector`：已在 EditModal 内联实现，无独立组件
+  - ❌ `WorldStateExtractPanel.tsx` (数据迁移面板)
+  - ❌ `WorldStateReferenceView.tsx` (引用关系视图)
+  - ❌ `WorldStateReferenceGraph.tsx` (引用关系图可视化)
+- ✅ `src/business/aiNoval/worldStateManage/WorldStateManageContext.tsx`
+- ✅ `src/business/aiNoval/brainstormManage/index.tsx`
+- ✅ `src/business/aiNoval/brainstormManage/components/` (BrainstormList、DetailPanel、EditModal、FilterPanel、AnalysisResultDisplay、ParentBrainstormPreview 等)
+- ✅ `src/business/aiNoval/brainstormManage/BrainstormManageContext.tsx`
 
 **路由**:
-- `src/router/index.tsx` (修改，添加新路由)
+- ✅ `src/router/index.tsx` (需确认是否已添加世界态、脑洞路由)
 
 ### B. 参考实现
 

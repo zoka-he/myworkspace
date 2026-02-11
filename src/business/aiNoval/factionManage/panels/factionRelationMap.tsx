@@ -286,10 +286,10 @@ export function EChartsFactionView({ factions, factionRelations }: D3FactionView
       } else {
         // 淡黄色到蓝色 (0.5 -> 1)
         const t = (normalized - 0.5) * 2; // 0 -> 1
-        // 淡黄色: rgb(255, 233, 178) -> 蓝色: rgb(151, 231, 255)
-        r = Math.round(255 + (151 - 255) * t);
-        g = Math.round(233 + (231 - 233) * t);
-        b = Math.round(178 + (255 - 178) * t);
+        // 淡黄色: rgb(255, 233, 178) -> 蓝色:rgb(116, 166, 247)
+        r = Math.round(255 + (116 - 255) * t);
+        g = Math.round(233 + (166 - 233) * t);
+        b = Math.round(178 + (247 - 178) * t);
       }
       
       return `rgb(${r}, ${g}, ${b})`;

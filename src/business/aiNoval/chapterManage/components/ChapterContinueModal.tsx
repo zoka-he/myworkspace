@@ -163,6 +163,9 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
   // 注意事项参考 Modal
   const [isAttentionRefVisible, setIsAttentionRefVisible] = useState(false)
 
+  // 注意事项 AI 生成 loading
+  const [isGeneratingAttention, setIsGeneratingAttention] = useState(false)
+
   // 初始化
   useEffect(() => {
     reloadChapter();
@@ -661,6 +664,33 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
     setIsAttentionRefVisible(true)
   }
 
+  /** 注意事项 AI 生成（复用 GenChapterByDetailModal 逻辑）：根据本章要点与设定生成，生成后直接覆盖 */
+  const handleGenAttention = async () => {
+    const worldviewId = selectedChapter?.worldview_id
+    if (!worldviewId) {
+      message.error('无法获取世界观 ID，请先选择章节')
+      return
+    }
+    setIsGeneratingAttention(true)
+    try {
+      const text = await apiCalls.genChapterAttention({
+        worldview_id: worldviewId,
+        curr_context: seedPrompt,
+        role_names: roleNames,
+        faction_names: factionNames,
+        geo_names: geoNames,
+        chapter_style: '',
+      })
+      setAttention(text || '')
+      if (text) message.success('注意事项已生成')
+      else message.warning('未生成内容')
+    } catch (e: any) {
+      message.error(e?.message || '生成注意事项失败')
+    } finally {
+      setIsGeneratingAttention(false)
+    }
+  }
+
   return (
     <>
       <Modal
@@ -769,12 +799,13 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
                     { (attention !== selectedChapter?.attension) ?  <Tag color="red">已修改</Tag> : null }
                   </div>
                   <div>
+                    <Button type="link" size="small" loading={isGeneratingAttention} disabled={isLoading} onClick={handleGenAttention}>AI 生成</Button>
                     <Button size="small" disabled={isLoading} onClick={handleShowAttentionRef}>参考值</Button>
                     <Button type="link" size="small" icon={<RedoOutlined />} disabled={isLoading} onClick={() => handleResetPrompt('attension')}>复原存储值</Button>
                   </div>
                 </div>
                 <div>
-                  <TextArea autoSize={{ minRows: 1 }} disabled={isLoading} value={attention} onChange={(e) => setAttention(e.target.value)} />
+                  <TextArea autoSize={{ minRows: 1 }} disabled={isLoading} value={attention} onChange={(e) => setAttention(e.target.value)} placeholder="扩写注意事项，可点击「AI 生成」由 AI 根据本章要点与设定生成（生成后直接覆盖）" />
                 </div>
 
                 <div className={styles.prompt_title}>
