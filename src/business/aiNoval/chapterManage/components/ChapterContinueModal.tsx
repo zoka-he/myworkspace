@@ -734,7 +734,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
                 >
                   {chapterList.map(chapter => (
                     <Select.Option key={chapter.id} value={chapter.id}>
-                      {chapter.chapter_number} {chapter.title || '未命名章节'} : v{chapter.version}
+                      {chapter.chapter_number} {chapter.title || '未命名章节'} : {chapter.version}
                     </Select.Option>
                   ))}
                 </Select>
