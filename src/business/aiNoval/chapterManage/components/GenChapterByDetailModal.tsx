@@ -634,49 +634,7 @@ function GenChapterByDetailModal({
                     <Spin size="small" /> 正在加载章节续写信息…
                   </div>
                 )}
-                <Divider orientation="left">配置</Divider>
-                <Space wrap style={{ marginBottom: 16 }}>
-                  <Checkbox
-                    checked={useMcpContext}
-                    onChange={(e) => setUseMcpContext(e.target.checked)}
-                    disabled={isFormDisabled}
-                  >
-                    使用 MCP 收集设定
-                  </Checkbox>
-                  
-                  <Typography.Text>续写模型：</Typography.Text>
-                  <Select
-                    value={llmType}
-                    onChange={setLlmType}
-                    disabled={isFormDisabled}
-                    style={{ width: 160 }}
-                  >
-                    <Select.Option value="gemini3">Gemini3</Select.Option>
-                    <Select.Option value="deepseek">DeepSeek</Select.Option>
-                    <Select.Option value="deepseek-chat">DeepSeek-Chat</Select.Option>
-                  </Select>
-                </Space>
-
-                <br />
-
-                <Space>
-                  <Typography.Text>每段字数：</Typography.Text>
-                  <InputNumber
-                    min={300}
-                    max={1500}
-                    value={segmentTargetChars}
-                    onChange={(v) => setSegmentTargetChars(v ?? 1000)}
-                    disabled={isFormDisabled}
-                  />
-                  <Typography.Text>最大段数：</Typography.Text>
-                  <InputNumber
-                    min={1}
-                    max={50}
-                    value={maxSegments}
-                    onChange={(v) => setMaxSegments(v ?? 20)}
-                    disabled={isFormDisabled}
-                  />
-                </Space>
+                
 
                 <Divider orientation="left">提示词</Divider>
                 <div className={styles.prompt_title}>
@@ -774,156 +732,201 @@ function GenChapterByDetailModal({
               placeholder="扩写注意事项，可点击「AI 生成」由 AI 根据本章要点与设定生成（生成后直接覆盖）"
               style={{ marginBottom: 16 }}
             />
-
-            {/* 2. 前序章节多选框 */}
-            <Divider orientation="left">前序章节</Divider>
-            <Select
-              mode="multiple"
-              placeholder="请选择前序章节（从章节元数据自动加载）"
-              style={{ width: '100%', marginBottom: 16 }}
-              allowClear
-              value={relatedChapterIds}
-              onChange={(value) => {
-                setRelatedChapterIds(value)
-                if (value.length === 0) {
-                  setPrevContent('')
-                }
-              }}
-              disabled={isFormDisabled}
-            >
-              {chapterList.map(chapter => (
-                <Select.Option key={chapter.id} value={chapter.id}>
-                  {chapter.chapter_number} {chapter.title || '未命名章节'} : v{chapter.version}
-                </Select.Option>
-              ))}
-            </Select>
-
-            {/* 3. 分段设置：提纲模型选择和生成分段提纲按钮 */}
-            <Divider orientation="left">分段设置</Divider>
-            <Space wrap style={{ marginBottom: 16 }}>
-              <Typography.Text>提纲模型：</Typography.Text>
-              <Select
-                value={outlineModel}
-                onChange={setOutlineModel}
-                disabled={isFormDisabled}
-                style={{ width: 180 }}
-              >
-                <Select.Option value="deepseek-reasoner">DeepSeek-Reasoner</Select.Option>
-                <Select.Option value="deepseek-chat">DeepSeek-Chat（默认）</Select.Option>
-                <Select.Option value="gemini3">Gemini3</Select.Option>
-              </Select>
-              <Button
-                type="primary"
-                icon={<RobotOutlined />}
-                onClick={handleGenerateOutline}
-                loading={phase === 'mcp_gathering' || phase === 'segment_planning' || isStrippingChapters}
-                disabled={isFormDisabled}
-              >
-                生成分段提纲
-                {relatedChapterIds.length > 0 && !prevContent && '（将自动缩写前序章节）'}
-              </Button>
-            </Space>
-
-            {/* Loading 状态提示 */}
-            {(phase === 'mcp_gathering' || phase === 'segment_planning') && (
-              <Card size="small" style={{ marginBottom: 16 }}>
-                <Spin spinning />
-                <Typography.Paragraph style={{ marginTop: 16, marginBottom: 0 }}>
-                  {phase === 'mcp_gathering'
-                    ? '正在通过 MCP 收集设定…'
-                    : '正在生成分段提纲…'}
-                </Typography.Paragraph>
-              </Card>
-            )}
-
-            {/* 4. 前序章节缩写的结果（TextArea，可编辑） */}
-            {prevContent && (
-              <>
-                <Divider orientation="left">前序章节缩写结果</Divider>
-                <TextArea
-                  autoSize={{ minRows: 4, maxRows: 10 }}
-                  value={prevContent}
-                  onChange={(e) => setPrevContent(e.target.value)}
-                  placeholder="前序章节缩写后的内容（可编辑）"
-                  style={{ marginBottom: 16 }}
-                  disabled={isFormDisabled}
-                />
-              </>
-            )}
-
-            {/* 5. 分段提纲列表（生成后显示） */}
-            {segmentOutlineList.length > 0 && (
-              <Card 
-                size="small" 
-                title="分段提纲（请确认后开始续写）"
-                style={{ display: 'flex', flexDirection: 'column', marginBottom: 16 }}
-                bodyStyle={{ flex: 1, overflow: 'auto', padding: '12px' }}
-              >
-                <List
-                  dataSource={segmentOutlineList}
-                  renderItem={(item) => (
-                    <List.Item>
-                      <List.Item.Meta
-                        title={`第 ${item.index} 段`}
-                        description={
-                          <Input.TextArea
-                            value={item.outline}
-                            onChange={(e) =>
-                              handleEditOutline(item.index, e.target.value)
-                            }
-                            autoSize={{ minRows: 1 }}
-                            placeholder="本段要点"
-                            disabled={isFormDisabled}
-                          />
-                        }
-                      />
-                    </List.Item>
-                  )}
-                />
-              </Card>
-            )}
-
-            {/* 提示信息 */}
-            {phase === 'idle' && segmentOutlineList.length === 0 && (
-              <>
-                <Divider orientation="left">
-                  生成提纲后将在右侧回显，确认后再开始逐段续写
-                </Divider>
-                <Typography.Text type="secondary">
-                  勾选「使用 MCP 收集设定」时会先通过 MCP 收集世界观与实体，再生成提纲。
-                </Typography.Text>
-              </>
-            )}
-            {(phase === 'writing_segment' || phase === 'paused') && (
-              <Typography.Text type="secondary">
-                续写进行中，详见下方写作区
-              </Typography.Text>
-            )}
-            {phase === 'done' && (
-              <Typography.Text type="secondary">续写已完成，详见下方</Typography.Text>
-            )}
-            {phase === 'error' && (
-              <Typography.Text type="danger">发生错误，详见下方</Typography.Text>
-            )}
-
-            {/* 其他操作按钮始终可见 */}
-            <Space style={{ marginTop: 16, marginBottom: 0 }} wrap>
-              <Button 
-                type="primary" 
-                onClick={handleConfirmAndStart}
-                disabled={phase !== 'awaiting_confirmation' || segmentOutlineList.length === 0}
-              >
-                确认并开始续写
-              </Button>
-              <Button 
-                onClick={handleCancelOutline}
-                disabled={phase !== 'awaiting_confirmation'}
-              >
-                取消
-              </Button>
-            </Space>
           </Col>
         </Row>
+
+        {/* 2. 前序章节多选框 */}
+        <Divider orientation="left">前序章节</Divider>
+        <Select
+          mode="multiple"
+          placeholder="请选择前序章节（从章节元数据自动加载）"
+          style={{ width: '100%', marginBottom: 16 }}
+          allowClear
+          value={relatedChapterIds}
+          onChange={(value) => {
+            setRelatedChapterIds(value)
+            if (value.length === 0) {
+              setPrevContent('')
+            }
+          }}
+          disabled={isFormDisabled}
+        >
+          {chapterList.map(chapter => (
+            <Select.Option key={chapter.id} value={chapter.id}>
+              {chapter.chapter_number} {chapter.title || '未命名章节'} : v{chapter.version}
+            </Select.Option>
+          ))}
+        </Select>
+
+        
+
+        
+
+        {/* 3. 分段设置：提纲模型选择和生成分段提纲按钮 */}
+        <Divider orientation="left">分段设置</Divider>
+        <Space>
+          <Typography.Text>每段字数：</Typography.Text>
+          <InputNumber
+            min={300}
+            max={1500}
+            value={segmentTargetChars}
+            onChange={(v) => setSegmentTargetChars(v ?? 1000)}
+            disabled={isFormDisabled}
+          />
+          <Typography.Text>最大段数：</Typography.Text>
+          <InputNumber
+            min={1}
+            max={50}
+            value={maxSegments}
+            onChange={(v) => setMaxSegments(v ?? 20)}
+            disabled={isFormDisabled}
+          />
+
+          <Typography.Text>提纲模型：</Typography.Text>
+          <Select
+            value={outlineModel}
+            onChange={setOutlineModel}
+            disabled={isFormDisabled}
+            style={{ width: 180 }}
+          >
+            <Select.Option value="deepseek-reasoner">DeepSeek-Reasoner</Select.Option>
+            <Select.Option value="deepseek-chat">DeepSeek-Chat（默认）</Select.Option>
+            <Select.Option value="gemini3">Gemini3</Select.Option>
+          </Select>
+          <Button
+            type="primary"
+            icon={<RobotOutlined />}
+            onClick={handleGenerateOutline}
+            loading={phase === 'mcp_gathering' || phase === 'segment_planning' || isStrippingChapters}
+            disabled={isFormDisabled}
+          >
+            生成分段提纲
+            {relatedChapterIds.length > 0 && !prevContent && '（将自动缩写前序章节）'}
+          </Button>
+        </Space>
+
+        
+
+        {/* 4. 前序章节缩写的结果（TextArea，可编辑） */}
+        {prevContent && (
+          <>
+            <Divider orientation="left">前序章节缩写结果</Divider>
+            <TextArea
+              autoSize={{ minRows: 4, maxRows: 10 }}
+              value={prevContent}
+              onChange={(e) => setPrevContent(e.target.value)}
+              placeholder="前序章节缩写后的内容（可编辑）"
+              style={{ marginBottom: 16 }}
+              disabled={isFormDisabled}
+            />
+          </>
+        )}
+
+        {/* Loading 状态提示 */}
+        {(phase === 'mcp_gathering' || phase === 'segment_planning') && (
+          <Card size="small" style={{ marginBottom: 16 }}>
+            <Spin spinning />
+            <Typography.Paragraph style={{ marginTop: 16, marginBottom: 0 }}>
+              {phase === 'mcp_gathering'
+                ? '正在通过 MCP 收集设定…'
+                : '正在生成分段提纲…'}
+            </Typography.Paragraph>
+          </Card>
+        )}
+
+        {/* 5. 分段提纲列表（生成后显示） */}
+        {segmentOutlineList.length > 0 && (
+          <Card 
+            size="small" 
+            title="分段提纲（请确认后开始续写）"
+            style={{ display: 'flex', flexDirection: 'column', marginBottom: 16 }}
+            bodyStyle={{ flex: 1, overflow: 'auto', padding: '12px' }}
+          >
+            <List
+              dataSource={segmentOutlineList}
+              renderItem={(item) => (
+                <List.Item>
+                  <List.Item.Meta
+                    title={`第 ${item.index} 段`}
+                    description={
+                      <Input.TextArea
+                        value={item.outline}
+                        onChange={(e) =>
+                          handleEditOutline(item.index, e.target.value)
+                        }
+                        autoSize={{ minRows: 1 }}
+                        placeholder="本段要点"
+                        disabled={isFormDisabled}
+                      />
+                    }
+                  />
+                </List.Item>
+              )}
+            />
+          </Card>
+        )}
+
+        <Divider orientation="left">写作配置</Divider>
+
+        {/* 提示信息 */}
+        {phase === 'idle' && segmentOutlineList.length === 0 && (
+          <>
+            <Typography.Paragraph  type="secondary" style={{ marginBottom: 16 }}>
+              勾选「使用 MCP 收集设定」时会先通过 MCP 收集世界观与实体，再生成提纲。
+            </Typography.Paragraph>
+            <br />
+          </>
+        )}
+
+        <Space wrap style={{ marginBottom: 16 }}>
+          <Checkbox
+            checked={useMcpContext}
+            onChange={(e) => setUseMcpContext(e.target.checked)}
+            disabled={isFormDisabled}
+          >
+            使用 MCP 收集设定
+          </Checkbox>
+          
+          <Typography.Text>续写模型：</Typography.Text>
+          <Select
+            value={llmType}
+            onChange={setLlmType}
+            disabled={isFormDisabled}
+            style={{ width: 160 }}
+          >
+            <Select.Option value="gemini3">Gemini3</Select.Option>
+            <Select.Option value="deepseek">DeepSeek</Select.Option>
+            <Select.Option value="deepseek-chat">DeepSeek-Chat</Select.Option>
+          </Select>
+
+          {/* 其他操作按钮始终可见 */}
+          <Button 
+            type="primary" 
+            onClick={handleConfirmAndStart}
+            disabled={phase !== 'awaiting_confirmation' || segmentOutlineList.length === 0}
+          >
+            确认并开始续写
+          </Button>
+          <Button 
+            onClick={handleCancelOutline}
+            disabled={phase !== 'awaiting_confirmation'}
+          >
+            取消
+          </Button>
+        </Space>
+
+        {(phase === 'writing_segment' || phase === 'paused') && (
+          <Typography.Text type="secondary">
+            续写进行中，详见下方写作区
+          </Typography.Text>
+        )}
+        {phase === 'done' && (
+          <Typography.Text type="secondary">续写已完成，详见下方</Typography.Text>
+        )}
+        {phase === 'error' && (
+          <Typography.Text type="danger">发生错误，详见下方</Typography.Text>
+        )}
+        
 
         {/* 下半部分全宽：正式写作时的进度与已生成内容（不隐藏上方组件） */}
         <Row style={{ marginTop: 24 }}>

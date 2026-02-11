@@ -39,8 +39,9 @@ export default class RoleDefService extends MysqlNovalService {
         }
 
         if (params.worldview_id) {
-            roleConds.push('version_count > ?');
-            roleCondVals.push(0);
+            // 有世界观时：显示「该世界观下至少有一个版本」或「没有任何版本」的角色（未绑定版本的角色对所有世界观可见）
+            roleConds.push('(COALESCE(ri_1.version_count, 0) > ? OR COALESCE(ri_all.version_count, 0) = ?)');
+            roleCondVals.push(0, 0);
         }
 
         let sqlRoleCond = '';
@@ -53,6 +54,7 @@ export default class RoleDefService extends MysqlNovalService {
             sqlRoleInfoCond = `where ${roleInfoConds.join(' and ')}`;
         }
 
+        // ri_1: 当前世界观下每个角色的版本数；ri_all: 每个角色在所有世界观下的版本总数（用于包含「未绑定版本」角色）
         let sql = `
             select r.id, r.name, r.version, r.is_enabled, COALESCE(ri_1.version_count, 0) version_count, ri_2.version_name
             from Role r
@@ -60,7 +62,10 @@ export default class RoleDefService extends MysqlNovalService {
                 select role_id, count(0) version_count from role_info ${sqlRoleInfoCond} group by role_id
             ) ri_1 on ri_1.role_id = r.id
             left join (
-                select role_id, id version_id, version_name from role_info ${sqlRoleInfoCond} 
+                select role_id, count(0) version_count from role_info group by role_id
+            ) ri_all on ri_all.role_id = r.id
+            left join (
+                select role_id, id version_id, version_name from role_info ${sqlRoleInfoCond}
             ) ri_2 on ri_2.role_id = r.id and ri_2.version_id = r.version
             ${sqlRoleCond}
         `;

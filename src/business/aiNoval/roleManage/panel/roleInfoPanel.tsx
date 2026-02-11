@@ -173,7 +173,7 @@ export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
   }
 
   // 未选择角色时显示提示
-  if (!roleInfo) {
+  if (!roleDef && !roleInfo) {
     return (
       <div style={{ 
         height: '100%', 
@@ -184,6 +184,34 @@ export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
         fontSize: '14px'
       }}>
         请选择一个角色查看详情
+      </div>
+    )
+  }
+
+  if (!roleInfo) {
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <div>
+          <Title level={4} style={{ margin: 0 }}>{roleDef?.name}</Title>
+          {/* 引导用户创建角色版本 */}
+          <div style={{ marginTop: 24 }}>
+            <Alert
+              message="该角色尚未创建属性版本"
+              description="角色需要关联至少一个属性版本，才能在世界观中使用。请点击下方按钮新建角色版本。"
+              type="warning"
+              showIcon
+              style={{ marginBottom: 16, width: '100%' }}
+            />
+            <Button
+              type="primary"
+              style={{ backgroundColor: '#faad14', borderColor: '#faad14' }}
+              icon={<PlusOutlined />}
+              onClick={handleCreateRoleInfo}
+            >
+              创建角色版本
+            </Button>
+          </div>
+        </div>
       </div>
     )
   }
