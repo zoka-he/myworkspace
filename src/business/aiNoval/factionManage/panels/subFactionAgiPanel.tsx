@@ -302,9 +302,12 @@ export default function SubFactionAgiPanel() {
                         borderRadius: '4px',
                         marginTop: '8px'
                     }}>
-                        <Space>
+                        <Space direction="vertical" size="small">
                             <span style={{ fontSize: '12px', color: '#D2691E' }}>
                                 💰 很贵，效果很好，一次5毛钱
+                            </span>
+                            <span>
+                                注意，此功能还在完善中，需要连接dify，并且两侧主机是写死的，跨机使用会有问题
                             </span>
                         </Space>
                     </div>

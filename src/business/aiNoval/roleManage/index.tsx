@@ -392,7 +392,8 @@ function RolePanel(props: RolePanelProps) {
 
                             if (keyStr.startsWith('def-')) {
                                 const defData = node.data as IRoleData | undefined;
-                                suffix.push(<Tag key="version" color="green">{defData?.version_name}</Tag>);
+                                const hasVersion = defData?.version_name != null && String(defData.version_name).trim() !== '';
+                                suffix.push(hasVersion ? <Tag key="version" color="purple">{ defData?.version_name }</Tag> : <Tag key="version" color="orange">未绑定版本</Tag>);
                                 node_data_to_compare = (node.children as any[])?.find((child: any) => child.isCurrent)?.data;
                                 info_id = node_data_to_compare?.id != null ? String(node_data_to_compare.id) : '';
                             } else if (keyStr.startsWith('info-')) {

@@ -17,8 +17,8 @@ const typeMap: Record<BrainstormType, { text: string; color: string }> = {
 const statusMap: Record<BrainstormStatus, { text: string; color: string }> = {
   draft: { text: '草稿', color: 'default' },
   feasible_unused: { text: '可行未使用', color: 'blue' },
-  in_use: { text: '使用中', color: 'processing' },
-  used: { text: '已使用', color: 'success' },
+  in_use: { text: '使用中', color: 'red' },
+  used: { text: '已使用', color: 'purple' },
   suspended: { text: '暂时搁置', color: 'warning' },
 };
 
@@ -27,6 +27,23 @@ const priorityMap: Record<Priority, { text: string; color: string }> = {
   medium: { text: '中', color: 'blue' },
   high: { text: '高', color: 'orange' },
   urgent: { text: '紧急', color: 'red' },
+};
+
+/** 优先级排序权重：紧急 -> 高 -> 中 -> 低 */
+const priorityOrder: Record<Priority, number> = {
+  urgent: 0,
+  high: 1,
+  medium: 2,
+  low: 3,
+};
+
+/** 状态排序权重（第二级）：使用中 -> 可行未使用 -> 草稿 -> 暂时搁置 -> 已使用 */
+const statusOrder: Record<BrainstormStatus, number> = {
+  in_use: 0,
+  feasible_unused: 1,
+  draft: 2,
+  suspended: 3,
+  used: 4,
 };
 
 interface BrainstormListProps {
@@ -40,9 +57,20 @@ export default function BrainstormList({ onEdit, onDelete, onSelect }: Brainstor
   const { currentBrainstormId } = useCurrentBrainstorm();
   const { token } = useToken();
 
+  const sortedList = React.useMemo(() => {
+    return [...brainstormList].sort((a, b) => {
+      const pa = priorityOrder[(a.priority || 'medium') as Priority];
+      const pb = priorityOrder[(b.priority || 'medium') as Priority];
+      if (pa !== pb) return pa - pb;
+      const sa = statusOrder[(a.status || 'draft') as BrainstormStatus];
+      const sb = statusOrder[(b.status || 'draft') as BrainstormStatus];
+      return sa - sb;
+    });
+  }, [brainstormList]);
+
   return (
     <List
-      dataSource={brainstormList}
+      dataSource={sortedList}
       renderItem={(item) => {
         const typeInfo = typeMap[item.brainstorm_type];
         const statusInfo = statusMap[item.status || 'draft'];

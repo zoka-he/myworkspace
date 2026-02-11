@@ -191,12 +191,22 @@ function parseAction(text: string): { action: string; actionInput: any } | null 
 
 /**
  * 检查是否是Final Answer
+ * 必须同时满足：1. 包含"Final Answer:"标记 2. 如果提供了关键词，必须包含至少一个关键词
  */
 function isFinalAnswer(text: string, finalAnswerKeywords?: string[]): boolean {
-    if (finalAnswerKeywords && finalAnswerKeywords.length > 0) {
-        return finalAnswerKeywords.every(keyword => text.includes(keyword));
+    // 首先检查是否包含"Final Answer:"标记
+    const hasFinalAnswerMarker = /Final Answer:/i.test(text);
+    
+    if (!hasFinalAnswerMarker) {
+        return false;
     }
-    return /Final Answer:/i.test(text);
+    
+    // 如果提供了关键词，检查是否包含至少一个关键词
+    if (finalAnswerKeywords && finalAnswerKeywords.length > 0) {
+        return finalAnswerKeywords.some(keyword => text.includes(keyword));
+    }
+    
+    return true;
 }
 
 /**
@@ -408,9 +418,76 @@ export async function executeReAct(
         }
     }
 
-    // 如果达到最大迭代次数，返回最后一次响应
+    // 如果达到最大迭代次数，检查最后一次响应是否是FinalAnswer
+    const lastResponse = messages[messages.length - 1].content;
     if (verbose) {
-        console.warn(logTag, `达到最大迭代次数 ${maxIterations}，返回最后一次响应`);
+        console.warn(logTag, `达到最大迭代次数 ${maxIterations}，检查最后一次响应`);
     }
-    return messages[messages.length - 1].content;
+    
+    // 如果最后一次响应是FinalAnswer，返回它
+    if (isFinalAnswer(lastResponse, finalAnswerKeywords)) {
+        if (verbose) {
+            console.log(logTag, "最后一次响应是FinalAnswer，返回");
+        }
+        return lastResponse;
+    }
+    
+    // 如果最后一次响应不是FinalAnswer，尝试提示LLM给出FinalAnswer
+    if (verbose) {
+        console.warn(logTag, "最后一次响应不是FinalAnswer，尝试提示LLM给出FinalAnswer");
+    }
+    
+    // 添加提示，要求给出FinalAnswer
+    messages.push({
+        role: 'user',
+        content: '已达到最大迭代次数。请立即给出Final Answer，不要再调用工具。请按照格式：\nThought: <你的思考>\nFinal Answer:\n<你的最终答案>',
+    });
+    
+    // 最后一次调用LLM，要求给出FinalAnswer
+    try {
+        const promptMessages: Array<['system' | 'user' | 'assistant', string]> = [
+            ["system", escapedSystemPrompt],
+        ];
+        
+        messages.forEach(msg => {
+            promptMessages.push([msg.role, escapeBracketsForLangChain(msg.content)]);
+        });
+        
+        const prompt = ChatPromptTemplate.fromMessages(promptMessages);
+        const chain = RunnableSequence.from([prompt, model]);
+        const finalResponse = (await chain.invoke({})).content as string;
+        
+        if (verbose) {
+            console.log(logTag, `最终响应长度: ${finalResponse.length}`);
+        }
+        
+        // 检查最终响应是否是FinalAnswer
+        if (isFinalAnswer(finalResponse, finalAnswerKeywords)) {
+            if (verbose) {
+                console.log(logTag, "最终响应是FinalAnswer，返回");
+            }
+            return finalResponse;
+        }
+        
+        // 如果仍然不是FinalAnswer，但包含关键词，也返回（可能是格式问题）
+        if (finalAnswerKeywords && finalAnswerKeywords.some(keyword => finalResponse.includes(keyword))) {
+            if (verbose) {
+                console.warn(logTag, "最终响应包含关键词但格式可能不完整，仍然返回");
+            }
+            return finalResponse;
+        }
+        
+        // 如果确实不是FinalAnswer，记录详细信息并抛出错误
+        const lastResponsePreview = lastResponse.substring(0, 500);
+        const finalResponsePreview = finalResponse.substring(0, 500);
+        console.error(logTag, `达到最大迭代次数但未获得FinalAnswer。最后一次响应: ${lastResponsePreview}...`);
+        console.error(logTag, `最终响应: ${finalResponsePreview}...`);
+        throw new Error(`ReAct达到最大迭代次数(${maxIterations})但未获得FinalAnswer。最后一次响应类型: ${parseAction(lastResponse) ? 'Action' : '其他'}。请检查LLM是否按照格式输出Final Answer。`);
+    } catch (error: any) {
+        // 如果最后一次调用失败，抛出错误
+        if (error.message.includes('达到最大迭代次数')) {
+            throw error; // 重新抛出已格式化的错误
+        }
+        throw new Error(`达到最大迭代次数但未获得FinalAnswer: ${error.message}`);
+    }
 }
