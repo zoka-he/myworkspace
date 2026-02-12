@@ -40,12 +40,10 @@ export const statusMap: Record<BrainstormStatus, { text: string; color: string }
 };
 
 /** 分析类型 */
-export type AnalysisType = 'feasibility_and_expansion' | 'chapter_outline' | 'other'; // 未来可扩展其他类型
+export type AnalysisType = 'feasibility_and_expansion' | 'chapter_outline' | 'role_ideation' | 'other';
 
 export const analysisTypeOptions: { value: AnalysisType; label: string; description: string }[] = [
   { value: 'feasibility_and_expansion', label: '可行性及思路扩展', description: '分析脑洞的可行性、一致性，并提供思路扩展建议' },
   { value: 'chapter_outline', label: '章节纲要', description: '基于脑洞的元数据、用户问题、扩展问题和分析结果生成章节纲要' },
-  // 未来可添加其他分析类型，如：
-  // { value: 'plot_development', label: '剧情发展', description: '分析脑洞对剧情发展的影响' },
-  // { value: 'character_analysis', label: '角色分析', description: '分析脑洞对角色塑造的影响' },
+  { value: 'role_ideation', label: '角色卡构思', description: '抽样生成角色种子，基于种子生成角色卡与背景草稿' },
 ];

@@ -1,4 +1,4 @@
-import { IBrainstorm, IBrainstormAnalysisResult } from '@/src/types/IAiNoval';
+import { IBrainstorm, IBrainstormAnalysisResult, IRoleSeed, IRoleDraft } from '@/src/types/IAiNoval';
 import { ApiResponse } from '@/src/types/ApiResponse';
 import fetch from '@/src/fetch';
 import {
@@ -116,5 +116,53 @@ export default {
     }
     
     return res.data.chapter_outline;
+  },
+
+  /** 角色构思：一次生成 N 个角色种子（自然语言） */
+  generateRoleSeeds: async (
+    brainstormId: number,
+    params: { count: number; randomness?: 'low' | 'medium' | 'high'; adhere_worldview?: boolean }
+  ): Promise<IRoleSeed[]> => {
+    const res = await fetch.post<ApiResponse<{ seeds: IRoleSeed[] }>>(
+      `/api/web/aiNoval/brainstorm/roleSeeds/generate?id=${brainstormId}`,
+      { count: params.count, randomness: params.randomness ?? 'medium', adhere_worldview: params.adhere_worldview ?? true },
+      { timeout: 1000 * 60 * 3 }
+    );
+    if (!res.success || res.error) throw new Error(res.error || '生成角色种子失败');
+    if (!res.data?.seeds) throw new Error('未返回角色种子');
+    return res.data.seeds;
+  },
+
+  /** 角色构思：重骰单个种子 */
+  rerollRoleSeed: async (
+    brainstormId: number,
+    seedId: string,
+    params?: { randomness?: 'low' | 'medium' | 'high'; adhere_worldview?: boolean }
+  ): Promise<IRoleSeed> => {
+    const res = await fetch.post<ApiResponse<IRoleSeed>>(
+      `/api/web/aiNoval/brainstorm/roleSeeds/reroll?id=${brainstormId}&seedId=${encodeURIComponent(seedId)}`,
+      { randomness: params?.randomness ?? 'medium', adhere_worldview: params?.adhere_worldview ?? true },
+      { timeout: 1000 * 60 * 2 }
+    );
+    if (!res.success || res.error) throw new Error(res.error || '重骰种子失败');
+    if (!res.data) throw new Error('未返回种子内容');
+    return res.data;
+  },
+
+  /** 角色构思：为选中的种子生成角色草稿（一个请求只生成一个种子对应的草稿，可传 worldview_summary 复用上下文） */
+  generateRoleDrafts: async (
+    brainstormId: number,
+    seedIds: string[],
+    seeds?: IRoleSeed[],
+    worldviewSummary?: string
+  ): Promise<{ drafts: IRoleDraft[]; worldview_summary?: string }> => {
+    const res = await fetch.post<ApiResponse<{ drafts: IRoleDraft[]; worldview_summary?: string }>>(
+      `/api/web/aiNoval/brainstorm/roleDrafts/generate?id=${brainstormId}`,
+      { seed_ids: seedIds, seeds: seeds ?? undefined, worldview_summary: worldviewSummary || undefined },
+      { timeout: 1000 * 60 * 3 }
+    );
+    if (!res.success || res.error) throw new Error(res.error || '生成角色草稿失败');
+    if (!res.data?.drafts) throw new Error('未返回角色草稿');
+    return { drafts: res.data.drafts, worldview_summary: res.data.worldview_summary };
   },
 };

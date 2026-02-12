@@ -1,8 +1,9 @@
 import React from 'react';
 import { Switch, Space, Tabs, theme } from 'antd';
-import { IBrainstorm } from '@/src/types/IAiNoval';
+import { IBrainstorm, IRoleSeed, IRoleDraft } from '@/src/types/IAiNoval';
 import BrainstormAnalysisSection from './BrainstormAnalysisSection';
 import ChapterOutlineGenerator from './ChapterOutlineGenerator';
+import RoleIdeationPanel from './RoleIdeationPanel';
 import { AnalysisType, analysisTypeOptions } from '../constants';
 
 const { useToken } = theme;
@@ -20,6 +21,8 @@ interface BrainstormAnalysisPanelProps {
   onAnalyze: () => void;
   onToggleParentPreview: (checked: boolean) => void;
   onChapterOutlineGenerated: (outline: string) => void;
+  onRoleSeedsChange?: (seeds: IRoleSeed[]) => void;
+  onRoleDraftsChange?: (drafts: IRoleDraft[]) => void;
 }
 
 /**
@@ -39,6 +42,8 @@ export default function BrainstormAnalysisPanel({
   onAnalyze,
   onToggleParentPreview,
   onChapterOutlineGenerated,
+  onRoleSeedsChange,
+  onRoleDraftsChange,
 }: BrainstormAnalysisPanelProps) {
   const { token } = useToken();
 
@@ -89,6 +94,13 @@ export default function BrainstormAnalysisPanel({
                 <ChapterOutlineGenerator
                   currentBrainstorm={currentBrainstorm}
                   onGenerated={onChapterOutlineGenerated}
+                />
+              )}
+              {opt.value === 'role_ideation' && (
+                <RoleIdeationPanel
+                  currentBrainstorm={currentBrainstorm}
+                  onSeedsChange={(seeds) => onRoleSeedsChange?.(seeds)}
+                  onDraftsChange={(drafts) => onRoleDraftsChange?.(drafts)}
                 />
               )}
               {opt.value === 'other' && (

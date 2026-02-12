@@ -51,6 +51,12 @@ async function getOne(req: NextApiRequest, res: NextApiResponse<Data>) {
             if (typeof brainstorm.related_world_state_ids === 'string') {
                 brainstorm.related_world_state_ids = JSON.parse(brainstorm.related_world_state_ids);
             }
+            if (typeof brainstorm.role_seeds === 'string') {
+                brainstorm.role_seeds = JSON.parse(brainstorm.role_seeds);
+            }
+            if (typeof brainstorm.role_drafts === 'string') {
+                brainstorm.role_drafts = JSON.parse(brainstorm.role_drafts);
+            }
 
             res.status(200).json({ 
                 success: true,
@@ -97,6 +103,12 @@ async function createOrUpdateOne(req: NextApiRequest, res: NextApiResponse<Data>
         if (processedBody.related_world_state_ids && Array.isArray(processedBody.related_world_state_ids)) {
             processedBody.related_world_state_ids = JSON.stringify(processedBody.related_world_state_ids);
         }
+        if (processedBody.role_seeds != null && (Array.isArray(processedBody.role_seeds) || typeof processedBody.role_seeds === 'object')) {
+            processedBody.role_seeds = JSON.stringify(processedBody.role_seeds);
+        }
+        if (processedBody.role_drafts != null && (Array.isArray(processedBody.role_drafts) || typeof processedBody.role_drafts === 'object')) {
+            processedBody.role_drafts = JSON.stringify(processedBody.role_drafts);
+        }
 
         if (typeof id === 'undefined') {
             // 创建
@@ -129,6 +141,12 @@ async function createOrUpdateOne(req: NextApiRequest, res: NextApiResponse<Data>
                 if (typeof created.related_world_state_ids === 'string') {
                     created.related_world_state_ids = JSON.parse(created.related_world_state_ids);
                 }
+                if (typeof created.role_seeds === 'string') {
+                    created.role_seeds = JSON.parse(created.role_seeds);
+                }
+                if (typeof created.role_drafts === 'string') {
+                    created.role_drafts = JSON.parse(created.role_drafts);
+                }
                 res.status(200).json({ 
                     success: true,
                     data: created 
@@ -151,12 +169,18 @@ async function createOrUpdateOne(req: NextApiRequest, res: NextApiResponse<Data>
                 if (typeof updated.analysis_result === 'string') {
                     updated.analysis_result = JSON.parse(updated.analysis_result);
                 }
-                res.status(200).json({ 
+                if (typeof updated.role_seeds === 'string') {
+                    updated.role_seeds = JSON.parse(updated.role_seeds);
+                }
+                if (typeof updated.role_drafts === 'string') {
+                    updated.role_drafts = JSON.parse(updated.role_drafts);
+                }
+                res.status(200).json({
                     success: true,
                     data: updated 
                 });
             } else {
-                res.status(404).json({ 
+                res.status(404).json({
                     success: false,
                     error: `Brainstorm not found, id: ${id}` 
                 });
