@@ -73,6 +73,7 @@ export default function ChapterOutlineGenerator({
       ) : (
         <div style={{ 
           padding: '12px', 
+          minHeight: '20em',
           color: token.colorTextSecondary,
           fontSize: '12px',
           fontStyle: 'italic',

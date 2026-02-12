@@ -33,6 +33,8 @@ export default class BrainstormService extends MysqlNovalService {
             'analysis_result',
             'analyzed_at',
             'analysis_model',
+            'role_seeds',
+            'role_drafts',
             'created_at',
             'updated_at',
             'created_by'

@@ -25,6 +25,9 @@ export default class FactionDefService extends MysqlNovalService {
             'geo_naming_habit',
             'geo_naming_suffix',
             'geo_naming_prohibition',
+            'person_naming_habit',
+            'person_naming_suffix',
+            'person_naming_prohibition',
         ]);
     }
 

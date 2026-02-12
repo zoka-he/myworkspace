@@ -141,6 +141,18 @@ export default {
         );
     },
 
+    generateFactionPersonNamingRules: (params: {
+        cultureTags: string;
+        factionName?: string;
+        factionCulture?: string;
+        description?: string;
+    }) => {
+        return fetch.post<{ person_naming_habit: string; person_naming_suffix: string; person_naming_prohibition: string }>(
+            '/api/web/aiNoval/llm/once/generateFactionPersonNamingRules',
+            params
+        );
+    },
+
     getUsableFactionRelationsById: async (factionId: number) => {
         const response = await fetch.get(
             '/api/web/aiNoval/faction/relation/usable', 

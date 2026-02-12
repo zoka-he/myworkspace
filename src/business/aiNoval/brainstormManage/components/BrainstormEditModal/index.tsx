@@ -66,7 +66,7 @@ export default function BrainstormEditModal({ visible, brainstorm, onCancel, onS
       const values = await form.validateFields();
       setSavingForm(true);
       
-      // 只保存表单相关字段，排除分析相关字段
+      // 只保存表单相关字段，排除分析相关字段；角色构思数据从 currentBrainstorm 带出
       const formFields = {
         title: values.title,
         brainstorm_type: values.brainstorm_type,
@@ -86,6 +86,8 @@ export default function BrainstormEditModal({ visible, brainstorm, onCancel, onS
         related_event_ids: values.related_event_ids,
         related_chapter_ids: values.related_chapter_ids,
         related_world_state_ids: values.related_world_state_ids,
+        role_seeds: currentBrainstorm?.role_seeds,
+        role_drafts: currentBrainstorm?.role_drafts,
       };
       
       let savedBrainstorm: IBrainstorm;
@@ -179,6 +181,8 @@ export default function BrainstormEditModal({ visible, brainstorm, onCancel, onS
           related_event_ids: values.related_event_ids,
           related_chapter_ids: values.related_chapter_ids,
           related_world_state_ids: values.related_world_state_ids,
+          role_seeds: currentBrainstorm?.role_seeds,
+          role_drafts: currentBrainstorm?.role_drafts,
         };
         const newBrainstorm = await apiCalls.createBrainstorm({ ...formFields, worldview_id: worldviewId! });
         setCurrentBrainstorm(newBrainstorm);
@@ -281,6 +285,8 @@ export default function BrainstormEditModal({ visible, brainstorm, onCancel, onS
           onAnalyze={handleAnalyze}
           onToggleParentPreview={setShowParentPreview}
           onChapterOutlineGenerated={handleChapterOutlineGenerated}
+          onRoleSeedsChange={(seeds) => setCurrentBrainstorm((prev) => (prev ? { ...prev, role_seeds: seeds } : null))}
+          onRoleDraftsChange={(drafts) => setCurrentBrainstorm((prev) => (prev ? { ...prev, role_drafts: drafts } : null))}
         />
       </Form>
     </Modal>

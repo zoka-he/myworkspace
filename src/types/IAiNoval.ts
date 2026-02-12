@@ -151,6 +151,12 @@ export interface IFactionDefData {
     geo_naming_suffix?: string | null,
     /** 地理·命名禁忌：严禁事项 */
     geo_naming_prohibition?: string | null,
+    /** 人物·命名习惯：角色/人名的风格、偏好、通用要求 */
+    person_naming_habit?: string | null,
+    /** 人物·命名后缀：人名结构、尊称/辈分等约定 */
+    person_naming_suffix?: string | null,
+    /** 人物·命名禁忌：严禁用于人名的字、风格等 */
+    person_naming_prohibition?: string | null,
     /** 阵营关系列表 */
     relations?: IFactionRelation[] | null,
 }
@@ -594,6 +600,37 @@ export interface IBrainstormAnalysisResult {
   }>;
 }
 
+/** 角色种子：自然语言描述，用于两阶段角色构思的第一阶段 */
+export interface IRoleSeed {
+  id: string;
+  content: string;
+  edited?: boolean;
+}
+
+/** 角色草稿卡：与角色管理字段对齐的结构化信息 */
+export interface IRoleDraftCard {
+  name?: string;
+  gender?: string;
+  age?: string;
+  race_or_species?: string;
+  faction_or_stance?: string;
+  appearance?: string;
+  strengths?: string;
+  weaknesses?: string;
+  resources?: string;
+  behavior_style?: string;
+  personality?: string;
+  [key: string]: string | undefined;
+}
+
+/** 角色草稿：基于种子生成，含结构化卡 + 背景长文本 */
+export interface IRoleDraft {
+  seed_id: string;
+  card: IRoleDraftCard;
+  background: string;
+  status?: 'generating';
+}
+
 export interface IBrainstorm {
   id?: number;
   worldview_id: number;
@@ -629,6 +666,10 @@ export interface IBrainstorm {
   analysis_result?: IBrainstormAnalysisResult;
   analyzed_at?: Date;
   analysis_model?: string;
+  /** 角色构思：种子列表（自然语言，可重骰与编辑） */
+  role_seeds?: IRoleSeed[];
+  /** 角色构思：基于种子生成的角色草稿（角色卡 + 背景） */
+  role_drafts?: IRoleDraft[];
   created_at?: Date;
   updated_at?: Date;
   created_by?: string;

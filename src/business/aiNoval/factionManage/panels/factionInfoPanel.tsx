@@ -65,6 +65,14 @@ export default function FactionInfoPanel() {
                 <Descriptions.Item label="地理·命名禁忌">{currentFaction.geo_naming_prohibition || '-'}</Descriptions.Item>
             </Descriptions>
 
+            <Divider orientation="left" plain>人物·命名规范</Divider>
+
+            <Descriptions column={1} size="small" bordered style={{ marginTop: 8 }} styles={{ label: { width: '100px' } }}>
+                <Descriptions.Item label="人物·命名习惯">{currentFaction.person_naming_habit || '-'}</Descriptions.Item>
+                <Descriptions.Item label="人物·命名后缀">{currentFaction.person_naming_suffix || '-'}</Descriptions.Item>
+                <Descriptions.Item label="人物·命名禁忌">{currentFaction.person_naming_prohibition || '-'}</Descriptions.Item>
+            </Descriptions>
+
             <FactionEmbedPanel factionData={currentFaction} style={{ marginTop: 16 }} />
         
             <Divider>阵营关系</Divider>
