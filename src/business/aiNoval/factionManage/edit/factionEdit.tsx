@@ -51,7 +51,9 @@ const FactionEdit = forwardRef<FactionEditRef, IFactionEditProps>(({
     const [visible, setVisible] = useState(false);
     const [embedLoading, setEmbedLoading] = useState(false);
     const [namingTagInput, setNamingTagInput] = useState('');
+    const [personNamingTagInput, setPersonNamingTagInput] = useState('');
     const [namingGenLoading, setNamingGenLoading] = useState(false);
+    const [personNamingGenLoading, setPersonNamingGenLoading] = useState(false);
     const [namingLlmProvider, setNamingLlmProvider] = useState<string>('deepseek');
     const [worldViewId] = useWorldViewId();
     const [factionTree] = useFactionTree();
@@ -81,6 +83,9 @@ const FactionEdit = forwardRef<FactionEditRef, IFactionEditProps>(({
                 geo_naming_habit: values.geo_naming_habit,
                 geo_naming_suffix: values.geo_naming_suffix,
                 geo_naming_prohibition: values.geo_naming_prohibition,
+                person_naming_habit: values.person_naming_habit,
+                person_naming_suffix: values.person_naming_suffix,
+                person_naming_prohibition: values.person_naming_prohibition,
             };
             form.setFieldsValue(formValues);
         },
@@ -111,6 +116,9 @@ const FactionEdit = forwardRef<FactionEditRef, IFactionEditProps>(({
                 geo_naming_habit: values.geo_naming_habit,
                 geo_naming_suffix: values.geo_naming_suffix,
                 geo_naming_prohibition: values.geo_naming_prohibition,
+                person_naming_habit: values.person_naming_habit,
+                person_naming_suffix: values.person_naming_suffix,
+                person_naming_prohibition: values.person_naming_prohibition,
             };
             form.setFieldsValue(formValues);
         }
@@ -134,6 +142,9 @@ const FactionEdit = forwardRef<FactionEditRef, IFactionEditProps>(({
                 geo_naming_habit: initialValues.geo_naming_habit,
                 geo_naming_suffix: initialValues.geo_naming_suffix,
                 geo_naming_prohibition: initialValues.geo_naming_prohibition,
+                person_naming_habit: initialValues.person_naming_habit,
+                person_naming_suffix: initialValues.person_naming_suffix,
+                person_naming_prohibition: initialValues.person_naming_prohibition,
             });
         }
     }, [visible, initialValues, form]);
@@ -144,6 +155,7 @@ const FactionEdit = forwardRef<FactionEditRef, IFactionEditProps>(({
             form.resetFields();
             setBackupData({});
             setNamingTagInput('');
+            setPersonNamingTagInput('');
         }
     }, [visible, form]);
 
@@ -153,6 +165,10 @@ const FactionEdit = forwardRef<FactionEditRef, IFactionEditProps>(({
 
     const handleNamingTagClick = (tag: string) => {
         setNamingTagInput(prev => (prev ? `${prev}、${tag}` : tag));
+    };
+
+    const handlePersonNamingTagClick = (tag: string) => {
+        setPersonNamingTagInput(prev => (prev ? `${prev}、${tag}` : tag));
     };
 
     const handleGenerateNaming = async () => {
@@ -187,6 +203,39 @@ const FactionEdit = forwardRef<FactionEditRef, IFactionEditProps>(({
             message.error(e?.message || '生成失败，请稍后重试');
         } finally {
             setNamingGenLoading(false);
+        }
+    };
+
+    const handleGeneratePersonNaming = async () => {
+        const tags = personNamingTagInput?.trim();
+        if (!tags) {
+            message.warning('请先输入或选择文化标签');
+            return;
+        }
+        setPersonNamingGenLoading(true);
+        try {
+            const { name, faction_culture, description } = form.getFieldsValue(['name', 'faction_culture', 'description']);
+            const res = await apiCalls.generateFactionPersonNamingRules({
+                cultureTags: tags,
+                factionName: name?.trim() || undefined,
+                factionCulture: faction_culture?.trim() || undefined,
+                description: description?.trim() || undefined,
+            }) as { success?: boolean; data?: { person_naming_habit: string; person_naming_suffix: string; person_naming_prohibition: string }; error?: string };
+            if (res?.success && res.data) {
+                form.setFieldsValue({
+                    person_naming_habit: res.data.person_naming_habit,
+                    person_naming_suffix: res.data.person_naming_suffix,
+                    person_naming_prohibition: res.data.person_naming_prohibition,
+                });
+                message.success('人物命名规范已生成');
+            } else {
+                message.error(res?.error || '生成失败');
+            }
+        } catch (e: any) {
+            console.error('生成人物命名规范失败：', e);
+            message.error(e?.message || '生成失败，请稍后重试');
+        } finally {
+            setPersonNamingGenLoading(false);
         }
     };
 
@@ -390,6 +439,73 @@ const FactionEdit = forwardRef<FactionEditRef, IFactionEditProps>(({
 
                 <Form.Item name="geo_naming_prohibition" label="地理·命名禁忌">
                     <Input.TextArea rows={2} placeholder="严禁事项（如：禁界、禁京都、禁神话倾向）" />
+                </Form.Item>
+
+                <Divider orientation="left" plain>人物·命名规范</Divider>
+
+                <Form.Item label="快速生成">
+                    <div
+                        style={{
+                            padding: 16,
+                            border: '1px dashed #d9d9d9',
+                            borderRadius: 8,
+                            background: '#fafafa',
+                        }}
+                    >
+                        <Flex vertical gap={12}>
+                            <Flex vertical gap={10}>
+                                {NAMING_CULTURE_TAG_GROUPS.map(group => (
+                                    <div key={group.label}>
+                                        <span style={{ marginRight: 8, color: 'rgba(0,0,0,0.45)', fontSize: 12, fontWeight: 500 }}>
+                                            {group.label}：
+                                        </span>
+                                        <Space size={[8, 8]} wrap style={{ marginTop: 4 }}>
+                                            {group.tags.map(tag => (
+                                                <Button key={tag} size="small" onClick={() => handlePersonNamingTagClick(tag)}>
+                                                    {tag}
+                                                </Button>
+                                            ))}
+                                        </Space>
+                                    </div>
+                                ))}
+                            </Flex>
+                            <Space.Compact style={{ width: '100%', maxWidth: 560 }}>
+                                <Input
+                                    placeholder="输入或选择文化标签，用于生成人物命名规范"
+                                    value={personNamingTagInput}
+                                    onChange={e => setPersonNamingTagInput(e.target.value)}
+                                    allowClear
+                                    style={{ flex: 1 }}
+                                />
+                                <Select
+                                    value={namingLlmProvider}
+                                    onChange={setNamingLlmProvider}
+                                    options={NAMING_LLM_OPTIONS}
+                                    style={{ width: 120 }}
+                                />
+                                <Button
+                                    type="primary"
+                                    icon={<ThunderboltOutlined />}
+                                    loading={personNamingGenLoading}
+                                    onClick={handleGeneratePersonNaming}
+                                >
+                                    生成
+                                </Button>
+                            </Space.Compact>
+                        </Flex>
+                    </div>
+                </Form.Item>
+
+                <Form.Item name="person_naming_habit" label="人物·命名习惯">
+                    <Input.TextArea rows={2} placeholder="风格、偏好、通用要求（如：唐风姓+单字名、和风姓+名）" />
+                </Form.Item>
+
+                <Form.Item name="person_naming_suffix" label="人物·命名后缀">
+                    <Input.TextArea rows={2} placeholder="尊称、辈分、职位后缀等（如：字/号、君/殿、阁下）" />
+                </Form.Item>
+
+                <Form.Item name="person_naming_prohibition" label="人物·命名禁忌">
+                    <Input.TextArea rows={2} placeholder="严禁用于人名的字或风格（如：禁现代网红名、禁与历史名人重名）" />
                 </Form.Item>
 
                 <Form.Item label="嵌入文档">
