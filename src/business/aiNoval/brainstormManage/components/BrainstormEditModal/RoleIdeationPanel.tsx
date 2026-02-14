@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button, Card, Checkbox, Input, Select, Space, theme, message, Collapse } from 'antd';
-import { ReloadOutlined, UserOutlined, FormOutlined } from '@ant-design/icons';
+import { ReloadOutlined, UserOutlined, FormOutlined, PlusOutlined } from '@ant-design/icons';
 import { IBrainstorm, IRoleSeed, IRoleDraft } from '@/src/types/IAiNoval';
 import apiCalls from '../../apiCalls';
 
@@ -30,6 +30,8 @@ export default function RoleIdeationPanel({
   const [rerollingId, setRerollingId] = useState<string | null>(null);
   const [generatingDrafts, setGeneratingDrafts] = useState(false);
   const [seedCount, setSeedCount] = useState(DEFAULT_SEED_COUNT);
+  /** 生成轮次：对同一批选中种子重复生成 N 轮（1 = 生成 1 遍，2 = 生成 2 遍…） */
+  const [draftRoundCount, setDraftRoundCount] = useState(1);
 
   const handleGenerateSeeds = async () => {
     if (!currentBrainstorm?.id) {
@@ -82,6 +84,18 @@ export default function RoleIdeationPanel({
     onSeedsChange(next);
   };
 
+  /** 手动添加一个空角色种子（可放在已有种子之后，或无种子时新增） */
+  const handleAddSeedManually = () => {
+    const newSeed: IRoleSeed = {
+      id: `manual_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      content: '',
+      edited: true,
+    };
+    onSeedsChange([...seeds, newSeed]);
+    setSelectedSeedIds((prev) => new Set(prev).add(newSeed.id));
+    message.success('已添加一个空种子，可在此填写后参与生成草稿');
+  };
+
   const toggleSeedSelected = (seedId: string, checked: boolean) => {
     setSelectedSeedIds((prev) => {
       const next = new Set(prev);
@@ -101,25 +115,35 @@ export default function RoleIdeationPanel({
       message.warning('请先保存脑洞');
       return;
     }
+    const rounds = Math.max(1, Math.min(10, draftRoundCount));
     try {
       setGeneratingDrafts(true);
       let worldviewSummary: string | undefined;
+      /** 按 (seed_id, generation_round) 去重，同一种子同轮次只保留最新 */
+      const draftKey = (d: IRoleDraft) => `${d.seed_id}_${d.generation_round ?? 0}`;
       let currentDrafts = [...drafts];
-      for (let i = 0; i < ids.length; i++) {
-        message.loading({ content: `正在生成角色草稿（${i + 1}/${ids.length}）...`, key: 'roleDrafts' });
-        const { drafts: newDrafts, worldview_summary: nextSummary } = await apiCalls.generateRoleDrafts(
-          currentBrainstorm.id,
-          [ids[i]],
-          seeds,
-          worldviewSummary
-        );
-        if (nextSummary) worldviewSummary = nextSummary;
-        const bySeedId = new Map(currentDrafts.map((d) => [d.seed_id, d]));
-        newDrafts.forEach((d) => bySeedId.set(d.seed_id, d));
-        currentDrafts = Array.from(bySeedId.values());
+      const byKey = new Map<string, IRoleDraft>(currentDrafts.map((d) => [draftKey(d), d]));
+
+      for (let round = 1; round <= rounds; round++) {
+        for (let i = 0; i < ids.length; i++) {
+          const total = rounds * ids.length;
+          const done = (round - 1) * ids.length + i;
+          message.loading(
+            { content: `正在生成角色草稿（第 ${round}/${rounds} 轮，${i + 1}/${ids.length} 种子）… ${done + 1}/${total}`, key: 'roleDrafts' }
+          );
+          const { drafts: newDrafts, worldview_summary: nextSummary } = await apiCalls.generateRoleDrafts(
+            currentBrainstorm.id,
+            [ids[i]],
+            seeds,
+            worldviewSummary
+          );
+          if (nextSummary) worldviewSummary = nextSummary;
+          newDrafts.forEach((d) => byKey.set(`${d.seed_id}_${round}`, { ...d, generation_round: round }));
+        }
+        currentDrafts = Array.from(byKey.values());
         onDraftsChange(currentDrafts);
       }
-      message.success({ content: '角色草稿已全部生成', key: 'roleDrafts' });
+      message.success({ content: `角色草稿已全部生成（${rounds} 轮）`, key: 'roleDrafts' });
     } catch (e: any) {
       message.error({ content: e?.message || '生成角色草稿失败', key: 'roleDrafts' });
     } finally {
@@ -127,7 +151,12 @@ export default function RoleIdeationPanel({
     }
   };
 
-  const draftBySeedId = new Map(drafts.map((d) => [d.seed_id, d]));
+  const draftsBySeedId = new Map<string, IRoleDraft[]>();
+  drafts.forEach((d) => {
+    const list = draftsBySeedId.get(d.seed_id) ?? [];
+    list.push(d);
+    draftsBySeedId.set(d.seed_id, list);
+  });
   const seedOrdinal = (index: number) => ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩'][index] ?? `#${index + 1}`;
   const seedLabel = (seedId: string) => {
     const idx = seeds.findIndex((s) => s.id === seedId);
@@ -157,11 +186,19 @@ export default function RoleIdeationPanel({
             >
               {generatingSeeds ? '生成中...' : '生成角色种子'}
             </Button>
+            <Button
+              type="default"
+              size="small"
+              icon={<PlusOutlined />}
+              onClick={handleAddSeedManually}
+            >
+              手动添加种子
+            </Button>
           </Space>
         </div>
         {seeds.length === 0 ? (
           <div style={{ padding: '16px', color: token.colorTextSecondary, fontSize: '12px', fontStyle: 'italic' }}>
-            点击「生成角色种子」后，将基于脑洞、问题、分析与剧情规划抽样生成若干角色种子，可逐条编辑或重骰
+            可点击「生成角色种子」基于脑洞、问题、分析与剧情规划抽样生成若干角色种子；也可「手动添加种子」后自行填写，可逐条编辑或重骰
           </div>
         ) : (
           <Space direction="vertical" style={{ width: '100%' }} size="middle">
@@ -196,9 +233,9 @@ export default function RoleIdeationPanel({
                   autoSize={{ minRows: 3, maxRows: 8 }}
                   style={{ fontSize: '13px' }}
                 />
-                {draftBySeedId.has(seed.id) && (
+                {draftsBySeedId.has(seed.id) && (
                   <div style={{ marginTop: '8px', fontSize: '12px', color: token.colorSuccess }}>
-                    已生成角色草稿，见下方「角色草稿」区
+                    已生成角色草稿（共 {(draftsBySeedId.get(seed.id) ?? []).length} 条），见下方「角色草稿」区
                   </div>
                 )}
               </Card>
@@ -209,31 +246,42 @@ export default function RoleIdeationPanel({
 
       {/* 阶段二：角色草稿 */}
       <div style={{ borderTop: `1px solid ${token.colorBorderSecondary}`, paddingTop: '16px' }}>
-        <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
           <span style={{ fontWeight: 'bold' }}>角色草稿（角色卡 + 背景）</span>
-          <Button
-            type="default"
-            size="small"
-            icon={<UserOutlined />}
-            loading={generatingDrafts}
-            disabled={generatingDrafts || selectedSeedIds.size === 0 || !currentBrainstorm?.id}
-            onClick={handleGenerateDrafts}
-          >
-            为选中种子生成草稿（{selectedSeedIds.size}）
-          </Button>
+          <Space>
+            <span style={{ color: token.colorTextSecondary, fontSize: '13px' }}>生成轮次：</span>
+            <Select
+              value={draftRoundCount}
+              onChange={setDraftRoundCount}
+              options={[1, 2, 3, 4, 5].map((n) => ({ value: n, label: `${n} 轮` }))}
+              style={{ width: 80 }}
+            />
+            <Button
+              type="default"
+              size="small"
+              icon={<UserOutlined />}
+              loading={generatingDrafts}
+              disabled={generatingDrafts || selectedSeedIds.size === 0 || !currentBrainstorm?.id}
+              onClick={handleGenerateDrafts}
+            >
+              为选中种子生成草稿（{selectedSeedIds.size}）
+            </Button>
+          </Space>
         </div>
         {drafts.length === 0 ? (
           <div style={{ padding: '12px', color: token.colorTextSecondary, fontSize: '12px', fontStyle: 'italic' }}>
-            勾选上方种子后点击「为选中种子生成草稿」，将生成结构化角色卡与背景文本
+            勾选上方种子后点击「为选中种子生成草稿」，将生成结构化角色卡与背景文本；可设置生成轮次（如 2 轮即同一批种子生成两遍）
           </div>
         ) : (
           <Collapse
             items={drafts.map((d, idx) => {
               const card = d.card || {};
               const name = card.name || card.personality || '未命名';
+              const roundNum = d.generation_round ?? 0;
+              const roundLabel = roundNum > 0 ? `，第 ${roundNum} 轮` : '';
               return {
-                key: d.seed_id,
-                label: `${name}（种子 ${seedLabel(d.seed_id)}）`,
+                key: `${d.seed_id}_${roundNum}_${idx}`,
+                label: `${name}（种子 ${seedLabel(d.seed_id)}${roundLabel}）`,
                 children: (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <div>

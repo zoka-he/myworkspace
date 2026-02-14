@@ -629,6 +629,8 @@ export interface IRoleDraft {
   card: IRoleDraftCard;
   background: string;
   status?: 'generating';
+  /** 生成轮次：前端「生成轮次」N 时，同一批种子会生成 N 遍，此为第几轮（1-based） */
+  generation_round?: number;
 }
 
 export interface IBrainstorm {
