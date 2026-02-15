@@ -30,6 +30,8 @@ export interface GenChapterSegmentOutlineInput {
   segment_target_chars?: number;
   /** 模型：deepseek-reasoner（默认）| deepseek-chat | gemini3 */
   model?: string;
+  /** 编剧模式：不设段数/字数上限，由模型根据情节自行设计分段 */
+  screenwriter_mode?: boolean;
 }
 
 export interface SegmentOutlineItem {
@@ -60,6 +62,7 @@ const SYSTEM_PROMPT = `你是章节分段提纲助手。根据用户提供的「
 请根据下文生成分段提纲，直接输出 JSON 数组：`;
 
 function buildUserPrompt(body: GenChapterSegmentOutlineInput): string {
+  const screenwriterMode = !!body.screenwriter_mode;
   const maxSeg = body.max_segments ?? 20;
   const targetChars = body.segment_target_chars ?? 600;
   const parts: string[] = [
@@ -88,18 +91,34 @@ function buildUserPrompt(body: GenChapterSegmentOutlineInput): string {
   if ((body.chapter_style || "").trim()) {
     parts.push("【总体风格】", body.chapter_style.trim(), "");
   }
-  parts.push(
-    `【要求】`,
-    `- 分段数不超过 ${maxSeg} 段，每段约 ${targetChars} 字（仅供参考，优先遵循语义完整性）。`,
-    `- **只做切分，不删减任何信息（极其重要）**：`,
-    `  * 你的任务**仅仅是切分**，将「本章待写要点」按照语义边界切分成多个段落。`,
-    `  * **不得删减、简化、概括或遗漏任何信息**，必须将原文中的所有信息完整分配到对应段落。`,
-    `  * 原文中的所有事件、对话、伏笔、人物反应、情绪变化、场景细节、动作描写等，都必须完整保留在对应段落的 outline 中。`,
-    `  * 宁可 outline 很长、信息完整，绝不为求简短而删掉任何内容。`,
-    `  * 你的工作是切分，不是改写。原文怎么说，outline 就怎么保留，不要用自己的话重新表述或概括。`,
-    `- **必须以语义分割为主**：根据情节的自然断点、场景转换、情绪转折等语义边界进行分段，不要为了凑字数或段落数而强行拆分或合并。`,
-    `- 直接输出 JSON 数组，不要 markdown 代码块包裹。`
-  );
+  if (screenwriterMode) {
+    parts.push(
+      `【要求】（编剧模式：由你自行决定分段数量与切分方式，但仍是切分、不删减）`,
+      `- **编剧模式**：不设段数上限与每段字数限制。请你像编剧一样，根据情节的自然断点、场景转换、节奏与戏剧张力**自行决定分成多少段**，以及**如何将本章待写要点的内容分配到各段**。段落数量可参考：约 ${maxSeg} 段左右（可根据情节需要增减）。注意：你只是在决定「怎么切」，不是在改写或设计新内容——原文所有信息仍须完整保留到对应段落的 outline 中。`,
+      `- **每段 outline 须写清楚**：`,
+      `  * **出场角色**：本段有哪些角色出场（可点名或概括）。`,
+      `  * **在干什么**：本段主要动作、对话、事件或情节推进。`,
+      `  * **氛围如何**：本段的情绪、气氛或基调（如紧张、轻松、悬疑、温馨等）。`,
+      `- **只做切分，不删减任何信息**：`,
+      `  * 任务本质是**切分**：把「本章待写要点」按你判断的语义/戏剧边界切成多段，**不得删减、简化、概括或遗漏任何信息**。`,
+      `  * 原文中的事件、对话、伏笔、人物反应、场景细节等都必须完整出现在某一段的 outline 中；在写清「谁出场、在干什么、氛围」的同时，宁可 outline 长、信息完整，也不为简短而删内容。`,
+      `  * 切分而非改写：原文怎么说，outline 就怎么保留，不要用自己的话重新表述或概括。`,
+      `- 直接输出 JSON 数组，不要 markdown 代码块包裹。`
+    );
+  } else {
+    parts.push(
+      `【要求】`,
+      `- 分段数不超过 ${maxSeg} 段，每段约 ${targetChars} 字（仅供参考，优先遵循语义完整性）。`,
+      `- **只做切分，不删减任何信息（极其重要）**：`,
+      `  * 你的任务**仅仅是切分**，将「本章待写要点」按照语义边界切分成多个段落。`,
+      `  * **不得删减、简化、概括或遗漏任何信息**，必须将原文中的所有信息完整分配到对应段落。`,
+      `  * 原文中的所有事件、对话、伏笔、人物反应、情绪变化、场景细节、动作描写等，都必须完整保留在对应段落的 outline 中。`,
+      `  * 宁可 outline 很长、信息完整，绝不为求简短而删掉任何内容。`,
+      `  * 你的工作是切分，不是改写。原文怎么说，outline 就怎么保留，不要用自己的话重新表述或概括。`,
+      `- **必须以语义分割为主**：根据情节的自然断点、场景转换、情绪转折等语义边界进行分段，不要为了凑字数或段落数而强行拆分或合并。`,
+      `- 直接输出 JSON 数组，不要 markdown 代码块包裹。`
+    );
+  }
   return parts.join("\n");
 }
 

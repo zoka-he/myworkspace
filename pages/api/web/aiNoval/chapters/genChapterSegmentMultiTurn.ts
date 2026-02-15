@@ -26,6 +26,8 @@ export interface GenChapterSegmentMultiTurnInput {
   mcp_context?: string;
   conversation_history?: Array<{ role: 'user' | 'assistant'; content: string }>;
   is_first_turn?: boolean; // 是否为第一轮（需要确认）
+  /** 抗克苏鲁文风：避免野兽比喻、腐败/腐化等常见模型偏向 */
+  anti_lovecraft_style?: boolean;
 }
 
 interface Data {
@@ -66,7 +68,12 @@ function createModel(llmType: string): any {
   });
 }
 
-function buildSystemPrompt(attensionText: string, segmentIndex: number, targetChars: number): string {
+function buildSystemPrompt(
+  attensionText: string,
+  segmentIndex: number,
+  targetChars: number,
+  antiLovecraftStyle: boolean
+): string {
   const basePrompt = buildPromptTemplate(attensionText);
   const segmentExtra = `
 本段为第 ${segmentIndex} 段。严格接着上一段最后一句续写，保持人称、时态、风格一致。本段约 ${targetChars} 字。仅输出本段正文，不要重复前文。
@@ -81,8 +88,15 @@ function buildSystemPrompt(attensionText: string, segmentIndex: number, targetCh
 - 所有对话必须完整写出，使用直接引语（「」或""），不得使用间接引语（如「他说」「她问」）替代。
 - 不得省略对话内容，不得用概括性描述代替具体对话。
 - 对话应保持完整、自然、符合人物性格，不得为了节省字数而简略对话。`;
-  
-  return basePrompt + segmentExtra;
+  const antiLovecraftBlock = antiLovecraftStyle
+    ? `
+
+**抗克苏鲁/魔兽文风（避免常见模型偏向）**：
+- 不要滥用「野兽」「兽性」「野兽般的」等比喻；除非剧情明确需要，否则用更贴合当前世界观与语境的描写。
+- 不要随意使用「腐败」「腐化」「腐朽」「堕落」等词；仅在本章/本作设定确实涉及该主题时才使用。
+- 避免无意识的克苏鲁、魔兽（WOW）式阴暗诡异文风；按本章提纲与整体风格写作，不要堆砌上述套路。`
+    : "";
+  return basePrompt + segmentExtra + antiLovecraftBlock;
 }
 
 function buildUserInputForSegment(
@@ -131,6 +145,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     mcp_context = "",
     conversation_history = [],
     is_first_turn = false,
+    anti_lovecraft_style = true,
   } = body || {};
 
   const attensionText = attension || attention;
@@ -142,7 +157,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       ? mcp_context.trim()
       : await getAggregatedContext(worldviewId, role_names, faction_names, geo_names);
     
-    const systemPrompt = buildSystemPrompt(attensionText, segment_index, targetChars);
+    const systemPrompt = buildSystemPrompt(attensionText, segment_index, targetChars, !!anti_lovecraft_style);
     const systemPromptWithContext = systemPrompt.replace('{{context}}', context);
     
     const model = createModel(llm_type);

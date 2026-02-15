@@ -390,7 +390,7 @@ export const getContinueInfo = async (chapterId: number): Promise<any> => {
     return response;
 }
 
-/** 生成分段提纲（先回显、用户确认后再写），支持 model 选项，默认 deepseek-reasoner */
+/** 生成分段提纲（先回显、用户确认后再写），支持 model 选项，默认 deepseek-reasoner；screenwriter_mode 为编剧模式（由模型自行设计分段） */
 export const genChapterSegmentOutline = async (params: {
     curr_context: string
     prev_content?: string
@@ -403,6 +403,7 @@ export const genChapterSegmentOutline = async (params: {
     max_segments?: number
     segment_target_chars?: number
     model?: string
+    screenwriter_mode?: boolean
 }): Promise<{ outlines: Array<{ index: number; outline: string }> }> => {
     const response = await fetch.post<{ success?: boolean; data?: { outlines: Array<{ index: number; outline: string }> } }>(
         '/api/aiNoval/chapters/genChapterSegmentOutline',
@@ -418,6 +419,7 @@ export const genChapterSegmentOutline = async (params: {
             max_segments: params.max_segments ?? 20,
             segment_target_chars: params.segment_target_chars ?? 600,
             model: params.model || 'deepseek-reasoner',
+            screenwriter_mode: params.screenwriter_mode ?? false,
         },
         { timeout: 1000 * 60 * 3 }
     )
@@ -531,6 +533,7 @@ export const genChapterSegmentMultiTurn = async (
         mcp_context?: string
         conversation_history?: Array<{ role: 'user' | 'assistant'; content: string }>
         is_first_turn?: boolean
+        anti_lovecraft_style?: boolean
     }
 ): Promise<{ content: string; status: string; error: string; conversation_history?: Array<{ role: 'user' | 'assistant'; content: string }> }> => {
     const response = await fetch.post<{
@@ -558,6 +561,7 @@ export const genChapterSegmentMultiTurn = async (
             mcp_context: params.mcp_context || '',
             conversation_history: params.conversation_history || [],
             is_first_turn: params.is_first_turn ?? false,
+            anti_lovecraft_style: params.anti_lovecraft_style !== false,
         },
         { params: { worldviewId }, timeout: 1000 * 60 * 5 }
     )
