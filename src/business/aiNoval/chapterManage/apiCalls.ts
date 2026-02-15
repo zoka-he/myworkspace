@@ -445,7 +445,7 @@ export const genChapterAttention = async (params: {
             geo_names: params.geo_names || '',
             chapter_style: params.chapter_style || '',
         },
-        { timeout: 1000 * 60 * 3 }
+        { timeout: 1000 * 60 * 10 }
     )
     const body = response?.data ?? response
     return (body?.data?.attention ?? (body as any)?.attention) ?? ''

@@ -671,6 +671,21 @@ function GenChapterByDetailModal({
                   style={{ marginBottom: 8 }}
                 />
                 
+                
+
+                <div className={styles.prompt_title}>
+                  <span>章节提示词（本章待写要点）：</span>
+                </div>
+                <TextArea
+                  autoSize={{ minRows: 8 }}
+                  disabled={isFormDisabled}
+                  value={seedPrompt}
+                  onChange={(e) => setSeedPrompt(e.target.value)}
+                  placeholder="本章要写的内容要点…"
+                />
+
+
+                <Divider/>
                 <div className={styles.prompt_title}>
                   <span>章节总体风格设置：</span>
                 </div>
@@ -692,17 +707,6 @@ function GenChapterByDetailModal({
                   onChange={(e) => setChapterStyle(e.target.value)}
                   placeholder="叙述视角、文风、节奏等整体风格要求（可选），可点击上方标签快速填入"
                   style={{ marginBottom: 8 }}
-                />
-
-                <div className={styles.prompt_title}>
-                  <span>章节提示词（本章待写要点）：</span>
-                </div>
-                <TextArea
-                  autoSize={{ minRows: 8 }}
-                  disabled={isFormDisabled}
-                  value={seedPrompt}
-                  onChange={(e) => setSeedPrompt(e.target.value)}
-                  placeholder="本章要写的内容要点…"
                 />
               </>
             )}

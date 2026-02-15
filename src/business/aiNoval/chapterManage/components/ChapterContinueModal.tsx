@@ -99,7 +99,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
   const [isReferSelf, setIsReferSelf] = useState<boolean>(false)
 
   // LLM类型, 默认使用 deepseek
-  const [llmType, setLlmType] = useState<'gemini' | 'deepseek' | 'gemini3'>('deepseek')
+  const [llmType, setLlmType] = useState<'gemini' | 'deepseek'| 'deepseek-chat' | 'gemini3'>('deepseek-chat')
 
   // 是否缩写本章
   const [isStripSelf, setIsStripSelf] = useState<boolean>(false)
