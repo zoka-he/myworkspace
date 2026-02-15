@@ -99,6 +99,8 @@ function GenChapterByDetailModal({
   const [antiSweetCeoStyle, setAntiSweetCeoStyle] = useState(true)
   /** 抗空泛协议/中二命名：禁止自创协议名、严格遵从设定中的协议，默认勾选 */
   const [antiFakeProtocolStyle, setAntiFakeProtocolStyle] = useState(true)
+  /** 抗加密表述：遏制「加密信道」「加密线路」「加密频段」等高频套路表述，默认勾选 */
+  const [antiEncryptedChannelStyle, setAntiEncryptedChannelStyle] = useState(true)
 
   // 流程与回显（PRD 3.2）
   const [phase, setPhase] = useState<Phase>('idle')
@@ -303,8 +305,10 @@ function GenChapterByDetailModal({
   const worldviewId = selectedChapter?.worldview_id ?? continueInfo?.worldview_id
   const SNIPPET_MAX_CHARS = 800
 
-  /** 逐段生成并逐段输出；支持暂停、停止（多轮对话模式） */
-  const runSegmentLoop = async (startFromIndex: number) => {
+  /** 逐段生成并逐段输出；支持暂停、停止（多轮对话模式）
+   * @param initialHistory 从指定段落重写时传入截断后的历史，避免保留已删除段的旧 user/agent 对
+   */
+  const runSegmentLoop = async (startFromIndex: number, initialHistory?: Array<{ role: 'user' | 'assistant'; content: string }>) => {
     if (!worldviewId) {
       message.error('无法获取世界观 ID')
       setPhase('error')
@@ -319,7 +323,7 @@ function GenChapterByDetailModal({
     }
     let contentList = startFromIndex === 1 ? [] : [...segmentedContentList]
     let content = contentList.join('\n\n') // 用于计算 previousSnippet
-    let history = startFromIndex === 1 ? [] : conversationHistory
+    let history = startFromIndex === 1 ? [] : (initialHistory ?? conversationHistory)
     if (startFromIndex === 1) {
       setSegmentedContent('')
       setSegmentedContentList([])
@@ -356,6 +360,7 @@ function GenChapterByDetailModal({
           anti_lovecraft_style: antiLovecraftStyle,
           anti_sweet_ceo_style: antiSweetCeoStyle,
           anti_fake_protocol_style: antiFakeProtocolStyle,
+          anti_encrypted_channel_style: antiEncryptedChannelStyle,
         })
         if (res.status === 'error' || res.error) {
           setErrorMessage(res.error || '确认阶段失败')
@@ -423,6 +428,7 @@ function GenChapterByDetailModal({
           anti_lovecraft_style: antiLovecraftStyle,
           anti_sweet_ceo_style: antiSweetCeoStyle,
           anti_fake_protocol_style: antiFakeProtocolStyle,
+          anti_encrypted_channel_style: antiEncryptedChannelStyle,
         })
         if (res.status === 'error' || res.error) {
           setErrorMessage(res.error || '本段生成失败')
@@ -607,10 +613,12 @@ function GenChapterByDetailModal({
     setSegmentIndex(segmentIndex)
     setErrorMessage('')
     
-    // 保留对话历史（前面的段落已经生成，对话历史应该保留）
-    // 从指定段落开始重新生成
+    // 截断对话历史：只保留「确认 + 第1～第(segmentIndex-1)段」对应的 user/agent 对
+    // 每轮 2 条消息（user+assistant），确认 1 轮 + (segmentIndex-1) 段 = segmentIndex 轮 = 2*segmentIndex 条
+    const truncatedHistory = conversationHistory.slice(0, 2 * segmentIndex)
+    setConversationHistory(truncatedHistory)
     message.info(`已清空第 ${segmentIndex} 段及之后的内容，正在重新生成...`)
-    runSegmentLoop(segmentIndex)
+    runSegmentLoop(segmentIndex, truncatedHistory)
   }
 
   const handleClose = () => {
@@ -935,6 +943,13 @@ function GenChapterByDetailModal({
             disabled={isFormDisabled}
           >
             抗空泛协议/中二命名
+          </Checkbox>
+          <Checkbox
+            checked={antiEncryptedChannelStyle}
+            onChange={(e) => setAntiEncryptedChannelStyle(e.target.checked)}
+            disabled={isFormDisabled}
+          >
+            抗加密表述
           </Checkbox>
           
           <Typography.Text>续写模型：</Typography.Text>

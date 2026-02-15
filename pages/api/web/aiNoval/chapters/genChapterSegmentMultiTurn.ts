@@ -38,6 +38,8 @@ export interface GenChapterSegmentMultiTurnInput {
    * 本质是设定漂移+空泛专有名词堆砌。对抗：仅用设定/前情/提纲中已出现的协议与规则名，禁止自创。
    */
   anti_fake_protocol_style?: boolean;
+  /** 抗加密表述：遏制「加密信道」「加密线路」「加密频段」等高频套路表述 */
+  anti_encrypted_channel_style?: boolean;
 }
 
 interface Data {
@@ -84,7 +86,8 @@ function buildSystemPrompt(
   targetChars: number,
   antiLovecraftStyle: boolean,
   antiSweetCeoStyle: boolean,
-  antiFakeProtocolStyle: boolean
+  antiFakeProtocolStyle: boolean,
+  antiEncryptedChannelStyle: boolean
 ): string {
   const basePrompt = buildPromptTemplate(attensionText);
   const segmentExtra = `
@@ -123,7 +126,13 @@ function buildSystemPrompt(
 - **仅使用设定内已有名称**：若情节涉及规则、条约、商务条款，只引用前文或设定里写明的具体名称与内容；若设定中未给出名称，用具体行为与事实描写代替（例如「按双方约定……」「根据此前达成的……」），不要临时造一个「德尔塔协议」「第三象限贸易协定」类名称。
 - **设定中的协议必须被遵从**：若世界观或本章要点里已写明某协议、某规则，写作时必须体现角色在遵守或违反该规则，而不是忽略设定、另造一套空洞的「协议名」来填充氛围。`
     : "";
-  return basePrompt + segmentExtra + antiLovecraftBlock + antiSweetCeoBlock + antiFakeProtocolBlock;
+  const antiEncryptedChannelBlock = antiEncryptedChannelStyle
+    ? `
+
+**抗加密表述（禁止套路化通讯/安全用语）**：
+- **禁止使用**以下及同类表述：「加密信道」「加密线路」「加密频段」「加密通讯」「加密连接」「专用线路」「保密频道」「安全链路」。不得用上述空泛用语堆砌氛围；若需写通讯或技术细节，请用具体动作、场景与结果描写，或根据世界观自拟贴切说法，避免千篇一律的套路词。`
+    : "";
+  return basePrompt + segmentExtra + antiLovecraftBlock + antiSweetCeoBlock + antiFakeProtocolBlock + antiEncryptedChannelBlock;
 }
 
 function buildUserInputForSegment(
@@ -175,6 +184,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     anti_lovecraft_style = true,
     anti_sweet_ceo_style = true,
     anti_fake_protocol_style = false,
+    anti_encrypted_channel_style = true,
   } = body || {};
 
   const attensionText = attension || attention;
@@ -186,7 +196,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       ? mcp_context.trim()
       : await getAggregatedContext(worldviewId, role_names, faction_names, geo_names);
     
-    const systemPrompt = buildSystemPrompt(attensionText, segment_index, targetChars, !!anti_lovecraft_style, !!anti_sweet_ceo_style, !!anti_fake_protocol_style);
+    const systemPrompt = buildSystemPrompt(attensionText, segment_index, targetChars, !!anti_lovecraft_style, !!anti_sweet_ceo_style, !!anti_fake_protocol_style, !!anti_encrypted_channel_style);
     const systemPromptWithContext = systemPrompt.replace('{{context}}', context);
     
     const model = createModel(llm_type);

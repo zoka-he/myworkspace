@@ -536,6 +536,7 @@ export const genChapterSegmentMultiTurn = async (
         anti_lovecraft_style?: boolean
         anti_sweet_ceo_style?: boolean
         anti_fake_protocol_style?: boolean
+        anti_encrypted_channel_style?: boolean
     }
 ): Promise<{ content: string; status: string; error: string; conversation_history?: Array<{ role: 'user' | 'assistant'; content: string }> }> => {
     const response = await fetch.post<{
@@ -566,6 +567,7 @@ export const genChapterSegmentMultiTurn = async (
             anti_lovecraft_style: params.anti_lovecraft_style !== false,
             anti_sweet_ceo_style: params.anti_sweet_ceo_style !== false,
             anti_fake_protocol_style: params.anti_fake_protocol_style !== false,
+            anti_encrypted_channel_style: params.anti_encrypted_channel_style !== false,
         },
         { params: { worldviewId }, timeout: 1000 * 60 * 5 }
     )
