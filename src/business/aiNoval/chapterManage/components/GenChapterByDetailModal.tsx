@@ -93,6 +93,8 @@ function GenChapterByDetailModal({
   const [llmType, setLlmType] = useState<string>('deepseek-chat')
   /** 提纲生成用的模型，默认 deepseek-chat */
   const [outlineModel, setOutlineModel] = useState<string>('deepseek-chat')
+  /** 抗克苏鲁文风：避免野兽比喻、腐败/腐化等常见模型偏向，默认勾选 */
+  const [antiLovecraftStyle, setAntiLovecraftStyle] = useState(true)
 
   // 流程与回显（PRD 3.2）
   const [phase, setPhase] = useState<Phase>('idle')
@@ -253,7 +255,7 @@ function GenChapterByDetailModal({
   const isFormDisabled = isBusy || (phase === 'idle' && isLoadingContinueInfo)
 
   /** 生成分段提纲：可选先 mock MCP，再调接口生成提纲；自动完成前序章节缩写 */
-  const handleGenerateOutline = async () => {
+  const runGenerateOutline = async (screenwriterMode: boolean) => {
     setErrorMessage('')
     if (useMcpContext) {
       setPhase('mcp_gathering')
@@ -280,6 +282,7 @@ function GenChapterByDetailModal({
         max_segments: maxSegments,
         segment_target_chars: segmentTargetChars,
         model: outlineModel || 'deepseek-chat',
+        screenwriter_mode: screenwriterMode,
       })
       setSegmentOutlineList(Array.isArray(outlines) && outlines.length > 0 ? outlines : defaultOutlines)
       setPhase('awaiting_confirmation')
@@ -289,6 +292,9 @@ function GenChapterByDetailModal({
       message.error(e?.message || '生成分段提纲失败')
     }
   }
+
+  const handleGenerateOutline = () => runGenerateOutline(false)
+  const handleGenerateOutlineScreenwriter = () => runGenerateOutline(true)
 
   const worldviewId = selectedChapter?.worldview_id ?? continueInfo?.worldview_id
   const SNIPPET_MAX_CHARS = 800
@@ -343,6 +349,7 @@ function GenChapterByDetailModal({
           mcp_context: undefined,
           conversation_history: [],
           is_first_turn: true,
+          anti_lovecraft_style: antiLovecraftStyle,
         })
         if (res.status === 'error' || res.error) {
           setErrorMessage(res.error || '确认阶段失败')
@@ -407,6 +414,7 @@ function GenChapterByDetailModal({
           mcp_context: undefined,
           conversation_history: history,
           is_first_turn: false,
+          anti_lovecraft_style: antiLovecraftStyle,
         })
         if (res.status === 'error' || res.error) {
           setErrorMessage(res.error || '本段生成失败')
@@ -807,6 +815,14 @@ function GenChapterByDetailModal({
             生成分段提纲
             {relatedChapterIds.length > 0 && !prevContent && '（将自动缩写前序章节）'}
           </Button>
+          <Button
+            icon={<RobotOutlined />}
+            onClick={handleGenerateOutlineScreenwriter}
+            loading={phase === 'mcp_gathering' || phase === 'segment_planning' || isStrippingChapters}
+            disabled={isFormDisabled}
+          >
+            生成分段提纲（编剧模式）
+          </Button>
         </Space>
 
         
@@ -877,6 +893,7 @@ function GenChapterByDetailModal({
           <>
             <Typography.Paragraph  type="secondary" style={{ marginBottom: 16 }}>
               勾选「使用 MCP 收集设定」时会先通过 MCP 收集世界观与实体，再生成提纲。
+              「生成分段提纲」按每段字数/最大段数约束切分；「生成分段提纲（编剧模式）」由模型根据情节与节奏自行设计分段数量与每段要点。
             </Typography.Paragraph>
             <br />
           </>
@@ -889,6 +906,13 @@ function GenChapterByDetailModal({
             disabled={isFormDisabled}
           >
             使用 MCP 收集设定
+          </Checkbox>
+          <Checkbox
+            checked={antiLovecraftStyle}
+            onChange={(e) => setAntiLovecraftStyle(e.target.checked)}
+            disabled={isFormDisabled}
+          >
+            抗克苏鲁文风
           </Checkbox>
           
           <Typography.Text>续写模型：</Typography.Text>
