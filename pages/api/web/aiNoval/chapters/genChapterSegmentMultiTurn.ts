@@ -28,6 +28,16 @@ export interface GenChapterSegmentMultiTurnInput {
   is_first_turn?: boolean; // 是否为第一轮（需要确认）
   /** 抗克苏鲁文风：避免野兽比喻、腐败/腐化等常见模型偏向 */
   anti_lovecraft_style?: boolean;
+  /** 抗甜宠/霸总文风：避免生理反应公式化、霸总标配描写 */
+  anti_sweet_ceo_style?: boolean;
+  /**
+   * 抗空泛协议/中二命名（模因污染对抗）：
+   * 现象：星际+商务+角色写作时，模型会生成大量「不在设定内的协议/条约/协定名称」，
+   * 而设定中真正的协议未被遵从。模因来源：训练数据里科幻/商战/政斗常用「命名型协议」作剧情道具，
+   * 模型学到「提协议名=有专业感」，且中二/轻小说风格强化「造酷名字」倾向；
+   * 本质是设定漂移+空泛专有名词堆砌。对抗：仅用设定/前情/提纲中已出现的协议与规则名，禁止自创。
+   */
+  anti_fake_protocol_style?: boolean;
 }
 
 interface Data {
@@ -72,7 +82,9 @@ function buildSystemPrompt(
   attensionText: string,
   segmentIndex: number,
   targetChars: number,
-  antiLovecraftStyle: boolean
+  antiLovecraftStyle: boolean,
+  antiSweetCeoStyle: boolean,
+  antiFakeProtocolStyle: boolean
 ): string {
   const basePrompt = buildPromptTemplate(attensionText);
   const segmentExtra = `
@@ -96,7 +108,22 @@ function buildSystemPrompt(
 - 不要随意使用「腐败」「腐化」「腐朽」「堕落」等词；仅在本章/本作设定确实涉及该主题时才使用。
 - 避免无意识的克苏鲁、魔兽（WOW）式阴暗诡异文风；按本章提纲与整体风格写作，不要堆砌上述套路。`
     : "";
-  return basePrompt + segmentExtra + antiLovecraftBlock;
+  const antiSweetCeoBlock = antiSweetCeoStyle
+    ? `
+
+**抗甜宠/霸总文风（避免公式化描写）**：
+- **生理反应不要公式化**：脸不要总是「一红」、心不要总是「漏跳一拍」、嘴唇不要总是「咬住」、手指不要总是「蜷缩」；根据具体情境与人物性格选用多样、贴切的生理与动作描写，避免千篇一律。
+- **避免霸总标配堆砌**：男性角色不要总是「薄唇」「冷峻」「眼底划过一丝暗芒」等刻板描写；人物外貌与神态应贴合本章设定与世界观，避免甜宠/霸总网文套路化表达。`
+    : "";
+  const antiFakeProtocolBlock = antiFakeProtocolStyle
+    ? `
+
+**抗空泛协议/中二命名（严格遵从设定中的协议与规则）**：
+- **禁止自创协议/条约/协定名称**：不得编造「XX协议」「XX条约」「XX协定」「XX公约」等专有名词，除非该名称在前情、本章提纲或世界观设定中已明确出现。模型常因训练数据中科幻/商战/政斗的「命名型协议」套路而自动生成听起来专业、实则空泛的名称，此处必须禁止。
+- **仅使用设定内已有名称**：若情节涉及规则、条约、商务条款，只引用前文或设定里写明的具体名称与内容；若设定中未给出名称，用具体行为与事实描写代替（例如「按双方约定……」「根据此前达成的……」），不要临时造一个「德尔塔协议」「第三象限贸易协定」类名称。
+- **设定中的协议必须被遵从**：若世界观或本章要点里已写明某协议、某规则，写作时必须体现角色在遵守或违反该规则，而不是忽略设定、另造一套空洞的「协议名」来填充氛围。`
+    : "";
+  return basePrompt + segmentExtra + antiLovecraftBlock + antiSweetCeoBlock + antiFakeProtocolBlock;
 }
 
 function buildUserInputForSegment(
@@ -146,6 +173,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     conversation_history = [],
     is_first_turn = false,
     anti_lovecraft_style = true,
+    anti_sweet_ceo_style = true,
+    anti_fake_protocol_style = false,
   } = body || {};
 
   const attensionText = attension || attention;
@@ -157,7 +186,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       ? mcp_context.trim()
       : await getAggregatedContext(worldviewId, role_names, faction_names, geo_names);
     
-    const systemPrompt = buildSystemPrompt(attensionText, segment_index, targetChars, !!anti_lovecraft_style);
+    const systemPrompt = buildSystemPrompt(attensionText, segment_index, targetChars, !!anti_lovecraft_style, !!anti_sweet_ceo_style, !!anti_fake_protocol_style);
     const systemPromptWithContext = systemPrompt.replace('{{context}}', context);
     
     const model = createModel(llm_type);

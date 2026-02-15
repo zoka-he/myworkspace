@@ -95,6 +95,10 @@ function GenChapterByDetailModal({
   const [outlineModel, setOutlineModel] = useState<string>('deepseek-chat')
   /** 抗克苏鲁文风：避免野兽比喻、腐败/腐化等常见模型偏向，默认勾选 */
   const [antiLovecraftStyle, setAntiLovecraftStyle] = useState(true)
+  /** 抗甜宠/霸总文风：避免生理反应公式化、霸总标配描写，默认勾选 */
+  const [antiSweetCeoStyle, setAntiSweetCeoStyle] = useState(true)
+  /** 抗空泛协议/中二命名：禁止自创协议名、严格遵从设定中的协议，默认勾选 */
+  const [antiFakeProtocolStyle, setAntiFakeProtocolStyle] = useState(true)
 
   // 流程与回显（PRD 3.2）
   const [phase, setPhase] = useState<Phase>('idle')
@@ -350,6 +354,8 @@ function GenChapterByDetailModal({
           conversation_history: [],
           is_first_turn: true,
           anti_lovecraft_style: antiLovecraftStyle,
+          anti_sweet_ceo_style: antiSweetCeoStyle,
+          anti_fake_protocol_style: antiFakeProtocolStyle,
         })
         if (res.status === 'error' || res.error) {
           setErrorMessage(res.error || '确认阶段失败')
@@ -415,6 +421,8 @@ function GenChapterByDetailModal({
           conversation_history: history,
           is_first_turn: false,
           anti_lovecraft_style: antiLovecraftStyle,
+          anti_sweet_ceo_style: antiSweetCeoStyle,
+          anti_fake_protocol_style: antiFakeProtocolStyle,
         })
         if (res.status === 'error' || res.error) {
           setErrorMessage(res.error || '本段生成失败')
@@ -913,6 +921,20 @@ function GenChapterByDetailModal({
             disabled={isFormDisabled}
           >
             抗克苏鲁文风
+          </Checkbox>
+          <Checkbox
+            checked={antiSweetCeoStyle}
+            onChange={(e) => setAntiSweetCeoStyle(e.target.checked)}
+            disabled={isFormDisabled}
+          >
+            抗甜宠/霸总文风
+          </Checkbox>
+          <Checkbox
+            checked={antiFakeProtocolStyle}
+            onChange={(e) => setAntiFakeProtocolStyle(e.target.checked)}
+            disabled={isFormDisabled}
+          >
+            抗空泛协议/中二命名
           </Checkbox>
           
           <Typography.Text>续写模型：</Typography.Text>
