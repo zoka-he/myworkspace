@@ -7,11 +7,11 @@ import { ChromaClient } from "chromadb";
 import mysql from "mysql2/promise";
 
 // ============ 配置 ============
-const CHROMA_URL = "http://192.168.0.175:28005";
+const CHROMA_URL = "http://192.168.0.179:28005";
 const COLLECTION_NAME = "novel_chapters";
 
 const MYSQL_CONFIG = {
-    host: '192.168.0.175',
+    host: '192.168.0.179',
     port: 3306,
     user: 'myworksite',
     password: 'nsds123456',

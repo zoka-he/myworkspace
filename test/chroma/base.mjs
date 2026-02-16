@@ -1,7 +1,7 @@
 import { ChromaClient } from "chromadb";
 
 // Chroma 服务器配置
-const CHROMA_URL = "http://192.168.0.175:28005";
+const CHROMA_URL = "http://192.168.0.179:28005";
 const COLLECTION_NAME = "test_collection";
 
 // 硅基流动 API 配置 (用于生成向量嵌入)

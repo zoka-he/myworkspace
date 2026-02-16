@@ -9,7 +9,7 @@ import { ChromaClient } from "chromadb";
 
 // 配置
 const SILICONFLOW_API_KEY = 'sk-ibxjepfovywzlqqormngkvqlygrzexumvcqosekbpagueqxd';
-const CHROMA_URL = "http://192.168.0.175:28005";
+const CHROMA_URL = "http://192.168.0.179:28005";
 const COLLECTION_NAME = "novel_chapters";
 
 // 创建嵌入模型
