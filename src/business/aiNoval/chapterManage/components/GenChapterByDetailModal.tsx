@@ -101,6 +101,10 @@ function GenChapterByDetailModal({
   const [antiFakeProtocolStyle, setAntiFakeProtocolStyle] = useState(true)
   /** 抗加密表述：遏制「加密信道」「加密线路」「加密频段」等高频套路表述，默认勾选 */
   const [antiEncryptedChannelStyle, setAntiEncryptedChannelStyle] = useState(true)
+  /** 反废土文风：避免荒芜/废墟/辐射/末世等刻板废土描写，除非设定确为废土，默认勾选 */
+  const [antiWastelandStyle, setAntiWastelandStyle] = useState(true)
+  /** 反逐人枚举：多人场景优先概括集体行为，避免逐人枚举反应，默认勾选 */
+  const [antiEnumReactionsStyle, setAntiEnumReactionsStyle] = useState(true)
 
   // 流程与回显（PRD 3.2）
   const [phase, setPhase] = useState<Phase>('idle')
@@ -361,6 +365,8 @@ function GenChapterByDetailModal({
           anti_sweet_ceo_style: antiSweetCeoStyle,
           anti_fake_protocol_style: antiFakeProtocolStyle,
           anti_encrypted_channel_style: antiEncryptedChannelStyle,
+          anti_wasteland_style: antiWastelandStyle,
+          anti_enum_reactions_style: antiEnumReactionsStyle,
         })
         if (res.status === 'error' || res.error) {
           setErrorMessage(res.error || '确认阶段失败')
@@ -429,6 +435,8 @@ function GenChapterByDetailModal({
           anti_sweet_ceo_style: antiSweetCeoStyle,
           anti_fake_protocol_style: antiFakeProtocolStyle,
           anti_encrypted_channel_style: antiEncryptedChannelStyle,
+          anti_wasteland_style: antiWastelandStyle,
+          anti_enum_reactions_style: antiEnumReactionsStyle,
         })
         if (res.status === 'error' || res.error) {
           setErrorMessage(res.error || '本段生成失败')
@@ -950,6 +958,20 @@ function GenChapterByDetailModal({
             disabled={isFormDisabled}
           >
             抗加密表述
+          </Checkbox>
+          <Checkbox
+            checked={antiWastelandStyle}
+            onChange={(e) => setAntiWastelandStyle(e.target.checked)}
+            disabled={isFormDisabled}
+          >
+            反废土文风
+          </Checkbox>
+          <Checkbox
+            checked={antiEnumReactionsStyle}
+            onChange={(e) => setAntiEnumReactionsStyle(e.target.checked)}
+            disabled={isFormDisabled}
+          >
+            反逐人枚举
           </Checkbox>
           
           <Typography.Text>续写模型：</Typography.Text>

@@ -40,6 +40,10 @@ export interface GenChapterSegmentMultiTurnInput {
   anti_fake_protocol_style?: boolean;
   /** 抗加密表述：遏制「加密信道」「加密线路」「加密频段」等高频套路表述 */
   anti_encrypted_channel_style?: boolean;
+  /** 反废土文风：避免荒芜/废墟/辐射/末世等刻板废土描写，除非设定确为废土 */
+  anti_wasteland_style?: boolean;
+  /** 反逐人枚举：多人场景优先概括集体行为，避免逐人枚举反应 */
+  anti_enum_reactions_style?: boolean;
 }
 
 interface Data {
@@ -87,7 +91,9 @@ function buildSystemPrompt(
   antiLovecraftStyle: boolean,
   antiSweetCeoStyle: boolean,
   antiFakeProtocolStyle: boolean,
-  antiEncryptedChannelStyle: boolean
+  antiEncryptedChannelStyle: boolean,
+  antiWastelandStyle: boolean,
+  antiEnumReactionsStyle: boolean
 ): string {
   const basePrompt = buildPromptTemplate(attensionText);
   const segmentExtra = `
@@ -132,7 +138,22 @@ function buildSystemPrompt(
 **抗加密表述（禁止套路化通讯/安全用语）**：
 - **禁止使用**以下及同类表述：「加密信道」「加密线路」「加密频段」「加密通讯」「加密连接」「专用线路」「保密频道」「安全链路」。不得用上述空泛用语堆砌氛围；若需写通讯或技术细节，请用具体动作、场景与结果描写，或根据世界观自拟贴切说法，避免千篇一律的套路词。`
     : "";
-  return basePrompt + segmentExtra + antiLovecraftBlock + antiSweetCeoBlock + antiFakeProtocolBlock + antiEncryptedChannelBlock;
+  const antiWastelandBlock = antiWastelandStyle
+    ? `
+
+**反废土文风（仅在本作/本章明确为废土/末世设定时才使用废土语汇）**：
+- 不要无意识带入废土、末世感：若前情与提纲未明确设定为废土/末世/后末日世界，禁止堆砌「荒芜」「废墟」「残垣断壁」「破败」「锈蚀」「辐射」「变异」「末世」「废土」「灰蒙蒙」「昏黄」「尘埃漫天」等刻板废土描写；避免「拾荒者」「幸存者」「避难所」等作为泛用氛围词滥用。
+- 若本作确为废土题材，也请按本章提纲与具体场景写作，用具体细节替代套路词堆砌，避免千篇一律的废土感。`
+    : "";
+  const antiEnumReactionsBlock = antiEnumReactionsStyle
+    ? `
+
+**反逐人枚举（多人场景优先概括集体行为）**：
+- **不要逐人枚举反应**：多人同时在场时，禁止按「甲愣了一下，乙皱起眉，丙点头……」依次写每个人的神态或动作；除非本段提纲明确要求写出每个人不同的反应，否则不要逐人罗列。
+- **优先概括集体**：用「众人」「大家」「在场的人」「一片哗然」「纷纷……」或写一两位关键人物再以「其余人/人群」概括，表现整体氛围即可。
+- **确需区分时**：若情节需要对比少数几人态度，只写这几人，避免对在场所有人逐一遍历。`
+    : "";
+  return basePrompt + segmentExtra + antiLovecraftBlock + antiSweetCeoBlock + antiFakeProtocolBlock + antiEncryptedChannelBlock + antiWastelandBlock + antiEnumReactionsBlock;
 }
 
 function buildUserInputForSegment(
@@ -185,6 +206,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     anti_sweet_ceo_style = true,
     anti_fake_protocol_style = false,
     anti_encrypted_channel_style = true,
+    anti_wasteland_style = true,
+    anti_enum_reactions_style = true,
   } = body || {};
 
   const attensionText = attension || attention;
@@ -196,7 +219,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       ? mcp_context.trim()
       : await getAggregatedContext(worldviewId, role_names, faction_names, geo_names);
     
-    const systemPrompt = buildSystemPrompt(attensionText, segment_index, targetChars, !!anti_lovecraft_style, !!anti_sweet_ceo_style, !!anti_fake_protocol_style, !!anti_encrypted_channel_style);
+    const systemPrompt = buildSystemPrompt(attensionText, segment_index, targetChars, !!anti_lovecraft_style, !!anti_sweet_ceo_style, !!anti_fake_protocol_style, !!anti_encrypted_channel_style, !!anti_wasteland_style, !!anti_enum_reactions_style);
     const systemPromptWithContext = systemPrompt.replace('{{context}}', context);
     
     const model = createModel(llm_type);
