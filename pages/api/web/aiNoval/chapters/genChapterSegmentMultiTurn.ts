@@ -44,6 +44,8 @@ export interface GenChapterSegmentMultiTurnInput {
   anti_wasteland_style?: boolean;
   /** 反逐人枚举：多人场景优先概括集体行为，避免逐人枚举反应 */
   anti_enum_reactions_style?: boolean;
+  /** 抗套路样板词：避免恰到好处、不易察觉、微微一笑、深吸一口气等网文套路词 */
+  anti_cliche_phrase_style?: boolean;
 }
 
 interface Data {
@@ -93,7 +95,8 @@ function buildSystemPrompt(
   antiFakeProtocolStyle: boolean,
   antiEncryptedChannelStyle: boolean,
   antiWastelandStyle: boolean,
-  antiEnumReactionsStyle: boolean
+  antiEnumReactionsStyle: boolean,
+  antiClichePhraseStyle: boolean
 ): string {
   const basePrompt = buildPromptTemplate(attensionText);
   const segmentExtra = `
@@ -153,7 +156,15 @@ function buildSystemPrompt(
 - **优先概括集体**：用「众人」「大家」「在场的人」「一片哗然」「纷纷……」或写一两位关键人物再以「其余人/人群」概括，表现整体氛围即可。
 - **确需区分时**：若情节需要对比少数几人态度，只写这几人，避免对在场所有人逐一遍历。`
     : "";
-  return basePrompt + segmentExtra + antiLovecraftBlock + antiSweetCeoBlock + antiFakeProtocolBlock + antiEncryptedChannelBlock + antiWastelandBlock + antiEnumReactionsBlock;
+  const antiClichePhraseBlock = antiClichePhraseStyle
+    ? `
+
+**抗套路样板词（避免公式化神态与评价）**：
+- **禁止滥用下列及同类表述**：「恰到好处」「不易察觉」「微微一笑」「深吸一口气」，以及「会心一笑」「轻叹一声」「不动声色」等网文高频套路词。不要用上述空泛用语堆砌氛围。
+- **评价要具体**：若需写「刚好、合适」，用具体情境与结果描写代替「恰到好处」。
+- **神态与动作要多样**：笑、呼吸、叹息等描写请根据人物与情境选用具体、贴切的写法，避免千篇一律的「微微一笑」「深吸一口气」。`
+    : "";
+  return basePrompt + segmentExtra + antiLovecraftBlock + antiSweetCeoBlock + antiFakeProtocolBlock + antiEncryptedChannelBlock + antiWastelandBlock + antiEnumReactionsBlock + antiClichePhraseBlock;
 }
 
 function buildUserInputForSegment(
@@ -208,6 +219,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     anti_encrypted_channel_style = true,
     anti_wasteland_style = true,
     anti_enum_reactions_style = true,
+    anti_cliche_phrase_style = true,
   } = body || {};
 
   const attensionText = attension || attention;
@@ -219,7 +231,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       ? mcp_context.trim()
       : await getAggregatedContext(worldviewId, role_names, faction_names, geo_names);
     
-    const systemPrompt = buildSystemPrompt(attensionText, segment_index, targetChars, !!anti_lovecraft_style, !!anti_sweet_ceo_style, !!anti_fake_protocol_style, !!anti_encrypted_channel_style, !!anti_wasteland_style, !!anti_enum_reactions_style);
+    const systemPrompt = buildSystemPrompt(attensionText, segment_index, targetChars, !!anti_lovecraft_style, !!anti_sweet_ceo_style, !!anti_fake_protocol_style, !!anti_encrypted_channel_style, !!anti_wasteland_style, !!anti_enum_reactions_style, !!anti_cliche_phrase_style);
     const systemPromptWithContext = systemPrompt.replace('{{context}}', context);
     
     const model = createModel(llm_type);
