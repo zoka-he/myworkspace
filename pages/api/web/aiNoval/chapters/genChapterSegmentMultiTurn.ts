@@ -174,7 +174,7 @@ function buildUserInputForSegment(
   prevContent?: string
 ): string {
   const parts: string[] = [];
-  // 如果有前序章节内容，只在第一段添加
+  // 每段都带前情提要，便于中间重启续写时模型仍有前文背景
   if (prevContent && prevContent.trim()) {
     parts.push(`【前情提要（前序章节缩写，仅作背景参考）】\n${prevContent.trim()}`);
   }
@@ -227,9 +227,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   const targetChars = segment_target_chars || 600;
 
   try {
-    const context = (mcp_context && mcp_context.trim())
+    let context = (mcp_context && mcp_context.trim())
       ? mcp_context.trim()
       : await getAggregatedContext(worldviewId, role_names, faction_names, geo_names);
+    // 仅在第一段加入本章总体要点，避免每段都带全章提纲导致模型回溯前文或提前写完后文
+    if (segment_index === 1 && curr_context && curr_context.trim()) {
+      context = context + "\n\n【本章待写内容（总体）】\n" + curr_context.trim();
+    }
     
     const systemPrompt = buildSystemPrompt(attensionText, segment_index, targetChars, !!anti_lovecraft_style, !!anti_sweet_ceo_style, !!anti_fake_protocol_style, !!anti_encrypted_channel_style, !!anti_wasteland_style, !!anti_enum_reactions_style, !!anti_cliche_phrase_style);
     const systemPromptWithContext = systemPrompt.replace('{{context}}', context);
@@ -262,13 +266,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         }
       }
       
-      // 添加当前段落的 user 输入
-      // 前序章节内容只在第一段添加
+      // 添加当前段落的 user 输入（每段都带前情提要，中间重启时也不丢失）
       const userInput = buildUserInputForSegment(
         segment_outline, 
         snippet, 
         targetChars,
-        segment_index === 1 ? prev_content : undefined
+        prev_content
       );
       messages.push(new HumanMessage(userInput));
     }
@@ -292,7 +295,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
           segment_outline, 
           snippet, 
           targetChars,
-          segment_index === 1 ? prev_content : undefined
+          prev_content
         ) 
       });
       updatedHistory.push({ role: 'assistant', content: output });

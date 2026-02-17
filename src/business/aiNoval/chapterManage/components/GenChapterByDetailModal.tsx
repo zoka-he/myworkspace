@@ -313,8 +313,13 @@ function GenChapterByDetailModal({
 
   /** 逐段生成并逐段输出；支持暂停、停止（多轮对话模式）
    * @param initialHistory 从指定段落重写时传入截断后的历史，避免保留已删除段的旧 user/agent 对
+   * @param initialContentList 从指定段落重写时传入「该段之前」的已写内容列表，避免 setState 未生效时 previous_content_snippet 取到被删段落
    */
-  const runSegmentLoop = async (startFromIndex: number, initialHistory?: Array<{ role: 'user' | 'assistant'; content: string }>) => {
+  const runSegmentLoop = async (
+    startFromIndex: number,
+    initialHistory?: Array<{ role: 'user' | 'assistant'; content: string }>,
+    initialContentList?: string[]
+  ) => {
     if (!worldviewId) {
       message.error('无法获取世界观 ID')
       setPhase('error')
@@ -327,16 +332,22 @@ function GenChapterByDetailModal({
       setPhase('awaiting_confirmation')
       return
     }
-    let contentList = startFromIndex === 1 ? [] : [...segmentedContentList]
-    let content = contentList.join('\n\n') // 用于计算 previousSnippet
+    let contentList: string[]
+    let content: string
+    if (startFromIndex === 1) {
+      contentList = []
+      content = ''
+    } else {
+      // 中段重写时必须用传入的「该段之前」内容，否则 closure 里 segmentedContentList 仍是旧值，previousSnippet 会取到被删段落末尾
+      contentList = initialContentList != null ? [...initialContentList] : [...segmentedContentList]
+      content = contentList.join('\n\n')
+    }
     let history = startFromIndex === 1 ? [] : (initialHistory ?? conversationHistory)
     if (startFromIndex === 1) {
       setSegmentedContent('')
       setSegmentedContentList([])
       setConversationHistory([])
       history = []
-      contentList = []
-      content = ''
     }
     setPhase('writing_segment')
     setSegmentIndex(startFromIndex)
@@ -507,7 +518,8 @@ function GenChapterByDetailModal({
   }
   const handleResume = () => {
     pauseRequestedRef.current = false
-    runSegmentLoop(segmentIndex)
+    // 显式传入当前对话历史，避免闭包拿到旧 state 导致中间重启丢失设定/前文
+    runSegmentLoop(segmentIndex, conversationHistory)
   }
   const handleStop = () => {
     stopRequestedRef.current = true
@@ -630,7 +642,8 @@ function GenChapterByDetailModal({
     const truncatedHistory = conversationHistory.slice(0, 2 * segmentIndex)
     setConversationHistory(truncatedHistory)
     message.info(`已清空第 ${segmentIndex} 段及之后的内容，正在重新生成...`)
-    runSegmentLoop(segmentIndex, truncatedHistory)
+    // 传入截断后的内容列表，保证 previous_content_snippet 取的是「当前段的前一段」末尾，而不是被删段落
+    runSegmentLoop(segmentIndex, truncatedHistory, newContentList)
   }
 
   const handleClose = () => {
