@@ -6,7 +6,7 @@
 import { ChromaClient } from "chromadb";
 
 // Chroma 配置
-const CHROMA_URL = "http://192.168.0.175:28005";
+const CHROMA_URL = "http://192.168.0.179:28005";
 
 // 集合定义
 const COLLECTIONS = {

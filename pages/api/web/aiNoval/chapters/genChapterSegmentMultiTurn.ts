@@ -40,6 +40,12 @@ export interface GenChapterSegmentMultiTurnInput {
   anti_fake_protocol_style?: boolean;
   /** 抗加密表述：遏制「加密信道」「加密线路」「加密频段」等高频套路表述 */
   anti_encrypted_channel_style?: boolean;
+  /** 反废土文风：避免荒芜/废墟/辐射/末世等刻板废土描写，除非设定确为废土 */
+  anti_wasteland_style?: boolean;
+  /** 反逐人枚举：多人场景优先概括集体行为，避免逐人枚举反应 */
+  anti_enum_reactions_style?: boolean;
+  /** 抗套路样板词：避免恰到好处、不易察觉、微微一笑、深吸一口气等网文套路词 */
+  anti_cliche_phrase_style?: boolean;
 }
 
 interface Data {
@@ -87,7 +93,10 @@ function buildSystemPrompt(
   antiLovecraftStyle: boolean,
   antiSweetCeoStyle: boolean,
   antiFakeProtocolStyle: boolean,
-  antiEncryptedChannelStyle: boolean
+  antiEncryptedChannelStyle: boolean,
+  antiWastelandStyle: boolean,
+  antiEnumReactionsStyle: boolean,
+  antiClichePhraseStyle: boolean
 ): string {
   const basePrompt = buildPromptTemplate(attensionText);
   const segmentExtra = `
@@ -132,7 +141,30 @@ function buildSystemPrompt(
 **抗加密表述（禁止套路化通讯/安全用语）**：
 - **禁止使用**以下及同类表述：「加密信道」「加密线路」「加密频段」「加密通讯」「加密连接」「专用线路」「保密频道」「安全链路」。不得用上述空泛用语堆砌氛围；若需写通讯或技术细节，请用具体动作、场景与结果描写，或根据世界观自拟贴切说法，避免千篇一律的套路词。`
     : "";
-  return basePrompt + segmentExtra + antiLovecraftBlock + antiSweetCeoBlock + antiFakeProtocolBlock + antiEncryptedChannelBlock;
+  const antiWastelandBlock = antiWastelandStyle
+    ? `
+
+**反废土文风（仅在本作/本章明确为废土/末世设定时才使用废土语汇）**：
+- 不要无意识带入废土、末世感：若前情与提纲未明确设定为废土/末世/后末日世界，禁止堆砌「荒芜」「废墟」「残垣断壁」「破败」「锈蚀」「辐射」「变异」「末世」「废土」「灰蒙蒙」「昏黄」「尘埃漫天」等刻板废土描写；避免「拾荒者」「幸存者」「避难所」等作为泛用氛围词滥用。
+- 若本作确为废土题材，也请按本章提纲与具体场景写作，用具体细节替代套路词堆砌，避免千篇一律的废土感。`
+    : "";
+  const antiEnumReactionsBlock = antiEnumReactionsStyle
+    ? `
+
+**反逐人枚举（多人场景优先概括集体行为）**：
+- **不要逐人枚举反应**：多人同时在场时，禁止按「甲愣了一下，乙皱起眉，丙点头……」依次写每个人的神态或动作；除非本段提纲明确要求写出每个人不同的反应，否则不要逐人罗列。
+- **优先概括集体**：用「众人」「大家」「在场的人」「一片哗然」「纷纷……」或写一两位关键人物再以「其余人/人群」概括，表现整体氛围即可。
+- **确需区分时**：若情节需要对比少数几人态度，只写这几人，避免对在场所有人逐一遍历。`
+    : "";
+  const antiClichePhraseBlock = antiClichePhraseStyle
+    ? `
+
+**抗套路样板词（避免公式化神态与评价）**：
+- **禁止滥用下列及同类表述**：「恰到好处」「不易察觉」「微微一笑」「深吸一口气」，以及「会心一笑」「轻叹一声」「不动声色」等网文高频套路词。不要用上述空泛用语堆砌氛围。
+- **评价要具体**：若需写「刚好、合适」，用具体情境与结果描写代替「恰到好处」。
+- **神态与动作要多样**：笑、呼吸、叹息等描写请根据人物与情境选用具体、贴切的写法，避免千篇一律的「微微一笑」「深吸一口气」。`
+    : "";
+  return basePrompt + segmentExtra + antiLovecraftBlock + antiSweetCeoBlock + antiFakeProtocolBlock + antiEncryptedChannelBlock + antiWastelandBlock + antiEnumReactionsBlock + antiClichePhraseBlock;
 }
 
 function buildUserInputForSegment(
@@ -142,7 +174,7 @@ function buildUserInputForSegment(
   prevContent?: string
 ): string {
   const parts: string[] = [];
-  // 如果有前序章节内容，只在第一段添加
+  // 每段都带前情提要，便于中间重启续写时模型仍有前文背景
   if (prevContent && prevContent.trim()) {
     parts.push(`【前情提要（前序章节缩写，仅作背景参考）】\n${prevContent.trim()}`);
   }
@@ -185,6 +217,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     anti_sweet_ceo_style = true,
     anti_fake_protocol_style = false,
     anti_encrypted_channel_style = true,
+    anti_wasteland_style = true,
+    anti_enum_reactions_style = true,
+    anti_cliche_phrase_style = true,
   } = body || {};
 
   const attensionText = attension || attention;
@@ -192,11 +227,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   const targetChars = segment_target_chars || 600;
 
   try {
-    const context = (mcp_context && mcp_context.trim())
+    let context = (mcp_context && mcp_context.trim())
       ? mcp_context.trim()
       : await getAggregatedContext(worldviewId, role_names, faction_names, geo_names);
+    // 仅在第一段加入本章总体要点，避免每段都带全章提纲导致模型回溯前文或提前写完后文
+    if (segment_index === 1 && curr_context && curr_context.trim()) {
+      context = context + "\n\n【本章待写内容（总体）】\n" + curr_context.trim();
+    }
     
-    const systemPrompt = buildSystemPrompt(attensionText, segment_index, targetChars, !!anti_lovecraft_style, !!anti_sweet_ceo_style, !!anti_fake_protocol_style, !!anti_encrypted_channel_style);
+    const systemPrompt = buildSystemPrompt(attensionText, segment_index, targetChars, !!anti_lovecraft_style, !!anti_sweet_ceo_style, !!anti_fake_protocol_style, !!anti_encrypted_channel_style, !!anti_wasteland_style, !!anti_enum_reactions_style, !!anti_cliche_phrase_style);
     const systemPromptWithContext = systemPrompt.replace('{{context}}', context);
     
     const model = createModel(llm_type);
@@ -227,13 +266,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         }
       }
       
-      // 添加当前段落的 user 输入
-      // 前序章节内容只在第一段添加
+      // 添加当前段落的 user 输入（每段都带前情提要，中间重启时也不丢失）
       const userInput = buildUserInputForSegment(
         segment_outline, 
         snippet, 
         targetChars,
-        segment_index === 1 ? prev_content : undefined
+        prev_content
       );
       messages.push(new HumanMessage(userInput));
     }
@@ -257,7 +295,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
           segment_outline, 
           snippet, 
           targetChars,
-          segment_index === 1 ? prev_content : undefined
+          prev_content
         ) 
       });
       updatedHistory.push({ role: 'assistant', content: output });

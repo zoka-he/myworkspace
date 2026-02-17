@@ -14,7 +14,7 @@ const client = weaviate.client({
 // 或者，连接本地运行的Docker实例
 const localClient = weaviate.client({
   scheme: 'http',
-  host: '192.168.0.175:8080',
+  host: '192.168.0.179:8080',
 });
 
 // 检查连接是否就绪

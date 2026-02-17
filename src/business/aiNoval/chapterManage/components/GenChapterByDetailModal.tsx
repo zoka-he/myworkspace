@@ -89,7 +89,7 @@ function GenChapterByDetailModal({
   // 配置（PRD 3.1）
   const [useMcpContext, setUseMcpContext] = useState(false)
   const [segmentTargetChars, setSegmentTargetChars] = useState(1000)
-  const [maxSegments, setMaxSegments] = useState(8)
+  const [maxSegments, setMaxSegments] = useState(5)
   const [llmType, setLlmType] = useState<string>('deepseek-chat')
   /** 提纲生成用的模型，默认 deepseek-chat */
   const [outlineModel, setOutlineModel] = useState<string>('deepseek-chat')
@@ -101,6 +101,12 @@ function GenChapterByDetailModal({
   const [antiFakeProtocolStyle, setAntiFakeProtocolStyle] = useState(true)
   /** 抗加密表述：遏制「加密信道」「加密线路」「加密频段」等高频套路表述，默认勾选 */
   const [antiEncryptedChannelStyle, setAntiEncryptedChannelStyle] = useState(true)
+  /** 反废土文风：避免荒芜/废墟/辐射/末世等刻板废土描写，除非设定确为废土，默认勾选 */
+  const [antiWastelandStyle, setAntiWastelandStyle] = useState(true)
+  /** 反逐人枚举：多人场景优先概括集体行为，避免逐人枚举反应，默认勾选 */
+  const [antiEnumReactionsStyle, setAntiEnumReactionsStyle] = useState(true)
+  /** 抗套路样板词：避免恰到好处、不易察觉、微微一笑、深吸一口气等网文套路词，默认勾选 */
+  const [antiClichePhraseStyle, setAntiClichePhraseStyle] = useState(true)
 
   // 流程与回显（PRD 3.2）
   const [phase, setPhase] = useState<Phase>('idle')
@@ -307,8 +313,13 @@ function GenChapterByDetailModal({
 
   /** 逐段生成并逐段输出；支持暂停、停止（多轮对话模式）
    * @param initialHistory 从指定段落重写时传入截断后的历史，避免保留已删除段的旧 user/agent 对
+   * @param initialContentList 从指定段落重写时传入「该段之前」的已写内容列表，避免 setState 未生效时 previous_content_snippet 取到被删段落
    */
-  const runSegmentLoop = async (startFromIndex: number, initialHistory?: Array<{ role: 'user' | 'assistant'; content: string }>) => {
+  const runSegmentLoop = async (
+    startFromIndex: number,
+    initialHistory?: Array<{ role: 'user' | 'assistant'; content: string }>,
+    initialContentList?: string[]
+  ) => {
     if (!worldviewId) {
       message.error('无法获取世界观 ID')
       setPhase('error')
@@ -321,16 +332,22 @@ function GenChapterByDetailModal({
       setPhase('awaiting_confirmation')
       return
     }
-    let contentList = startFromIndex === 1 ? [] : [...segmentedContentList]
-    let content = contentList.join('\n\n') // 用于计算 previousSnippet
+    let contentList: string[]
+    let content: string
+    if (startFromIndex === 1) {
+      contentList = []
+      content = ''
+    } else {
+      // 中段重写时必须用传入的「该段之前」内容，否则 closure 里 segmentedContentList 仍是旧值，previousSnippet 会取到被删段落末尾
+      contentList = initialContentList != null ? [...initialContentList] : [...segmentedContentList]
+      content = contentList.join('\n\n')
+    }
     let history = startFromIndex === 1 ? [] : (initialHistory ?? conversationHistory)
     if (startFromIndex === 1) {
       setSegmentedContent('')
       setSegmentedContentList([])
       setConversationHistory([])
       history = []
-      contentList = []
-      content = ''
     }
     setPhase('writing_segment')
     setSegmentIndex(startFromIndex)
@@ -361,6 +378,9 @@ function GenChapterByDetailModal({
           anti_sweet_ceo_style: antiSweetCeoStyle,
           anti_fake_protocol_style: antiFakeProtocolStyle,
           anti_encrypted_channel_style: antiEncryptedChannelStyle,
+          anti_wasteland_style: antiWastelandStyle,
+          anti_enum_reactions_style: antiEnumReactionsStyle,
+          anti_cliche_phrase_style: antiClichePhraseStyle,
         })
         if (res.status === 'error' || res.error) {
           setErrorMessage(res.error || '确认阶段失败')
@@ -429,6 +449,9 @@ function GenChapterByDetailModal({
           anti_sweet_ceo_style: antiSweetCeoStyle,
           anti_fake_protocol_style: antiFakeProtocolStyle,
           anti_encrypted_channel_style: antiEncryptedChannelStyle,
+          anti_wasteland_style: antiWastelandStyle,
+          anti_enum_reactions_style: antiEnumReactionsStyle,
+          anti_cliche_phrase_style: antiClichePhraseStyle,
         })
         if (res.status === 'error' || res.error) {
           setErrorMessage(res.error || '本段生成失败')
@@ -495,7 +518,8 @@ function GenChapterByDetailModal({
   }
   const handleResume = () => {
     pauseRequestedRef.current = false
-    runSegmentLoop(segmentIndex)
+    // 显式传入当前对话历史，避免闭包拿到旧 state 导致中间重启丢失设定/前文
+    runSegmentLoop(segmentIndex, conversationHistory)
   }
   const handleStop = () => {
     stopRequestedRef.current = true
@@ -618,7 +642,8 @@ function GenChapterByDetailModal({
     const truncatedHistory = conversationHistory.slice(0, 2 * segmentIndex)
     setConversationHistory(truncatedHistory)
     message.info(`已清空第 ${segmentIndex} 段及之后的内容，正在重新生成...`)
-    runSegmentLoop(segmentIndex, truncatedHistory)
+    // 传入截断后的内容列表，保证 previous_content_snippet 取的是「当前段的前一段」末尾，而不是被删段落
+    runSegmentLoop(segmentIndex, truncatedHistory, newContentList)
   }
 
   const handleClose = () => {
@@ -648,9 +673,9 @@ function GenChapterByDetailModal({
       destroyOnClose
     >
       <div className={styles.continueContent}>
-        <Row gutter={16}>
+        {/* <Row gutter={16}> */}
           {/* 左侧：表单 + 配置（生成提纲时也保留，不隐藏） */}
-          <Col span={12}>
+          {/* <Col span={12}> */}
             {(phase === 'idle' || phase === 'awaiting_confirmation' || phase === 'mcp_gathering' || phase === 'segment_planning' || phase === 'writing_segment' || phase === 'paused' || phase === 'done' || phase === 'error') && (
               <>
                 {isLoadingContinueInfo && phase === 'idle' && (
@@ -709,35 +734,13 @@ function GenChapterByDetailModal({
                 />
 
 
-                <Divider/>
-                <div className={styles.prompt_title}>
-                  <span>章节总体风格设置：</span>
-                </div>
-                <Space wrap size={[6, 6]} style={{ marginBottom: 8 }}>
-                  {STYLE_QUICK_TAGS.map((tag) => (
-                    <Tag
-                      key={tag}
-                      style={{ cursor: isFormDisabled ? 'not-allowed' : 'pointer', marginRight: 0 }}
-                      onClick={() => !isFormDisabled && handleStyleTagClick(tag)}
-                    >
-                      {tag}
-                    </Tag>
-                  ))}
-                </Space>
-                <TextArea
-                  autoSize={{ minRows: 2 }}
-                  disabled={isFormDisabled}
-                  value={chapterStyle}
-                  onChange={(e) => setChapterStyle(e.target.value)}
-                  placeholder="叙述视角、文风、节奏等整体风格要求（可选），可点击上方标签快速填入"
-                  style={{ marginBottom: 8 }}
-                />
+                
               </>
             )}
-          </Col>
+          {/* </Col> */}
 
           {/* 右侧：主操作 / 提纲回显；所有按钮始终可见，通过 loading/disabled 控制 */}
-          <Col span={12}>
+          {/* <Col span={12}> */}
             {/* 1. 注意事项 */}
             <Divider orientation="left">注意事项</Divider>
             <div className={styles.prompt_title}>
@@ -760,8 +763,8 @@ function GenChapterByDetailModal({
               placeholder="扩写注意事项，可点击「AI 生成」由 AI 根据本章要点与设定生成（生成后直接覆盖）"
               style={{ marginBottom: 16 }}
             />
-          </Col>
-        </Row>
+          {/* </Col> */}
+        {/* </Row> */}
 
         {/* 2. 前序章节多选框 */}
         <Divider orientation="left">前序章节</Divider>
@@ -804,7 +807,7 @@ function GenChapterByDetailModal({
           <Typography.Text>最大段数：</Typography.Text>
           <InputNumber
             min={1}
-            max={50}
+            max={10}
             value={maxSegments}
             onChange={(v) => setMaxSegments(v ?? 20)}
             disabled={isFormDisabled}
@@ -951,7 +954,56 @@ function GenChapterByDetailModal({
           >
             抗加密表述
           </Checkbox>
-          
+          <Checkbox
+            checked={antiWastelandStyle}
+            onChange={(e) => setAntiWastelandStyle(e.target.checked)}
+            disabled={isFormDisabled}
+          >
+            反废土文风
+          </Checkbox>
+          <Checkbox
+            checked={antiEnumReactionsStyle}
+            onChange={(e) => setAntiEnumReactionsStyle(e.target.checked)}
+            disabled={isFormDisabled}
+          >
+            反逐人枚举
+          </Checkbox>
+          <Checkbox
+            checked={antiClichePhraseStyle}
+            onChange={(e) => setAntiClichePhraseStyle(e.target.checked)}
+            disabled={isFormDisabled}
+          >
+            抗套路样板词
+          </Checkbox>
+        </Space>
+
+        <Divider/>
+        <div className={styles.prompt_title}>
+          <span>章节总体风格设置：</span>
+        </div>
+        <Space wrap size={[6, 6]} style={{ marginBottom: 8 }}>
+          {STYLE_QUICK_TAGS.map((tag) => (
+            <Tag
+              key={tag}
+              style={{ cursor: isFormDisabled ? 'not-allowed' : 'pointer', marginRight: 0 }}
+              onClick={() => !isFormDisabled && handleStyleTagClick(tag)}
+            >
+              {tag}
+            </Tag>
+          ))}
+        </Space>
+        <TextArea
+          autoSize={{ minRows: 2 }}
+          disabled={isFormDisabled}
+          value={chapterStyle}
+          onChange={(e) => setChapterStyle(e.target.value)}
+          placeholder="叙述视角、文风、节奏等整体风格要求（可选），可点击上方标签快速填入"
+          style={{ marginBottom: 8 }}
+        />
+
+        <Divider/>
+        
+        <Space>
           <Typography.Text>续写模型：</Typography.Text>
           <Select
             value={llmType}
@@ -963,6 +1015,8 @@ function GenChapterByDetailModal({
             <Select.Option value="deepseek">DeepSeek</Select.Option>
             <Select.Option value="deepseek-chat">DeepSeek-Chat</Select.Option>
           </Select>
+
+
 
           {/* 其他操作按钮始终可见 */}
           <Button 
