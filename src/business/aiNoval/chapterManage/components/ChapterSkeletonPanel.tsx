@@ -15,6 +15,8 @@ import PromptTools from './PromptTools'
 import AttentionRefModal from './AttentionRefModal'
 import { useWorldViewContext } from '../WorldViewContext'
 import { useChapterContext } from '../chapterContext'
+import { getRoleListForChapter } from '@/src/api/aiNovel'
+import { textDecorationLine } from 'html2canvas/dist/types/css/property-descriptors/text-decoration-line'
 
 const { Text } = Typography
 const { TextArea } = Input
@@ -39,7 +41,7 @@ function ChapterSkeletonPanel({
   // onUpdateWorldView
 }: ChapterSkeletonPanelProps) {
   const { state: chapterContext, forceUpdateChapter, forceRefreshChapter } = useChapterContext();
-  const { worldViewData, geoUnionList, factionList, roleList } = useWorldViewContext();
+  const { worldViewData, geoUnionList, factionList, roleList, roleListForChapter } = useWorldViewContext();
 
   const [form] = Form.useForm()
   
@@ -155,7 +157,7 @@ function ChapterSkeletonPanel({
       form.setFieldsValue({
         geo_ids: chapterContext.geo_ids || [],
         faction_ids: chapterContext.faction_ids || [],
-        role_ids: chapterContext.role_ids || [],
+        role_ids: (chapterContext.role_ids || []).map(String),
         seed_prompt: chapterContext.seed_prompt || '',
         related_chapter_ids: chapterContext.related_chapter_ids || [],
         skeleton_prompt: chapterContext.skeleton_prompt || '',
@@ -232,7 +234,10 @@ function ChapterSkeletonPanel({
         emptyMessage = '世界观中暂无关联阵营'
         break
       case 'role':
-        sourceData = Array.from(characters)
+        sourceData = Array.from(characters).map(def_id => {
+          let roleForChapter = roleListForChapter?.find(role => role.role_id === def_id);
+          return roleForChapter?.union_id;
+        }).filter(union_id => union_id !== undefined && union_id !== null);
         emptyMessage = '世界观中暂无关联角色'
         break
     }
@@ -300,7 +305,7 @@ function ChapterSkeletonPanel({
         id: chapterContext.id,
         geo_ids: processIds<string>(values.geo_ids),
         faction_ids: processIds<number>(values.faction_ids),
-        role_ids: values.role_ids,
+        role_ids: processIds<string>(values.role_ids),
         seed_prompt: values.seed_prompt,
         related_chapter_ids: values.related_chapter_ids,
         skeleton_prompt: values.skeleton_prompt,
@@ -634,11 +639,26 @@ function ChapterSkeletonPanel({
               optionFilterProp="children"
               className={styles.multiSelect}
             >
-              {(roleList || []).map(role => (
-                <Option key={role.id} value={role.id}>
-                  {role.name}
-                </Option>
-              ))}
+              {(roleListForChapter || []).map(role => {
+                let factionName = factionList?.find(faction => faction.id === role.faction_id)?.name;
+                let factionTag = factionName ? <Tag color="green">{factionName}</Tag> : <Tag>无阵营</Tag>;
+
+                let disabledProps = role.is_enabled === 'N' ? { textDecoration: 'line-through', color: 'red' } : {};
+
+                return (
+                  <Option key={role.union_id} value={role.union_id} style={{ display: 'inline-block' }}>
+                    <Space>
+                      <div style={{ minWidth: 130 }}>
+                        {factionTag}
+                      </div>
+                      <div style={{ minWidth: 160, ...disabledProps }}>
+                        {role.name}
+                      </div>
+                      <Tag color="purple">{role.version_name}</Tag>
+                    </Space>
+                  </Option>
+                )
+              })}
             </Select>
           </Form.Item>
 

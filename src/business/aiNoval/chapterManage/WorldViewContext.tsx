@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useReducer, useState } from "reac
 import { IFactionDefData, IGeoUnionData, IRoleData, IWorldViewDataWithExtra } from "@/src/types/IAiNoval";
 import { loadGeoUnionList } from "../common/geoDataUtil";
 import * as chapterApi from './apiCalls'
+import { getRoleListForChapter } from "@/src/api/aiNovel";
 
 interface WorldViewState {
     worldViewId?: number | null
@@ -10,6 +11,7 @@ interface WorldViewState {
     geoUnionList?: IGeoUnionData[]
     factionList?: IFactionDefData[]
     roleList?: IRoleData[]
+    roleListForChapter?: IRoleData[]
 }
 
 interface WorldViewContextType {
@@ -44,7 +46,8 @@ function worldViewReducer(state: WorldViewState, action: any) {
                 worldViewData: action.payload.worldViewData,
                 geoUnionList: action.payload.geoUnionList,
                 factionList: action.payload.factionList,
-                roleList: action.payload.roleList
+                roleList: action.payload.roleList,
+                roleListForChapter: action.payload.roleListForChapter
             }
         case 'SET_WORLD_VIEW_LIST':
             return {
@@ -106,7 +109,8 @@ const handleWorldViewChange = (worldViewId: number | null, state: WorldViewState
                 worldViewData: null, 
                 geoUnionList: [], 
                 factionList: [], 
-                roleList: [] 
+                roleList: [],
+                roleListForChapter: []
             }
         })
         return
@@ -134,14 +138,16 @@ const handleWorldViewChange = (worldViewId: number | null, state: WorldViewState
         loadGeoUnionList(worldViewId),
         chapterApi.loadFactionList(worldViewId),
         chapterApi.loadRoleList(worldViewId),
-    ]).then(([geoUnionList, factionList, roleList]) => {
+        getRoleListForChapter(worldViewId),
+    ]).then(([geoUnionList, factionList, roleList, roleListForChapter]) => {
         dispatch({
             type: 'SET_SELECTED_WORLD_VIEW_DATA',
             payload: { 
                 worldViewData: worldViewData, 
                 geoUnionList: geoUnionList, 
                 factionList: factionList, 
-                roleList: roleList 
+                roleList: roleList,
+                roleListForChapter: roleListForChapter
             }
         })
     });

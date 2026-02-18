@@ -124,7 +124,7 @@ function serializeChapter(chapter: IChapter) {
     }
 
     if (_chapter.role_ids) {
-        _chapter.role_ids = splitIds(_chapter.role_ids).map(Number);
+        _chapter.role_ids = splitIds(_chapter.role_ids).map(String);
     }
 
     if (_chapter.faction_ids) {
@@ -183,7 +183,7 @@ export const getChapterList = async (novelId: number, page: number = 1, limit: n
             chapter.storyline_ids = splitIds(chapter.storyline_ids).map(Number);
             chapter.event_ids = splitIds(chapter.event_ids).map(Number);
             chapter.geo_ids = splitIds(chapter.geo_ids).map(String);
-            chapter.role_ids = splitIds(chapter.role_ids).map(Number);
+            chapter.role_ids = splitIds(chapter.role_ids).map(String);
             chapter.faction_ids = splitIds(chapter.faction_ids).map(Number);
             chapter.related_chapter_ids = splitIds(chapter.related_chapter_ids).map(Number);
         });
@@ -210,7 +210,7 @@ export const getChapterListFrom = async (novelId: number, from: number = 1, to: 
             chapter.storyline_ids = splitIds(chapter.storyline_ids).map(Number);
             chapter.event_ids = splitIds(chapter.event_ids).map(Number);
             chapter.geo_ids = splitIds(chapter.geo_ids).map(String);
-            chapter.role_ids = splitIds(chapter.role_ids).map(Number);
+            chapter.role_ids = splitIds(chapter.role_ids).map(String);
             chapter.faction_ids = splitIds(chapter.faction_ids).map(Number);
             chapter.related_chapter_ids = splitIds(chapter.related_chapter_ids).map(Number);
         });
