@@ -4,6 +4,8 @@ import mysqlConfig from '@/src/config/mysql';
 import { useConnection, useChainId, useEnsAddress, useConnectors, Connector } from 'wagmi';
 import { Image } from 'antd';
 import { useMQ } from '../components/context/aiNovel';
+import { useDeepseekBalance } from '../utils/hooks/useDeepseekBalance';
+import { useOpenrouterBalance } from '../utils/hooks/useOpenrouterBalance';
 
 const { Text, Paragraph } = Typography;
 
@@ -22,6 +24,7 @@ export default function AppState() {
             <BaseState />
             <WalletState />
             <RabbitMQState />
+            <AIProviderState />
         </Space>
     )
 }
@@ -110,6 +113,21 @@ function RabbitMQState() {
             </Descriptions.Item>
             <Descriptions.Item label="连接状态">
                 {connectState}
+            </Descriptions.Item>
+        </Descriptions>
+    )
+}
+
+function AIProviderState() {
+    let deepseekBalance = useDeepseekBalance();
+    let openrouterBalance = useOpenrouterBalance();
+    return (
+        <Descriptions title="AI提供商状态" bordered size="small" column={1} styles={DESCRIPTION_STYLES}>
+            <Descriptions.Item label="DeepSeek余额">
+                <Text>{deepseekBalance}￥</Text>
+            </Descriptions.Item>
+            <Descriptions.Item label="OpenRouter余额">
+                <Text>{openrouterBalance}$</Text>
             </Descriptions.Item>
         </Descriptions>
     )

@@ -50,7 +50,7 @@ export const getChapterList = async (novelId: number, page: number = 1, limit: n
             chapter.storyline_ids = splitIds(chapter.storyline_ids).map(Number);
             chapter.event_ids = splitIds(chapter.event_ids).map(Number);
             chapter.geo_ids = splitIds(chapter.geo_ids).map(String);
-            chapter.role_ids = splitIds(chapter.role_ids).map(Number);
+            chapter.role_ids = splitIds(chapter.role_ids).map(String);
             chapter.faction_ids = splitIds(chapter.faction_ids).map(Number);
             chapter.related_chapter_ids = splitIds(chapter.related_chapter_ids).map(Number);
         });
@@ -544,4 +544,17 @@ export async function getGeoUnitOptionsForWorldState(worldviewId: number): Promi
     list.push(...toItems((satelliteRes as any)?.data ?? []));
     list.push(...toItems((geoUnitRes as any)?.data ?? []));
     return list;
+}
+
+/** 
+ * 获取用于生成章节的角色列表
+ * @param worldviewId 世界视图ID
+ * @returns 角色列表
+ */
+export async function getRoleListForChapter(worldviewId: number): Promise<{ id: number; name?: string }[]> {
+    const res = await fetch.get<{ data?: any[] }>('/api/web/aiNoval/role/listForChapter', {
+        params: { worldview_id: worldviewId, page: 1, limit: 500 },
+    });
+    const data = (res as any)?.data ?? [];
+    return Array.isArray(data) ? data : [];
 }

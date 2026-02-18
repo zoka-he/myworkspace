@@ -169,6 +169,10 @@ export interface IRoleData {
     version?: number | null,
     created_at?: Date | null,
     is_enabled?: 'Y' | 'N' | null,
+    role_id?: number | null,
+    info_id?: number | null,
+    union_id?: string | null,
+    faction_id?: number | null,
 }
 
 export interface IRoleInfo {
@@ -339,7 +343,7 @@ export interface ITimelineEvent {
     date: number // seconds
     location: string
     faction_ids: number[]
-    role_ids: number[]
+    role_ids: string[]
     story_line_id: number
     worldview_id: number
     /** 状态：enabled | questionable | not_yet | blocked | closed */
@@ -362,7 +366,7 @@ export interface IChapter {
     event_ids?: number[]
     geo_ids?: string[]
     faction_ids?: number[]
-    role_ids?: number[]
+    role_ids?: string[]
     seed_prompt?: string
     skeleton_prompt?: string
     content?: string

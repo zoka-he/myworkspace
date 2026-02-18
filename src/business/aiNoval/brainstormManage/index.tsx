@@ -85,7 +85,7 @@ function BrainstormManageContent() {
         <Space size="middle" wrap>
           <Space.Compact size="middle">
             <Select
-              style={{ width: 200 }}
+              style={{ width: 150 }}
               value={worldviewId}
               onChange={setWorldviewId}
               placeholder="选择世界观"

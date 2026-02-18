@@ -15,6 +15,7 @@ export default class RoleDefService extends MysqlNovalService {
         ]);
     }
 
+    // 获取角色定义列表
     getRoleDefList(params) {
         let roleConds = [];
         let roleCondVals = [];
@@ -75,22 +76,96 @@ export default class RoleDefService extends MysqlNovalService {
 
 
     async getRoleNamesOfCurrentVersion(roleIds) {
-        let verifiedRoleIds = roleIds.split(',').map(s => s.trim()).filter(s => s.length > 0).map(_.toNumber);
-        if (verifiedRoleIds.length === 0) {
-            return [];
-        }
+        if (!roleIds.includes('|')) { // 兼容旧版roleDef格式
+            let verifiedRoleIds = roleIds.split(',').map(s => s.trim()).filter(s => s.length > 0).map(_.toNumber);
+            if (verifiedRoleIds.length === 0) {
+                return [];
+            }
 
+            let sql = `
+                select 
+                    r.id,
+                    ri.name_in_worldview name
+                from \`Role\` r 
+                left join role_info ri on ri.role_id = r.id and ri.id = r.version 
+                where r.id in(${verifiedRoleIds.join(',')})
+            `;
+
+            let ret = await this.query(sql, [], ['id asc'], 1, verifiedRoleIds.length);
+            return (ret.data || []).map(r => r.name).join(',');
+        } else {
+            let roleDefIds = [];
+            let roleInfoIds = [];
+
+            for (let roleId of roleIds.split(',')) {
+                if (roleId.includes('|')) {
+                    let id = roleId.split('|')[1].trim();
+                    if (id.length > 0) {
+                        roleInfoIds.push(id);
+                    }
+                } else {
+                    roleDefIds.push(roleId);
+                }
+            }
+
+            // 首先把角色定义ID转换为角色当前版本ID
+            if (roleDefIds.length > 0) {
+                let def2infoSql = `
+                    select 
+                        r.version
+                    from \`Role\` r  
+                    where r.id in(${roleDefIds.join(',')})
+                `;
+
+                let ret = await this.queryBySql(def2infoSql, []);
+                defInfoIds = (ret.data || []).map(r => r.version);
+                roleInfoIds = roleInfoIds.concat(defInfoIds);
+            }
+
+            if (roleInfoIds.length > 0) {
+                let info2nameSql = `
+                    select 
+                        r.id,
+                        ri.name_in_worldview name
+                    from \`Role\` r 
+                    left join role_info ri on ri.role_id = r.id and ri.id = r.version 
+                    where r.id in(${roleInfoIds.join(',')})
+                `;
+
+                let ret = await this.queryBySql(info2nameSql, []);
+                return (ret.data || []).map(r => r.name).join(',');
+            }
+
+            return '';
+        }
+    }
+
+    /**
+     * 获取可用于生成章节的角色列表
+     * @param {*} params 
+     */
+    async getRoleListForChapter(worldview_id) {
         let sql = `
             select 
-                r.id,
-                ri.name_in_worldview name
-            from \`Role\` r 
-            left join role_info ri on ri.role_id = r.id and ri.id = r.version 
-            where r.id in(${verifiedRoleIds.join(',')})
+                CONCAT_WS('|', r.id, ri.id) union_id,
+                r.id role_id,
+                ri.id info_id,
+                r.name,
+                ri.version_name,
+                ri.faction_id,
+                ri.root_faction_id,
+                case 
+                    when r.is_enabled = 'Y' and ri.is_enabled = 'Y' then 'Y'
+                    else 'N'
+                end is_enabled
+            from \`role_info\` ri 
+            left join \`Role\` r on ri.role_id = r.id  
+            where r.is_enabled = 'Y' and ri.is_enabled = 'Y' and ri.worldview_id = ?
+            order by r.id asc, ri.id asc
         `;
 
-        let ret = await this.query(sql, [], ['id asc'], 1, verifiedRoleIds.length);
-        return (ret.data || []).map(r => r.name).join(',');
+        let ret = await this.queryBySql(sql, [worldview_id]);
+        return ret || [];
     }
 
 }

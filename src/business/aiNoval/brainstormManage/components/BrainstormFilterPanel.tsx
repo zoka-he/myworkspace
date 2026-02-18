@@ -53,7 +53,7 @@ export default function BrainstormFilterPanel() {
         ))}
       </Select>
 
-      <Select
+      {/* <Select
         style={{ width: 150 }}
         placeholder="状态"
         mode="multiple"
@@ -64,9 +64,9 @@ export default function BrainstormFilterPanel() {
         {statusOptions.map(opt => (
           <Option key={opt.value} value={opt.value}>{opt.label}</Option>
         ))}
-      </Select>
+      </Select> */}
 
-      <Select
+      {/*<Select
         style={{ width: 120 }}
         placeholder="优先级"
         allowClear
@@ -76,7 +76,7 @@ export default function BrainstormFilterPanel() {
         {priorityOptions.map(opt => (
           <Option key={opt.value} value={opt.value}>{opt.label}</Option>
         ))}
-      </Select>
+      </Select> */}
 
       <Select
         style={{ width: 150 }}

@@ -12,6 +12,7 @@ import mysqlConfig from "@/src/config/mysql";
 import { setFrontHost } from "@/src/store/difySlice";
 import { setTheme } from "@/src/store/themeSlice";
 import { useAppState } from "../utils/hooks/useAppState";
+import { useDeepseekBalance } from "../utils/hooks/useDeepseekBalance";
 
 const mapStateToProps = (state: IRootState) => {
     return {
@@ -43,6 +44,7 @@ function WorkspaceHeader(props: IWorkspaceHeaderProps) {
     // let session = useSession();
     let navigate = useNavigate();
     let { toggleDrawerVisible } = useAppState();
+    let deepseekBalance = useDeepseekBalance();
 
     // let userLabel = null;
     // if (props?.loginUser?.nickname || session?.data?.user?.name) {
@@ -138,9 +140,11 @@ function WorkspaceHeader(props: IWorkspaceHeaderProps) {
                 {/* <Typography.Text strong>mysql主机: </Typography.Text>
                 <Tag>{`${mysqlConfig.MYSQL_HOST}:${mysqlConfig.MYSQL_PORT}`}</Tag> */}
 
-                <Typography.Text strong>dify主机: </Typography.Text>
-                <Select style={{ width: 130 }} options={props.difyFrontHostOptions.map(option => ({ label: option, value: option }))} value={props.difyFrontHost} onChange={e => store.dispatch(setFrontHost(e))} />
-                
+                {/* <Typography.Text strong>dify主机: </Typography.Text>
+                <Select style={{ width: 130 }} options={props.difyFrontHostOptions.map(option => ({ label: option, value: option }))} value={props.difyFrontHost} onChange={e => store.dispatch(setFrontHost(e))} /> */}
+                <Typography.Text strong>DeepSeek余额: </Typography.Text>
+                <Tag color="green">{deepseekBalance}</Tag>
+
                 <Typography.Text strong>显示模式</Typography.Text>
                 <Switch checked={props.themeMode === 'dark'} unCheckedChildren="白天" checkedChildren="黑夜" onChange={e => store.dispatch(setTheme(e ? 'dark' : 'light'))} />
                 {/* {userLabel} */}

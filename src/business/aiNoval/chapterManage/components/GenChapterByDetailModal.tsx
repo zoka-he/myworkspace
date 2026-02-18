@@ -851,7 +851,7 @@ function GenChapterByDetailModal({
           <>
             <Divider orientation="left">前序章节缩写结果</Divider>
             <TextArea
-              autoSize={{ minRows: 4, maxRows: 10 }}
+              autoSize={{ minRows: 4 }}
               value={prevContent}
               onChange={(e) => setPrevContent(e.target.value)}
               placeholder="前序章节缩写后的内容（可编辑）"
