@@ -56,6 +56,7 @@ function ChapterSkeletonPanel({
   const [chapterList, setChapterList] = useState<IChapter[]>([])
   const [isGenRoleModalVisible, setIsGenRoleModalVisible] = useState(false)
   const [isAttentionRefModalVisible, setIsAttentionRefModalVisible] = useState(false)
+  const [isGeneratingAttention, setIsGeneratingAttention] = useState(false)
 
   const promptTextAreaRef = useRef<GetRef<typeof Input.TextArea> | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -211,6 +212,71 @@ function ChapterSkeletonPanel({
       message.error('刷新失败')
     } finally {
       setRefreshing(false)
+    }
+  }
+
+  /** 从 geo 树中收集 code -> name 映射（递归） */
+  const collectGeoCodeToName = (
+    nodes: IGeoTreeItem<IGeoStarSystemData | IGeoStarData | IGeoPlanetData | IGeoSatelliteData | IGeoGeographyUnitData>[],
+    acc: Map<string, string>
+  ): void => {
+    if (!nodes?.length) return
+    for (const node of nodes) {
+      if (node.key) acc.set(String(node.key), node.title || '')
+      if (node.children?.length) collectGeoCodeToName(node.children as IGeoTreeItem<IGeoStarSystemData | IGeoStarData | IGeoPlanetData | IGeoSatelliteData | IGeoGeographyUnitData>[], acc)
+    }
+  }
+
+  /** 注意事项 AI 生成（与 ChapterContinueModal 一致）：根据本章要点与设定生成，生成后直接覆盖。输入项为表单的 ID/编码，需转换为 API 需要的名称字符串 */
+  const handleGenAttention = async () => {
+    const worldviewId = worldViewData?.id
+    if (!worldviewId) {
+      message.error('无法获取世界观，请先选择世界观')
+      return
+    }
+    const values = form.getFieldsValue()
+    const seedPrompt = values.seed_prompt || ''
+
+    const processTreeSelectValue = <T extends string | number>(value: T | { value: T }): T =>
+      typeof value === 'object' && value !== null && 'value' in value ? (value as { value: T }).value : value
+    const processIds = <T extends string | number>(value: T[] | { value: T }[] | T | undefined): T[] =>
+      !value ? [] : Array.isArray(value) ? (value.map(processTreeSelectValue) as T[]) : []
+
+    const roleIds = processIds<string>(values.role_ids)
+    const factionIds = processIds<number>(values.faction_ids)
+    const geoIds = processIds<string>(values.geo_ids)
+
+    const roleNames = (roleListForChapter || [])
+      .filter((r) => r.union_id != null && roleIds.includes(r.union_id))
+      .map((r) => r.name ?? '')
+      .filter(Boolean)
+      .join('，') || ''
+    const factionNames = (factionList || [])
+      .filter((f) => f.id != null && factionIds.includes(f.id))
+      .map((f) => f.name ?? '')
+      .filter(Boolean)
+      .join('，') || ''
+    const geoCodeToName = new Map<string, string>()
+    collectGeoCodeToName(geoTree, geoCodeToName)
+    const geoNames = geoIds.map((code: string) => geoCodeToName.get(code) || code).filter(Boolean).join('，') || ''
+
+    setIsGeneratingAttention(true)
+    try {
+      const text = await apiCalls.genChapterAttention({
+        worldview_id: worldviewId,
+        curr_context: seedPrompt,
+        role_names: roleNames,
+        faction_names: factionNames,
+        geo_names: geoNames,
+        chapter_style: '',
+      })
+      form.setFieldsValue({ attension: text || '' })
+      if (text) message.success('注意事项已生成')
+      else message.warning('未生成内容')
+    } catch (e: unknown) {
+      message.error((e as Error)?.message || '生成注意事项失败')
+    } finally {
+      setIsGeneratingAttention(false)
     }
   }
 
@@ -636,7 +702,8 @@ function ChapterSkeletonPanel({
             <Select
               mode="multiple"
               placeholder="请选择关联角色"
-              optionFilterProp="children"
+              showSearch
+              optionFilterProp="label"
               className={styles.multiSelect}
             >
               {(roleListForChapter || []).map(role => {
@@ -646,7 +713,12 @@ function ChapterSkeletonPanel({
                 let disabledProps = role.is_enabled === 'N' ? { textDecoration: 'line-through', color: 'red' } : {};
 
                 return (
-                  <Option key={role.union_id} value={role.union_id} style={{ display: 'inline-block' }}>
+                  <Option
+                    key={role.union_id}
+                    value={role.union_id}
+                    label={`${role.name || ''} ${factionName || ''} ${role.version_name || ''}`}
+                    style={{ display: 'inline-block' }}
+                  >
                     <Space>
                       <div style={{ minWidth: 130 }}>
                         {factionTag}
@@ -666,10 +738,11 @@ function ChapterSkeletonPanel({
 
           <div>
             <Text strong>注意事项：</Text>
+            <Button type="link" size="small" loading={isGeneratingAttention} onClick={handleGenAttention}>AI 生成</Button>
             <Button type="link" icon={<InfoCircleOutlined />} onClick={() => setIsAttentionRefModalVisible(true)}>注意事项参考模板</Button>
           </div>
           <Form.Item label={null} name="attension">
-            <TextArea autoSize={{ minRows: 1 }} />
+            <TextArea autoSize={{ minRows: 1 }} placeholder="扩写注意事项，可点击「AI 生成」由 AI 根据本章要点与设定生成（生成后直接覆盖）" />
           </Form.Item>
 
           <div>

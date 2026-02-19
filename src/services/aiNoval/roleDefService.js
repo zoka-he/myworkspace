@@ -108,6 +108,9 @@ export default class RoleDefService extends MysqlNovalService {
                 }
             }
 
+            // console.log('roleDefIds --->> ', roleDefIds);
+            // console.log('roleInfoIds --->> ', roleInfoIds);
+
             // 首先把角色定义ID转换为角色当前版本ID
             if (roleDefIds.length > 0) {
                 let def2infoSql = `
@@ -120,6 +123,7 @@ export default class RoleDefService extends MysqlNovalService {
                 let ret = await this.queryBySql(def2infoSql, []);
                 defInfoIds = (ret.data || []).map(r => r.version);
                 roleInfoIds = roleInfoIds.concat(defInfoIds);
+                // console.log('defInfoIds --->> ', defInfoIds);
             }
 
             if (roleInfoIds.length > 0) {
@@ -129,11 +133,14 @@ export default class RoleDefService extends MysqlNovalService {
                         ri.name_in_worldview name
                     from \`Role\` r 
                     left join role_info ri on ri.role_id = r.id and ri.id = r.version 
-                    where r.id in(${roleInfoIds.join(',')})
+                    where ri.id in(${roleInfoIds.join(',')})
                 `;
 
                 let ret = await this.queryBySql(info2nameSql, []);
-                return (ret.data || []).map(r => r.name).join(',');
+                // console.log('info2nameSql ret --->> ', ret);
+                let retText = (ret || []).map(r => r.name).join(',');
+                // console.log('info2nameSql retText --->> ', retText);
+                return retText;
             }
 
             return '';
