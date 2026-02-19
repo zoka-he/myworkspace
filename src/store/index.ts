@@ -33,10 +33,10 @@ const store = configureStore({
 
 // 初始化并定时更新 DeepSeek 余额（必须在 store 创建后 dispatch 才会生效）
 updateDeepSeekBalance(store.dispatch);
-updateOpenRouterBalance(store.dispatch);
+// updateOpenRouterBalance(store.dispatch);
 setInterval(() => {
     updateDeepSeekBalance(store.dispatch)
-    updateOpenRouterBalance(store.dispatch)
+    // updateOpenRouterBalance(store.dispatch)
 }, 1000 * 15 * 60);
 
 export default store;

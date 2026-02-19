@@ -132,7 +132,7 @@ export default class RoleDefService extends MysqlNovalService {
                         r.id,
                         ri.name_in_worldview name
                     from \`Role\` r 
-                    left join role_info ri on ri.role_id = r.id and ri.id = r.version 
+                    left join role_info ri on ri.role_id = r.id 
                     where ri.id in(${roleInfoIds.join(',')})
                 `;
 
