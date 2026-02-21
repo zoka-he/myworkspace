@@ -166,6 +166,22 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
   // 注意事项 AI 生成 loading
   const [isGeneratingAttention, setIsGeneratingAttention] = useState(false)
 
+  // 文风对抗选项（与 GenChapterByDetailModal 一致）
+  /** 抗克苏鲁文风：避免野兽比喻、腐败/腐化等常见模型偏向，默认勾选 */
+  const [antiLovecraftStyle, setAntiLovecraftStyle] = useState(true)
+  /** 抗甜宠/霸总文风：避免生理反应公式化、霸总标配描写，默认勾选 */
+  const [antiSweetCeoStyle, setAntiSweetCeoStyle] = useState(true)
+  /** 抗空泛协议/中二命名：禁止自创协议名、严格遵从设定中的协议，默认勾选 */
+  const [antiFakeProtocolStyle, setAntiFakeProtocolStyle] = useState(true)
+  /** 抗加密表述：遏制「加密信道」「加密线路」「加密频段」等高频套路表述，默认勾选 */
+  const [antiEncryptedChannelStyle, setAntiEncryptedChannelStyle] = useState(true)
+  /** 反废土文风：避免荒芜/废墟/辐射/末世等刻板废土描写，除非设定确为废土，默认勾选 */
+  const [antiWastelandStyle, setAntiWastelandStyle] = useState(true)
+  /** 反逐人枚举：多人场景优先概括集体行为，避免逐人枚举反应，默认勾选 */
+  const [antiEnumReactionsStyle, setAntiEnumReactionsStyle] = useState(true)
+  /** 抗套路样板词：避免恰到好处、不易察觉、微微一笑、深吸一口气等网文套路词，默认勾选 */
+  const [antiClichePhraseStyle, setAntiClichePhraseStyle] = useState(true)
+
   // 初始化
   useEffect(() => {
     reloadChapter();
@@ -436,6 +452,14 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
       llm_type: llmType,
       attention: attention || '',
       extra_settings: extraSettings || '',
+      // 文风对抗选项
+      anti_lovecraft_style: antiLovecraftStyle,
+      anti_sweet_ceo_style: antiSweetCeoStyle,
+      anti_fake_protocol_style: antiFakeProtocolStyle,
+      anti_encrypted_channel_style: antiEncryptedChannelStyle,
+      anti_wasteland_style: antiWastelandStyle,
+      anti_enum_reactions_style: antiEnumReactionsStyle,
+      anti_cliche_phrase_style: antiClichePhraseStyle,
     };
     console.info('auto write reqObj -> ', reqObj);
 
@@ -874,6 +898,17 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
 
             <Col span={12}>
               <div>
+                <Divider orientation="left">文风对抗选项</Divider>
+                <Space wrap style={{ marginTop: 8 }}>
+                  <Checkbox checked={antiLovecraftStyle} onChange={(e) => setAntiLovecraftStyle(e.target.checked)} disabled={isContinuing}>抗克苏鲁文风</Checkbox>
+                  <Checkbox checked={antiSweetCeoStyle} onChange={(e) => setAntiSweetCeoStyle(e.target.checked)} disabled={isContinuing}>抗甜宠/霸总文风</Checkbox>
+                  <Checkbox checked={antiFakeProtocolStyle} onChange={(e) => setAntiFakeProtocolStyle(e.target.checked)} disabled={isContinuing}>抗空泛协议/中二命名</Checkbox>
+                  <Checkbox checked={antiEncryptedChannelStyle} onChange={(e) => setAntiEncryptedChannelStyle(e.target.checked)} disabled={isContinuing}>抗加密表述</Checkbox>
+                  <Checkbox checked={antiWastelandStyle} onChange={(e) => setAntiWastelandStyle(e.target.checked)} disabled={isContinuing}>反废土文风</Checkbox>
+                  <Checkbox checked={antiEnumReactionsStyle} onChange={(e) => setAntiEnumReactionsStyle(e.target.checked)} disabled={isContinuing}>反逐人枚举</Checkbox>
+                  <Checkbox checked={antiClichePhraseStyle} onChange={(e) => setAntiClichePhraseStyle(e.target.checked)} disabled={isContinuing}>抗套路样板词</Checkbox>
+                </Space>
+                <Divider orientation="left">续写选项</Divider>
                 <Space>
                   { isContinuing ? (
                     <Button
@@ -908,6 +943,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
                   <Checkbox checked={isReferSelf} onChange={(e) => setIsReferSelf(e.target.checked)} disabled={isContinuing}>参考本章已有内容</Checkbox>
                   <Checkbox checked={isStripSelf} onChange={(e) => setIsStripSelf(e.target.checked)} disabled={isContinuing}>缩写本章</Checkbox>
                 </Space>
+                
                 <Divider orientation='left'>
                   {isContinuing ? '续写中...' : '点击上方按钮开始续写...'}
                 </Divider>
