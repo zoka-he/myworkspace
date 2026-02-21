@@ -33,7 +33,8 @@ export default class ChaptersService extends MysqlNovalService {
             'attension',
             'extra_settings',
             'actual_seed_prompt',
-            'actual_skeleton_prompt'
+            'actual_skeleton_prompt',
+            'chapter_style'
         ]);
     }
 

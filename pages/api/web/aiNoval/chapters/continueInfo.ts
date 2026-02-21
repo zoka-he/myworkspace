@@ -50,6 +50,7 @@ async function handleContinueInfo(req: NextApiRequest, res: NextApiResponse<any>
             actual_locations: chapter.actual_locations,
             actual_seed_prompt: chapter.actual_seed_prompt,
             attension: chapter.attension,
+            chapter_style: chapter.chapter_style,
             extra_settings: chapter.extra_settings
         }
 

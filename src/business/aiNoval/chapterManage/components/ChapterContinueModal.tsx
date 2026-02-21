@@ -12,6 +12,13 @@ import copyToClip from '@/src/utils/common/copy';
 import store from '@/src/store'
 import AttentionRefModal from './AttentionRefModal'
 
+/** 总体风格快速标签（与 GenChapterByDetailModal 对齐） */
+const STYLE_QUICK_TAGS = [
+  '第一人称', '第三人称', '快节奏', '细腻描写', '悬疑紧张', '轻松幽默',
+  '硬核科幻', '冷硬写实', '诗意抒情', '对话驱动', '环境氛围', '热血战斗',
+  '奇幻魔法', '银魂式搞笑', '周星驰式搞笑', '沙丘风',
+]
+
 interface ChapterContinueModalProps {
   selectedChapterId: number | undefined
   isVisible: boolean
@@ -157,6 +164,9 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
   // 注意事项
   const [attention, setAttention] = useState<string>('')
 
+  // 章节文风（与 GenChapterByDetailModal 对齐）
+  const [chapterStyle, setChapterStyle] = useState<string>('')
+
   // 额外设置
   const [extraSettings, setExtraSettings] = useState<string>('')
 
@@ -227,6 +237,9 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
 
       // 注意事项
       setAttention(selectedChapter?.attension || '')
+
+      // 章节文风
+      setChapterStyle(selectedChapter?.chapter_style || selectedChapter?.overall_style || '')
 
       // 额外设置
       setExtraSettings(selectedChapter?.extra_settings || '')
@@ -451,6 +464,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
       geo_names: geoNames || '',
       llm_type: llmType,
       attention: attention || '',
+      chapter_style: chapterStyle || '',
       extra_settings: extraSettings || '',
       // 文风对抗选项
       anti_lovecraft_style: antiLovecraftStyle,
@@ -498,6 +512,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
         actual_locations: geoNames,
         actual_seed_prompt: seedPrompt,
         attension: attention,
+        chapter_style: chapterStyle,
         extra_settings: extraSettings
       })  
       message.success('保存成功')
@@ -551,6 +566,10 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
 
       case 'extra_settings':
         setExtraSettings(selectedChapter?.extra_settings || '')
+        break;
+
+      case 'chapter_style':
+        setChapterStyle(selectedChapter?.chapter_style || selectedChapter?.overall_style || '')
         break;
     }
   }
@@ -703,7 +722,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
         role_names: roleNames,
         faction_names: factionNames,
         geo_names: geoNames,
-        chapter_style: '',
+        chapter_style: chapterStyle || '',
       })
       setAttention(text || '')
       if (text) message.success('注意事项已生成')
@@ -832,6 +851,18 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
                   <TextArea autoSize={{ minRows: 1 }} disabled={isLoading} value={attention} onChange={(e) => setAttention(e.target.value)} placeholder="扩写注意事项，可点击「AI 生成」由 AI 根据本章要点与设定生成（生成后直接覆盖）" />
                 </div>
 
+                {/* <div className={styles.prompt_title}>
+                  <div>
+                    <span>章节总体风格（文风）：</span>
+                    { chapterStyle === (selectedChapter?.chapter_style || selectedChapter?.overall_style || '') ? <Tag color="blue">存储值</Tag> : null }
+                    { chapterStyle !== (selectedChapter?.chapter_style || selectedChapter?.overall_style || '') ? <Tag color="red">已修改</Tag> : null }
+                  </div>
+                  <div>
+                    <Button type="link" size="small" icon={<RedoOutlined />} disabled={isLoading} onClick={() => handleResetPrompt('chapter_style')}>复原存储值</Button>
+                  </div>
+                </div> */}
+                
+
                 <div className={styles.prompt_title}>
                   <div>
                     <span>额外设置：(慎用，会触发全库检索，产生巨大耗时，建议先切换GPU)。</span>
@@ -898,7 +929,22 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
 
             <Col span={12}>
               <div>
-                <Divider orientation="left">文风对抗选项</Divider>
+                <Divider orientation="left">文风控制选项</Divider>
+                <Space wrap size={[6, 6]} style={{ marginBottom: 8 }}>
+                  {STYLE_QUICK_TAGS.map((tag) => (
+                    <Tag
+                      key={tag}
+                      style={{ cursor: isLoading ? 'not-allowed' : 'pointer', marginRight: 0 }}
+                      onClick={() => !isLoading && setChapterStyle(prev => prev.trim() ? `${prev.trim()}，${tag}` : tag)}
+                    >
+                      {tag}
+                    </Tag>
+                  ))}
+                </Space>
+                <div>
+                  <TextArea autoSize={{ minRows: 2 }} disabled={isLoading} value={chapterStyle} onChange={(e) => setChapterStyle(e.target.value)} placeholder="叙述视角、文风、节奏等整体风格要求（可选），可点击上方标签快速填入" />
+                </div>
+                
                 <Space wrap style={{ marginTop: 8 }}>
                   <Checkbox checked={antiLovecraftStyle} onChange={(e) => setAntiLovecraftStyle(e.target.checked)} disabled={isContinuing}>抗克苏鲁文风</Checkbox>
                   <Checkbox checked={antiSweetCeoStyle} onChange={(e) => setAntiSweetCeoStyle(e.target.checked)} disabled={isContinuing}>抗甜宠/霸总文风</Checkbox>
