@@ -12,6 +12,13 @@ import copyToClip from '@/src/utils/common/copy';
 import store from '@/src/store'
 import AttentionRefModal from './AttentionRefModal'
 
+/** 总体风格快速标签（与 GenChapterByDetailModal 对齐） */
+const STYLE_QUICK_TAGS = [
+  '第一人称', '第三人称', '快节奏', '细腻描写', '悬疑紧张', '轻松幽默',
+  '硬核科幻', '冷硬写实', '诗意抒情', '对话驱动', '环境氛围', '热血战斗',
+  '奇幻魔法', '银魂式搞笑', '周星驰式搞笑', '沙丘风',
+]
+
 interface ChapterContinueModalProps {
   selectedChapterId: number | undefined
   isVisible: boolean
@@ -157,6 +164,9 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
   // 注意事项
   const [attention, setAttention] = useState<string>('')
 
+  // 章节文风（与 GenChapterByDetailModal 对齐）
+  const [chapterStyle, setChapterStyle] = useState<string>('')
+
   // 额外设置
   const [extraSettings, setExtraSettings] = useState<string>('')
 
@@ -165,6 +175,22 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
 
   // 注意事项 AI 生成 loading
   const [isGeneratingAttention, setIsGeneratingAttention] = useState(false)
+
+  // 文风对抗选项（与 GenChapterByDetailModal 一致）
+  /** 抗克苏鲁文风：避免野兽比喻、腐败/腐化等常见模型偏向，默认勾选 */
+  const [antiLovecraftStyle, setAntiLovecraftStyle] = useState(true)
+  /** 抗甜宠/霸总文风：避免生理反应公式化、霸总标配描写，默认勾选 */
+  const [antiSweetCeoStyle, setAntiSweetCeoStyle] = useState(true)
+  /** 抗空泛协议/中二命名：禁止自创协议名、严格遵从设定中的协议，默认勾选 */
+  const [antiFakeProtocolStyle, setAntiFakeProtocolStyle] = useState(true)
+  /** 抗加密表述：遏制「加密信道」「加密线路」「加密频段」等高频套路表述，默认勾选 */
+  const [antiEncryptedChannelStyle, setAntiEncryptedChannelStyle] = useState(true)
+  /** 反废土文风：避免荒芜/废墟/辐射/末世等刻板废土描写，除非设定确为废土，默认勾选 */
+  const [antiWastelandStyle, setAntiWastelandStyle] = useState(true)
+  /** 反逐人枚举：多人场景优先概括集体行为，避免逐人枚举反应，默认勾选 */
+  const [antiEnumReactionsStyle, setAntiEnumReactionsStyle] = useState(true)
+  /** 抗套路样板词：避免恰到好处、不易察觉、微微一笑、深吸一口气等网文套路词，默认勾选 */
+  const [antiClichePhraseStyle, setAntiClichePhraseStyle] = useState(true)
 
   // 初始化
   useEffect(() => {
@@ -211,6 +237,9 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
 
       // 注意事项
       setAttention(selectedChapter?.attension || '')
+
+      // 章节文风
+      setChapterStyle(selectedChapter?.chapter_style || selectedChapter?.overall_style || '')
 
       // 额外设置
       setExtraSettings(selectedChapter?.extra_settings || '')
@@ -435,7 +464,16 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
       geo_names: geoNames || '',
       llm_type: llmType,
       attention: attention || '',
+      chapter_style: chapterStyle || '',
       extra_settings: extraSettings || '',
+      // 文风对抗选项
+      anti_lovecraft_style: antiLovecraftStyle,
+      anti_sweet_ceo_style: antiSweetCeoStyle,
+      anti_fake_protocol_style: antiFakeProtocolStyle,
+      anti_encrypted_channel_style: antiEncryptedChannelStyle,
+      anti_wasteland_style: antiWastelandStyle,
+      anti_enum_reactions_style: antiEnumReactionsStyle,
+      anti_cliche_phrase_style: antiClichePhraseStyle,
     };
     console.info('auto write reqObj -> ', reqObj);
 
@@ -474,6 +512,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
         actual_locations: geoNames,
         actual_seed_prompt: seedPrompt,
         attension: attention,
+        chapter_style: chapterStyle,
         extra_settings: extraSettings
       })  
       message.success('保存成功')
@@ -527,6 +566,10 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
 
       case 'extra_settings':
         setExtraSettings(selectedChapter?.extra_settings || '')
+        break;
+
+      case 'chapter_style':
+        setChapterStyle(selectedChapter?.chapter_style || selectedChapter?.overall_style || '')
         break;
     }
   }
@@ -679,7 +722,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
         role_names: roleNames,
         faction_names: factionNames,
         geo_names: geoNames,
-        chapter_style: '',
+        chapter_style: chapterStyle || '',
       })
       setAttention(text || '')
       if (text) message.success('注意事项已生成')
@@ -808,6 +851,18 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
                   <TextArea autoSize={{ minRows: 1 }} disabled={isLoading} value={attention} onChange={(e) => setAttention(e.target.value)} placeholder="扩写注意事项，可点击「AI 生成」由 AI 根据本章要点与设定生成（生成后直接覆盖）" />
                 </div>
 
+                {/* <div className={styles.prompt_title}>
+                  <div>
+                    <span>章节总体风格（文风）：</span>
+                    { chapterStyle === (selectedChapter?.chapter_style || selectedChapter?.overall_style || '') ? <Tag color="blue">存储值</Tag> : null }
+                    { chapterStyle !== (selectedChapter?.chapter_style || selectedChapter?.overall_style || '') ? <Tag color="red">已修改</Tag> : null }
+                  </div>
+                  <div>
+                    <Button type="link" size="small" icon={<RedoOutlined />} disabled={isLoading} onClick={() => handleResetPrompt('chapter_style')}>复原存储值</Button>
+                  </div>
+                </div> */}
+                
+
                 <div className={styles.prompt_title}>
                   <div>
                     <span>额外设置：(慎用，会触发全库检索，产生巨大耗时，建议先切换GPU)。</span>
@@ -874,6 +929,32 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
 
             <Col span={12}>
               <div>
+                <Divider orientation="left">文风控制选项</Divider>
+                <Space wrap size={[6, 6]} style={{ marginBottom: 8 }}>
+                  {STYLE_QUICK_TAGS.map((tag) => (
+                    <Tag
+                      key={tag}
+                      style={{ cursor: isLoading ? 'not-allowed' : 'pointer', marginRight: 0 }}
+                      onClick={() => !isLoading && setChapterStyle(prev => prev.trim() ? `${prev.trim()}，${tag}` : tag)}
+                    >
+                      {tag}
+                    </Tag>
+                  ))}
+                </Space>
+                <div>
+                  <TextArea autoSize={{ minRows: 2 }} disabled={isLoading} value={chapterStyle} onChange={(e) => setChapterStyle(e.target.value)} placeholder="叙述视角、文风、节奏等整体风格要求（可选），可点击上方标签快速填入" />
+                </div>
+                
+                <Space wrap style={{ marginTop: 8 }}>
+                  <Checkbox checked={antiLovecraftStyle} onChange={(e) => setAntiLovecraftStyle(e.target.checked)} disabled={isContinuing}>抗克苏鲁文风</Checkbox>
+                  <Checkbox checked={antiSweetCeoStyle} onChange={(e) => setAntiSweetCeoStyle(e.target.checked)} disabled={isContinuing}>抗甜宠/霸总文风</Checkbox>
+                  <Checkbox checked={antiFakeProtocolStyle} onChange={(e) => setAntiFakeProtocolStyle(e.target.checked)} disabled={isContinuing}>抗空泛协议/中二命名</Checkbox>
+                  <Checkbox checked={antiEncryptedChannelStyle} onChange={(e) => setAntiEncryptedChannelStyle(e.target.checked)} disabled={isContinuing}>抗加密表述</Checkbox>
+                  <Checkbox checked={antiWastelandStyle} onChange={(e) => setAntiWastelandStyle(e.target.checked)} disabled={isContinuing}>反废土文风</Checkbox>
+                  <Checkbox checked={antiEnumReactionsStyle} onChange={(e) => setAntiEnumReactionsStyle(e.target.checked)} disabled={isContinuing}>反逐人枚举</Checkbox>
+                  <Checkbox checked={antiClichePhraseStyle} onChange={(e) => setAntiClichePhraseStyle(e.target.checked)} disabled={isContinuing}>抗套路样板词</Checkbox>
+                </Space>
+                <Divider orientation="left">续写选项</Divider>
                 <Space>
                   { isContinuing ? (
                     <Button
@@ -908,6 +989,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
                   <Checkbox checked={isReferSelf} onChange={(e) => setIsReferSelf(e.target.checked)} disabled={isContinuing}>参考本章已有内容</Checkbox>
                   <Checkbox checked={isStripSelf} onChange={(e) => setIsStripSelf(e.target.checked)} disabled={isContinuing}>缩写本章</Checkbox>
                 </Space>
+                
                 <Divider orientation='left'>
                   {isContinuing ? '续写中...' : '点击上方按钮开始续写...'}
                 </Divider>

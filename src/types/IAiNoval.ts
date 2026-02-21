@@ -375,6 +375,8 @@ export interface IChapter {
     actual_factions?: string
     actual_locations?: string
     attension?: string
+    /** 章节文风：叙述视角、文风、节奏等整体风格要求 */
+    chapter_style?: string
     extra_settings?: string
     actual_seed_prompt?: string
     actual_skeleton_prompt?: string

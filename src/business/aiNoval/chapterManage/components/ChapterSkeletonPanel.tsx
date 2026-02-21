@@ -22,6 +22,13 @@ const { Text } = Typography
 const { TextArea } = Input
 const { Option } = Select
 
+/** 总体风格快速标签（与 GenChapterByDetailModal 对齐） */
+const STYLE_QUICK_TAGS = [
+  '第一人称', '第三人称', '快节奏', '细腻描写', '悬疑紧张', '轻松幽默',
+  '硬核科幻', '冷硬写实', '诗意抒情', '对话驱动', '环境氛围', '热血战斗',
+  '奇幻魔法', '银魂式搞笑', '周星驰式搞笑', '沙丘风',
+]
+
 interface ChapterSkeletonPanelProps {
   onEditEventPool: () => void
   onChapterChange: (chapterId: number | null) => void
@@ -163,7 +170,8 @@ function ChapterSkeletonPanel({
         related_chapter_ids: chapterContext.related_chapter_ids || [],
         skeleton_prompt: chapterContext.skeleton_prompt || '',
         extra_settings: chapterContext.extra_settings || '',
-        attension: chapterContext.attension || ''
+        attension: chapterContext.attension || '',
+        chapter_style: chapterContext.chapter_style || ''
       })
     }
   }, [chapterContext])
@@ -268,7 +276,7 @@ function ChapterSkeletonPanel({
         role_names: roleNames,
         faction_names: factionNames,
         geo_names: geoNames,
-        chapter_style: '',
+        chapter_style: values.chapter_style || '',
       })
       form.setFieldsValue({ attension: text || '' })
       if (text) message.success('注意事项已生成')
@@ -376,6 +384,7 @@ function ChapterSkeletonPanel({
         related_chapter_ids: values.related_chapter_ids,
         skeleton_prompt: values.skeleton_prompt,
         attension: values.attension,
+        chapter_style: values.chapter_style,
         extra_settings: values.extra_settings
       };
 
@@ -743,6 +752,32 @@ function ChapterSkeletonPanel({
           </div>
           <Form.Item label={null} name="attension">
             <TextArea autoSize={{ minRows: 1 }} placeholder="扩写注意事项，可点击「AI 生成」由 AI 根据本章要点与设定生成（生成后直接覆盖）" />
+          </Form.Item>
+
+          <div className={styles.formItemLabel} style={{ marginBottom: 8 }}>
+            <Text strong>章节总体风格（文风）：</Text>
+          </div>
+          <Space wrap size={[6, 6]} style={{ marginBottom: 8 }}>
+            {STYLE_QUICK_TAGS.map((tag) => (
+              <Tag
+                key={tag}
+                style={{ cursor: 'pointer', marginRight: 0 }}
+                onClick={() => {
+                  const values = form.getFieldsValue()
+                  const current = values.chapter_style || ''
+                  const next = current.trim() ? `${current.trim()}，${tag}` : tag
+                  form.setFieldsValue({ chapter_style: next })
+                }}
+              >
+                {tag}
+              </Tag>
+            ))}
+          </Space>
+          <Form.Item label={null} name="chapter_style">
+            <TextArea
+              autoSize={{ minRows: 2 }}
+              placeholder="叙述视角、文风、节奏等整体风格要求（可选），可点击上方标签快速填入"
+            />
           </Form.Item>
 
           <div>
