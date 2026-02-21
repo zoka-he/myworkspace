@@ -72,6 +72,12 @@ function ContentViewModal({ isVisible, onClose, content, chapterInfo, type }: Co
   )
 }
 
+const MANUAL_ATTENTION_DEFAULT = `- 使用细腻流畅的行文风格，但不要堆砌形容词
+- 使用奔放的情节的表达，可引入俚语和OOC，丰富情感
+- 输出尽可能长的内容，约4000字左右
+- 避免刻板描写、减少负面形容词
+- 要符合中文的用词习惯和表达习惯，不要在对话中插入省略号`
+
 function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: ChapterContinueModalProps) {
   const [continuedContent, setContinuedContent] = useState('')
   const [isContinuing, setIsContinuing] = useState(false)
@@ -163,6 +169,9 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
 
   // 注意事项
   const [attention, setAttention] = useState<string>('')
+
+  // 注意事项前的手写部分（不落库，与注意事项拼接后传入续写接口）
+  const [manualSection, setManualSection] = useState<string>(MANUAL_ATTENTION_DEFAULT)
 
   // 章节文风（与 GenChapterByDetailModal 对齐）
   const [chapterStyle, setChapterStyle] = useState<string>('')
@@ -464,6 +473,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
       geo_names: geoNames || '',
       llm_type: llmType,
       attention: attention || '',
+      manual_section: manualSection || '', // 手写部分，不落库，接口中拼在注意事项前
       chapter_style: chapterStyle || '',
       extra_settings: extraSettings || '',
       // 文风对抗选项
@@ -837,13 +847,26 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
 
                 <div className={styles.prompt_title}>
                   <div>
+                    <span>手写部分（不落库）：</span>
+                    <Tag color="default">仅拼接在注意事项前传入续写</Tag>
+                  </div>
+                  <div>
+                      <Button size="small" disabled={isLoading} onClick={handleShowAttentionRef}>参考值</Button>
+                  </div>
+                </div>
+                <div>
+                  <TextArea autoSize={{ minRows: 1 }} disabled={isLoading} value={manualSection} onChange={(e) => setManualSection(e.target.value)} placeholder="手动补充说明，与下方注意事项拼接后传入续写接口，不保存到数据库" />
+                </div>
+
+                <div className={styles.prompt_title}>
+                  <div>
                     <span>注意事项：</span>
                     { attention === selectedChapter?.attension ? <Tag color="blue">存储值</Tag> : null }
                     { (attention !== selectedChapter?.attension) ?  <Tag color="red">已修改</Tag> : null }
                   </div>
                   <div>
                     <Button type="link" size="small" loading={isGeneratingAttention} disabled={isLoading} onClick={handleGenAttention}>AI 生成</Button>
-                    <Button size="small" disabled={isLoading} onClick={handleShowAttentionRef}>参考值</Button>
+                    
                     <Button type="link" size="small" icon={<RedoOutlined />} disabled={isLoading} onClick={() => handleResetPrompt('attension')}>复原存储值</Button>
                   </div>
                 </div>

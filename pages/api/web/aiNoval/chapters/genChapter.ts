@@ -130,6 +130,62 @@ function buildUserInput(prevContent: string, currContext: string): string {
     return parts.join('\n\n');
 }
 
+/** 审稿员（critic）系统提示：检测滥用加密表述、提前解释/剧透等致命问题 */
+const CRITIC_SYSTEM_PROMPT = `你是一名小说章节审稿员，专门检测以下**致命问题**（任一项出现即判为不通过）：
+
+1. **滥用加密/晦涩表述**：使用故意含糊、加密式、读者无法从上下文理解的表述；堆砌术语却不解释；用「某种」「那个」「这件事」等指代不明且无后文交代。
+2. **提前解释或剧透**：在情节尚未展开前就提前解释结局、真相或关键转折；把本该在后文揭晓的信息在本段说破。
+3. **概括式剧透**：用概括性语句代替具体情节（例如「后来他们经历了种种终于……」），导致本该在本段呈现的情节被一笔带过或剧透。
+4. **滥用网络安全/VPN 等现实技术表述**：严禁在小说叙事中出现「加密通讯」「加密标识」「VPN」「端到端加密」「安全信道」等与剧情无关的网络安全/翻墙/通信技术用语。若故事并非明确以现代网络安全为主题，出现此类表述一律判为不通过；若确需涉及通信保密，应使用符合故事时代与世界观的说法（如「密信」「暗号」「专用信道」等），不得使用现实技术术语。
+
+请根据【章节背景】【本章待写内容】和【待审稿内容】进行判断。
+
+**输出格式（必须严格遵循）**：
+- 若**无**上述致命问题，仅输出一行：PASS
+- 若**有**问题，第一行输出：FAIL，第二行起写：原因：<具体指出问题所在及修改建议>`;
+
+/** 构建审稿员用户输入 */
+function buildCriticUserInput(
+    draftContent: string,
+    prevContent: string,
+    currContext: string
+): string {
+    const parts: string[] = [];
+    if (prevContent?.trim()) {
+        parts.push(`【章节背景】\n${prevContent}`);
+    }
+    if (currContext?.trim()) {
+        parts.push(`【本章待写内容】\n${currContext}`);
+    }
+    parts.push(`【待审稿内容】（请判断是否存在致命问题）\n${draftContent || ''}`);
+    return parts.join('\n\n');
+}
+
+/** 解析审稿员输出：PASS 或 FAIL + 原因 */
+function parseCriticResponse(response: string): { pass: boolean; reason?: string } {
+    const text = (response || '').trim();
+    const upper = text.toUpperCase();
+    if (upper.startsWith('PASS')) {
+        return { pass: true };
+    }
+    if (upper.startsWith('FAIL')) {
+        const reasonMatch = text.match(/\b原因[：:]\s*([\s\S]*)/);
+        const reason = reasonMatch ? reasonMatch[1].trim() : text.replace(/^FAIL\s*/i, '').trim();
+        return { pass: false, reason: reason || '审稿未通过，未给出具体原因' };
+    }
+    return { pass: false, reason: '审稿输出格式无法识别，视为不通过' };
+}
+
+/** 构建重写时的用户输入：在原有续写任务基础上附加审稿意见 */
+function buildRewriteUserInput(
+    prevContent: string,
+    currContext: string,
+    criticReason: string
+): string {
+    const base = buildUserInput(prevContent, currContext);
+    return `${base}\n\n【审稿意见】（上一稿存在以下致命问题，请修正后重新续写；仅输出修正后的续写内容，不要重写章节背景）\n${criticReason}`;
+}
+
 // 构建阵营设定内容（融入 faction 新字段：类型、文化、地理命名规范等）
 function buildFactionContent(faction: {
     name?: string | null;
@@ -432,15 +488,62 @@ async function handleGenChapter(req: NextApiRequest, res: NextApiResponse<Data>)
         const userInput = buildUserInput(prev_content, curr_context);
         console.debug('[genChapter] userInput length', userInput.length);
 
-        // 6. 调用 LLM
+        // 6. 调用 LLM（作者生成初稿）
         const effectiveLlmType = llm_type || 'deepseek';
+        const maxRewrites = 3;
         console.debug('[genChapter] callLLM', { llmType: effectiveLlmType });
-        const llmStart = Date.now();
-        const output = await callLLM(effectiveLlmType, systemPrompt, userInput, context);
-        console.debug('[genChapter] callLLM done', { outputLen: output?.length ?? 0, ms: Date.now() - llmStart });
+        let llmStart = Date.now();
+        let output = await callLLM(effectiveLlmType, systemPrompt, userInput, context);
+        const draftMs = Date.now() - llmStart;
+        console.debug('[genChapter] writer draft done', { outputLen: output?.length ?? 0, ms: draftMs });
+        console.debug('[genChapter] writer draft output (preview)', {
+            head: output?.slice(0, 300) ?? '',
+            tail: (output?.length ?? 0) > 300 ? output?.slice(-200) ?? '' : ''
+        });
+
+        // 7. Critic 审稿 + 最多 3 次重写
+        let rewriteCount = 0;
+        for (let i = 0; i < maxRewrites; i++) {
+            const criticInput = buildCriticUserInput(output, prev_content, curr_context);
+            llmStart = Date.now();
+            const criticResponse = await callLLM(
+                effectiveLlmType,
+                CRITIC_SYSTEM_PROMPT,
+                criticInput,
+                '' // critic 不需要世界观 context
+            );
+            const criticMs = Date.now() - llmStart;
+            console.debug('[genChapter] critic done', { ms: criticMs, rawResponse: criticResponse?.trim().slice(0, 500) });
+            const criticResult = parseCriticResponse(criticResponse);
+            if (criticResult.pass) {
+                console.debug('[genChapter] critic PASS', { rewriteCount });
+                break;
+            }
+            rewriteCount++;
+            console.debug('[genChapter] critic FAIL, rewriting', {
+                rewriteCount,
+                reason: criticResult.reason,
+                rawResponse: criticResponse?.trim()
+            });
+            const rewriteUserInput = buildRewriteUserInput(prev_content, curr_context, criticResult.reason!);
+            llmStart = Date.now();
+            output = await callLLM(effectiveLlmType, systemPrompt, rewriteUserInput, context);
+            const rewriteMs = Date.now() - llmStart;
+            console.debug('[genChapter] writer rewrite done', {
+                rewriteCount,
+                outputLen: output?.length ?? 0,
+                ms: rewriteMs,
+                outputPreview: output?.slice(0, 300) ?? ''
+            });
+        }
 
         const elapsedTime = Date.now() - startTime;
-        console.debug('[genChapter] success', { elapsedTime, outputLen: output?.length ?? 0 });
+        console.debug('[genChapter] success', {
+            elapsedTime,
+            outputLen: output?.length ?? 0,
+            rewriteCount,
+            outputHead: output?.slice(0, 400) ?? ''
+        });
 
         // 返回结构兼容 genChapterLegacy（Dify workflow 返回格式）
         res.status(200).json({
