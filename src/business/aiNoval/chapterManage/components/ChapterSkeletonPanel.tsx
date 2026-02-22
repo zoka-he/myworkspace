@@ -135,7 +135,7 @@ function ChapterSkeletonPanel({
   // 获取章节列表
   const reloadFullChapterList = async () => {
     if (chapterContext?.novel_id) {
-      const res = await getChapterList(chapterContext.novel_id, 1, 500)
+      const res = await getChapterList(chapterContext.novel_id, 1, 2000)
       setChapterList(res.data)
     } else {
       setChapterList([])
