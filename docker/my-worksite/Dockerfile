@@ -3,10 +3,13 @@ FROM my-worksite-builder:latest AS builder
 WORKDIR /app
 COPY . .
 
+# 必须设为 production，next.config.js 才会启用 output: 'standalone' 并生成 .next/standalone
+ENV NODE_ENV=production
 
 # 在deps基础上构建可执行代码
 RUN npm install -g dotenv-cli   # 安装dotenv-cli，不知道为什么builder就是不安装
-RUN dotenv -e .env.prod -- npx next build
+# 必须在此处显式设置 NODE_ENV=production，否则 dotenv 加载 .env.prod 后可能覆盖 ENV，导致 next 不生成 .next/standalone
+RUN dotenv -e .env.prod -- env NODE_ENV=production NEXT_STANDALONE=1 npx next build
 
 
 FROM my-worksite-base:latest AS runner
