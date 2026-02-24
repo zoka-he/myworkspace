@@ -486,8 +486,19 @@ async function handleGenChapter(req: NextApiRequest, res: NextApiResponse<Data>)
     const worldviewIdNum = _.toNumber(worldviewId);
 
     try {
-        // 4. 聚合上下文
-        const context = await getAggregatedContext(worldviewIdNum, role_names, faction_names, geo_names);
+        // 4. 聚合上下文（依赖 embedding；失败时 403 提示检查余额，其它错误用空上下文继续）
+        let context: string;
+        try {
+            context = await getAggregatedContext(worldviewIdNum, role_names, faction_names, geo_names);
+        } catch (ctxErr: any) {
+            const msg = String(ctxErr?.message || ctxErr || '');
+            const is403 = msg.includes('403') || (ctxErr?.status === 403);
+            if (is403) {
+                throw new Error('Embedding 接口返回 403，请检查硅基流动(SiliconFlow)账户余额或 API Key 配置');
+            }
+            console.warn('[genChapter] getAggregatedContext failed, using empty context', msg);
+            context = '';
+        }
         console.debug('[genChapter] context length', context.length);
 
         // 5. 构建提示词
@@ -595,5 +606,5 @@ export default function handler(
         return;
     }
 
-    processerFn(req, res);
+    return processerFn(req, res);
 }
