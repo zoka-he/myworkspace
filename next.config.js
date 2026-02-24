@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
-  // output: 'standalone' 只在生产构建时使用，开发模式会导致构建清单文件缺失
-  ...(process.env.NODE_ENV === 'production' ? { output: 'standalone' } : {}),
+  // 始终启用 standalone，供 Docker 等生产构建使用；next dev 不会生成此输出
+  output: 'standalone',
   
   // 将服务端专用模块标记为 external，避免 Turbopack 打包
   serverExternalPackages: ['amqplib', 'chromadb'],
