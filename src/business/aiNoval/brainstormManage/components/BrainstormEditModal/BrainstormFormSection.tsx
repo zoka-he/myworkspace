@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Form, Input, Button, theme, Space } from 'antd';
 import { SaveOutlined } from '@ant-design/icons';
-import { IBrainstorm } from '@/src/types/IAiNoval';
+import { IBrainstorm, IChapter } from '@/src/types/IAiNoval';
 import BrainstormFormFields from './BrainstormFormFields';
+import { getChapterListByWorldviewId } from '../../../chapterManage/apiCalls';
 
 const { useToken } = theme;
 
@@ -30,12 +31,23 @@ export default function BrainstormFormSection({
   saving = false,
 }: BrainstormFormSectionProps) {
   const { token } = useToken();
+  const [chapterList, setChapterList] = useState<IChapter[]>([]);
+
+  useEffect(() => {
+    if (!worldviewId) {
+      setChapterList([]);
+      return;
+    }
+    getChapterListByWorldviewId(worldviewId, 1, 1500)
+      .then((res) => setChapterList(res.data || []))
+      .catch(() => setChapterList([]));
+  }, [worldviewId]);
 
   return (
     <>
       {/* 1. 元数据（全部往上提） */}
       <div style={{ marginBottom: '24px', paddingBottom: '16px', borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
-        <BrainstormFormFields brainstorm={brainstorm} brainstormList={brainstormList} />
+        <BrainstormFormFields brainstorm={brainstorm} brainstormList={brainstormList} chapterList={chapterList} />
       </div>
 
       {/* 2. 内容 */}

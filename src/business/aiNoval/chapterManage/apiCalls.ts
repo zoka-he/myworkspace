@@ -193,6 +193,33 @@ export const getChapterList = async (novelId: number, page: number = 1, limit: n
 }
 
 /**
+ * 按世界观ID获取章节列表（基础信息，供脑洞关联章节等使用）
+ * @returns { data: IChapter[], count: number }
+ */
+export const getChapterListByWorldviewId = async (worldviewId: number, page: number = 1, limit: number = 500) => {
+    const params = {
+        worldview_id: worldviewId,
+        dataType: 'base',
+        page,
+        limit
+    };
+    const response = await fetch.get<IChapter[]>('/api/aiNoval/chapters/list', { params });
+
+    if (response.data) {
+        response.data.forEach(chapter => {
+            chapter.storyline_ids = splitIds(chapter.storyline_ids).map(Number);
+            chapter.event_ids = splitIds(chapter.event_ids).map(Number);
+            chapter.geo_ids = splitIds(chapter.geo_ids).map(String);
+            chapter.role_ids = splitIds(chapter.role_ids).map(String);
+            chapter.faction_ids = splitIds(chapter.faction_ids).map(Number);
+            chapter.related_chapter_ids = splitIds(chapter.related_chapter_ids).map(Number);
+        });
+    }
+
+    return response as unknown as { data: IChapter[]; count: number };
+}
+
+/**
  * 获取所有章节定义数据
  * @returns { data: IChapter[], count: number }
  */

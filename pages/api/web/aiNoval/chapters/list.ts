@@ -34,8 +34,14 @@ async function research(req: NextApiRequest, res: NextApiResponse) {
 
     
     if (mode === 'base') {
+        if (req.query.worldview_id != null && req.query.worldview_id !== '') {
+            const worldviewId = _.toNumber(req.query.worldview_id);
+            let ret = await service.getChapterListBaseInfoByWorldviewId(worldviewId, page, limit);
+            res.status(200).json(ret);
+            return;
+        }
         if (!req.query.novelId) {
-            res.status(500).json({ message: 'novelId is required in base mode, or set mode=anything' });
+            res.status(500).json({ message: 'novelId or worldview_id is required in base mode, or set mode=anything' });
             return;
         }
         let ret = await service.getChapterListBaseInfo(_.toNumber(req.query.novelId), page, limit);

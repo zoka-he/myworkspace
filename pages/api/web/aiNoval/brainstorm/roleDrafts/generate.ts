@@ -7,6 +7,7 @@ import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { executeReAct } from "@/src/utils/ai/reactAgent";
 import { mcpToolRegistry } from "@/src/mcp/core/mcpToolRegistry";
 import { parseBrainstorm, buildBrainstormContextSummary, extractFinalAnswerText } from "@/src/business/aiNoval/brainstormManage/roleIdeationApiUtil";
+import { buildRelatedChapterContext } from "../../utils/relatedChapterContext";
 
 const LOG_TAG = "[brainstormRoleDraftsGenerate]";
 const service = new BrainstormService();
@@ -81,6 +82,16 @@ export default async function handler(
       return;
     }
 
+    let relatedChaptersContext = "";
+    const relatedChapterIds = parsed.related_chapter_ids;
+    if (Array.isArray(relatedChapterIds) && relatedChapterIds.length > 0) {
+      try {
+        relatedChaptersContext = await buildRelatedChapterContext(relatedChapterIds, 300);
+      } catch (err) {
+        console.warn(LOG_TAG, "buildRelatedChapterContext failed:", err);
+      }
+    }
+
     let worldviewSummary = incomingWorldviewSummary;
     if (!worldviewSummary) {
       try {
@@ -117,9 +128,14 @@ export default async function handler(
       }
     }
 
-    const context = worldviewSummary
-      ? "【世界观设定摘要（通过 ReAct+MCP 获取）】\n\n" + worldviewSummary + "\n\n---\n【脑洞信息】\n\n" + brainstormContext
-      : brainstormContext;
+    const context = [
+      worldviewSummary
+        ? "【世界观设定摘要（通过 ReAct+MCP 获取）】\n\n" + worldviewSummary + "\n\n---\n"
+        : "",
+      "【脑洞信息】\n\n",
+      brainstormContext,
+      relatedChaptersContext ? "\n\n【关联章节缩写（供角色与已有剧情兼容）】\n\n" + relatedChaptersContext : "",
+    ].join("");
 
     const seedsFromBody = Array.isArray(body.seeds) ? body.seeds : [];
     const seedsFromBrainstorm = Array.isArray(parsed.role_seeds) ? parsed.role_seeds : [];
