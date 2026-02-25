@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Select, Space } from 'antd';
-import { useFilters } from '../BrainstormManageContext';
-import { BrainstormType, BrainstormStatus, Priority, BrainstormCategory } from '@/src/types/IAiNoval';
+import { useFilters, useWorldviewId } from '../BrainstormManageContext';
+import { BrainstormType, BrainstormStatus, Priority, BrainstormCategory, IChapter } from '@/src/types/IAiNoval';
+import { getChapterListByWorldviewId } from '../../chapterManage/apiCalls';
 
 const { Option } = Select;
 
@@ -38,9 +39,36 @@ const categoryOptions: { value: BrainstormCategory; label: string }[] = [
 
 export default function BrainstormFilterPanel() {
   const [filters, setFilters] = useFilters();
+  const [worldviewId] = useWorldviewId();
+  const [chapterList, setChapterList] = useState<IChapter[]>([]);
+
+  useEffect(() => {
+    if (!worldviewId) {
+      setChapterList([]);
+      return;
+    }
+    getChapterListByWorldviewId(worldviewId, 1, 500)
+      .then((res) => setChapterList(res.data || []))
+      .catch(() => setChapterList([]));
+  }, [worldviewId]);
+
+  const chapterOptions = useMemo(() => chapterList.map((ch) => ({
+    value: ch.id,
+    label: `第 ${ch.chapter_number ?? ch.id} 章 · ${ch.title || '未命名'}`,
+  })), [chapterList]);
 
   return (
     <Space wrap>
+      <Select
+        style={{ width: 180 }}
+        placeholder="按章节筛选"
+        allowClear
+        showSearch
+        optionFilterProp="label"
+        value={filters.related_chapter_id ?? undefined}
+        onChange={(value) => setFilters({ ...filters, related_chapter_id: value ?? undefined })}
+        options={chapterOptions}
+      />
       <Select
         style={{ width: 150 }}
         placeholder="条目类型"

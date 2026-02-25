@@ -6,6 +6,7 @@ import { createDeepSeekModel } from "@/src/utils/ai/modelFactory";
 import { executeReAct } from "@/src/utils/ai/reactAgent";
 import { mcpToolRegistry } from "@/src/mcp/core/mcpToolRegistry";
 import { parseBrainstorm, buildBrainstormContextSummary, extractFinalAnswerText, stripSeedBlockPreamble } from "@/src/business/aiNoval/brainstormManage/roleIdeationApiUtil";
+import { buildRelatedChapterContext } from "../../utils/relatedChapterContext";
 
 const LOG_TAG = "[brainstormRoleSeedsGenerate]";
 const service = new BrainstormService();
@@ -62,6 +63,16 @@ export default async function handler(
       return;
     }
 
+    let relatedChaptersContext = "";
+    const relatedChapterIds = parsed.related_chapter_ids;
+    if (Array.isArray(relatedChapterIds) && relatedChapterIds.length > 0) {
+      try {
+        relatedChaptersContext = await buildRelatedChapterContext(relatedChapterIds, 300);
+      } catch (err) {
+        console.warn(LOG_TAG, "buildRelatedChapterContext failed:", err);
+      }
+    }
+
     const model = createDeepSeekModel({ model: "deepseek-chat", temperature: 0.8 });
     const tools = mcpToolRegistry.getAllToolDefinitions();
     const toolExecutor = async (name: string, args: Record<string, any> | string) => {
@@ -81,9 +92,10 @@ export default async function handler(
       "",
       "【脑洞信息】",
       brainstormContext,
+      relatedChaptersContext ? ["", "【关联章节缩写（角色需与已有剧情兼容）】", relatedChaptersContext].join("\n") : "",
       "",
       `请先按需调用 MCP 工具查阅世界观，再在 Final Answer 中直接输出恰好 ${count} 个角色种子，段间用 "---" 分隔，不要任何前言。`,
-    ].join("\n");
+    ].filter(Boolean).join("\n");
 
     const llmOutput = await executeReAct(model, tools, toolExecutor, buildReActSystemPrompt(count), userQuery, {
       maxIterations: 15,

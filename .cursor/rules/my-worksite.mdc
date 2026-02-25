@@ -1,7 +1,18 @@
+## 基本要求
+nextjs/react作为基础
+使用 antdesign 作为基础组件库
+使用 tailwind 作为css样式
+尽可能避免出现巨石组件，大型组件，如大型的业务板块页面，优先使用Context解决多层子组件的传值
+前端API定义放在src/api下，以业务板块进行文件划分
 
-使用 antdesign 快速构建页面
+## orm框架
+orm框架目前是自定义的，针对mysql，基类位于src\utils\mysql\server
 
-项目目录：
+## 前端路由及业务分块
+参考src\router\index.tsx，其中render函数的注释准确性是很高的
+
+
+## 项目目录：
   ├── cypress                 # 基于cypress的e2e测试
   │   ├── e2e                 # 测试用例
   │   ├── tsconfig.json       # cypress的tsconfig

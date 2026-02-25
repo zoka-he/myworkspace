@@ -1,6 +1,6 @@
 import React from 'react';
 import { Form, Input, Select, Row, Col } from 'antd';
-import { IBrainstorm } from '@/src/types/IAiNoval';
+import { IBrainstorm, IChapter } from '@/src/types/IAiNoval';
 import { typeOptions, statusOptions, priorityOptions, categoryOptions } from '../constants';
 
 const { Option } = Select;
@@ -9,9 +9,10 @@ const { TextArea } = Input;
 interface BrainstormFormFieldsProps {
   brainstorm: IBrainstorm | null;
   brainstormList: IBrainstorm[];
+  chapterList?: IChapter[];
 }
 
-export default function BrainstormFormFields({ brainstorm, brainstormList }: BrainstormFormFieldsProps) {
+export default function BrainstormFormFields({ brainstorm, brainstormList, chapterList = [] }: BrainstormFormFieldsProps) {
   return (
     <>
       <Row gutter={16}>
@@ -83,6 +84,23 @@ export default function BrainstormFormFields({ brainstorm, brainstormList }: Bra
               </Option>
             ))}
         </Select>
+      </Form.Item>
+
+      <Form.Item name="related_chapter_ids" label="关联章节">
+        <Select
+          mode="multiple"
+          placeholder="选择关联章节（可选，供分析/纲要/角色生成时引用）"
+          allowClear
+          showSearch
+          optionFilterProp="label"
+          filterOption={(input, option) =>
+            String(option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+          }
+          options={chapterList.map((ch) => ({
+            value: ch.id,
+            label: `第 ${ch.chapter_number ?? ch.id} 章 · ${ch.title || '未命名'}`,
+          }))}
+        />
       </Form.Item>
 
       <Form.Item name="tags" label="标签">

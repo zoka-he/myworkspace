@@ -6,6 +6,7 @@ import { mcpToolRegistry } from "@/src/mcp/core/mcpToolRegistry";
 import { createDeepSeekModel } from "@/src/utils/ai/modelFactory";
 import { executeReAct } from "@/src/utils/ai/reactAgent";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+import { buildRelatedChapterContext } from "../utils/relatedChapterContext";
 
 const LOG_TAG = "[brainstormAnalyze]";
 const service = new BrainstormService();
@@ -98,7 +99,8 @@ function stripFinalAnswerPrefix(raw: string): string {
 /** 第二段：生成建议与机会（自然语言，高温度，偏创意；与第一段严肃分析分离） */
 async function generateSuggestionsAndOpportunitiesText(
     brainstorm: any,
-    _stage1Text: string
+    _stage1Text: string,
+    relatedChaptersContext?: string
 ): Promise<{ text: string; modelName: string }> {
     const modelConfig = {
         model: "deepseek-reasoner" as const,
@@ -132,6 +134,9 @@ async function generateSuggestionsAndOpportunitiesText(
                 "剧情规划：",
                 (brainstorm.plot_planning || "").trim().substring(0, 400) + ((brainstorm.plot_planning || "").length > 400 ? "..." : ""),
             ].join("\n")
+            : "",
+        relatedChaptersContext
+            ? ["", "【以下为关联章节缩写，供建议与机会时对照剧情】", relatedChaptersContext].join("\n")
             : "",
         "",
         "请直接输出 ## 建议 与 ## 机会 两个小节。",
@@ -254,6 +259,16 @@ export default async function handler(
             }
         }
 
+        let relatedChaptersContext = "";
+        const relatedChapterIds = parsedBrainstorm.related_chapter_ids;
+        if (Array.isArray(relatedChapterIds) && relatedChapterIds.length > 0) {
+            try {
+                relatedChaptersContext = await buildRelatedChapterContext(relatedChapterIds, 300);
+            } catch (err) {
+                console.warn(LOG_TAG, "buildRelatedChapterContext failed:", err);
+            }
+        }
+
         // 初始化模型
         const modelConfig = {
             model: "deepseek-chat" as const,
@@ -311,6 +326,9 @@ export default async function handler(
             parentBrainstorms.length > 0
                 ? `\n- 父脑洞数量：${parentBrainstorms.length}（已在系统提示中提供详细信息）`
                 : "",
+            relatedChaptersContext
+                ? `\n\n【以下为关联章节缩写，供分析时对照剧情与设定】\n${relatedChaptersContext}`
+                : "",
         ].filter(Boolean).join("\n");
 
         console.log(LOG_TAG, "开始 ReAct 第一段分析，工具数:", tools.length, "父脑洞数:", parentBrainstorms.length);
@@ -347,7 +365,7 @@ export default async function handler(
         let stage2Text = "";
         let stage2ModelName = "";
         try {
-            const stage2Result = await generateSuggestionsAndOpportunitiesText(parsedBrainstorm, stage1Text);
+            const stage2Result = await generateSuggestionsAndOpportunitiesText(parsedBrainstorm, stage1Text, relatedChaptersContext);
             stage2Text = stage2Result.text;
             stage2ModelName = stage2Result.modelName;
         } catch (e: any) {

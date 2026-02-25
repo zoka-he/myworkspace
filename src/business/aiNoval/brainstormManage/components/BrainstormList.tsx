@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { List, Tag, Space, Button, Popconfirm, Card, theme } from 'antd';
 import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
-import { IBrainstorm, BrainstormType, BrainstormStatus, Priority } from '@/src/types/IAiNoval';
-import { useBrainstormList, useCurrentBrainstorm } from '../BrainstormManageContext';
+import { useNavigate } from 'react-router-dom';
+import { IBrainstorm, BrainstormType, BrainstormStatus, Priority, IChapter } from '@/src/types/IAiNoval';
+import { useBrainstormList, useCurrentBrainstorm, useWorldviewId } from '../BrainstormManageContext';
+import { getChapterListByWorldviewId } from '../../chapterManage/apiCalls';
 
 const { useToken } = theme;
 
@@ -52,10 +54,40 @@ interface BrainstormListProps {
   onSelect: (id: number | null) => void;
 }
 
+function normalizeRelatedChapterIds(ids: any): number[] {
+  if (!ids) return [];
+  if (Array.isArray(ids)) return ids.filter((x): x is number => typeof x === 'number' && x > 0);
+  if (typeof ids === 'string') {
+    return ids.split(',').map((s) => Number(s.trim())).filter((n) => !isNaN(n) && n > 0);
+  }
+  return [];
+}
+
 export default function BrainstormList({ onEdit, onDelete, onSelect }: BrainstormListProps) {
   const [brainstormList] = useBrainstormList();
+  const [worldviewId] = useWorldviewId();
   const { currentBrainstormId } = useCurrentBrainstorm();
   const { token } = useToken();
+  const navigate = useNavigate();
+  const [chapterList, setChapterList] = useState<IChapter[]>([]);
+
+  useEffect(() => {
+    if (!worldviewId) {
+      setChapterList([]);
+      return;
+    }
+    getChapterListByWorldviewId(worldviewId, 1, 500)
+      .then((res) => setChapterList(res.data || []))
+      .catch(() => setChapterList([]));
+  }, [worldviewId]);
+
+  const chapterMap = useMemo(() => {
+    const m = new Map<number, IChapter>();
+    chapterList.forEach((ch) => {
+      if (ch.id != null) m.set(ch.id, ch);
+    });
+    return m;
+  }, [chapterList]);
 
   const sortedList = React.useMemo(() => {
     return [...brainstormList].sort((a, b) => {
@@ -142,10 +174,35 @@ export default function BrainstormList({ onEdit, onDelete, onSelect }: Brainstor
                 {item.tags && item.tags.length > 0 && (
                   <Space size="small" style={{ marginBottom: 8 }}>
                     {item.tags.map(tag => (
-                      <Tag key={tag} size="small">{tag}</Tag>
+                      <Tag key={tag}>{tag}</Tag>
                     ))}
                   </Space>
                 )}
+                {(() => {
+                  const ids = normalizeRelatedChapterIds(item.related_chapter_ids);
+                  if (ids.length === 0) return null;
+                  return (
+                    <Space size="small" style={{ marginBottom: 8 }} wrap>
+                      {ids.map((chId) => {
+                        const ch = chapterMap.get(chId);
+                        const label = ch ? `第 ${ch.chapter_number ?? ch.id} 章 · ${ch.title || '未命名'}` : `章节 #${chId}`;
+                        return (
+                          <Tag
+                            key={chId}
+                            color="cyan"
+                            style={{ cursor: 'pointer' }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate('/novel/chapterManage', { state: { chapterId: chId } });
+                            }}
+                          >
+                            {label}
+                          </Tag>
+                        );
+                      })}
+                    </Space>
+                  );
+                })()}
                 
                 {/* 分析结果摘要 */}
                 {item.analysis_status === 'completed' && item.analysis_result && (() => {

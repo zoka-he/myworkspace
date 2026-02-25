@@ -34,7 +34,9 @@ export default class ChaptersService extends MysqlNovalService {
             'extra_settings',
             'actual_seed_prompt',
             'actual_skeleton_prompt',
-            'chapter_style'
+            'chapter_style',
+            'summary',
+            'effects'
         ]);
     }
 
@@ -50,6 +52,19 @@ export default class ChaptersService extends MysqlNovalService {
         const result = await this.query(
             `SELECT ${columns.join(',')} FROM chapters WHERE novel_id = ?`, [novelId],
             ['chapter_number asc', 'version asc'],
+            page,
+            limit
+        );
+        return result;
+    }
+
+    // 按世界观ID获取章节列表基础信息（供脑洞关联章节等使用）
+    async getChapterListBaseInfoByWorldviewId(worldviewId, page = 1, limit = 1500) {
+        const columns = ['id', 'chapter_number', 'version', 'title', 'event_ids', 'created_at', 'updated_at'];
+
+        const result = await this.query(
+            `SELECT ${columns.join(',')} FROM chapters WHERE worldview_id = ?`, [worldviewId],
+            ['chapter_number desc', 'version desc'],
             page,
             limit
         );

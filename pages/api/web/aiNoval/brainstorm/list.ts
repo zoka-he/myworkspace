@@ -54,6 +54,10 @@ async function getList(req: NextApiRequest, res: NextApiResponse<Data>) {
             }
         }
 
+        if (req.query.related_chapter_id != null && req.query.related_chapter_id !== '') {
+            params.related_chapter_id = Number(req.query.related_chapter_id);
+        }
+
         const result = await service.getBrainstormList(params, page, limit);
 
         // 解析 JSON 字段

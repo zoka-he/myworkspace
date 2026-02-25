@@ -140,6 +140,8 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
 
   // 缩写状态列表
   const [stripReportList, setStripReportList] = useState<ChapterStripReport[]>([])
+  // 章节 content 为空时的 id 列表，用于前端标红
+  const [emptyContentChapterIds, setEmptyContentChapterIds] = useState<number[]>([])
 
   // 是否展示章节内容 - 原文
   const [isOriginalModalVisible, setIsOriginalModalVisible] = useState(false)
@@ -307,33 +309,96 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
       setContinuedContent('')
       setKeepGoing(true)
 
-      // 第二步：加载所有关联章节内容
+      // 第二步：加载所有关联章节内容（有 summary 直接采用，content 为空则不请求 LLM、标红）
+      const emptyIds: number[] = [];
       const preparedChapterList: ChapterStripReport[] = [];
       for (const chapterId of relatedChapterIds) {
         const res = await apiCalls.getChapterById(chapterId);
-        preparedChapterList.push({
-          state: 'pending',
-          chapterNumber: res.chapter_number || 0,
-          chapterTitle: res.title || '',
-          version: res.version || 0,
-          id: res.id,
-          originalContent: res.content || '',
-          strippedContent: ''
-        });
+        const originalContent = res.content || '';
+        const summary = (res.summary ?? '').toString().trim();
+        if (!originalContent.trim()) {
+          preparedChapterList.push({
+            state: 'completed',
+            chapterNumber: res.chapter_number || 0,
+            chapterTitle: res.title || '',
+            version: res.version || 0,
+            id: res.id,
+            originalContent,
+            strippedContent: ''
+          });
+          if (res.id != null) emptyIds.push(res.id);
+        } else if (summary) {
+          preparedChapterList.push({
+            state: 'completed',
+            chapterNumber: res.chapter_number || 0,
+            chapterTitle: res.title || '',
+            version: res.version || 0,
+            id: res.id,
+            originalContent,
+            strippedContent: summary
+          });
+        } else {
+          preparedChapterList.push({
+            state: 'pending',
+            chapterNumber: res.chapter_number || 0,
+            chapterTitle: res.title || '',
+            version: res.version || 0,
+            id: res.id,
+            originalContent,
+            strippedContent: ''
+          });
+        }
       }
 
       // 如果参考本章，则将本章内容加入到preparedChapterList中，注意是否需要缩写本章
       if (isReferSelf) {
-        preparedChapterList.push({
-          state: isStripSelf ? 'pending' : 'completed',
-          chapterNumber: selectedChapter.chapter_number || 0,
-          chapterTitle: selectedChapter.title || '',
-          version: selectedChapter.version || 0,
-          id: selectedChapter.id,
-          originalContent: selectedChapter.content || '',
-          strippedContent: isStripSelf ? '' : selectedChapter.content || ''
-        })
+        const selfContent = selectedChapter.content || '';
+        const selfSummary = (selectedChapter.summary ?? '').toString().trim();
+        if (!isStripSelf) {
+          preparedChapterList.push({
+            state: 'completed',
+            chapterNumber: selectedChapter.chapter_number || 0,
+            chapterTitle: selectedChapter.title || '',
+            version: selectedChapter.version || 0,
+            id: selectedChapter.id,
+            originalContent: selfContent,
+            strippedContent: selfContent
+          });
+        } else if (!selfContent.trim()) {
+          preparedChapterList.push({
+            state: 'completed',
+            chapterNumber: selectedChapter.chapter_number || 0,
+            chapterTitle: selectedChapter.title || '',
+            version: selectedChapter.version || 0,
+            id: selectedChapter.id,
+            originalContent: selfContent,
+            strippedContent: ''
+          });
+          if (selectedChapter.id != null) emptyIds.push(selectedChapter.id);
+        } else if (selfSummary) {
+          preparedChapterList.push({
+            state: 'completed',
+            chapterNumber: selectedChapter.chapter_number || 0,
+            chapterTitle: selectedChapter.title || '',
+            version: selectedChapter.version || 0,
+            id: selectedChapter.id,
+            originalContent: selfContent,
+            strippedContent: selfSummary
+          });
+        } else {
+          preparedChapterList.push({
+            state: 'pending',
+            chapterNumber: selectedChapter.chapter_number || 0,
+            chapterTitle: selectedChapter.title || '',
+            version: selectedChapter.version || 0,
+            id: selectedChapter.id,
+            originalContent: selfContent,
+            strippedContent: ''
+          });
+        }
       }
+
+      setEmptyContentChapterIds(emptyIds)
 
       // 激活显示
       setStripReportList(preparedChapterList)
@@ -1019,7 +1084,12 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
 
                 <Card size="small" title="章节缩写">
                   { stripReportList.length > 0 ? stripReportList.map((item, index) => (
-                    <ChapterStripState key={index} {...item} onViewOriginal={handleViewOriginal} onViewStripped={handleViewStripped} />
+                    <div
+                      key={index}
+                      style={item.id != null && emptyContentChapterIds.includes(item.id) ? { borderLeft: '3px solid #ff4d4f', paddingLeft: 8 } : undefined}
+                    >
+                      <ChapterStripState {...item} onViewOriginal={handleViewOriginal} onViewStripped={handleViewStripped} />
+                    </div>
                   )) : <div>暂无待缩写内容</div>}
                 </Card>
 

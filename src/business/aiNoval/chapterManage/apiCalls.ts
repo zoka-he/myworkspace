@@ -193,6 +193,33 @@ export const getChapterList = async (novelId: number, page: number = 1, limit: n
 }
 
 /**
+ * 按世界观ID获取章节列表（基础信息，供脑洞关联章节等使用）
+ * @returns { data: IChapter[], count: number }
+ */
+export const getChapterListByWorldviewId = async (worldviewId: number, page: number = 1, limit: number = 500) => {
+    const params = {
+        worldview_id: worldviewId,
+        dataType: 'base',
+        page,
+        limit
+    };
+    const response = await fetch.get<IChapter[]>('/api/aiNoval/chapters/list', { params });
+
+    if (response.data) {
+        response.data.forEach(chapter => {
+            chapter.storyline_ids = splitIds(chapter.storyline_ids).map(Number);
+            chapter.event_ids = splitIds(chapter.event_ids).map(Number);
+            chapter.geo_ids = splitIds(chapter.geo_ids).map(String);
+            chapter.role_ids = splitIds(chapter.role_ids).map(String);
+            chapter.faction_ids = splitIds(chapter.faction_ids).map(Number);
+            chapter.related_chapter_ids = splitIds(chapter.related_chapter_ids).map(Number);
+        });
+    }
+
+    return response as unknown as { data: IChapter[]; count: number };
+}
+
+/**
  * 获取所有章节定义数据
  * @returns { data: IChapter[], count: number }
  */
@@ -327,6 +354,32 @@ export const stripChapterBlocking = async (chapterId: number, stripLength: numbe
     console.debug('response -> ', response);
 
     return response.data?.outputs?.output || '';
+}
+
+/** 缩写章节并保存到 summary（后端完成写库后返回摘要） */
+export const summarizeChapterAndSave = async (
+    chapterId: number,
+    targetLength: number = 300,
+    difyHost: string = ''
+): Promise<string> => {
+    const response = await fetch.post(
+        '/api/aiNoval/chapters/summarize',
+        {},
+        {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            params: {
+                chapterId,
+                targetLength,
+                mode: 'blocking',
+                difyHost,
+            },
+            timeout: 1000 * 60 * 10,
+        }
+    )
+    const body = (response as any)?.data ?? response
+    return body?.summary ?? body?.data?.summary ?? body?.outputs?.output ?? ''
 }
 
 export const stripText = async (text: string, targetLength: number = 300): Promise<string> => {
@@ -464,8 +517,28 @@ export const pickFromText = async (target: string, src_text: string): Promise<an
     );
 
     let text = response.data?.outputs?.output || '';
-    text = text.replace(/<think>.*?<\/think>/gs, '');
+    try {
+        text = text.replace(/<think>.*?<\/think>/g, '');
+    } catch {
+        // ignore replace error on older runtimes
+    }
     return text || '';
+}
+
+/** 分析章节对世界观的偏离程度与影响，后端写入 effects 并返回分析文本 */
+export const analyzeChapterWorldviewDeviation = async (chapterId: number): Promise<string> => {
+    const response = await fetch.post(
+        '/api/aiNoval/chapters/analyzeWorldviewDeviation',
+        { chapterId },
+        {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            timeout: 1000 * 60 * 10,
+        }
+    )
+    const body = (response as any)?.data ?? response
+    return body?.effects ?? body?.data?.effects ?? ''
 }
 
 /** 单段续写（按提纲逐段调用，返回本段正文） */
@@ -595,7 +668,7 @@ export const genChapterBlocking = async (worldviewId: number, inputs: any, difyH
         inputs,
         {
             params: {worldviewId, difyHost},
-            timeout: 1000 * 60 * 10
+            timeout: 1000 * 60 * 15
         }
     );
     return {

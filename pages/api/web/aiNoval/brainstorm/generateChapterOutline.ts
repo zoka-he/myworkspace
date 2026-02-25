@@ -3,6 +3,7 @@ import { ApiResponse } from "@/src/types/ApiResponse";
 import BrainstormService from "@/src/services/aiNoval/brainstormService";
 import { createDeepSeekModel } from "@/src/utils/ai/modelFactory";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+import { buildRelatedChapterContext } from "../utils/relatedChapterContext";
 
 const LOG_TAG = "[brainstormGenerateChapterOutline]";
 const service = new BrainstormService();
@@ -75,6 +76,16 @@ export default async function handler(
 
         const parsedBrainstorm = parseBrainstorm(brainstorm);
 
+        let relatedChaptersContext = "";
+        const relatedChapterIds = parsedBrainstorm.related_chapter_ids;
+        if (Array.isArray(relatedChapterIds) && relatedChapterIds.length > 0) {
+            try {
+                relatedChaptersContext = await buildRelatedChapterContext(relatedChapterIds, 300);
+            } catch (err) {
+                console.warn(LOG_TAG, "buildRelatedChapterContext failed:", err);
+            }
+        }
+
         // 初始化模型
         const model = createDeepSeekModel({
             model: "deepseek-chat",
@@ -130,6 +141,9 @@ export default async function handler(
                     (parsedBrainstorm.analysis_result.analysis_text.trim().length > 2000 ? "..." : ""),
                     "",
                 ].join("\n")
+                : "",
+            relatedChaptersContext
+                ? ["\n【关联章节缩写（写作时可参考的已有剧情）】", relatedChaptersContext, ""].join("\n")
                 : "",
             "请生成章节纲要（自然语言，可使用 Markdown 格式）。",
         ].filter(Boolean).join("\n");

@@ -380,6 +380,8 @@ export interface IChapter {
     extra_settings?: string
     actual_seed_prompt?: string
     actual_skeleton_prompt?: string
+    summary?: string
+    effects?: string
 }
 
 export const GEO_UNIT_TYPES = [

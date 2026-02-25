@@ -6,6 +6,7 @@ import { ExtendedNovelData } from './types'
 import EventPoolPanel from './components/EventPoolPanel'
 import ChapterSkeletonPanel from './components/ChapterSkeletonPanel'
 import ChapterGeneratePanel from './components/ChapterGeneratePanel'
+import ChapterSummaryValidatePanel from './components/ChapterSummaryValidatePanel'
 import styles from './index.module.scss'
 import * as chapterApi from './apiCalls'
 import ChapterContextProvider, { useChapterContext } from './chapterContext'
@@ -13,7 +14,7 @@ import WorldViewContextProvider from './WorldViewContext'
 
 const { Text } = Typography
 
-type ModuleType = 'event-pool' | 'chapter-skeleton' | 'chapter-generate'
+type ModuleType = 'event-pool' | 'chapter-skeleton' | 'chapter-generate' | 'summary-validate'
 
 function ChapterManage() {
   const [novels, setNovels] = useState<ExtendedNovelData[]>([])
@@ -378,7 +379,7 @@ function ChapterCard(props: ChapterCardProps) {
   const [activeModule, setActiveModule] = useState<ModuleType>('event-pool')
 
   /**
-   * 渲染右方面板内容：事件池管理、章节骨架、章节生成
+   * 渲染右方面板内容：事件池管理、章节骨架、章节生成、总结与校验
    * @returns 
    */
   const renderModuleContent = () => {
@@ -393,7 +394,11 @@ function ChapterCard(props: ChapterCardProps) {
         )
       case 'chapter-generate': // 章节生成对话框
         return (
-          <ChapterGeneratePanel onChapterChange={(chapterId: number | null) => props?.onChapterChange(chapterId)}/>
+          <ChapterGeneratePanel onChapterChange={(chapterId?: number | null) => props?.onChapterChange(chapterId ?? null)}/>
+        )
+      case 'summary-validate': // 总结与校验面板
+        return (
+          <ChapterSummaryValidatePanel />
         )
       default:
         return null
@@ -425,6 +430,7 @@ function ChapterCard(props: ChapterCardProps) {
             <Radio.Button value="event-pool">事件池管理</Radio.Button>
             <Radio.Button value="chapter-skeleton">章节骨架</Radio.Button>
             <Radio.Button value="chapter-generate">章节生成</Radio.Button>
+            <Radio.Button value="summary-validate">总结与校验</Radio.Button>
           </Radio.Group>
         </Space>
       }

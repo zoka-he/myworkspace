@@ -111,6 +111,15 @@ export default class BrainstormService extends MysqlNovalService {
             }
         }
 
+        // 按关联章节筛选（related_chapter_ids 为 JSON 数组时用 JSON_CONTAINS；为逗号分隔字符串时用 FIND_IN_SET）
+        if (params.related_chapter_id != null && params.related_chapter_id !== '') {
+            const chapterId = Number(params.related_chapter_id);
+            if (!isNaN(chapterId)) {
+                conditions.push('(JSON_CONTAINS(related_chapter_ids, ?, \'$\') OR FIND_IN_SET(?, related_chapter_ids) > 0)');
+                values.push(JSON.stringify(chapterId), String(chapterId));
+            }
+        }
+
         const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
         const sql = `SELECT * FROM brainstorm ${whereClause}`;
 

@@ -26,6 +26,7 @@ interface BrainstormManageContextType {
     priority?: string;
     category?: string;
     search?: string;
+    related_chapter_id?: number | null;  // 按关联章节筛选
   };
   setFilters: (filters: any) => void;
 }

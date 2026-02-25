@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, Tag, Button, Collapse, Space, theme, Radio } from 'antd';
 import { RobotOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import { useCurrentBrainstorm, useBrainstormList } from '../BrainstormManageContext';
-import { IBrainstorm, BrainstormType, BrainstormStatus, Priority } from '@/src/types/IAiNoval';
+import { IBrainstorm, BrainstormType, BrainstormStatus, Priority, IChapter } from '@/src/types/IAiNoval';
 import AnalysisResultDisplay from './AnalysisResultDisplay';
+import { getChapterListByWorldviewId } from '../../chapterManage/apiCalls';
 
 const statusMap: Record<BrainstormStatus, { text: string; color: string }> = {
   draft: { text: '草稿', color: 'default' },
@@ -32,10 +34,23 @@ interface BrainstormDetailPanelProps {
 interface AnalysisPanelProps {
   brainstorm: IBrainstorm;
   brainstormList: IBrainstorm[];
+  chapterMap: Map<number, IChapter>;
   token: ReturnType<typeof theme.useToken>['token'];
 }
 
-function AnalysisPanel({ brainstorm, brainstormList, token }: AnalysisPanelProps) {
+function normalizeRelatedChapterIds(ids: any): number[] {
+  if (!ids) return [];
+  if (Array.isArray(ids)) return ids.filter((x): x is number => typeof x === 'number' && x > 0);
+  if (typeof ids === 'string') {
+    return ids.split(',').map((s) => Number(s.trim())).filter((n) => !isNaN(n) && n > 0);
+  }
+  return [];
+}
+
+function AnalysisPanel({ brainstorm, brainstormList, chapterMap, token }: AnalysisPanelProps) {
+  const navigate = useNavigate();
+  const relatedChapterIds = normalizeRelatedChapterIds(brainstorm.related_chapter_ids);
+
   return (
     <>
       {/* 基础信息 */}
@@ -59,6 +74,27 @@ function AnalysisPanel({ brainstorm, brainstormList, token }: AnalysisPanelProps
               {brainstorm.tags.map(tag => (
                 <Tag key={tag}>{tag}</Tag>
               ))}
+            </Space>
+          </div>
+        )}
+        {relatedChapterIds.length > 0 && (
+          <div style={{ marginTop: '8px' }}>
+            <span style={{ fontSize: '12px', color: token.colorTextSecondary }}>关联章节：</span>
+            <Space wrap size="small" style={{ marginLeft: '8px' }}>
+              {relatedChapterIds.map((chId) => {
+                const ch = chapterMap.get(chId);
+                const label = ch ? `第 ${ch.chapter_number ?? ch.id} 章 · ${ch.title || '未命名'}` : `章节 #${chId}`;
+                return (
+                  <Tag
+                    key={chId}
+                    color="cyan"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => navigate('/novel/chapterManage', { state: { chapterId: chId } })}
+                  >
+                    {label}
+                  </Tag>
+                );
+              })}
             </Space>
           </div>
         )}
@@ -227,9 +263,29 @@ export default function BrainstormDetailPanel({ onAnalyze }: BrainstormDetailPan
   const [brainstormList] = useBrainstormList();
   const { token } = useToken();
   const [radioValue, setRadioValue] = useState<string>('1');
+  const [chapterList, setChapterList] = useState<IChapter[]>([]);
   const prevBrainstormIdRef = useRef<number | undefined>(undefined);
   const prevHasChapterOutlineRef = useRef<boolean>(false);
   const isManualSwitchRef = useRef<boolean>(false);
+
+  const worldviewId = currentBrainstorm?.worldview_id ?? null;
+  useEffect(() => {
+    if (!worldviewId) {
+      setChapterList([]);
+      return;
+    }
+    getChapterListByWorldviewId(worldviewId, 1, 500)
+      .then((res) => setChapterList(res.data || []))
+      .catch(() => setChapterList([]));
+  }, [worldviewId]);
+
+  const chapterMap = useMemo(() => {
+    const m = new Map<number, IChapter>();
+    chapterList.forEach((ch) => {
+      if (ch.id != null) m.set(ch.id, ch);
+    });
+    return m;
+  }, [chapterList]);
 
   // 自动切换逻辑：
   // 1. 当currentBrainstorm变化时，根据是否有章节纲要自动切换版面
@@ -338,7 +394,7 @@ export default function BrainstormDetailPanel({ onAnalyze }: BrainstormDetailPan
       style={{ marginTop: '12px' }}
     >
       {radioValue === '1' ? (
-        <AnalysisPanel brainstorm={currentBrainstorm} brainstormList={brainstormList} token={token} />
+        <AnalysisPanel brainstorm={currentBrainstorm} brainstormList={brainstormList} chapterMap={chapterMap} token={token} />
       ) : (
         <PlotPlanningPanel brainstorm={currentBrainstorm} token={token} showChapterOutline={showChapterOutline} />
       )}

@@ -41,7 +41,7 @@ const stripPrompt = PromptTemplate.fromTemplate(`
 
 const stripChain = RunnableSequence.from([stripPrompt, model]);
 
-async function stripParagraph(paragraph: string, targetLength: number): Promise<string> {
+export async function stripParagraphInternal(paragraph: string, targetLength: number): Promise<string> {
     try {
         const response = await stripChain.invoke({
             paragraph: paragraph || "",
@@ -90,7 +90,7 @@ export default async function handler(
             return;
         }
 
-        const strippedText = await stripParagraph(text.trim(), targetLength);
+        const strippedText = await stripParagraphInternal(text.trim(), targetLength);
 
         res.status(200).json({
             success: true,
