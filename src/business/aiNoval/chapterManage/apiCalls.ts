@@ -329,6 +329,32 @@ export const stripChapterBlocking = async (chapterId: number, stripLength: numbe
     return response.data?.outputs?.output || '';
 }
 
+/** 缩写章节并保存到 summary（后端完成写库后返回摘要） */
+export const summarizeChapterAndSave = async (
+    chapterId: number,
+    targetLength: number = 300,
+    difyHost: string = ''
+): Promise<string> => {
+    const response = await fetch.post(
+        '/api/aiNoval/chapters/summarize',
+        {},
+        {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            params: {
+                chapterId,
+                targetLength,
+                mode: 'blocking',
+                difyHost,
+            },
+            timeout: 1000 * 60 * 10,
+        }
+    )
+    const body = (response as any)?.data ?? response
+    return body?.summary ?? body?.data?.summary ?? body?.outputs?.output ?? ''
+}
+
 export const stripText = async (text: string, targetLength: number = 300): Promise<string> => {
     const response = await fetch.post(`/api/aiNoval/llm/once/stripParagraph`, 
         {
@@ -464,8 +490,28 @@ export const pickFromText = async (target: string, src_text: string): Promise<an
     );
 
     let text = response.data?.outputs?.output || '';
-    text = text.replace(/<think>.*?<\/think>/gs, '');
+    try {
+        text = text.replace(/<think>.*?<\/think>/g, '');
+    } catch {
+        // ignore replace error on older runtimes
+    }
     return text || '';
+}
+
+/** 分析章节对世界观的偏离程度与影响，后端写入 effects 并返回分析文本 */
+export const analyzeChapterWorldviewDeviation = async (chapterId: number): Promise<string> => {
+    const response = await fetch.post(
+        '/api/aiNoval/chapters/analyzeWorldviewDeviation',
+        { chapterId },
+        {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            timeout: 1000 * 60 * 10,
+        }
+    )
+    const body = (response as any)?.data ?? response
+    return body?.effects ?? body?.data?.effects ?? ''
 }
 
 /** 单段续写（按提纲逐段调用，返回本段正文） */
