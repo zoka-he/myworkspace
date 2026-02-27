@@ -1,5 +1,11 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { getAggregatedContext, buildPromptTemplate } from "./genChapter";
+import {
+  getAggregatedContext,
+  buildPromptTemplate,
+  parseCriticResponse,
+  buildCriticUserInput,
+  callLLM,
+} from "./genChapter";
 import { ChatDeepSeek } from "@langchain/deepseek";
 import { ChatOpenAI } from "@langchain/openai";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
@@ -8,6 +14,28 @@ import { BaseMessage, HumanMessage, AIMessage, SystemMessage } from "@langchain/
 
 const LOG_TAG = "[genChapterSegmentMultiTurn]";
 const SNIPPET_MAX_CHARS = 800;
+
+/** 多轮续写专用审稿员提示：适配 chat 模型文学性，通用语/加密表述放宽，合成音指代严谨，并增加双重否定句式修正 */
+const CRITIC_SYSTEM_PROMPT_SEGMENT = `你是一名小说章节审稿员（多轮续写场景），专门检测以下**致命问题**（任一项出现即判为不通过）：
+
+1. **虚空特殊指代**：出现「某种」「特有的」「独有的」等指代词，但指代对象不具备特殊性。
+2. **提前解释或剧透**：在情节尚未展开前就提前解释结局、真相或关键转折；把本该在后文揭晓的信息在本段说破。
+3. **概括式剧透**：用概括性语句代替具体情节（例如「后来他们经历了种种终于……」），导致本该在本段呈现的情节被一笔带过或剧透。
+4. **滥用网络安全表述**：严禁在小说叙事中**明显出现**「加密通讯」「加密标识」「VPN」「端到端加密」「安全信道」「加密链路」等一切网络安全/加密通信技术用语。出现此类表述一律判为不通过；若确需涉及通信保密，应使用隐晦和一语双关的表达技巧，或让角色安排真人交流，或通过动作和场景描写，不得使用加密术语。**不误伤**：非加密表述，不得因此判不通过，仅当设计“加密”等词语时，才判不通过。
+5. **「通用语」字眼**：仅当正文**明显出现**以下字眼时判不通过：「通用语」「大陆通用语」「世界通用语」「各族通用语」「全境通用语」「通行语」「共同语」「标准语」（指全境唯一语言时）等直接表述。不禁止「用一种语言」「双方都懂的话」等隐晦说法；但若涉及多语言/跨族交流场景，可在原因中提醒作者：需考虑翻译或可懂性，避免读者困惑。
+6. **高频套路用语**：严禁使用网文常见套路句，出现即判不通过。典型包括但不限于：「巨石投入水中」「像一块巨石投入水中」「声音不大」「字字清晰」「不容置疑」「恰到好处」「不易察觉」「微微一笑」「深吸一口气」「无意识地」「下意识地」「变故陡生」「张了张嘴，没发出声音」「身体前倾」等。审稿时若发现此类表述，须在原因中明确列出并建议删掉或更换为更具体、贴切情境的表达方式。
+7. **合成音类模因（严谨，不误伤视觉单位）**：仅当**声音/语音**被明确描述为合成、机械、电子、AI 时判不通过。必检表述（仅针对**听觉/语音**）：「合成音」「机械音」「电子音」「AI 语音」「合成语音」「机械合成的声音」「电子合成声」「冰冷的机械声」「毫无感情的电子音」等。**不误伤**：表情包、贴纸、弹幕、字幕、屏幕文字、界面图标、视觉符号等**视觉单位**的描写不属于「合成音」范畴，不得因此判不通过；若正文写的是画面/屏幕上的文字或图形，一律不按合成音处理。
+8. **双重否定与「不是……而是……」句式**：正文中出现的「不是……而是……」「并非……而是……」「不是……而是……」「与其说……不如说……」等双重否定或对比否定句式，要求改为平直、肯定的表述。审稿时若发现此类句式，须在原因中列出并建议改为直接陈述，避免绕弯。
+
+请根据【章节背景】【本段提纲】【相关设定】和【待审稿内容】进行判断。
+
+<相关设定>
+{{context}}
+</相关设定>
+
+**输出格式（必须严格遵循）**：
+- 若**无**上述致命问题，仅输出一行：PASS
+- 若**有**问题，第一行输出：FAIL，第二行起写：原因：<具体指出问题所在及修改建议>`;
 
 export interface GenChapterSegmentMultiTurnInput {
   worldview_id: number;
@@ -46,6 +74,8 @@ export interface GenChapterSegmentMultiTurnInput {
   anti_enum_reactions_style?: boolean;
   /** 抗套路样板词：避免恰到好处、不易察觉、微微一笑、深吸一口气等网文套路词 */
   anti_cliche_phrase_style?: boolean;
+  /** 是否启用审稿员（多轮文风纠正），默认关闭 */
+  enable_critic?: boolean;
 }
 
 interface Data {
@@ -184,6 +214,18 @@ function buildUserInputForSegment(
   return parts.join("\n\n");
 }
 
+/** 构建带审稿意见的重写用户输入（仅用于审稿不通过时的多轮修正，不写入 conversation_history） */
+function buildRewriteUserInputForSegment(
+  segmentOutline: string,
+  previousSnippet: string,
+  targetChars: number,
+  prevContent: string | undefined,
+  criticReason: string
+): string {
+  const base = buildUserInputForSegment(segmentOutline, previousSnippet, targetChars, prevContent);
+  return `${base}\n\n【审稿意见】（上一稿存在以下致命问题，请修正后重新续写；仅输出修正后的续写内容，不要重写章节背景）\n${criticReason}`;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
   if (req.method !== "POST") {
     res.status(405).json({});
@@ -220,6 +262,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     anti_wasteland_style = true,
     anti_enum_reactions_style = true,
     anti_cliche_phrase_style = true,
+    enable_critic = false,
   } = body || {};
 
   const attensionText = attension || attention;
@@ -281,9 +324,64 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     const prompt = ChatPromptTemplate.fromMessages(messages);
     const chain = RunnableSequence.from([prompt, model]);
     const response = await chain.invoke({});
-    const output = (response.content as string) || "";
-    
-    // 更新对话历史
+    let output = (response.content as string) || "";
+
+    // 非首轮时：多轮续写专用审稿员（最多 5 轮）纠正常见文风问题，仅保留终稿用于 history
+    const effectiveLlmType = (llm_type || "deepseek-chat").toLowerCase();
+    const maxRewrites = 5;
+    if (!is_first_turn && output.trim()) {
+      for (let rewriteCount = 0; rewriteCount < maxRewrites; rewriteCount++) {
+        const criticInput = buildCriticUserInput(output, prev_content || "", segment_outline);
+        const criticResponse = await callLLM(
+          effectiveLlmType,
+          CRITIC_SYSTEM_PROMPT_SEGMENT,
+          criticInput,
+          context
+        );
+        const criticResult = parseCriticResponse(criticResponse);
+        if (criticResult.pass) {
+          console.debug(LOG_TAG, "critic PASS", { rewriteCount });
+          break;
+        }
+        console.debug(LOG_TAG, "critic FAIL, rewriting", {
+          rewriteCount: rewriteCount + 1,
+          reason: criticResult.reason,
+        });
+        const rewriteUserInput = buildRewriteUserInputForSegment(
+          segment_outline,
+          snippet,
+          targetChars,
+          prev_content,
+          criticResult.reason!
+        );
+        // 用同一轮内的重写请求再次调用写手，不把审稿/重写过程写入 conversation_history
+        const rewriteMessages: BaseMessage[] = [];
+        if (conversation_history.length === 0) {
+          rewriteMessages.push(new SystemMessage(systemPromptWithContext));
+        } else {
+          for (const msg of conversation_history) {
+            if (msg.role === "user") {
+              rewriteMessages.push(new HumanMessage(msg.content));
+            } else if (msg.role === "assistant") {
+              rewriteMessages.push(new AIMessage(msg.content));
+            }
+          }
+          if (
+            rewriteMessages.length === 0 ||
+            !(rewriteMessages[0] instanceof SystemMessage)
+          ) {
+            rewriteMessages.unshift(new SystemMessage(systemPromptWithContext));
+          }
+        }
+        rewriteMessages.push(new HumanMessage(rewriteUserInput));
+        const rewritePrompt = ChatPromptTemplate.fromMessages(rewriteMessages);
+        const rewriteChain = RunnableSequence.from([rewritePrompt, model]);
+        const rewriteResponse = await rewriteChain.invoke({});
+        output = (rewriteResponse.content as string) || "";
+      }
+    }
+
+    // 更新对话历史：只追加本轮用户输入 + 本轮终稿，不包含审稿过程
     const updatedHistory = [...conversation_history];
     if (is_first_turn) {
       updatedHistory.push({ role: 'user', content: "请确认你已理解上述要求，回复「确认」即可。" });

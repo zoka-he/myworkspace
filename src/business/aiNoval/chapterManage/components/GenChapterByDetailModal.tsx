@@ -108,6 +108,8 @@ function GenChapterByDetailModal({
   const [antiEnumReactionsStyle, setAntiEnumReactionsStyle] = useState(true)
   /** 抗套路样板词：避免恰到好处、不易察觉、微微一笑、深吸一口气等网文套路词，默认勾选 */
   const [antiClichePhraseStyle, setAntiClichePhraseStyle] = useState(true)
+  /** 是否启用审稿员（多轮文风纠正），默认关闭 */
+  const [enableCritic, setEnableCritic] = useState(false)
 
   // 流程与回显（PRD 3.2）
   const [phase, setPhase] = useState<Phase>('idle')
@@ -445,6 +447,7 @@ function GenChapterByDetailModal({
           anti_wasteland_style: antiWastelandStyle,
           anti_enum_reactions_style: antiEnumReactionsStyle,
           anti_cliche_phrase_style: antiClichePhraseStyle,
+          enable_critic: enableCritic,
         })
         if (res.status === 'error' || res.error) {
           setErrorMessage(res.error || '确认阶段失败')
@@ -560,6 +563,7 @@ function GenChapterByDetailModal({
           anti_wasteland_style: antiWastelandStyle,
           anti_enum_reactions_style: antiEnumReactionsStyle,
           anti_cliche_phrase_style: antiClichePhraseStyle,
+          enable_critic: enableCritic,
         })
         if (res.status === 'error' || res.error) {
           setErrorMessage(res.error || '本段生成失败')
@@ -1303,6 +1307,15 @@ function GenChapterByDetailModal({
           >
             使用 MCP 收集设定
           </Checkbox>
+
+          <Checkbox
+            checked={enableCritic}
+            onChange={(e) => setEnableCritic(e.target.checked)}
+            disabled={isFormDisabled}
+          >
+            启用审稿员（多轮文风纠正）
+          </Checkbox>
+
           <Checkbox
             checked={antiLovecraftStyle}
             onChange={(e) => setAntiLovecraftStyle(e.target.checked)}
@@ -1352,6 +1365,7 @@ function GenChapterByDetailModal({
           >
             抗套路样板词
           </Checkbox>
+          
         </Space>
 
         <Divider/>

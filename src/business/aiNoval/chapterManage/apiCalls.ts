@@ -613,6 +613,7 @@ export const genChapterSegmentMultiTurn = async (
         anti_wasteland_style?: boolean
         anti_enum_reactions_style?: boolean
         anti_cliche_phrase_style?: boolean
+        enable_critic?: boolean
     }
 ): Promise<{ content: string; status: string; error: string; conversation_history?: Array<{ role: 'user' | 'assistant'; content: string }> }> => {
     const response = await fetch.post<{
@@ -647,8 +648,9 @@ export const genChapterSegmentMultiTurn = async (
             anti_wasteland_style: params.anti_wasteland_style !== false,
             anti_enum_reactions_style: params.anti_enum_reactions_style !== false,
             anti_cliche_phrase_style: params.anti_cliche_phrase_style !== false,
+            enable_critic: params.enable_critic === true,
         },
-        { params: { worldviewId }, timeout: 1000 * 60 * 5 }
+        { params: { worldviewId }, timeout: 1000 * 60 * 15 }
     )
     const data = response?.data ?? response
     const body = (data as any)?.data ?? data
