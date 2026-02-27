@@ -51,7 +51,10 @@ async function handleContinueInfo(req: NextApiRequest, res: NextApiResponse<any>
             actual_seed_prompt: chapter.actual_seed_prompt,
             attension: chapter.attension,
             chapter_style: chapter.chapter_style,
-            extra_settings: chapter.extra_settings
+            extra_settings: chapter.extra_settings,
+            // 分段纲要相关：原始骨架提示词 & 已存储的分段提示词
+            skeleton_prompt: chapter.skeleton_prompt,
+            actual_skeleton_prompt: chapter.actual_skeleton_prompt,
         }
 
         res.status(200).json(data);

@@ -132,6 +132,10 @@ function GenChapterByDetailModal({
   const [continueInfo, setContinueInfo] = useState<any>(null)
   const [isLoadingContinueInfo, setIsLoadingContinueInfo] = useState(false)
   const [isGeneratingAttention, setIsGeneratingAttention] = useState(false)
+  /** 更新章节元数据（提示词 & 关联章节） */
+  const [isUpdatingMetadata, setIsUpdatingMetadata] = useState(false)
+  /** 保存分段提示词到 actual_skeleton_prompt */
+  const [isSavingSkeletonPrompt, setIsSavingSkeletonPrompt] = useState(false)
   const pauseRequestedRef = useRef(false)
   const stopRequestedRef = useRef(false)
 
@@ -189,7 +193,7 @@ function GenChapterByDetailModal({
     })
   }, [open, selectedChapter?.novel_id, selectedChapter?.chapter_number])
 
-  // 回填角色、阵营、地理、章节提示词、注意事项、额外设置（与 ChapterContinueModal 一致）
+  // 回填角色、阵营、地理、章节提示词、注意事项、额外设置、分段纲要（与 ChapterContinueModal 一致）
   useEffect(() => {
     if (!continueInfo) return
     setSeedPrompt(
@@ -207,6 +211,40 @@ function GenChapterByDetailModal({
     setAttention(continueInfo.attension || '')
     setExtraSettings(continueInfo.extra_settings || '')
     setChapterStyle(continueInfo.chapter_style || continueInfo.overall_style || '')
+
+    // 回填分段纲要：优先使用已存储的 actual_skeleton_prompt，其次使用 skeleton_prompt
+    const skeletonText: string =
+      continueInfo.actual_skeleton_prompt ||
+      continueInfo.skeleton_prompt ||
+      ''
+
+    if (skeletonText) {
+      const lines = String(skeletonText)
+        .split(/\r?\n/)
+        .map((line: string) => line.trim())
+        .filter((line: string) => line.length > 0)
+
+      const outlineItems: SegmentOutlineItem[] = []
+
+      lines.forEach((line, idx) => {
+        // 解析「第 1 段：xxx」或「第1段: xxx」格式
+        const match = /^第\s*(\d+)\s*段[:：]\s*(.*)$/.exec(line)
+        if (match) {
+          const index = Number(match[1]) || idx + 1
+          const outline = match[2] || ''
+          outlineItems.push({ index, outline })
+        } else {
+          // 兜底：按顺序编号
+          outlineItems.push({ index: idx + 1, outline: line })
+        }
+      })
+
+      if (outlineItems.length > 0) {
+        setSegmentOutlineList(outlineItems)
+        // 若当前仍处于 idle，则视为已有提纲，切换到待确认状态
+        setPhase((prev) => (prev === 'idle' ? 'awaiting_confirmation' : prev))
+      }
+    }
   }, [continueInfo])
 
   // 从章节元数据加载前序章节ID
@@ -647,6 +685,94 @@ function GenChapterByDetailModal({
     runSegmentLoop(segmentIndex, truncatedHistory, newContentList)
   }
 
+  /** 将当前提示词 / 前序章节等写回章节元数据 */
+  const handleUpdateMetadata = async () => {
+    if (!selectedChapter?.id) {
+      message.error('章节 ID 不存在，请先选择章节')
+      return
+    }
+    try {
+      setIsUpdatingMetadata(true)
+
+      const payload: any = {
+        id: selectedChapter.id,
+        // 根提示词 & 注意事项 & 文风
+        seed_prompt: seedPrompt,
+        attension: attention,
+        chapter_style: chapterStyle,
+        // 关联章节
+        related_chapter_ids: relatedChapterIds,
+        // 角色 / 阵营 / 地理提示词（元数据字段）
+        role_names: roleNames,
+        faction_names: factionNames,
+        geo_names: geoNames,
+      }
+
+      await apiCalls.updateChapter(payload as any)
+      message.success('章节元数据已更新')
+      // 本地同步部分 continueInfo，避免标签状态与最新元数据严重偏离
+      setContinueInfo((prev: any) =>
+        prev
+          ? {
+              ...prev,
+              seed_prompt: seedPrompt,
+              attension: attention,
+              chapter_style: chapterStyle,
+              role_names: roleNames,
+              faction_names: factionNames,
+              geo_names: geoNames,
+            }
+          : prev
+      )
+    } catch (e: any) {
+      console.error('[handleUpdateMetadata]', e?.message || e)
+      message.error(e?.message || '章节元数据更新失败')
+    } finally {
+      setIsUpdatingMetadata(false)
+    }
+  }
+
+  /** 将当前分段提纲保存为分段提示词（actual_skeleton_prompt） */
+  const handleSaveSegmentSkeleton = async () => {
+    if (!selectedChapter?.id) {
+      message.error('章节 ID 不存在，请先选择章节')
+      return
+    }
+    if (segmentOutlineList.length === 0) {
+      message.warning('暂无分段提纲可保存')
+      return
+    }
+    try {
+      setIsSavingSkeletonPrompt(true)
+      const sortedOutlines = [...segmentOutlineList].sort(
+        (a, b) => a.index - b.index
+      )
+      const actualSkeletonPrompt = sortedOutlines
+        .map((item) => `第 ${item.index} 段：${item.outline}`)
+        .join('\n')
+
+      await apiCalls.updateChapter({
+        id: selectedChapter.id,
+        actual_skeleton_prompt: actualSkeletonPrompt,
+      } as any)
+
+      message.success('分段提示词已保存到章节元数据')
+      setContinueInfo((prev: any) =>
+        prev
+          ? {
+              ...prev,
+              actual_skeleton_prompt: actualSkeletonPrompt,
+            }
+          : prev
+      )
+    } catch (e: any) {
+      console.error('[handleSaveSegmentSkeleton]', e?.message || e)
+      message.error(e?.message || '保存分段提示词失败')
+    } finally {
+      setIsSavingSkeletonPrompt(false)
+    }
+  }
+
   const handleClose = () => {
     setPhase('idle')
     setSegmentOutlineList([])
@@ -942,9 +1068,21 @@ function GenChapterByDetailModal({
           ))}
         </Select>
 
-        
-
-        
+        <div className='text-right'>
+        <Space style={{ marginBottom: 16 }}>
+          <Typography.Text type="secondary">
+            将当前角色、阵营、地理、章节提示词、注意事项、前序章节与章节总体风格写入章节元数据
+          </Typography.Text>
+          <Button
+            type="primary"
+            onClick={handleUpdateMetadata}
+            loading={isUpdatingMetadata}
+            disabled={isFormDisabled || !selectedChapter?.id}
+          >
+            更新章节元数据
+          </Button>
+        </Space>
+        </div>
 
         {/* 3. 分段设置：提纲模型选择和生成分段提纲按钮 */}
         <Divider orientation="left">分段设置</Divider>
@@ -1030,7 +1168,22 @@ function GenChapterByDetailModal({
         {segmentOutlineList.length > 0 && (
           <Card 
             size="small" 
-            title="分段提纲（请确认后开始续写）"
+            title={
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>分段提纲（请确认后开始续写）</span>
+                <Space size={8}>
+                  <Button
+                    size="small"
+                    type="primary"
+                    onClick={handleSaveSegmentSkeleton}
+                    loading={isSavingSkeletonPrompt}
+                    disabled={isFormDisabled || !selectedChapter?.id}
+                  >
+                    保存分段提示词
+                  </Button>
+                </Space>
+              </div>
+            }
             style={{ display: 'flex', flexDirection: 'column', marginBottom: 16 }}
             bodyStyle={{ flex: 1, overflow: 'auto', padding: '12px' }}
           >
@@ -1153,6 +1306,22 @@ function GenChapterByDetailModal({
           placeholder="叙述视角、文风、节奏等整体风格要求（可选），可点击上方标签快速填入"
           style={{ marginBottom: 8 }}
         />
+        <div className='text-right'>
+          <Space style={{ marginBottom: 16 }}>
+            <Typography.Text type="secondary">
+              将当前角色、阵营、地理、章节提示词、注意事项、前序章节与章节总体风格写入章节元数据
+            </Typography.Text>
+            <Button
+              type="primary"
+              onClick={handleUpdateMetadata}
+              loading={isUpdatingMetadata}
+              disabled={isFormDisabled || !selectedChapter?.id}
+            >
+              更新章节元数据
+            </Button>
+            
+          </Space>
+        </div>
 
         <Divider/>
         
