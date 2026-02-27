@@ -143,6 +143,10 @@ function GenChapterByDetailModal({
   const [relatedChapterIds, setRelatedChapterIds] = useState<number[]>([])
   const [prevContent, setPrevContent] = useState<string>('') // 缩写后的前序章节内容
   const [isStrippingChapters, setIsStrippingChapters] = useState(false)
+  const segmentedContentListRef = useRef<string[]>([])
+  useEffect(() => {
+    segmentedContentListRef.current = segmentedContentList
+  }, [segmentedContentList])
 
   // 当弹窗打开且存在章节 id 时，拉取续写信息
   useEffect(() => {
@@ -371,15 +375,15 @@ function GenChapterByDetailModal({
       setPhase('awaiting_confirmation')
       return
     }
+    // 记录本轮开始时各段内容的快照，用于识别用户在续写过程中的手动修改
+    const originalSegmentsAtStart: string[] = [...(segmentedContentListRef.current || [])]
+
     let contentList: string[]
-    let content: string
     if (startFromIndex === 1) {
       contentList = []
-      content = ''
     } else {
       // 中段重写时必须用传入的「该段之前」内容，否则 closure 里 segmentedContentList 仍是旧值，previousSnippet 会取到被删段落末尾
       contentList = initialContentList != null ? [...initialContentList] : [...segmentedContentList]
-      content = contentList.join('\n\n')
     }
     let history = startFromIndex === 1 ? [] : (initialHistory ?? conversationHistory)
     if (startFromIndex === 1) {
@@ -442,13 +446,44 @@ function GenChapterByDetailModal({
       }
     }
     
+    // 生成结束或中途中断时，将本轮生成的内容合并回「当前最新段落」，仅覆写本轮真正生成的段
+    const buildMergedSegments = (): string[] => {
+      const latestSegments = segmentedContentListRef.current || []
+      // 基础上始终以「当前最新」为准，再按需覆写
+      const base = [...latestSegments]
+
+      for (let idx = startFromIndex - 1; idx < contentList.length; idx++) {
+        const newVal = contentList[idx]
+        if (newVal == null) continue
+
+        // 仅当「本轮开始时有内容」且「现在依然有内容」时，才认为可能被用户修改
+        const hadBefore =
+          idx < originalSegmentsAtStart.length &&
+          latestSegments[idx] != null
+        const userModified =
+          hadBefore &&
+          latestSegments[idx] !== originalSegmentsAtStart[idx]
+
+        // 若用户在本轮过程中手动改过该段，则不再用新结果覆盖，尊重用户编辑
+        if (userModified) {
+          continue
+        }
+
+        if (idx < base.length) base[idx] = newVal
+        else base.push(newVal)
+      }
+
+      return base
+    }
+
     // 逐段生成（确认后从第一段开始）
     const actualStartIndex = (startFromIndex === 1 && history.length > 0) ? 1 : startFromIndex
     for (let i = actualStartIndex; i <= list.length; i++) {
       if (stopRequestedRef.current) {
-        const finalContent = contentList.join('\n\n')
+        const mergedList = buildMergedSegments()
+        const finalContent = mergedList.join('\n\n')
         setSegmentedContent(finalContent)
-        setSegmentedContentList(contentList)
+        setSegmentedContentList(mergedList)
         setConversationHistory(history)
         setPhase('done')
         setSegmentIndex(i)
@@ -456,9 +491,10 @@ function GenChapterByDetailModal({
         return
       }
       if (pauseRequestedRef.current) {
-        const finalContent = contentList.join('\n\n')
+        const mergedList = buildMergedSegments()
+        const finalContent = mergedList.join('\n\n')
         setSegmentedContent(finalContent)
-        setSegmentedContentList(contentList)
+        setSegmentedContentList(mergedList)
         setConversationHistory(history)
         setPhase('paused')
         setSegmentIndex(i)
@@ -467,7 +503,19 @@ function GenChapterByDetailModal({
       }
       setSegmentIndex(i)
       const outlineItem = list[i - 1]
-      const previousSnippet = content.slice(-SNIPPET_MAX_CHARS)
+      // previousSnippet 使用「最新已写内容」：优先采用用户编辑过的段落，其次采用本轮生成的内容
+      const latestSegments = segmentedContentListRef.current || []
+      const snippetSegments: string[] = []
+      for (let j = 0; j < i - 1; j++) {
+        const fromGenerated = contentList[j]
+        const fromEdited = latestSegments[j]
+        snippetSegments[j] =
+          (typeof fromEdited === 'string' && fromEdited.length > 0)
+            ? fromEdited
+            : fromGenerated || ''
+      }
+      const previousText = snippetSegments.join('\n\n')
+      const previousSnippet = previousText.slice(-SNIPPET_MAX_CHARS)
       try {
         const res = await apiCalls.genChapterSegmentMultiTurn(worldviewId, {
           curr_context: seedPrompt,
@@ -495,9 +543,10 @@ function GenChapterByDetailModal({
         if (res.status === 'error' || res.error) {
           setErrorMessage(res.error || '本段生成失败')
           setPhase('error')
-          const finalContent = contentList.join('\n\n')
+          const mergedList = buildMergedSegments()
+          const finalContent = mergedList.join('\n\n')
           setSegmentedContent(finalContent)
-          setSegmentedContentList(contentList)
+          setSegmentedContentList(mergedList)
           setConversationHistory(history)
           return
         }
@@ -513,26 +562,27 @@ function GenChapterByDetailModal({
         } else {
           contentList[i - 1] = segmentText
         }
-        const finalContent = contentList.join('\n\n')
-        setSegmentedContentList([...contentList])
+        const mergedForDisplay = buildMergedSegments()
+        const finalContent = mergedForDisplay.join('\n\n')
+        setSegmentedContentList(mergedForDisplay)
         setSegmentedContent(finalContent)
-        // 更新 content 用于下一段的 previousSnippet
-        content = finalContent
       } catch (e: any) {
         setErrorMessage(e?.message || '本段生成失败')
         setPhase('error')
-        const finalContent = contentList.join('\n\n')
+        const mergedList = buildMergedSegments()
+        const finalContent = mergedList.join('\n\n')
         setSegmentedContent(finalContent)
-        setSegmentedContentList(contentList)
+        setSegmentedContentList(mergedList)
         setConversationHistory(history)
         return
       }
     }
     setPhase('done')
     setSegmentIndex(list.length + 1)
-    const finalContent = contentList.join('\n\n')
+    const mergedList = buildMergedSegments()
+    const finalContent = mergedList.join('\n\n')
     setSegmentedContent(finalContent)
-    setSegmentedContentList(contentList)
+    setSegmentedContentList(mergedList)
     setConversationHistory(history)
   }
 
