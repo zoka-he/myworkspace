@@ -834,7 +834,7 @@ function Graph_ChapterWorkTime(props: IGraphProps) {
             d3.axisLeft(y)
                 .tickSizeOuter(0)
                 .tickValues([0, 12, 24, 36, 48, 72, 96])
-                .tickFormat((_, i) => ['', '12h', '1d', '1.5d', '2d', '3d', '4d'][i]) as any
+                .tickFormat((_, i) => ['', '今日中午', '明天零点', '明天中午', '后天零点', '3d', '4d'][i]) as any
         );
 
         const labelSelection = d3.select(axisLabelsRef.current).selectAll('text');
