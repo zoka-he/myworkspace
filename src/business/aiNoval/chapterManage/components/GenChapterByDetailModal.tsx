@@ -24,6 +24,7 @@ import {
   PauseCircleOutlined,
   StopOutlined,
   PlayCircleOutlined,
+  RedoOutlined,
 } from '@ant-design/icons'
 import type { IChapter } from '@/src/types/IAiNoval'
 import TextArea from 'antd/es/input/TextArea'
@@ -687,7 +688,45 @@ function GenChapterByDetailModal({
 
                 <Divider orientation="left">提示词</Divider>
                 <div className={styles.prompt_title}>
-                  <span>角色：</span>
+                  <div>
+                    <span>角色：</span>
+                    {continueInfo && roleNames === (continueInfo.role_names || '') && (
+                      <Tag color="blue">初始值</Tag>
+                    )}
+                    {continueInfo && roleNames === (continueInfo.actual_roles || '') && (
+                      <Tag color="green">存储值</Tag>
+                    )}
+                    {continueInfo &&
+                      roleNames !== (continueInfo.role_names || '') &&
+                      roleNames !== (continueInfo.actual_roles || '') &&
+                      roleNames && (
+                        <Tag color="red">已修改</Tag>
+                      )}
+                  </div>
+                  <div>
+                    {continueInfo?.role_names && (
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<RedoOutlined />}
+                        disabled={isFormDisabled}
+                        onClick={() => setRoleNames(continueInfo.role_names || '')}
+                      >
+                        切换为初始值
+                      </Button>
+                    )}
+                    {continueInfo?.actual_roles && (
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<RedoOutlined />}
+                        disabled={isFormDisabled}
+                        onClick={() => setRoleNames(continueInfo.actual_roles || '')}
+                      >
+                        切换为存储值
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <TextArea
                   autoSize={{ minRows: 1 }}
@@ -698,7 +737,45 @@ function GenChapterByDetailModal({
                   style={{ marginBottom: 8 }}
                 />
                 <div className={styles.prompt_title}>
-                  <span>阵营：</span>
+                  <div>
+                    <span>阵营：</span>
+                    {continueInfo && factionNames === (continueInfo.faction_names || '') && (
+                      <Tag color="blue">初始值</Tag>
+                    )}
+                    {continueInfo && factionNames === (continueInfo.actual_factions || '') && (
+                      <Tag color="green">存储值</Tag>
+                    )}
+                    {continueInfo &&
+                      factionNames !== (continueInfo.faction_names || '') &&
+                      factionNames !== (continueInfo.actual_factions || '') &&
+                      factionNames && (
+                        <Tag color="red">已修改</Tag>
+                      )}
+                  </div>
+                  <div>
+                    {continueInfo?.faction_names && (
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<RedoOutlined />}
+                        disabled={isFormDisabled}
+                        onClick={() => setFactionNames(continueInfo.faction_names || '')}
+                      >
+                        切换为初始值
+                      </Button>
+                    )}
+                    {continueInfo?.actual_factions && (
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<RedoOutlined />}
+                        disabled={isFormDisabled}
+                        onClick={() => setFactionNames(continueInfo.actual_factions || '')}
+                      >
+                        切换为存储值
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <TextArea
                   autoSize={{ minRows: 1 }}
@@ -709,7 +786,45 @@ function GenChapterByDetailModal({
                   style={{ marginBottom: 8 }}
                 />
                 <div className={styles.prompt_title}>
-                  <span>地理：</span>
+                  <div>
+                    <span>地理：</span>
+                    {continueInfo && geoNames === (continueInfo.geo_names || '') && (
+                      <Tag color="blue">初始值</Tag>
+                    )}
+                    {continueInfo && geoNames === (continueInfo.actual_locations || '') && (
+                      <Tag color="green">存储值</Tag>
+                    )}
+                    {continueInfo &&
+                      geoNames !== (continueInfo.geo_names || '') &&
+                      geoNames !== (continueInfo.actual_locations || '') &&
+                      geoNames && (
+                        <Tag color="red">已修改</Tag>
+                      )}
+                  </div>
+                  <div>
+                    {continueInfo?.geo_names && (
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<RedoOutlined />}
+                        disabled={isFormDisabled}
+                        onClick={() => setGeoNames(continueInfo.geo_names || '')}
+                      >
+                        切换为初始值
+                      </Button>
+                    )}
+                    {continueInfo?.actual_locations && (
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<RedoOutlined />}
+                        disabled={isFormDisabled}
+                        onClick={() => setGeoNames(continueInfo.actual_locations || '')}
+                      >
+                        切换为存储值
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <TextArea
                   autoSize={{ minRows: 1 }}
@@ -723,7 +838,45 @@ function GenChapterByDetailModal({
                 
 
                 <div className={styles.prompt_title}>
-                  <span>章节提示词（本章待写要点）：</span>
+                  <div>
+                    <span>章节提示词（本章待写要点）：</span>
+                    {continueInfo && seedPrompt === (continueInfo.seed_prompt || '') && (
+                      <Tag color="blue">初始值</Tag>
+                    )}
+                    {continueInfo && seedPrompt === (continueInfo.actual_seed_prompt || '') && (
+                      <Tag color="green">存储值</Tag>
+                    )}
+                    {continueInfo &&
+                      seedPrompt !== (continueInfo.seed_prompt || '') &&
+                      seedPrompt !== (continueInfo.actual_seed_prompt || '') &&
+                      seedPrompt && (
+                        <Tag color="red">已修改</Tag>
+                      )}
+                  </div>
+                  <div>
+                    {continueInfo?.seed_prompt && (
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<RedoOutlined />}
+                        disabled={isFormDisabled}
+                        onClick={() => setSeedPrompt(continueInfo.seed_prompt || '')}
+                      >
+                        切换为初始值
+                      </Button>
+                    )}
+                    {continueInfo?.actual_seed_prompt && (
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<RedoOutlined />}
+                        disabled={isFormDisabled}
+                        onClick={() => setSeedPrompt(continueInfo.actual_seed_prompt || '')}
+                      >
+                        切换为存储值
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <TextArea
                   autoSize={{ minRows: 8 }}
