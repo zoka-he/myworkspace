@@ -281,16 +281,37 @@ function GenChapterByDetailModal({
     }
     setIsStrippingChapters(true)
     try {
-      const strippedContents: string[] = []
-      for (const chapterId of relatedChapterIds) {
-        const chapter = await apiCalls.getChapterById(chapterId)
-        if (chapter.content) {
-          const stripped = await apiCalls.stripText(chapter.content, 300)
-          if (stripped) {
-            strippedContents.push(`【第 ${chapter.chapter_number} 章 ${chapter.title || '未命名'}】\n${stripped}`)
+      // 并行处理所有前序章节；若有 summary 且非空，优先直接使用 summary
+      const results = await Promise.all(
+        relatedChapterIds.map(async (chapterId) => {
+          try {
+            const chapter = await apiCalls.getChapterById(chapterId)
+            if (!chapter) return ''
+
+            const header = `【第 ${chapter.chapter_number} 章 ${chapter.title || '未命名'}】\n`
+
+            // 1. 已有 summary 时直接使用
+            if (chapter.summary && String(chapter.summary).trim()) {
+              return header + String(chapter.summary).trim()
+            }
+
+            // 2. 无 summary 时再调用 stripText 缩写正文
+            if (chapter.content) {
+              const stripped = await apiCalls.stripText(chapter.content, 300)
+              if (stripped) {
+                return header + stripped
+              }
+            }
+
+            return ''
+          } catch (e: any) {
+            console.error('[stripPreviousChapters:item]', chapterId, e?.message || e)
+            return ''
           }
-        }
-      }
+        })
+      )
+
+      const strippedContents = results.filter((s) => s && s.trim().length > 0)
       const combinedContent = strippedContents.join('\n\n')
       setPrevContent(combinedContent)
       return combinedContent
