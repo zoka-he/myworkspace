@@ -133,8 +133,8 @@ function buildUserInput(prevContent: string, currContext: string): string {
     return parts.join('\n\n');
 }
 
-/** 审稿员（critic）系统提示：检测滥用加密表述、提前解释/剧透等致命问题 */
-const CRITIC_SYSTEM_PROMPT = `你是一名小说章节审稿员，专门检测以下**致命问题**（任一项出现即判为不通过）：
+/** 审稿员（critic）系统提示：检测滥用加密表述、提前解释/剧透等致命问题（供 genChapter 与 genChapterSegmentMultiTurn 复用） */
+export const CRITIC_SYSTEM_PROMPT = `你是一名小说章节审稿员，专门检测以下**致命问题**（任一项出现即判为不通过）：
 
 1. **滥用加密/晦涩表述**：使用故意含糊、加密式、读者无法从上下文理解的表述；堆砌术语却不解释；用「某种」「那个」「这件事」等指代不明且无后文交代。
 2. **提前解释或剧透**：在情节尚未展开前就提前解释结局、真相或关键转折；把本该在后文揭晓的信息在本段说破。
@@ -184,8 +184,8 @@ function parseCritic2Response(response: string): { misunderstood: boolean } {
     return { misunderstood: false }; // 无法识别时保守处理，不提前返回
 }
 
-/** 构建审稿员用户输入 */
-function buildCriticUserInput(
+/** 构建审稿员用户输入（供 genChapter 与 genChapterSegmentMultiTurn 复用） */
+export function buildCriticUserInput(
     draftContent: string,
     prevContent: string,
     currContext: string
@@ -202,7 +202,7 @@ function buildCriticUserInput(
 }
 
 /** 解析审稿员输出：PASS 或 FAIL + 原因 */
-function parseCriticResponse(response: string): { pass: boolean; reason?: string } {
+export function parseCriticResponse(response: string): { pass: boolean; reason?: string } {
     const text = (response || '').trim();
     const upper = text.toUpperCase();
     if (upper.startsWith('PASS')) {

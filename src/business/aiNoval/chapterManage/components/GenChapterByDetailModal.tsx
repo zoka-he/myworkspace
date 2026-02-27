@@ -24,6 +24,7 @@ import {
   PauseCircleOutlined,
   StopOutlined,
   PlayCircleOutlined,
+  RedoOutlined,
 } from '@ant-design/icons'
 import type { IChapter } from '@/src/types/IAiNoval'
 import TextArea from 'antd/es/input/TextArea'
@@ -107,6 +108,8 @@ function GenChapterByDetailModal({
   const [antiEnumReactionsStyle, setAntiEnumReactionsStyle] = useState(true)
   /** 抗套路样板词：避免恰到好处、不易察觉、微微一笑、深吸一口气等网文套路词，默认勾选 */
   const [antiClichePhraseStyle, setAntiClichePhraseStyle] = useState(true)
+  /** 是否启用审稿员（多轮文风纠正），默认关闭 */
+  const [enableCritic, setEnableCritic] = useState(false)
 
   // 流程与回显（PRD 3.2）
   const [phase, setPhase] = useState<Phase>('idle')
@@ -131,6 +134,10 @@ function GenChapterByDetailModal({
   const [continueInfo, setContinueInfo] = useState<any>(null)
   const [isLoadingContinueInfo, setIsLoadingContinueInfo] = useState(false)
   const [isGeneratingAttention, setIsGeneratingAttention] = useState(false)
+  /** 更新章节元数据（提示词 & 关联章节） */
+  const [isUpdatingMetadata, setIsUpdatingMetadata] = useState(false)
+  /** 保存分段提示词到 actual_skeleton_prompt */
+  const [isSavingSkeletonPrompt, setIsSavingSkeletonPrompt] = useState(false)
   const pauseRequestedRef = useRef(false)
   const stopRequestedRef = useRef(false)
 
@@ -138,6 +145,10 @@ function GenChapterByDetailModal({
   const [relatedChapterIds, setRelatedChapterIds] = useState<number[]>([])
   const [prevContent, setPrevContent] = useState<string>('') // 缩写后的前序章节内容
   const [isStrippingChapters, setIsStrippingChapters] = useState(false)
+  const segmentedContentListRef = useRef<string[]>([])
+  useEffect(() => {
+    segmentedContentListRef.current = segmentedContentList
+  }, [segmentedContentList])
 
   // 当弹窗打开且存在章节 id 时，拉取续写信息
   useEffect(() => {
@@ -188,7 +199,7 @@ function GenChapterByDetailModal({
     })
   }, [open, selectedChapter?.novel_id, selectedChapter?.chapter_number])
 
-  // 回填角色、阵营、地理、章节提示词、注意事项、额外设置（与 ChapterContinueModal 一致）
+  // 回填角色、阵营、地理、章节提示词、注意事项、额外设置、分段纲要（与 ChapterContinueModal 一致）
   useEffect(() => {
     if (!continueInfo) return
     setSeedPrompt(
@@ -206,6 +217,40 @@ function GenChapterByDetailModal({
     setAttention(continueInfo.attension || '')
     setExtraSettings(continueInfo.extra_settings || '')
     setChapterStyle(continueInfo.chapter_style || continueInfo.overall_style || '')
+
+    // 回填分段纲要：优先使用已存储的 actual_skeleton_prompt，其次使用 skeleton_prompt
+    const skeletonText: string =
+      continueInfo.actual_skeleton_prompt ||
+      continueInfo.skeleton_prompt ||
+      ''
+
+    if (skeletonText) {
+      const lines = String(skeletonText)
+        .split(/\r?\n/)
+        .map((line: string) => line.trim())
+        .filter((line: string) => line.length > 0)
+
+      const outlineItems: SegmentOutlineItem[] = []
+
+      lines.forEach((line, idx) => {
+        // 解析「第 1 段：xxx」或「第1段: xxx」格式
+        const match = /^第\s*(\d+)\s*段[:：]\s*(.*)$/.exec(line)
+        if (match) {
+          const index = Number(match[1]) || idx + 1
+          const outline = match[2] || ''
+          outlineItems.push({ index, outline })
+        } else {
+          // 兜底：按顺序编号
+          outlineItems.push({ index: idx + 1, outline: line })
+        }
+      })
+
+      if (outlineItems.length > 0) {
+        setSegmentOutlineList(outlineItems)
+        // 若当前仍处于 idle，则视为已有提纲，切换到待确认状态
+        setPhase((prev) => (prev === 'idle' ? 'awaiting_confirmation' : prev))
+      }
+    }
   }, [continueInfo])
 
   // 从章节元数据加载前序章节ID
@@ -238,16 +283,37 @@ function GenChapterByDetailModal({
     }
     setIsStrippingChapters(true)
     try {
-      const strippedContents: string[] = []
-      for (const chapterId of relatedChapterIds) {
-        const chapter = await apiCalls.getChapterById(chapterId)
-        if (chapter.content) {
-          const stripped = await apiCalls.stripText(chapter.content, 300)
-          if (stripped) {
-            strippedContents.push(`【第 ${chapter.chapter_number} 章 ${chapter.title || '未命名'}】\n${stripped}`)
+      // 并行处理所有前序章节；若有 summary 且非空，优先直接使用 summary
+      const results = await Promise.all(
+        relatedChapterIds.map(async (chapterId) => {
+          try {
+            const chapter = await apiCalls.getChapterById(chapterId)
+            if (!chapter) return ''
+
+            const header = `【第 ${chapter.chapter_number} 章 ${chapter.title || '未命名'}】\n`
+
+            // 1. 已有 summary 时直接使用
+            if (chapter.summary && String(chapter.summary).trim()) {
+              return header + String(chapter.summary).trim()
+            }
+
+            // 2. 无 summary 时再调用 stripText 缩写正文
+            if (chapter.content) {
+              const stripped = await apiCalls.stripText(chapter.content, 300)
+              if (stripped) {
+                return header + stripped
+              }
+            }
+
+            return ''
+          } catch (e: any) {
+            console.error('[stripPreviousChapters:item]', chapterId, e?.message || e)
+            return ''
           }
-        }
-      }
+        })
+      )
+
+      const strippedContents = results.filter((s) => s && s.trim().length > 0)
       const combinedContent = strippedContents.join('\n\n')
       setPrevContent(combinedContent)
       return combinedContent
@@ -332,15 +398,15 @@ function GenChapterByDetailModal({
       setPhase('awaiting_confirmation')
       return
     }
+    // 记录本轮开始时各段内容的快照，用于识别用户在续写过程中的手动修改
+    const originalSegmentsAtStart: string[] = [...(segmentedContentListRef.current || [])]
+
     let contentList: string[]
-    let content: string
     if (startFromIndex === 1) {
       contentList = []
-      content = ''
     } else {
       // 中段重写时必须用传入的「该段之前」内容，否则 closure 里 segmentedContentList 仍是旧值，previousSnippet 会取到被删段落末尾
       contentList = initialContentList != null ? [...initialContentList] : [...segmentedContentList]
-      content = contentList.join('\n\n')
     }
     let history = startFromIndex === 1 ? [] : (initialHistory ?? conversationHistory)
     if (startFromIndex === 1) {
@@ -381,6 +447,7 @@ function GenChapterByDetailModal({
           anti_wasteland_style: antiWastelandStyle,
           anti_enum_reactions_style: antiEnumReactionsStyle,
           anti_cliche_phrase_style: antiClichePhraseStyle,
+          enable_critic: enableCritic,
         })
         if (res.status === 'error' || res.error) {
           setErrorMessage(res.error || '确认阶段失败')
@@ -403,13 +470,44 @@ function GenChapterByDetailModal({
       }
     }
     
+    // 生成结束或中途中断时，将本轮生成的内容合并回「当前最新段落」，仅覆写本轮真正生成的段
+    const buildMergedSegments = (): string[] => {
+      const latestSegments = segmentedContentListRef.current || []
+      // 基础上始终以「当前最新」为准，再按需覆写
+      const base = [...latestSegments]
+
+      for (let idx = startFromIndex - 1; idx < contentList.length; idx++) {
+        const newVal = contentList[idx]
+        if (newVal == null) continue
+
+        // 仅当「本轮开始时有内容」且「现在依然有内容」时，才认为可能被用户修改
+        const hadBefore =
+          idx < originalSegmentsAtStart.length &&
+          latestSegments[idx] != null
+        const userModified =
+          hadBefore &&
+          latestSegments[idx] !== originalSegmentsAtStart[idx]
+
+        // 若用户在本轮过程中手动改过该段，则不再用新结果覆盖，尊重用户编辑
+        if (userModified) {
+          continue
+        }
+
+        if (idx < base.length) base[idx] = newVal
+        else base.push(newVal)
+      }
+
+      return base
+    }
+
     // 逐段生成（确认后从第一段开始）
     const actualStartIndex = (startFromIndex === 1 && history.length > 0) ? 1 : startFromIndex
     for (let i = actualStartIndex; i <= list.length; i++) {
       if (stopRequestedRef.current) {
-        const finalContent = contentList.join('\n\n')
+        const mergedList = buildMergedSegments()
+        const finalContent = mergedList.join('\n\n')
         setSegmentedContent(finalContent)
-        setSegmentedContentList(contentList)
+        setSegmentedContentList(mergedList)
         setConversationHistory(history)
         setPhase('done')
         setSegmentIndex(i)
@@ -417,9 +515,10 @@ function GenChapterByDetailModal({
         return
       }
       if (pauseRequestedRef.current) {
-        const finalContent = contentList.join('\n\n')
+        const mergedList = buildMergedSegments()
+        const finalContent = mergedList.join('\n\n')
         setSegmentedContent(finalContent)
-        setSegmentedContentList(contentList)
+        setSegmentedContentList(mergedList)
         setConversationHistory(history)
         setPhase('paused')
         setSegmentIndex(i)
@@ -428,7 +527,19 @@ function GenChapterByDetailModal({
       }
       setSegmentIndex(i)
       const outlineItem = list[i - 1]
-      const previousSnippet = content.slice(-SNIPPET_MAX_CHARS)
+      // previousSnippet 使用「最新已写内容」：优先采用用户编辑过的段落，其次采用本轮生成的内容
+      const latestSegments = segmentedContentListRef.current || []
+      const snippetSegments: string[] = []
+      for (let j = 0; j < i - 1; j++) {
+        const fromGenerated = contentList[j]
+        const fromEdited = latestSegments[j]
+        snippetSegments[j] =
+          (typeof fromEdited === 'string' && fromEdited.length > 0)
+            ? fromEdited
+            : fromGenerated || ''
+      }
+      const previousText = snippetSegments.join('\n\n')
+      const previousSnippet = previousText.slice(-SNIPPET_MAX_CHARS)
       try {
         const res = await apiCalls.genChapterSegmentMultiTurn(worldviewId, {
           curr_context: seedPrompt,
@@ -452,13 +563,15 @@ function GenChapterByDetailModal({
           anti_wasteland_style: antiWastelandStyle,
           anti_enum_reactions_style: antiEnumReactionsStyle,
           anti_cliche_phrase_style: antiClichePhraseStyle,
+          enable_critic: enableCritic,
         })
         if (res.status === 'error' || res.error) {
           setErrorMessage(res.error || '本段生成失败')
           setPhase('error')
-          const finalContent = contentList.join('\n\n')
+          const mergedList = buildMergedSegments()
+          const finalContent = mergedList.join('\n\n')
           setSegmentedContent(finalContent)
-          setSegmentedContentList(contentList)
+          setSegmentedContentList(mergedList)
           setConversationHistory(history)
           return
         }
@@ -474,26 +587,27 @@ function GenChapterByDetailModal({
         } else {
           contentList[i - 1] = segmentText
         }
-        const finalContent = contentList.join('\n\n')
-        setSegmentedContentList([...contentList])
+        const mergedForDisplay = buildMergedSegments()
+        const finalContent = mergedForDisplay.join('\n\n')
+        setSegmentedContentList(mergedForDisplay)
         setSegmentedContent(finalContent)
-        // 更新 content 用于下一段的 previousSnippet
-        content = finalContent
       } catch (e: any) {
         setErrorMessage(e?.message || '本段生成失败')
         setPhase('error')
-        const finalContent = contentList.join('\n\n')
+        const mergedList = buildMergedSegments()
+        const finalContent = mergedList.join('\n\n')
         setSegmentedContent(finalContent)
-        setSegmentedContentList(contentList)
+        setSegmentedContentList(mergedList)
         setConversationHistory(history)
         return
       }
     }
     setPhase('done')
     setSegmentIndex(list.length + 1)
-    const finalContent = contentList.join('\n\n')
+    const mergedList = buildMergedSegments()
+    const finalContent = mergedList.join('\n\n')
     setSegmentedContent(finalContent)
-    setSegmentedContentList(contentList)
+    setSegmentedContentList(mergedList)
     setConversationHistory(history)
   }
 
@@ -646,6 +760,94 @@ function GenChapterByDetailModal({
     runSegmentLoop(segmentIndex, truncatedHistory, newContentList)
   }
 
+  /** 将当前提示词 / 前序章节等写回章节元数据 */
+  const handleUpdateMetadata = async () => {
+    if (!selectedChapter?.id) {
+      message.error('章节 ID 不存在，请先选择章节')
+      return
+    }
+    try {
+      setIsUpdatingMetadata(true)
+
+      const payload: any = {
+        id: selectedChapter.id,
+        // 根提示词 & 注意事项 & 文风
+        seed_prompt: seedPrompt,
+        attension: attention,
+        chapter_style: chapterStyle,
+        // 关联章节
+        related_chapter_ids: relatedChapterIds,
+        // 角色 / 阵营 / 地理提示词（元数据字段）
+        role_names: roleNames,
+        faction_names: factionNames,
+        geo_names: geoNames,
+      }
+
+      await apiCalls.updateChapter(payload as any)
+      message.success('章节元数据已更新')
+      // 本地同步部分 continueInfo，避免标签状态与最新元数据严重偏离
+      setContinueInfo((prev: any) =>
+        prev
+          ? {
+              ...prev,
+              seed_prompt: seedPrompt,
+              attension: attention,
+              chapter_style: chapterStyle,
+              role_names: roleNames,
+              faction_names: factionNames,
+              geo_names: geoNames,
+            }
+          : prev
+      )
+    } catch (e: any) {
+      console.error('[handleUpdateMetadata]', e?.message || e)
+      message.error(e?.message || '章节元数据更新失败')
+    } finally {
+      setIsUpdatingMetadata(false)
+    }
+  }
+
+  /** 将当前分段提纲保存为分段提示词（actual_skeleton_prompt） */
+  const handleSaveSegmentSkeleton = async () => {
+    if (!selectedChapter?.id) {
+      message.error('章节 ID 不存在，请先选择章节')
+      return
+    }
+    if (segmentOutlineList.length === 0) {
+      message.warning('暂无分段提纲可保存')
+      return
+    }
+    try {
+      setIsSavingSkeletonPrompt(true)
+      const sortedOutlines = [...segmentOutlineList].sort(
+        (a, b) => a.index - b.index
+      )
+      const actualSkeletonPrompt = sortedOutlines
+        .map((item) => `第 ${item.index} 段：${item.outline}`)
+        .join('\n')
+
+      await apiCalls.updateChapter({
+        id: selectedChapter.id,
+        actual_skeleton_prompt: actualSkeletonPrompt,
+      } as any)
+
+      message.success('分段提示词已保存到章节元数据')
+      setContinueInfo((prev: any) =>
+        prev
+          ? {
+              ...prev,
+              actual_skeleton_prompt: actualSkeletonPrompt,
+            }
+          : prev
+      )
+    } catch (e: any) {
+      console.error('[handleSaveSegmentSkeleton]', e?.message || e)
+      message.error(e?.message || '保存分段提示词失败')
+    } finally {
+      setIsSavingSkeletonPrompt(false)
+    }
+  }
+
   const handleClose = () => {
     setPhase('idle')
     setSegmentOutlineList([])
@@ -687,7 +889,45 @@ function GenChapterByDetailModal({
 
                 <Divider orientation="left">提示词</Divider>
                 <div className={styles.prompt_title}>
-                  <span>角色：</span>
+                  <div>
+                    <span>角色：</span>
+                    {continueInfo && roleNames === (continueInfo.role_names || '') && (
+                      <Tag color="blue">初始值</Tag>
+                    )}
+                    {continueInfo && roleNames === (continueInfo.actual_roles || '') && (
+                      <Tag color="green">存储值</Tag>
+                    )}
+                    {continueInfo &&
+                      roleNames !== (continueInfo.role_names || '') &&
+                      roleNames !== (continueInfo.actual_roles || '') &&
+                      roleNames && (
+                        <Tag color="red">已修改</Tag>
+                      )}
+                  </div>
+                  <div>
+                    {continueInfo?.role_names && (
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<RedoOutlined />}
+                        disabled={isFormDisabled}
+                        onClick={() => setRoleNames(continueInfo.role_names || '')}
+                      >
+                        切换为初始值
+                      </Button>
+                    )}
+                    {continueInfo?.actual_roles && (
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<RedoOutlined />}
+                        disabled={isFormDisabled}
+                        onClick={() => setRoleNames(continueInfo.actual_roles || '')}
+                      >
+                        切换为存储值
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <TextArea
                   autoSize={{ minRows: 1 }}
@@ -698,7 +938,45 @@ function GenChapterByDetailModal({
                   style={{ marginBottom: 8 }}
                 />
                 <div className={styles.prompt_title}>
-                  <span>阵营：</span>
+                  <div>
+                    <span>阵营：</span>
+                    {continueInfo && factionNames === (continueInfo.faction_names || '') && (
+                      <Tag color="blue">初始值</Tag>
+                    )}
+                    {continueInfo && factionNames === (continueInfo.actual_factions || '') && (
+                      <Tag color="green">存储值</Tag>
+                    )}
+                    {continueInfo &&
+                      factionNames !== (continueInfo.faction_names || '') &&
+                      factionNames !== (continueInfo.actual_factions || '') &&
+                      factionNames && (
+                        <Tag color="red">已修改</Tag>
+                      )}
+                  </div>
+                  <div>
+                    {continueInfo?.faction_names && (
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<RedoOutlined />}
+                        disabled={isFormDisabled}
+                        onClick={() => setFactionNames(continueInfo.faction_names || '')}
+                      >
+                        切换为初始值
+                      </Button>
+                    )}
+                    {continueInfo?.actual_factions && (
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<RedoOutlined />}
+                        disabled={isFormDisabled}
+                        onClick={() => setFactionNames(continueInfo.actual_factions || '')}
+                      >
+                        切换为存储值
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <TextArea
                   autoSize={{ minRows: 1 }}
@@ -709,7 +987,45 @@ function GenChapterByDetailModal({
                   style={{ marginBottom: 8 }}
                 />
                 <div className={styles.prompt_title}>
-                  <span>地理：</span>
+                  <div>
+                    <span>地理：</span>
+                    {continueInfo && geoNames === (continueInfo.geo_names || '') && (
+                      <Tag color="blue">初始值</Tag>
+                    )}
+                    {continueInfo && geoNames === (continueInfo.actual_locations || '') && (
+                      <Tag color="green">存储值</Tag>
+                    )}
+                    {continueInfo &&
+                      geoNames !== (continueInfo.geo_names || '') &&
+                      geoNames !== (continueInfo.actual_locations || '') &&
+                      geoNames && (
+                        <Tag color="red">已修改</Tag>
+                      )}
+                  </div>
+                  <div>
+                    {continueInfo?.geo_names && (
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<RedoOutlined />}
+                        disabled={isFormDisabled}
+                        onClick={() => setGeoNames(continueInfo.geo_names || '')}
+                      >
+                        切换为初始值
+                      </Button>
+                    )}
+                    {continueInfo?.actual_locations && (
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<RedoOutlined />}
+                        disabled={isFormDisabled}
+                        onClick={() => setGeoNames(continueInfo.actual_locations || '')}
+                      >
+                        切换为存储值
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <TextArea
                   autoSize={{ minRows: 1 }}
@@ -723,7 +1039,45 @@ function GenChapterByDetailModal({
                 
 
                 <div className={styles.prompt_title}>
-                  <span>章节提示词（本章待写要点）：</span>
+                  <div>
+                    <span>章节提示词（本章待写要点）：</span>
+                    {continueInfo && seedPrompt === (continueInfo.seed_prompt || '') && (
+                      <Tag color="blue">初始值</Tag>
+                    )}
+                    {continueInfo && seedPrompt === (continueInfo.actual_seed_prompt || '') && (
+                      <Tag color="green">存储值</Tag>
+                    )}
+                    {continueInfo &&
+                      seedPrompt !== (continueInfo.seed_prompt || '') &&
+                      seedPrompt !== (continueInfo.actual_seed_prompt || '') &&
+                      seedPrompt && (
+                        <Tag color="red">已修改</Tag>
+                      )}
+                  </div>
+                  <div>
+                    {continueInfo?.seed_prompt && (
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<RedoOutlined />}
+                        disabled={isFormDisabled}
+                        onClick={() => setSeedPrompt(continueInfo.seed_prompt || '')}
+                      >
+                        切换为初始值
+                      </Button>
+                    )}
+                    {continueInfo?.actual_seed_prompt && (
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<RedoOutlined />}
+                        disabled={isFormDisabled}
+                        onClick={() => setSeedPrompt(continueInfo.actual_seed_prompt || '')}
+                      >
+                        切换为存储值
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <TextArea
                   autoSize={{ minRows: 8 }}
@@ -789,9 +1143,21 @@ function GenChapterByDetailModal({
           ))}
         </Select>
 
-        
-
-        
+        <div className='text-right'>
+        <Space style={{ marginBottom: 16 }}>
+          <Typography.Text type="secondary">
+            将当前角色、阵营、地理、章节提示词、注意事项、前序章节与章节总体风格写入章节元数据
+          </Typography.Text>
+          <Button
+            type="primary"
+            onClick={handleUpdateMetadata}
+            loading={isUpdatingMetadata}
+            disabled={isFormDisabled || !selectedChapter?.id}
+          >
+            更新章节元数据
+          </Button>
+        </Space>
+        </div>
 
         {/* 3. 分段设置：提纲模型选择和生成分段提纲按钮 */}
         <Divider orientation="left">分段设置</Divider>
@@ -877,7 +1243,22 @@ function GenChapterByDetailModal({
         {segmentOutlineList.length > 0 && (
           <Card 
             size="small" 
-            title="分段提纲（请确认后开始续写）"
+            title={
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>分段提纲（请确认后开始续写）</span>
+                <Space size={8}>
+                  <Button
+                    size="small"
+                    type="primary"
+                    onClick={handleSaveSegmentSkeleton}
+                    loading={isSavingSkeletonPrompt}
+                    disabled={isFormDisabled || !selectedChapter?.id}
+                  >
+                    保存分段提示词
+                  </Button>
+                </Space>
+              </div>
+            }
             style={{ display: 'flex', flexDirection: 'column', marginBottom: 16 }}
             bodyStyle={{ flex: 1, overflow: 'auto', padding: '12px' }}
           >
@@ -926,6 +1307,15 @@ function GenChapterByDetailModal({
           >
             使用 MCP 收集设定
           </Checkbox>
+
+          <Checkbox
+            checked={enableCritic}
+            onChange={(e) => setEnableCritic(e.target.checked)}
+            disabled={isFormDisabled}
+          >
+            启用审稿员（多轮文风纠正）
+          </Checkbox>
+
           <Checkbox
             checked={antiLovecraftStyle}
             onChange={(e) => setAntiLovecraftStyle(e.target.checked)}
@@ -975,6 +1365,7 @@ function GenChapterByDetailModal({
           >
             抗套路样板词
           </Checkbox>
+          
         </Space>
 
         <Divider/>
@@ -1000,6 +1391,22 @@ function GenChapterByDetailModal({
           placeholder="叙述视角、文风、节奏等整体风格要求（可选），可点击上方标签快速填入"
           style={{ marginBottom: 8 }}
         />
+        <div className='text-right'>
+          <Space style={{ marginBottom: 16 }}>
+            <Typography.Text type="secondary">
+              将当前角色、阵营、地理、章节提示词、注意事项、前序章节与章节总体风格写入章节元数据
+            </Typography.Text>
+            <Button
+              type="primary"
+              onClick={handleUpdateMetadata}
+              loading={isUpdatingMetadata}
+              disabled={isFormDisabled || !selectedChapter?.id}
+            >
+              更新章节元数据
+            </Button>
+            
+          </Space>
+        </div>
 
         <Divider/>
         
