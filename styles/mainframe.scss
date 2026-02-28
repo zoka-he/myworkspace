@@ -8,6 +8,7 @@ html[data-theme="dark"] {
     --m-outlet-border-1: #1890ff;
     --m-outlet-border-2: #40a9ff;
     --m-outlet-border-3: #69c0ff;
+    --m-outlet-border-color: #393939;
     --m-outlet-grid-color: rgba(64, 169, 255, 0.08);
     --m-outlet-grid-opacity: 1;
 }
@@ -22,6 +23,7 @@ html[data-theme="light"] {
     --m-outlet-border-1: #1890ff;
     --m-outlet-border-2: #40a9ff;
     --m-outlet-border-3: #69c0ff;
+    --m-outlet-border-color: #dddddd;
     --m-outlet-grid-color: rgba(24, 144, 255, 0.05);
     --m-outlet-grid-opacity: 1;
 }
@@ -31,7 +33,7 @@ html[data-theme="light"] {
     &-mainheader {
         padding: 0 24px 0 15px;
         height: 46px;
-        margin-bottom: -12px;
+        // margin-bottom: -12px;
 
         display: flex;
         flex-direction: row;
@@ -115,7 +117,7 @@ html[data-theme="light"] {
 
     &-outlet {
         position: relative;
-        padding: 10px 24px 0;
+        padding: 10px 24px 10px;
         overflow: auto;
         
         // 背景采用渐变色，从上到下
@@ -127,13 +129,14 @@ html[data-theme="light"] {
             );
         
         // 顶部装饰性渐变条
-        border-top: 3px solid transparent;
-        border-image: linear-gradient(
-            90deg,
-            var(--m-outlet-border-1) 0%,
-            var(--m-outlet-border-2) 50%,
-            var(--m-outlet-border-3) 100%
-        ) 1;
+        border-top: 1px solid transparent;
+        border-color: var(--m-outlet-border-color);
+        // border-image: linear-gradient(
+        //     90deg,
+        //     var(--m-outlet-border-1) 0%,
+        //     var(--m-outlet-border-2) 50%,
+        //     var(--m-outlet-border-3) 100%
+        // ) 1;
         
         // 网格纹理效果
         &::before {
@@ -195,33 +198,39 @@ html[data-theme="light"] {
 }
 
 .m-app-header {
-    height: 49px;
-    border-bottom: 3px solid var(--m-outlet-border-1);
-    overflow: hidden;
+    height: 46px;
+    width: auto;
+    // border-bottom: 3px solid var(--m-outlet-border-1);
+    // overflow: hidden;
 
     background-color: var(--m-app-header-background);
+    color: white;
 
-    &_logo {
-        color: white;
-        line-height: 46px;
-        margin: 0;
-    }
+    // &_logo {
+    //     color: white;
+    //     line-height: 46px;
+    //     margin: 0;
+    // }
 
-    &_research {
-        height: 46px;
-        padding: 7px 5px 0;
-    }
+    // &_research {
+    //     height: 46px;
+    //     padding: 7px 5px 0;
+    // }
 
-    &_shifter {
-        transition: all .2s;
-        &.active, &:hover {
-            transform: translateY(-46px);
-        }
-    }
+    // &_shifter {
+    //     transition: all .2s;
+    //     &.active, &:hover {
+    //         transform: translateY(-46px);
+    //     }
+    // }
 }
 
 .ant-layout .ant-layout-sider .ant-layout-sider-children {
     overflow-y: auto;
+}
+
+.app-layout-header {
+    background-color: var(--m-main-header-background);
 }
 
 *, [class*="ant-"], .scrollbar {

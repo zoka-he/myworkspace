@@ -13,6 +13,9 @@ yarn.lock
 /.next/
 /out/
 
+# Tailwind CLI 生成的文件（由 tailwind:build / tailwind:watch 生成）
+/styles/tailwind-generated.css
+
 # production
 /build
 

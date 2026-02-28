@@ -19,6 +19,7 @@ import { setShowAll } from '@/src/store/navigatorSlice';
 import { useSelector, useDispatch } from 'react-redux';
 import { useAppState } from '../utils/hooks/useAppState';
 import AppState from './appState';
+import AppMenu from './appMenu';
 
 const { Sider, Header, Content } = Layout;
 
@@ -191,9 +192,16 @@ function MainFrame(props: IMainFrameProps) {
 
     return (
         <Layout className="f-fit-height">
-            <Sider width={160} theme={themeMode === 'dark' ? 'dark' : 'light'}>
+            <div className='p-0 m-0 flex-full flex-row app-layout-header' style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+                <AppHeader className='px-12' urlMap={urlMap.current} permMap={permMap.current}/>
+                <div className='flex-1'>
+                    <AppMenu />
+                </div>
+                <WorkspaceHeader urlMap={urlMap.current} permMap={permMap.current}/>
+            </div>
+            {/* <Sider width={160} theme={themeMode === 'dark' ? 'dark' : 'light'}>
                 <div className="f-flex-col f-fit-height">
-                    <AppHeader/>
+                    
                     <div className="f-flex-1 f-vertical-scroll">
                         <div style={{ padding: '12px', textAlign: 'center' }}>
                             <Switch checked={showAll} unCheckedChildren="公共" checkedChildren="全部" onChange={e => dispatch(setShowAll(e))} />
@@ -210,12 +218,12 @@ function MainFrame(props: IMainFrameProps) {
                         />
                     </div>
                 </div>
-            </Sider>
+            </Sider> */}
             <Layout>
                 <Content style={{ backgroundColor: 'white' }}>
                     <div className="m-mainframe_context f-fit-height f-flex-col f-bg-white f-vertical-scroll">
-                        <WorkspaceHeader urlMap={urlMap.current} permMap={permMap.current}/>
-                        <div className="m-mainframe_context-outlet f-flex-1" style={{ margin: '12px 0 0' }}>
+                        
+                        <div className="m-mainframe_context-outlet f-flex-1" style={{ margin: '0 0 0' }}>
                             {/* 主界面 */}
                             <Outlet />
                         </div>

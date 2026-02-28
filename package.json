@@ -4,10 +4,14 @@
   "private": true,
   "module": "true",
   "scripts": {
-    "dev": "next dev",
-    "build": "dotenv -e .env.prod -- next build",
-    "build:local": "next build",
+    "dev": "npm run tailwind:build && concurrently \"npm run tailwind:watch\" \"next dev\"",
+    "build": "npm run tailwind:build && dotenv -e .env.prod -- next build",
+    "build:local": "npm run tailwind:build && next build",
+    "tailwind:build": "npx tailwindcss -i ./styles/globals.css -o ./styles/tailwind-generated.css",
+    "tailwind:watch": "npx tailwindcss -i ./styles/globals.css -o ./styles/tailwind-generated.css --watch",
     "start": "next start &",
+    "clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\"",
+    "postinstall": "node scripts/patch-chroma-default-embed.js && npm run tailwind:build",
     "lint": "eslint .",
     "cypress": "cypress run"
   },
@@ -40,6 +44,7 @@
     "amqplib": "^0.10.9",
     "antd": "5.29.0",
     "axios": "^1.3.3",
+    "@chroma-core/default-embed": "^0.1.9",
     "chromadb": "^3.2.2",
     "crypto-js": "^4.1.1",
     "cypress": "^12.17.2",
@@ -93,7 +98,7 @@
     "@types/react-dom": "19.2.3"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.1.18",
+    "@tailwindcss/cli": "^4.1.18",
     "@types/amqplib": "^0.10.8",
     "@types/spark-md5": "^3.0.5",
     "autoprefixer": "^10.4.24",
@@ -101,6 +106,7 @@
     "eslint": "9",
     "eslint-config-next": "16.0.10",
     "ignore-loader": "^0.1.2",
+    "concurrently": "^9.1.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.18"
   }
