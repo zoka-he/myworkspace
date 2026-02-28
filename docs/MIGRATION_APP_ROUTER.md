@@ -12,12 +12,11 @@
 
 访问任意路径（`/`、`/taskManage/dashboard` 等）均由上述页面渲染同一 SPA，行为与迁移前一致。
 
-### 2. API 路由（示例）
+### 2. API 路由（已统一由 app/api 承接）
 
-- **`app/api/web/my-account/initdata/route.ts`**：原 `pages/api/web/my-account/initdata.ts` 的 Route Handler 实现，仅保留 GET，使用 `NextResponse.json()`。
-- 已删除 **`pages/api/web/my-account/initdata.ts`**，避免同一路径被 App Router 与 Pages Router 同时匹配（Next.js 不允许）。
-
-其余 API 仍在 **`pages/api/`** 下，与 App Router 并存，可逐步迁移。
+- **`app/api/[[...path]]/route.ts`**：catch-all，将请求通过 **`src/lib/pagesApiAdapter.ts`** 转为 Pages 的 `req`/`res`，并调用 **`pages/api`** 下对应路径的 handler（路径由 **`src/lib/pagesApiHandlerMap.generated.ts`** 静态映射，由 `npm run generate:api-map` 生成）。因此**路由上**已全部走 app/api，无需逐一手写 Route Handler。
+- **`app/api/web/my-account/initdata/route.ts`**：已单独迁为原生 Route Handler，优先于 catch-all 匹配。
+- **`pages/api/`**：handler 实现仍保留在此目录，**不能删除**；新增/删除 API 后需执行 `npm run generate:api-map`（或依赖 `prebuild`）更新映射。
 
 ### 3. next.config.js
 
@@ -25,20 +24,9 @@
 
 ## 后续可做的迁移
 
-### 迁移更多 API 到 App Router
+### 将单个 API 改为原生 Route Handler（可选）
 
-Pages 写法：
-
-```ts
-// pages/api/web/xxx/yyy.ts
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method === 'GET') {
-    res.status(200).json({ data: '...' });
-  }
-}
-```
-
-对应 App Router 写法：
+若希望某接口不再经 adapter、改为纯 App Router 写法，可新增 `app/api/.../route.ts`，写法示例：
 
 ```ts
 // app/api/web/xxx/yyy/route.ts
@@ -47,21 +35,13 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   return NextResponse.json({ data: '...' });
 }
-
-export async function POST(request: NextRequest) {
-  const body = await request.json();
-  // ...
-  return NextResponse.json({ ... });
-}
 ```
 
-- 路径规则：`pages/api/web/xxx/yyy.ts` → `app/api/web/xxx/yyy/route.ts`。
-- 同一路径下若存在 `app/api/.../route.ts`，会优先于 `pages/api/...` 生效。
+该路径会优先于 catch-all 匹配；之后可删除对应的 `pages/api/...` 文件，并重新运行 `npm run generate:api-map`。
 
-### 何时删除 pages 目录
+### 何时可删除 pages/api
 
-- 当所有页面与 API 均已在 `app/`` 中实现并验证通过后，可删除 `pages/`（或仅保留 `pages/api` 做兼容，再逐步迁完）。
-- 删除前请确认：登录、initdata、各业务 API 与前端路由均已在 App Router 下测试通过。
+- 仅当所有 handler 均已改为 `app/api/.../route.ts` 原生实现，且不再被 `pagesApiHandlerMap.generated.ts` 引用时，方可删除整个 `pages/api` 目录。
 
 ## 本地验证
 

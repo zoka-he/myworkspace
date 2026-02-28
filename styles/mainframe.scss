@@ -69,6 +69,8 @@ html[data-theme="light"] {
             z-index: 1;
         }
 
+        
+
         &-tabs {
             height: 46px;
             flex: 1;
@@ -117,8 +119,8 @@ html[data-theme="light"] {
 
     &-outlet {
         position: relative;
-        padding: 10px 24px 10px;
-        overflow: auto;
+        // padding: 10px 24px 10px;
+        // overflow: auto;
         
         // 背景采用渐变色，从上到下
         background: 
@@ -127,16 +129,7 @@ html[data-theme="light"] {
                 var(--m-main-context-outlet-background) 0%,
                 var(--m-outlet-gradient-end) 100%
             );
-        
-        // 顶部装饰性渐变条
-        border-top: 1px solid transparent;
-        border-color: var(--m-outlet-border-color);
-        // border-image: linear-gradient(
-        //     90deg,
-        //     var(--m-outlet-border-1) 0%,
-        //     var(--m-outlet-border-2) 50%,
-        //     var(--m-outlet-border-3) 100%
-        // ) 1;
+    
         
         // 网格纹理效果
         &::before {
@@ -200,29 +193,9 @@ html[data-theme="light"] {
 .m-app-header {
     height: 46px;
     width: auto;
-    // border-bottom: 3px solid var(--m-outlet-border-1);
-    // overflow: hidden;
 
     background-color: var(--m-app-header-background);
     color: white;
-
-    // &_logo {
-    //     color: white;
-    //     line-height: 46px;
-    //     margin: 0;
-    // }
-
-    // &_research {
-    //     height: 46px;
-    //     padding: 7px 5px 0;
-    // }
-
-    // &_shifter {
-    //     transition: all .2s;
-    //     &.active, &:hover {
-    //         transform: translateY(-46px);
-    //     }
-    // }
 }
 
 .ant-layout .ant-layout-sider .ant-layout-sider-children {
@@ -231,6 +204,10 @@ html[data-theme="light"] {
 
 .app-layout-header {
     background-color: var(--m-main-header-background);
+
+    // 底部装饰性渐变条
+    border-bottom: 1px solid transparent;
+    border-color: var(--m-outlet-border-color);
 }
 
 *, [class*="ant-"], .scrollbar {

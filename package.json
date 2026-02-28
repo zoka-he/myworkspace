@@ -12,6 +12,8 @@
     "start": "next start &",
     "clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\"",
     "postinstall": "(test -f scripts/patch-chroma-default-embed.js && node scripts/patch-chroma-default-embed.js) || true; (test -f styles/globals.css && npm run tailwind:build) || true",
+    "generate:api-map": "node scripts/generate-pages-api-map.js",
+    "prebuild": "npm run generate:api-map",
     "lint": "eslint .",
     "cypress": "cypress run"
   },

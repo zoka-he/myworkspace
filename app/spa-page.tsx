@@ -123,7 +123,7 @@ function ThemedApp() {
 export default function AppPageContent() {
   return (
     <>
-      <main className="f-full-screen">
+      <main className="">
         <Provider store={store}>
           <ThemedApp />
         </Provider>

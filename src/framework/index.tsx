@@ -191,51 +191,29 @@ function MainFrame(props: IMainFrameProps) {
     // console.debug('menu -->', menu);
 
     return (
-        <Layout className="f-fit-height">
-            <div className='p-0 m-0 flex-full flex-row app-layout-header' style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+        <div className="min-h-screen">
+
+            <div className='p-0 m-0 flex flex-row app-layout-header fixed top-0 left-0 right-0 z-10'>
                 <AppHeader className='px-12' urlMap={urlMap.current} permMap={permMap.current}/>
                 <div className='flex-1'>
                     <AppMenu />
                 </div>
                 <WorkspaceHeader urlMap={urlMap.current} permMap={permMap.current}/>
             </div>
-            {/* <Sider width={160} theme={themeMode === 'dark' ? 'dark' : 'light'}>
-                <div className="f-flex-col f-fit-height">
-                    
-                    <div className="f-flex-1 f-vertical-scroll">
-                        <div style={{ padding: '12px', textAlign: 'center' }}>
-                            <Switch checked={showAll} unCheckedChildren="公共" checkedChildren="全部" onChange={e => dispatch(setShowAll(e))} />
-                        </div>
-                        <Menu
-                            className="f-flex-1"
-                            theme={themeMode === 'dark' ? 'dark' : 'light'}
-                            mode="inline"
-                            inlineIndent={16}
-                            items={(menu as ItemType[])}
-                            onClick={e => onMenuClick(e)}
-                            openKeys={openKeys}
-                            onOpenChange={onOpenChange}
-                        />
-                    </div>
-                </div>
-            </Sider> */}
-            <Layout>
-                <Content style={{ backgroundColor: 'white' }}>
-                    <div className="m-mainframe_context f-fit-height f-flex-col f-bg-white f-vertical-scroll">
-                        
-                        <div className="m-mainframe_context-outlet f-flex-1" style={{ margin: '0 0 0' }}>
-                            {/* 主界面 */}
-                            <Outlet />
-                        </div>
-                    </div>
-                </Content>
-            </Layout>
+
+            <div className="m-mainframe_context-outlet min-h-screen z-0 pt-15 px-6 pb-6">
+                {/* 主界面 */}
+                <Outlet />
+            </div>
+
+            
+
             <FloatButton.BackTop />
 
             <Drawer title="状态" open={drawerVisible} onClose={() => toggleDrawerVisible()} width={500}>
                 <AppState />
             </Drawer>
-        </Layout>
+        </div>
     );
 };
 
