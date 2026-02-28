@@ -1,6 +1,6 @@
 html[data-theme="dark"] {
     --m-app-header-background: rgb(34, 71, 134);
-    --m-main-header-background: rgb(30, 30, 30);
+    --m-main-header-background: rgba(30, 30, 30, 0.72);
     --m-main-header-glass: rgba(30, 30, 30, 0.72);
     --m-main-context-outlet-background: rgb(40, 40, 40);
     --m-outlet-gradient-end: rgb(54, 54, 54);
@@ -16,7 +16,7 @@ html[data-theme="dark"] {
 
 html[data-theme="light"] {
     --m-app-header-background: #1890ff;
-    --m-main-header-background: white;
+    --m-main-header-background: rgba(255, 255, 255, 0.72);
     --m-main-header-glass: rgba(255, 255, 255, 0.72);
     --m-main-context-outlet-background: rgb(245, 247, 250);
     --m-outlet-gradient-end: rgb(238, 242, 246);
@@ -31,6 +31,32 @@ html[data-theme="light"] {
 }
 
 @layer components {
+
+    .ant-layout .ant-layout-sider .ant-layout-sider-children {
+        overflow-y: auto;
+    }
+
+    /* 毛玻璃背景由 AntdModalDrawerBlurStyles 运行时注入；此处只保留边框等 */
+    .app-layout-header {
+        border-bottom: 1px solid transparent;
+        border-color: var(--m-outlet-border-color);
+    }
+
+    .m-app-header {
+        height: 47px;
+        width: auto;
+        margin-bottom: -1px;
+
+        background-color: var(--m-app-header-background);
+        color: white;
+    }
+
+    // 提高优先级以覆盖 antd 的 .ant-menu-dark 背景（:where(.css-dev-only...).ant-menu-dark）
+    .ant-menu-dark.ant-menu-root, .ant-menu-light.ant-menu-root {
+        background-color: transparent !important;
+        border-bottom: none !important;
+    }
+
     .m-mainframe_context {
 
         &-mainheader {
@@ -43,7 +69,7 @@ html[data-theme="light"] {
             justify-content: space-between;
             align-items: center;
 
-            background-color: var(--m-main-header-background);
+            // background-color: var(--m-main-header-background);
             position: relative;
             overflow: hidden;
 
@@ -70,52 +96,6 @@ html[data-theme="light"] {
             > * {
                 position: relative;
                 z-index: 1;
-            }
-
-            
-
-            &-tabs {
-                height: 46px;
-                flex: 1;
-                overflow: hidden;
-
-                &-shifter {
-                    transition: all .2s;
-                    &:hover {
-                        transform: translateY(-46px);
-                    }
-                }
-
-                &-group {
-                    height: 46px;
-                    display: flex;
-                    flex-direction: row;
-                    align-items: center;
-                }
-
-                &-tab {
-                    padding: 6px 10px 6px 10px;
-                    cursor: pointer;
-                    transition: all .2s;
-
-                    &:hover {
-                        transform: translateY(-2px);
-                        box-shadow: 0 3px 5px rgba(0, 0, 0, .3);
-                    }
-                    
-                    .ant-tag-close-icon {
-                        margin-inline-start: 10px;
-                    }
-                }
-            }
-
-            &-breadcrumb {
-                line-height: 46px;
-                height: 46px;
-
-                .ant-breadcrumb {
-                    line-height: 46px;
-                }
             }
         }
         
@@ -193,27 +173,7 @@ html[data-theme="light"] {
         }
     }
 
-    .m-app-header {
-        height: 46px;
-        width: auto;
-
-        background-color: var(--m-app-header-background);
-        color: white;
-    }
-
-    .ant-layout .ant-layout-sider .ant-layout-sider-children {
-        overflow-y: auto;
-    }
-
-    .app-layout-header {
-        background-color: var(--m-main-header-glass);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-
-        // 底部装饰性渐变条
-        border-bottom: 1px solid transparent;
-        border-color: var(--m-outlet-border-color);
-    }
+    
 }
 
 *, [class*="ant-"], .scrollbar {

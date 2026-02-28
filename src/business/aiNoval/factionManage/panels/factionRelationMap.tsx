@@ -511,6 +511,6 @@ export function EChartsFactionView({ factions, factionRelations }: D3FactionView
   }
 
   return (
-    <div ref={divRef} className="w-full h-full"></div>
+    <div ref={divRef} style={{ width: '100%', height: 'calc(100vh - 180px)' }}></div>
   )
 }

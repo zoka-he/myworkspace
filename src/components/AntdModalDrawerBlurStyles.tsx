@@ -3,6 +3,12 @@
 import { useEffect } from 'react';
 
 const BLUR_STYLES = `
+/* 主框架顶部栏毛玻璃：运行时注入 + !important，避免被 @layer 或其它样式覆盖，backdrop 才能正确生效 */
+body .app-layout-header {
+  background: var(--m-main-header-glass) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
 body .ant-modal-root {
   position: fixed !important;
   inset: 0 !important;

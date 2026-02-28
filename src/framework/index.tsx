@@ -1,6 +1,7 @@
 import { Breadcrumb, Layout, Menu, FloatButton, Button, Space, Switch, MenuTheme, Drawer } from 'antd';
 import { connect } from 'react-redux';
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import type { IRootState } from '../store';
 import store from '../store';
@@ -39,10 +40,19 @@ interface IMainFrameProps {
     showAll: boolean
 }
 
+const HEADER_BLUR_STYLE: React.CSSProperties = {
+    background: 'var(--m-main-header-glass)',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
+};
+
 function MainFrame(props: IMainFrameProps) {
     const dispatch = useDispatch();
     const showAll = useSelector((state: IRootState) => state.navigatorSlice.showAll);
     const themeMode = useSelector((state: IRootState) => state.themeSlice.themeConfig.algorithm);
+    const [headerMounted, setHeaderMounted] = useState(false);
+
+    useEffect(() => setHeaderMounted(true), []);
 
     let location = useLocation();
     let navigate = useNavigate();
@@ -190,21 +200,31 @@ function MainFrame(props: IMainFrameProps) {
 
     // console.debug('menu -->', menu);
 
-    return (
-        <div className="min-h-screen">
-
-            <div className='p-0 m-0 flex flex-row app-layout-header fixed top-0 left-0 right-0 z-10'>
-                <AppHeader className='px-12' urlMap={urlMap.current} permMap={permMap.current}/>
-                <div className='flex-1'>
-                    <AppMenu />
-                </div>
-                <WorkspaceHeader urlMap={urlMap.current} permMap={permMap.current}/>
+    const headerNode = (
+        <div
+            id="m-mainframe-header"
+            className="p-0 m-0 flex flex-row app-layout-header fixed top-0 left-0 right-0 z-10"
+            style={HEADER_BLUR_STYLE}
+        >
+            <AppHeader className='px-12' urlMap={urlMap.current} permMap={permMap.current}/>
+            <div className='flex-1'>
+                <AppMenu />
             </div>
+            <WorkspaceHeader urlMap={urlMap.current} permMap={permMap.current}/>
+        </div>
+    );
+
+    return (
+        <div className="min-h-screen m-mainframe-root">
+            {/* 挂载后 Portal 到 body 以正确应用 backdrop；未挂载时保留在树内避免首屏无顶栏 */}
+            {headerMounted ? createPortal(headerNode, document.body) : headerNode}
 
             <div className="m-mainframe_context-outlet min-h-screen z-0 pt-15 px-6 pb-6">
                 {/* 主界面 */}
                 <Outlet />
             </div>
+
+            
 
             
 
