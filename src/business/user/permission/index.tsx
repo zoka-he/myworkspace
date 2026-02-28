@@ -198,6 +198,20 @@ export default function() {
         }
     }
 
+    async function toggleRowEnable(row: IPermission) {
+        let { ID, is_enable } = row;
+        let newIsEnable = is_enable === 'Y' ? 'N' : 'Y';
+        try {
+            await fetch.post('/api/user/permission', { ID, is_enable: newIsEnable }, { params: { ID } });
+            message.success('已更新启用状态"' + row.label + '"');
+        } catch(e: any) {
+            console.error(e);
+            message.error(e.message);
+        } finally {
+            onQuery();
+        }
+    }
+
     async function toggleRowSecret(row: IPermission) {
         let { ID, is_secret } = row;
 
@@ -260,6 +274,12 @@ export default function() {
                 <Table.Column title="类型" dataIndex="type" width={100}></Table.Column>
                 <Table.Column title="URI" dataIndex="uri"></Table.Column>
                 <Table.Column title="URL" dataIndex="url"></Table.Column>
+                <Table.Column title="启用状态" dataIndex="is_enable" width={100} render={(is_enable: 'Y' | 'N', row: IPermission) => {
+                        return (
+                            <Switch checked={is_enable === 'Y'} onChange={() => toggleRowEnable(row)}/>
+                        )
+                    }}
+                />
                 <Table.Column title="是否私密" dataIndex="is_secret" width={100} render={(is_secret: string, row: IPermission) => {
                         return (
                             <Switch checked={is_secret === 'Y'} onChange={() => toggleRowSecret(row)}/>

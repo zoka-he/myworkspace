@@ -37,6 +37,10 @@ function AppMenu(props: IAppMenuProps) {
             let menu2:any[] = [];
 
             menu.forEach(item => {
+                if (item.is_enable === 'N') {
+                    return;
+                }
+
                 if (item.is_secret === 'Y' && !props.showAll) {
                     return;
                 }
