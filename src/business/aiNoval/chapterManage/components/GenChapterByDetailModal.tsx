@@ -1165,7 +1165,7 @@ function GenChapterByDetailModal({
 
         {/* 3. 分段设置：提纲模型选择和生成分段提纲按钮 */}
         <Divider orientation="left">分段设置</Divider>
-        <Space>
+        <Space style={{ marginBottom: 16 }}>
           <Typography.Text>每段字数：</Typography.Text>
           <InputNumber
             min={300}
