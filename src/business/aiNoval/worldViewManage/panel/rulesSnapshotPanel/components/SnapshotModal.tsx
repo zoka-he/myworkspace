@@ -1,4 +1,5 @@
-import { Modal, Form, Input, message } from 'antd';
+import { Modal, Form, Input } from 'antd';import { message } from '@/src/utils/antdAppMessage';
+
 import { createOrUpdateWorldRuleSnapshot } from '@/src/api/aiNovel';
 import { ISnapshotData, ISnapshotConfig } from '../types';
 

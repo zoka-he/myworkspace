@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Button, Card, Space, Typography, Alert, Spin, message, Tag, Divider, Descriptions, Select, Modal } from 'antd';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';import { message } from '@/src/utils/antdAppMessage';
+
+import { Button, Card, Space, Typography, Alert, Spin, Tag, Divider, Descriptions, Select, Modal } from 'antd';
 import { 
   WalletOutlined, 
   DisconnectOutlined, 

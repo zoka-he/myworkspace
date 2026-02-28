@@ -1,4 +1,5 @@
-import {Button, Space, Input, message, Divider, GetRef, Row, Col} from 'antd';
+import { Button, Space, Input, Divider, GetRef, Row, Col } from 'antd';import { message } from '@/src/utils/antdAppMessage';
+
 import { useState } from 'react';
 import { TextAreaRef } from 'antd/es/input/TextArea';
 

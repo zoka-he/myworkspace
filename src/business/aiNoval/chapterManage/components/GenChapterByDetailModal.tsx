@@ -1,23 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react'
-import {
-  Modal,
-  Button,
-  Space,
-  Row,
-  Col,
-  Divider,
-  Checkbox,
-  InputNumber,
-  Select,
-  Tag,
-  Typography,
-  Card,
-  Alert,
-  List,
-  Input,
-  Spin,
-  message,
-} from 'antd'
+import React, { useState, useEffect, useRef } from 'react'import { message } from '@/src/utils/antdAppMessage';
+
+import { Modal, Button, Space, Row, Col, Divider, Checkbox, InputNumber, Select, Tag, Typography, Card, Alert, List, Input, Spin } from 'antd'
 import {
   RobotOutlined,
   CopyOutlined,

@@ -1,4 +1,5 @@
-import { Input, Space, Button, message, InputNumber, Modal, Spin, FloatButton, Radio, Switch, DatePicker } from 'antd';
+import { Input, Space, Button, InputNumber, Modal, Spin, FloatButton, Radio, Switch, DatePicker } from 'antd';import { message } from '@/src/utils/antdAppMessage';
+
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import qs from 'querystring';

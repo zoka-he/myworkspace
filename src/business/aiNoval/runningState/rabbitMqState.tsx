@@ -1,4 +1,5 @@
-import { Button, Descriptions, Divider, Space, Table, Tag, Typography, message } from 'antd';
+import { Button, Descriptions, Divider, Space, Table, Tag, Typography } from 'antd';import { message } from '@/src/utils/antdAppMessage';
+
 import { useState, useEffect } from 'react';
 import { useMQ } from '@/src/components/context/aiNovel';
 import { fetchMqMessages } from '@/src/api/rabbitMq';

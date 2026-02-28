@@ -1,7 +1,8 @@
-import { Card, Input, Space, Button, Modal, message, Descriptions, Tag } from 'antd';
+import { Card, Input, Space, Button, Modal, Descriptions, Tag } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
 import PlanEditor from './planEditor';
-import fetch from '@/src/fetch';
+import fetch from '@/src/fetch';import { message } from '@/src/utils/antdAppMessage';
+
 import { EditOutlined, CarOutlined, CloseOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import parseDayDetail from '../roadBookEditor/parseDayDetail';

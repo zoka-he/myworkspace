@@ -1,4 +1,5 @@
-import { Row, Col, Card, Space, Button, Select, List, Modal, message, Alert, Table, Typography, Radio, Tree, TreeProps, TreeDataNode, Tag, notification } from "antd";
+import { Row, Col, Card, Space, Button, Select, List, Modal, Alert, Table, Typography, Radio, Tree, TreeProps, TreeDataNode, Tag } from "antd";import { message, notification } from '@/src/utils/antdAppMessage';
+
 import { useEffect, useState, useRef, useMemo, ReactNode } from "react";
 import { getWorldViews } from "../common/worldViewUtil";
 import { IRoleData, IWorldViewData, IRoleInfo } from "@/src/types/IAiNoval";

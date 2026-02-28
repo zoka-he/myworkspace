@@ -1,6 +1,6 @@
 import React from 'react';
-import { message } from 'antd';
-import DefaultFallbackUI from './defaultFallbackUI';
+import DefaultFallbackUI from './defaultFallbackUI';import { message } from '@/src/utils/antdAppMessage';
+
 import { IFallbackUI, IErrorFallbackProps } from '.';
 
 interface ErrorFallbackProps {

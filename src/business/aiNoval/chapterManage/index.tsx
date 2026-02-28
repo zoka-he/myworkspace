@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
-import { Card, Select, Space, Row, Col, Typography, Button, Input, message, Modal, Form, Radio, Tag, Pagination, Tooltip } from 'antd'
+import { useState, useEffect } from 'react'import { message } from '@/src/utils/antdAppMessage';
+
+import { Card, Select, Space, Row, Col, Typography, Button, Input, Modal, Form, Radio, Tag, Pagination, Tooltip } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined, WarningOutlined } from '@ant-design/icons'
 import { IChapter } from '@/src/types/IAiNoval'
 import { ExtendedNovelData } from './types'

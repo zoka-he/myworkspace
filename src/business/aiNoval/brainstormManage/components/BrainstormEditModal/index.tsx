@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { Modal, Form, Button, message, theme } from 'antd';
+import React, { useEffect, useState } from 'react';import { message } from '@/src/utils/antdAppMessage';
+
+import { Modal, Form, Button, theme } from 'antd';
 import { IBrainstorm } from '@/src/types/IAiNoval';
 import { useWorldviewId, useBrainstormList } from '../../BrainstormManageContext';
 import apiCalls from '../../apiCalls';

@@ -1,4 +1,5 @@
-import { createContext, useContext, useCallback, useMemo, useState, ReactNode } from 'react';
+import { createContext, useContext, useCallback, useMemo, useState, ReactNode } from 'react';import { message } from '@/src/utils/antdAppMessage';
+
 import { IWorldBookGroup, IWorldBookItem } from './types';
 import { 
     getWorldRuleGroupList, 
@@ -8,8 +9,6 @@ import {
     createOrUpdateWorldRuleItem,
     deleteWorldRuleItem
 } from '@/src/api/aiNovel';
-import { message } from 'antd';
-
 interface WorldRuleContextState {
     groups: IWorldBookGroup[];
     items: IWorldBookItem[];

@@ -1,4 +1,5 @@
-import { Divider, Input, Button, Space, message } from "antd";
+import { Divider, Input, Button, Space } from "antd";import { message } from '@/src/utils/antdAppMessage';
+
 import { useState } from "react";
 import fetch from '@/src/fetch';
 import NodeRSA from "node-rsa";

@@ -22,6 +22,7 @@ import MQHolder from '@/src/components/context/aiNovel/mqHolder';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import NoticeConsumer from '@/src/components/mq/noticeConsumer';
 import AntdModalDrawerBlurStyles from '@/src/components/AntdModalDrawerBlurStyles';
+import { AntdAppMessageBridge } from '@/src/utils/antdAppMessage';
 import mysqlConfig from '@/src/config/mysql';
 
 const queryClient = new QueryClient();
@@ -114,6 +115,7 @@ function ThemedApp() {
     >
       <AntdModalDrawerBlurStyles />
       <AntdApp>
+        <AntdAppMessageBridge />
         <StyleProvider hashPriority="low">
           <AppCore />
         </StyleProvider>

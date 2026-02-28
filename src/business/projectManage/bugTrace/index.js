@@ -1,5 +1,6 @@
-import React, {useEffect, useRef, useState} from "react";
-import {Input, Button, Table, Space, message} from "antd";
+import React, {useEffect, useRef, useState} from "react";import { message } from '@/src/utils/antdAppMessage';
+
+import { Input, Button, Table, Space } from "antd";
 import {ExclamationCircleFilled, SearchOutlined} from "@ant-design/icons";
 import BugEditor from './bugEditor';
 // import BugService from "./bugService";

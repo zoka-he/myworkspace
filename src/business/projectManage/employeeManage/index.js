@@ -1,9 +1,9 @@
-import React, {useEffect, useRef, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";import { message } from '@/src/utils/antdAppMessage';
+
 import {Button, Input, Space, Spin, Table} from "antd";
 import {ExclamationCircleFilled} from "@ant-design/icons";
 import moment from "moment";
 import EmployeeEditor from "./employeeEditor";
-import {message} from "antd";
 import _ from 'lodash';
 import confirm from "antd/es/modal/confirm";
 import fetch from '@/src/fetch';

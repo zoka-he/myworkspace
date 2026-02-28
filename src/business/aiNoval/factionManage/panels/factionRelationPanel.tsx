@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
-import { List, Button, Modal, Form, Input, Select, message, Tag, Empty, Typography, Col, Row, TreeSelect } from 'antd'
+import { useState, useEffect } from 'react'import { message } from '@/src/utils/antdAppMessage';
+
+import { List, Button, Modal, Form, Input, Select, Tag, Empty, Typography, Col, Row, TreeSelect } from 'antd'
 import { IFactionDefData, IWorldViewData, IFactionRelation } from '@/src/types/IAiNoval'
 import styles from './factionRelationPanel.module.scss'
 import apiCalls from '../apiCalls'

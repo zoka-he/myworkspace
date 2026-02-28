@@ -1,5 +1,6 @@
-import React from "react";
-import {Form, Modal, Input, Button, message, Radio, FormInstance} from "antd";
+import React from "react";import { message } from '@/src/utils/antdAppMessage';
+
+import { Form, Modal, Input, Button, Radio, FormInstance } from "antd";
 import _, { update } from 'lodash';
 // import InteractService from "./interactService";
 import moment from "moment";

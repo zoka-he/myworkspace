@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Card, Select, Button, Space, Typography, Tag, message, Modal, Form, Input, InputNumber, Descriptions, Divider } from 'antd';
+import React, { useState, useEffect, useMemo } from 'react';import { message } from '@/src/utils/antdAppMessage';
+
+import { Card, Select, Button, Space, Typography, Tag, Modal, Form, Input, InputNumber, Descriptions, Divider } from 'antd';
 import { 
   GlobalOutlined, 
   PlusOutlined, 

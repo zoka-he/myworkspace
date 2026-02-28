@@ -1,8 +1,9 @@
 'use client'
+import { message } from '@/src/utils/antdAppMessage';
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as d3 from 'd3'
-import { message, Typography } from 'antd'
+import { Typography } from 'antd'
 import apiCalls from '../apiCalls';
 import styles from './factionRelationPanel.module.scss';
 import * as echarts from 'echarts';

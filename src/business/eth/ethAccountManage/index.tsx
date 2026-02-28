@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import fetch from '@/src/fetch';
-import { Button, Input, Space, Table, message, Tag, Modal, Form, InputNumber, Select, Card, Row, Col, Statistic, Alert } from 'antd';
+import fetch from '@/src/fetch';import { message } from '@/src/utils/antdAppMessage';
+
+import { Button, Input, Space, Table, Tag, Modal, Form, InputNumber, Select, Card, Row, Col, Statistic, Alert } from 'antd';
 import { ExclamationCircleFilled, CopyOutlined, PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, WalletOutlined, DollarOutlined, ReloadOutlined, KeyOutlined } from '@ant-design/icons';
 import { ethers } from 'ethers';
 import confirm from "antd/es/modal/confirm";

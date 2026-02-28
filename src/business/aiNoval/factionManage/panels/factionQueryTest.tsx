@@ -1,4 +1,5 @@
-import { Button, Input, InputNumber, Tag, Alert, Card, Space, Typography, Descriptions, message } from "antd";
+import { Button, Input, InputNumber, Tag, Alert, Card, Space, Typography, Descriptions } from "antd";import { message } from '@/src/utils/antdAppMessage';
+
 import { SearchOutlined, ClearOutlined } from "@ant-design/icons";
 import { useEffect, useState } from "react";
 import { useCurrentFaction, useWorldViewId } from "../FactionManageContext";

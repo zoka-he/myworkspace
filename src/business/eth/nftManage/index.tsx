@@ -1,11 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import fetch from '@/src/fetch';
-import { 
-    Button, Input, Space, Table, message, Tag, Modal, Form, 
-    Select, Card, Row, Col, Statistic, Upload, Tabs, 
-    Typography, Spin, Tooltip, Badge, Alert, InputNumber,
-    Image, Divider, Checkbox
-} from 'antd';
+import fetch from '@/src/fetch';import { message } from '@/src/utils/antdAppMessage';
+
+import { Button, Input, Space, Table, Tag, Modal, Form, Select, Card, Row, Col, Statistic, Upload, Tabs, Typography, Spin, Tooltip, Badge, Alert, InputNumber, Image, Divider, Checkbox } from 'antd';
 import { 
     ExclamationCircleFilled, CopyOutlined, PlusOutlined, 
     EditOutlined, DeleteOutlined, EyeOutlined, RocketOutlined,

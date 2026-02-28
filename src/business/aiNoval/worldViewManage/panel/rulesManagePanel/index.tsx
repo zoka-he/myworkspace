@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Row, Col, message } from 'antd';
+import { useState, useEffect } from 'react';import { message } from '@/src/utils/antdAppMessage';
+
+import { Row, Col } from 'antd';
 import { useWorldViewData } from '../../worldviewManageContext';
 import { WorldRuleContextProvider, useWorldRule } from './worldRuleContext';
 import GroupTree from './components/GroupTree';

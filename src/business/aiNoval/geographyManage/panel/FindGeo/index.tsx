@@ -1,4 +1,5 @@
-import { Card, Space, Button, Input, InputNumber, Tag, Typography, Descriptions, Alert, message } from "antd";
+import { Card, Space, Button, Input, InputNumber, Tag, Typography, Descriptions, Alert } from "antd";import { message } from '@/src/utils/antdAppMessage';
+
 import { useState } from "react";
 import { IGeoUnionData } from "@/src/types/IAiNoval";
 import { SearchOutlined, ClearOutlined, ExclamationCircleOutlined, GlobalOutlined, EnvironmentOutlined, RocketOutlined } from "@ant-design/icons";

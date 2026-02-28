@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Card, Table, Button, Space, message, Modal, Form, Input, Popconfirm } from 'antd';
+import { useEffect, useState } from 'react';import { message } from '@/src/utils/antdAppMessage';
+
+import { Card, Table, Button, Space, Modal, Form, Input, Popconfirm } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, HistoryOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useMagicSystemManage } from '../context';
 import fetch from '@/src/fetch';

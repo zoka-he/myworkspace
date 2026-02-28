@@ -1,5 +1,6 @@
-import React from "react";
-import {Form, Modal, Input, Select, Button, message, DatePicker, FormInstance, Row, Col} from "antd";
+import React from "react";import { message } from '@/src/utils/antdAppMessage';
+
+import { Form, Modal, Input, Select, Button, DatePicker, FormInstance, Row, Col } from "antd";
 import _ from 'lodash';
 // import TaskService from "../taskManage/taskService";
 import moment from "moment";

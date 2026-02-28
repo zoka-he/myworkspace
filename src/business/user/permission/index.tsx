@@ -1,4 +1,5 @@
-import { Button, Input, Space, Table, message, Modal, Switch } from "antd";
+import { Button, Input, Space, Table, Modal, Switch } from "antd";import { message } from '@/src/utils/antdAppMessage';
+
 import { useEffect, useRef, useState } from "react";
 import AppendNodeModal from "./appendNodeModal";
 import fetch from '@/src/fetch';

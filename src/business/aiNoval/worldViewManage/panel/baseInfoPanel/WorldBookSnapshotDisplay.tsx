@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Select, Typography, Space, Empty, Spin, Button, message } from 'antd';
+import { useState, useEffect, useCallback } from 'react';import { message } from '@/src/utils/antdAppMessage';
+
+import { Select, Typography, Space, Empty, Spin, Button } from 'antd';
 import { BookOutlined, SaveOutlined } from '@ant-design/icons';
 import { getWorldRuleSnapshotList } from '@/src/api/aiNovel';
 import { IWorldRuleSnapshot } from '@/src/types/IAiNoval';

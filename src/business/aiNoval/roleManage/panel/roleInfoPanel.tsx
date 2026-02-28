@@ -2,8 +2,9 @@
  * 角色信息面板组件
  * 用于显示和管理AI小说角色的详细信息、版本管理和Dify文档集成
  */
+import { message } from '@/src/utils/antdAppMessage';
 
-import { Card, Select, Button, Space, Typography, Descriptions, Dropdown, Alert, MenuProps, Modal, Divider, Row, Col, Radio, Pagination, message, Input, Form, Tag } from 'antd'
+import { Card, Select, Button, Space, Typography, Descriptions, Dropdown, Alert, MenuProps, Modal, Divider, Row, Col, Radio, Pagination, Input, Form, Tag } from 'antd'
 import { PlusOutlined, DownOutlined, EditOutlined, DeleteOutlined, SafetyCertificateFilled, SearchOutlined, CopyOutlined, RetweetOutlined } from '@ant-design/icons'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { IRoleData, IRoleInfo, IWorldViewData, IFactionDefData } from '@/src/types/IAiNoval'

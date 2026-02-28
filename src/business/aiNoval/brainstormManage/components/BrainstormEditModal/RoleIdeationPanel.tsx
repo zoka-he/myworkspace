@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Button, Card, Checkbox, Input, Select, Space, theme, message, Collapse } from 'antd';
+import React, { useState } from 'react';import { message } from '@/src/utils/antdAppMessage';
+
+import { Button, Card, Checkbox, Input, Select, Space, theme, Collapse } from 'antd';
 import { ReloadOutlined, UserOutlined, FormOutlined, PlusOutlined } from '@ant-design/icons';
 import { IBrainstorm, IRoleSeed, IRoleDraft } from '@/src/types/IAiNoval';
 import apiCalls from '../../apiCalls';

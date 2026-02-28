@@ -1,5 +1,6 @@
-import { useEffect } from "react";
-import { Button, Form, Input, message, Space } from "antd";
+import { useEffect } from "react";import { message } from '@/src/utils/antdAppMessage';
+
+import { Button, Form, Input, Space } from "antd";
 import fetch from '@/src/fetch';
 
 // 配置字段定义：统一管理字段名、标签和组件类型

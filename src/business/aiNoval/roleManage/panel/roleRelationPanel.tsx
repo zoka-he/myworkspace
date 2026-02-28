@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Card, List, Button, message, Space, Modal, Form, Input, Select, Slider, DatePicker, Tag, Typography, Radio, Row, Col } from 'antd'
+import { useCallback, useEffect, useMemo, useState } from 'react'import { message } from '@/src/utils/antdAppMessage';
+
+import { Card, List, Button, Space, Modal, Form, Input, Select, Slider, DatePicker, Tag, Typography, Radio, Row, Col } from 'antd'
 import { PlusOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { IRoleData, IWorldViewData, IRoleRelation, RELATION_TYPES } from '@/src/types/IAiNoval'
