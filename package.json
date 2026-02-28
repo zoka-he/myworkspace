@@ -11,7 +11,7 @@
     "tailwind:watch": "npx tailwindcss -i ./styles/globals.css -o ./styles/tailwind-generated.css --watch",
     "start": "next start &",
     "clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\"",
-    "postinstall": "node scripts/patch-chroma-default-embed.js && npm run tailwind:build",
+    "postinstall": "(test -f scripts/patch-chroma-default-embed.js && node scripts/patch-chroma-default-embed.js) || true; (test -f styles/globals.css && npm run tailwind:build) || true",
     "lint": "eslint .",
     "cypress": "cypress run"
   },
