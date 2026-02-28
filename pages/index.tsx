@@ -118,9 +118,10 @@ function AntdApp() {
     }, [themeConfig.name]);
 
     return (
-        <ConfigProvider 
+        <ConfigProvider
             locale={zhCN}
             theme={{
+                cssVar: true,
                 algorithm: getAlgorithm(themeConfig.algorithm),
                 token: themeConfig.token,
             }}
