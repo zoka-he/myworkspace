@@ -77,6 +77,8 @@ export interface GenChapterSegmentMultiTurnInput {
   anti_cliche_phrase_style?: boolean;
   /** 是否启用审稿员（多轮文风纠正），默认关闭 */
   enable_critic?: boolean;
+  /** 审稿员最多审核次数，默认 5 */
+  critic_max_rounds?: number;
 }
 
 interface Data {
@@ -264,6 +266,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     anti_enum_reactions_style = true,
     anti_cliche_phrase_style = true,
     enable_critic = false,
+    critic_max_rounds = 5,
   } = body || {};
 
   const attensionText = attension || attention;
@@ -327,10 +330,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     const response = await chain.invoke({});
     let output = (response.content as string) || "";
 
-    // 非首轮时：多轮续写专用审稿员（最多 5 轮）纠正常见文风问题，仅保留终稿用于 history
+    // 非首轮且启用审稿员时：多轮续写专用审稿员纠正常见文风问题，仅保留终稿用于 history
     const effectiveLlmType = (llm_type || "deepseek-chat").toLowerCase();
-    const maxRewrites = 5;
-    if (!is_first_turn && output.trim()) {
+    const maxRewrites = Math.max(1, Math.min(10, Number(critic_max_rounds) || 5));
+    if (!is_first_turn && enable_critic && output.trim()) {
       for (let rewriteCount = 0; rewriteCount < maxRewrites; rewriteCount++) {
         const criticInput = buildCriticUserInput(output, prev_content || "", segment_outline);
         const criticResponse = await callLLM(

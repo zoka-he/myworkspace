@@ -110,6 +110,8 @@ function GenChapterByDetailModal({
   const [antiClichePhraseStyle, setAntiClichePhraseStyle] = useState(true)
   /** 是否启用审稿员（多轮文风纠正），默认关闭 */
   const [enableCritic, setEnableCritic] = useState(false)
+  /** 审稿员最多审核次数，默认 5 */
+  const [criticMaxRounds, setCriticMaxRounds] = useState(5)
 
   // 流程与回显（PRD 3.2）
   const [phase, setPhase] = useState<Phase>('idle')
@@ -448,6 +450,7 @@ function GenChapterByDetailModal({
           anti_enum_reactions_style: antiEnumReactionsStyle,
           anti_cliche_phrase_style: antiClichePhraseStyle,
           enable_critic: enableCritic,
+          critic_max_rounds: criticMaxRounds,
         })
         if (res.status === 'error' || res.error) {
           setErrorMessage(res.error || '确认阶段失败')
@@ -564,6 +567,7 @@ function GenChapterByDetailModal({
           anti_enum_reactions_style: antiEnumReactionsStyle,
           anti_cliche_phrase_style: antiClichePhraseStyle,
           enable_critic: enableCritic,
+          critic_max_rounds: criticMaxRounds,
         })
         if (res.status === 'error' || res.error) {
           setErrorMessage(res.error || '本段生成失败')
@@ -1299,7 +1303,7 @@ function GenChapterByDetailModal({
           </>
         )}
 
-        <Space wrap style={{ marginBottom: 16 }}>
+        <Space>
           <Checkbox
             checked={useMcpContext}
             onChange={(e) => setUseMcpContext(e.target.checked)}
@@ -1315,6 +1319,19 @@ function GenChapterByDetailModal({
           >
             启用审稿员（多轮文风纠正）
           </Checkbox>
+          <Typography.Text>审稿员审核次数：</Typography.Text>
+          <InputNumber
+            min={1}
+            max={5}
+            value={criticMaxRounds}
+            onChange={(v) => setCriticMaxRounds(v ?? 5)}
+            disabled={isFormDisabled}
+          />
+        </Space>
+
+        <br />
+
+        <Space wrap style={{ marginTop: 16 }}>
 
           <Checkbox
             checked={antiLovecraftStyle}
