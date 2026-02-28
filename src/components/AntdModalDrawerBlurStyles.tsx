@@ -1,5 +1,8 @@
-// 毛玻璃：仅在打开时生效，关闭后取消避免残留；渐入渐出动画
-// Modal: 关闭时 wrap 有 style="display: none"，用 :has() 取消 root 的模糊
+'use client';
+
+import { useEffect } from 'react';
+
+const BLUR_STYLES = `
 body .ant-modal-root {
   position: fixed !important;
   inset: 0 !important;
@@ -22,7 +25,6 @@ body .ant-modal-root .ant-modal-mask {
 body .ant-modal-root .ant-modal-wrap {
   pointer-events: auto;
 }
-// Drawer: 仅在有 .ant-drawer-open 时应用毛玻璃
 body .ant-drawer {
   transition: background 0.25s ease, backdrop-filter 0.25s ease, -webkit-backdrop-filter 0.25s ease;
 }
@@ -34,32 +36,22 @@ body .ant-drawer.ant-drawer-open {
 body .ant-drawer-mask {
   background: transparent !important;
 }
+`;
 
-@layer patch_antd {
-  .f-flex-col > .ant-card.f-flex-1 {
-    display: flex;
-    flex-direction: column;
+const STYLE_ID = 'antd-modal-drawer-blur';
 
-    .ant-card-head {
-
-    }
-
-    .ant-card-body {
-      flex: 1
-    }
-  }
-
-  .ant-card.f-fit-height {
-    display: flex;
-    flex-direction: column;
-
-    .ant-card-head {
-
-    }
-
-    .ant-card-body {
-      flex: 1;
-      overflow: auto;
-    }
-  }
+/**
+ * 客户端挂载后注入 Modal/Drawer 遮罩毛玻璃样式，
+ * 保证在 antd CSS-in-JS 之后插入，避免被覆盖。
+ */
+export default function AntdModalDrawerBlurStyles() {
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (document.getElementById(STYLE_ID)) return;
+    const el = document.createElement('style');
+    el.id = STYLE_ID;
+    el.textContent = BLUR_STYLES;
+    document.head.appendChild(el);
+  }, []);
+  return null;
 }
