@@ -1,4 +1,5 @@
-import { Button, Card, Col, message, Row, Select, Space, Modal, Radio } from "antd";
+import { Button, Card, Col, Row, Select, Space, Modal, Radio } from "antd";import { message } from '@/src/utils/antdAppMessage';
+
 import { useEffect, useState, useRef } from "react";
 import { getWorldViews } from "../common/worldViewUtil";
 import { IWorldViewData, IFactionDefData } from "@/src/types/IAiNoval";

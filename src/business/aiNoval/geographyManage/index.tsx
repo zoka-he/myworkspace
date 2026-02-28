@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Select, Space, message, Card, Radio } from 'antd';
+import { useEffect, useMemo, useRef, useState } from 'react';import { message } from '@/src/utils/antdAppMessage';
+
+import { Button, Select, Space, Card, Radio } from 'antd';
 
 import { IGeoStarSystemData, IGeoPlanetData, IGeoSatelliteData, IGeoGeographyUnitData } from '@/src/types/IAiNoval';
 import GeoTree, { type IGeoTreeItem } from './geoTree';

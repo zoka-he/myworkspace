@@ -14,7 +14,8 @@ export default class PermissionService extends service {
             'url',
             'dispOrder',
             'is_secret',
-            'is_testing'
+            'is_testing',
+            'is_enable'
         ]);
     }
 

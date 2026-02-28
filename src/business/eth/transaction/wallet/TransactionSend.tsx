@@ -1,5 +1,6 @@
-import copyToClip from '@/src/utils/common/copy';
-import { Form, message, Modal, Descriptions, Alert, Row, Col, Card, Space, Segmented, Input, Select, Tag, Spin, Checkbox, Button, InputNumber, Divider, Typography, Dropdown } from 'antd';
+import copyToClip from '@/src/utils/common/copy';import { message } from '@/src/utils/antdAppMessage';
+
+import { Form, Modal, Descriptions, Alert, Row, Col, Card, Space, Segmented, Input, Select, Tag, Spin, Checkbox, Button, InputNumber, Divider, Typography, Dropdown } from 'antd';
 import { useState, useEffect, useMemo } from 'react';
 import { SendOutlined, WalletOutlined, SettingOutlined, ReloadOutlined, ExclamationCircleOutlined, EditOutlined, UnorderedListOutlined } from "@ant-design/icons";
 import transactionSendStyles from './TransactionSend.module.scss';

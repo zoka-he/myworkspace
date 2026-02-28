@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useRef } from 'react'
-import { Modal, Button, Space, message, Row, Col, Form, Select, Checkbox, Divider, Input, Tag, Typography, Card, Alert } from 'antd'
+import React, { useEffect, useState, useRef } from 'react'import { message } from '@/src/utils/antdAppMessage';
+
+import { Modal, Button, Space, Row, Col, Form, Select, Checkbox, Divider, Input, Tag, Typography, Card, Alert } from 'antd'
 import { CloseCircleOutlined, CloseOutlined, CopyOutlined, EditOutlined, ExpandAltOutlined, RedoOutlined, RobotOutlined } from '@ant-design/icons'
 import { IChapter } from '@/src/types/IAiNoval'
 import * as chapterApi from '../apiCalls'

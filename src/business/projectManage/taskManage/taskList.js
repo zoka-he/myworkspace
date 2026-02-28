@@ -1,10 +1,10 @@
-import React, {useEffect, useRef, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";import { message } from '@/src/utils/antdAppMessage';
+
 import {Button, Input, Space, Spin, Table, Switch} from "antd";
 import {SearchOutlined, ExclamationCircleFilled} from "@ant-design/icons";
 import TaskStatusSelect from './taskStatusSelect';
 import moment from "moment";
 import TaskEditor from "../taskEditor";
-import {message} from "antd";
 import _ from 'lodash';
 import confirm from "antd/es/modal/confirm";
 // import TaskService from './taskService';
@@ -203,7 +203,7 @@ export default function () {
 
 
             <div className="f-flex-1" style={{ margin: '12px 0' }}>
-                <Table dataSource={listData} size={'small'} pagination={{page: pageNum, pageSize, total, showTotal: renderPageTotal}} onChange={onPageChange}>
+                <Table dataSource={listData} rowKey="ID" size={'small'} pagination={{page: pageNum, pageSize, total, showTotal: renderPageTotal}} onChange={onPageChange}>
                     <Column title="序号" dataIndex="index" key="index" render={renderIndex} align={'center'}/>
                     <Column title="任务名称" dataIndex="task_name" key="task_name" width={260}/>
                     <Column title="归属系统" dataIndex="sys_name" key="sys_name" width={200}/>

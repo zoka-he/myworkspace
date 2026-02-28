@@ -1,7 +1,6 @@
+import { message } from '@/src/utils/antdAppMessage';
 import { IGeoGeographyUnitData, IGeoPlanetData, IGeoSatelliteData, IGeoStarData, IGeoStarSystemData } from '@/src/types/IAiNoval';
 import fetch from '@/src/fetch';
-import { message } from 'antd';
-
 export async function deleteGeographicUnit(data: IGeoGeographyUnitData) {
     if (!data?.id) {
         message.error('删除地理单元失败，缺少ID！');

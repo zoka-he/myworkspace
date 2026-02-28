@@ -1,4 +1,5 @@
-import { Form, Input, InputNumber, Typography, Button, Space, message, TreeSelect, Col, Row } from "antd";
+import { Form, Input, InputNumber, Typography, Button, Space, TreeSelect, Col, Row } from "antd";import { message } from '@/src/utils/antdAppMessage';
+
 import { useSimpleFactionContext } from "../common/SimpleFactionProvider";
 import { useSimpleWorldviewContext } from "../common/SimpleWorldviewProvider";
 import { useSimpleTimelineProvider } from "../common/SimpleTimelineProvider";

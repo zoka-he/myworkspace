@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
-import { Button, message, Space, Tag } from 'antd';
+import { useEffect, useRef, useState } from "react";import { message } from '@/src/utils/antdAppMessage';
+
+import { Button, Space, Tag } from 'antd';
 import fetch from '@/src/fetch';
 import DayJS from 'dayjs';
 import ProjectValueMapper from '../projectCommon/projectValueMapper';

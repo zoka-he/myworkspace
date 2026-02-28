@@ -1,5 +1,6 @@
-import { Select, Space, message } from "antd";
-import _, { reject } from "lodash";
+import { Select, Space } from "antd";
+import _, { reject } from "lodash";import { message } from '@/src/utils/antdAppMessage';
+
 import { useEffect, useState } from "react";
 
 interface IGeoSearchProps {

@@ -1,4 +1,5 @@
-import { Button, Space, Tag, message } from "antd";
+import { Button, Space, Tag } from "antd";import { message } from '@/src/utils/antdAppMessage';
+
 import { PlusOutlined, ExclamationCircleFilled } from "@ant-design/icons";
 import { useEffect, useRef, useState } from "react";
 import fetch from '@/src/fetch';

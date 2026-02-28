@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import fetch from '@/src/fetch';
-import { Button, Input, Space, Table, message } from 'antd';
+import fetch from '@/src/fetch';import { message } from '@/src/utils/antdAppMessage';
+
+import { Button, Input, Space, Table } from 'antd';
 import { ExclamationCircleFilled } from '@ant-design/icons';
 import confirm from "antd/es/modal/confirm";
 import QueryBar from '@/src/components/queryBar';

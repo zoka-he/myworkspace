@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react'
-import { Select, Space, Row, Col, Typography, Slider, Tag, Button, Modal, Form, Radio, Input, InputNumber, message, Alert, Divider, Checkbox } from 'antd'
+import React, { useEffect, useState } from 'react'import { message } from '@/src/utils/antdAppMessage';
+
+import { Select, Space, Row, Col, Typography, Slider, Tag, Button, Modal, Form, Radio, Input, InputNumber, Alert, Divider, Checkbox } from 'antd'
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
 import { EventPool } from '../types'
 import styles from './EventPoolPanel.module.scss'

@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";import { message } from '@/src/utils/antdAppMessage';
+
 import { ILlmDatasetInfo } from "@/src/utils/dify/types";
-import { Button, Form, Input, message, Select, Space } from "antd";
+import { Button, Form, Input, Select, Space } from "antd";
 import fetch from '@/src/fetch';
 import * as apiCalls from '../worldViewManage/apiCalls';
 import store from '@/src/store';

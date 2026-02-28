@@ -56,11 +56,13 @@ function AppHeader(props: IAppHeaderProps) {
             {/* <div className={`m-app-header_shifter${isShifterActive ? ' active' : ''}`}> */}
                 {/* <h2 className="m-app-header_logo" style={{ color: 'white', lineHeight: '46px' }}>工作台</h2> */}
                 <ConfigProvider theme={{ algorithm: theme.darkAlgorithm, inherit: false }}>
-                    <Breadcrumb style={{ lineHeight: '46px', transform: 'translateY(2px)' }}>
-                        {navItems.map(item => {
-                            return <Breadcrumb.Item key={item.ID} className="font-bold text-base">{item.label}</Breadcrumb.Item>
-                        })}
-                    </Breadcrumb>
+                    <Breadcrumb
+                        style={{ lineHeight: '46px', transform: 'translateY(2px)' }}
+                        items={navItems.map(item => ({
+                            key: item.ID,
+                            title: <span className="font-bold text-base">{item.label}</span>,
+                        }))}
+                    />
                 </ConfigProvider>
                 {/* <div className={`m-app-header_research`}>
                     <Input 

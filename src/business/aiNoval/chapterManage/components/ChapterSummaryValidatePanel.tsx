@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
-import { Card, Space, Typography, Button, InputNumber, message } from 'antd'
+import React, { useState } from 'react'import { message } from '@/src/utils/antdAppMessage';
+
+import { Card, Space, Typography, Button, InputNumber } from 'antd'
 import { CopyOutlined, CompressOutlined, RobotOutlined } from '@ant-design/icons'
 import { useChapterContext } from '../chapterContext'
 import { useWorldViewContext } from '../WorldViewContext'

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Space, Typography, Button, Input, message, Form, Tag, Select, TreeSelect, Row, Col, GetRef, Divider, Affix } from 'antd'
+import { Space, Typography, Button, Input, Form, Tag, Select, TreeSelect, Row, Col, GetRef, Divider, Affix } from 'antd'
 import { ReloadOutlined, EditOutlined, CopyOutlined, SortAscendingOutlined, RobotOutlined, InfoCircleOutlined } from '@ant-design/icons'
 import { IChapter, IWorldViewDataWithExtra, IGeoUnionData, IFactionDefData, IRoleData, ITimelineEvent, IGeoStarSystemData, IGeoGeographyUnitData, IGeoPlanetData, IGeoSatelliteData, IGeoStarData } from '@/src/types/IAiNoval'
 import styles from './ChapterSkeletonPanel.module.scss'
@@ -13,6 +13,7 @@ import GenRolePanel from './GenRolePanel'
 import copyToClip from '@/src/utils/common/copy'
 import PromptTools from './PromptTools'
 import AttentionRefModal from './AttentionRefModal'
+import { message } from '@/src/utils/antdAppMessage'
 import { useWorldViewContext } from '../WorldViewContext'
 import { useChapterContext } from '../chapterContext'
 import { getRoleListForChapter } from '@/src/api/aiNovel'
@@ -904,7 +905,6 @@ function formatDate(date: number, worldViewData?: IWorldViewDataWithExtra | null
 }
 
 function EventTag({ event }: { event: ITimelineEvent }) {
-
   const { worldViewData } = useWorldViewContext();
 
   return (

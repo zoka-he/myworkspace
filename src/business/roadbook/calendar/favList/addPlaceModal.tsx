@@ -1,4 +1,5 @@
-import { Modal, Form, DatePicker, Input, message, InputNumber } from "antd";
+import { message } from '@/src/utils/antdAppMessage';
+import { Modal, Form, DatePicker, Input, InputNumber } from "antd";
 import React, { MutableRefObject, useState } from "react";
 import GeoSearch from '../../GeoSearch';
 import CommonBmap from "../../commonBmap";

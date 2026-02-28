@@ -1,5 +1,6 @@
-import React, { CSSProperties, useState } from "react";
-import { Modal, Input, Button, message, Select, Space, TimePicker, Progress } from "antd";
+import React, { CSSProperties, useState } from "react";import { message } from '@/src/utils/antdAppMessage';
+
+import { Modal, Input, Button, Select, Space, TimePicker, Progress } from "antd";
 import _ from 'lodash';
 import { PlusOutlined } from '@ant-design/icons';
 import NodeEditor from "./nodeEditor";

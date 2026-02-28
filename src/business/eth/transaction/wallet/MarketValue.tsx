@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Table, Tag, Space, Button, Input, Select, Modal, Form, message, Typography, Divider } from 'antd';
+import { useState, useEffect } from 'react';import { message } from '@/src/utils/antdAppMessage';
+
+import { Table, Tag, Space, Button, Input, Select, Modal, Form, Typography, Divider } from 'antd';
 import dayjs from 'dayjs';
 import EtherscanUtil from '../common/etherscanUtil';
 import { ReloadOutlined, DollarOutlined, SwapOutlined, ClockCircleOutlined } from '@ant-design/icons';

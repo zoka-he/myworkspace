@@ -1,5 +1,5 @@
+import { message } from '@/src/utils/antdAppMessage';
 import fetch from '@/src/fetch';
-import { message } from 'antd';
 import DayJS from 'dayjs';
 
 interface IHandlers {

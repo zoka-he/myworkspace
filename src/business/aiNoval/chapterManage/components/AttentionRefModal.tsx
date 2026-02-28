@@ -1,5 +1,6 @@
-import copyToClip from "@/src/utils/common/copy"
-import { message, Modal, Button, Tag, Card, Typography } from "antd"
+import copyToClip from "@/src/utils/common/copy"import { message } from '@/src/utils/antdAppMessage';
+
+import { Modal, Button, Tag, Card, Typography } from "antd"
 // import { useState } from "react"
 import { CheckOutlined, CopyOutlined } from "@ant-design/icons"
 

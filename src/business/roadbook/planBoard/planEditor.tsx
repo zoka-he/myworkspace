@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
-import {Form, Modal, Input, Select, Button, message, DatePicker, FormInstance} from "antd";
+import React, { useEffect, useState } from "react";import { message } from '@/src/utils/antdAppMessage';
+
+import { Form, Modal, Input, Select, Button, DatePicker, FormInstance } from "antd";
 import _ from 'lodash';
 import moment from "moment";
 import fetch from '@/src/fetch';

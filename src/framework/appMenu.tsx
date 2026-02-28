@@ -37,6 +37,10 @@ function AppMenu(props: IAppMenuProps) {
             let menu2:any[] = [];
 
             menu.forEach(item => {
+                if (item.is_enable === 'N') {
+                    return;
+                }
+
                 if (item.is_secret === 'Y' && !props.showAll) {
                     return;
                 }
@@ -63,6 +67,20 @@ function AppMenu(props: IAppMenuProps) {
         setMenu(filterMenu(props.navMenu));
     }, [props.navMenu, props.showAll]);
 
+    /** Normalize menu items for Ant Design Menu: only pass key/label/children so ID, PID, etc. never reach the DOM. */
+    function toMenuItems(menuItems: any[]): ItemType[] {
+        return menuItems.map(item => {
+            const result: ItemType = {
+                key: String(item.key ?? item.ID ?? ''),
+                label: item.label,
+            };
+            if (item.children?.length) {
+                result.children = toMenuItems(item.children);
+            }
+            return result;
+        });
+    }
+
     function onMenuClick(e: any) {
         let url = e.keyPath[0];
         navigate(url);
@@ -76,7 +94,7 @@ function AppMenu(props: IAppMenuProps) {
                 theme={themeMode === 'dark' ? 'dark' : 'light'}
                 mode="horizontal"
                 inlineIndent={16}
-                items={(menu as ItemType[])}
+                items={toMenuItems(menu)}
                 onClick={e => onMenuClick(e)}
                 // openKeys={openKeys}
                 // onOpenChange={onOpenChange}

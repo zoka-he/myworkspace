@@ -1,4 +1,5 @@
-import { Card, Space, Select, Button, Modal, Typography, message } from "antd";
+import { Card, Space, Select, Button, Modal, Typography } from "antd";import { message } from '@/src/utils/antdAppMessage';
+
 import { WalletOutlined, RightOutlined } from "@ant-design/icons";
 import styles from './index.module.scss';
 import { useEffect, useMemo, useState } from "react";

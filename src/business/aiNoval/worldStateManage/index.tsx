@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { Row, Col, Select, Button, Space, message } from 'antd';
+import React, { useEffect, useState } from 'react';import { message } from '@/src/utils/antdAppMessage';
+
+import { Row, Col, Select, Button, Space } from 'antd';
 import { PlusOutlined, ImportOutlined } from '@ant-design/icons';
 import { WorldStateManageContextProvider, useWorldviewId, useWorldviewList, useWorldStateList, useFilters, useCurrentWorldState } from './WorldStateManageContext';
 import WorldStateList from './components/WorldStateList';
