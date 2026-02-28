@@ -38,11 +38,8 @@ const nextConfig = {
       {
         source: '/login/:path*',
         destination: '/login/:path*'
-      },
-      {
-        source: '/:path*',
-        destination: '/'
       }
+      // App Router 下由 app/[[...slug]]/page.tsx 承接所有前端路由，无需 /:path* -> /
     ]
   },
 

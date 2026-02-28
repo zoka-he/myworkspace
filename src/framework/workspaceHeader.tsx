@@ -78,22 +78,20 @@ function WorkspaceHeader(props: IWorkspaceHeaderProps) {
         }
     }
 
-    // 监测url地址，如果跟store里面不一致，则更新store，并添加tag
-    if (pathname !== props.lastPathname) {
-        store.dispatch(setLastPathname(location.pathname));
-        if (-1 === _.findIndex(props.hisTags, { url: pathname })) {
-            let tags2 = [
-                { label: navItems.map(item => item.label).join('/') || pathname, url: pathname },
-                ...props.hisTags
-            ];
-
-            if (tags2.length > 6) {
-                tags2.pop();
-            }
-
-            store.dispatch(setHistoryTags(tags2));
-        }
-    }
+    // 监测url地址，如果跟store里面不一致，则更新store，并添加tag（放在 useEffect 中，避免在 render 时 dispatch）
+    // useEffect(() => {
+    //     if (pathname === props.lastPathname) return;
+    //     store.dispatch(setLastPathname(pathname));
+    //     if (-1 === _.findIndex(props.hisTags, { url: pathname })) {
+    //         const label = navItems.map((item: IPermission) => item.label ?? '').join('/') || pathname;
+    //         let tags2 = [
+    //             { label, url: pathname },
+    //             ...props.hisTags
+    //         ];
+    //         if (tags2.length > 6) tags2.pop();
+    //         store.dispatch(setHistoryTags(tags2));
+    //     }
+    // }, [pathname, props.lastPathname, props.hisTags]);
 
     // function removeHisTag(index: number) {
     //     let tags2 = [...props.hisTags];

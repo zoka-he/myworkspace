@@ -346,7 +346,7 @@ class Dashboard extends React.Component<{}, IDashboardState & IDashboardLists & 
             extendDroppableProps.direction = 'horizontal';
         }
 
-        return <Droppable droppableId={droppableId} {...extendDroppableProps}>
+        return <Droppable droppableId={droppableId} isDropDisabled={false} isCombineEnabled={false} ignoreContainerClipping={false} {...extendDroppableProps}>
             {(provided, snapshot) => {
                 return (
                     <div className="tips-wrapper" ref={provided.innerRef} {...provided.droppableProps}>

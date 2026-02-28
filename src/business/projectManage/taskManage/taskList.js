@@ -203,7 +203,7 @@ export default function () {
 
 
             <div className="f-flex-1" style={{ margin: '12px 0' }}>
-                <Table dataSource={listData} size={'small'} pagination={{page: pageNum, pageSize, total, showTotal: renderPageTotal}} onChange={onPageChange}>
+                <Table dataSource={listData} rowKey="ID" size={'small'} pagination={{page: pageNum, pageSize, total, showTotal: renderPageTotal}} onChange={onPageChange}>
                     <Column title="序号" dataIndex="index" key="index" render={renderIndex} align={'center'}/>
                     <Column title="任务名称" dataIndex="task_name" key="task_name" width={260}/>
                     <Column title="归属系统" dataIndex="sys_name" key="sys_name" width={200}/>

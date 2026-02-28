@@ -47,7 +47,7 @@ export default function GeoEmbedDocument(props: IGeoEmbedDocumentProps) {
 
     return (
         <div>
-            <Descriptions title="嵌入数据" size="small" bordered column={2} labelStyle={{ width: '100px' }}>
+            <Descriptions title="嵌入数据" size="small" bordered column={2} styles={{ label: { width: '100px' } }}>
                 <Descriptions.Item label="条目CODE">
                     {geoData?.code || '--'}
                 </Descriptions.Item>

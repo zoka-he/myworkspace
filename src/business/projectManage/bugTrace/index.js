@@ -147,7 +147,7 @@ export default function BugTrace() {
 
 
             <div className="f-flex-1" style={{ margin: '12px 0' }}>
-                <Table dataSource={listData} size={'small'}
+                <Table dataSource={listData} rowKey="ID" size={'small'}
                        pagination={{ pageSize, total, onChange: onPageChange, showTotal: renderTotal }}>
                     <Column title="关联任务" dataIndex="task_name" key="task_name"/>
                     <Column title="上报渠道" dataIndex="source" key="source"/>

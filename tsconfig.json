@@ -27,14 +27,22 @@
     "typeRoots": [
       "./node_modules/@types",
       "./src/types"
+    ],
+    "plugins": [
+      {
+        "name": "next"
+      }
     ]
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    "src/utils/openweather/index.js"
-, "test/llm/deepseek/base.js"  ],
+    "src/utils/openweather/index.js",
+    "test/llm/deepseek/base.js",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
   "exclude": [
     "node_modules"
   ]
