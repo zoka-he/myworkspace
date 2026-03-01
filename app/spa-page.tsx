@@ -24,6 +24,7 @@ import NoticeConsumer from '@/src/components/mq/noticeConsumer';
 import AntdModalDrawerBlurStyles from '@/src/components/AntdModalDrawerBlurStyles';
 import { AntdAppMessageBridge } from '@/src/utils/antdAppMessage';
 import mysqlConfig from '@/src/config/mysql';
+import { MAIN_SCROLL_CONTAINER_ID } from '@/src/framework';
 
 const queryClient = new QueryClient();
 const MyRouter = dynamic(() => import('@/src/router'), { ssr: false });
@@ -127,7 +128,7 @@ function ThemedApp() {
 export default function AppPageContent() {
   return (
     <>
-      <main className="">
+      <main id={MAIN_SCROLL_CONTAINER_ID} className="h-screen overflow-y-auto">
         <Provider store={store}>
           <ThemedApp />
         </Provider>

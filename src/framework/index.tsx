@@ -40,6 +40,9 @@ interface IMainFrameProps {
     showAll: boolean
 }
 
+/** 当 body 不滚动、由 main 滚动时，BackTop 监听的滚动容器元素 id（需在 layout 里给 main 设此 id） */
+export const MAIN_SCROLL_CONTAINER_ID = 'm-app-main';
+
 const HEADER_BLUR_STYLE: React.CSSProperties = {
     background: 'var(--m-main-header-glass)',
     backdropFilter: 'blur(12px)',
@@ -228,7 +231,13 @@ function MainFrame(props: IMainFrameProps) {
 
             
 
-            <FloatButton.BackTop />
+            {/* BackTop 挂载到 body；监听 main 滚动（main 需设 id={MAIN_SCROLL_CONTAINER_ID} 且可滚动），若无则回退到 window */}
+            {headerMounted && createPortal(
+                <FloatButton.BackTop
+                    target={() => document.getElementById(MAIN_SCROLL_CONTAINER_ID) || window}
+                />,
+                document.body
+            )}
 
             <Drawer title="状态" open={drawerVisible} onClose={() => toggleDrawerVisible()} width={500}>
                 <AppState />
