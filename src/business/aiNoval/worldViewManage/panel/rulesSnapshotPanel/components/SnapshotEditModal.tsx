@@ -1,4 +1,5 @@
-import { Modal, Row, Col, Button, Space, message, Input, Form, Checkbox } from 'antd';
+import { Modal, Row, Col, Button, Space, Input, Form, Checkbox } from 'antd';import { message } from '@/src/utils/antdAppMessage';
+
 import { useSnapshotData } from '../snapshotContext';
 import CheckboxTree from './CheckboxTree';
 import SnapshotEditor from './SnapshotEditor';

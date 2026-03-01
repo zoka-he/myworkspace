@@ -8,9 +8,16 @@ ENV NODE_ENV=production
 
 # 在deps基础上构建可执行代码
 RUN npm install -g dotenv-cli   # 安装dotenv-cli，不知道为什么builder就是不安装
+# patch-chroma-default-embed：裁剪 @chroma-core 避免 Turbopack 报 Unknown module type
+RUN node scripts/patch-chroma-default-embed.js
+# tailwind：生成 tailwind-generated.css 供 _app 引用
+RUN npm run tailwind:build
 # 必须在此处显式设置 NODE_ENV=production，否则 dotenv 加载 .env.prod 后可能覆盖 ENV，导致 next 不生成 .next/standalone
-RUN dotenv -e .env.prod -- env NODE_ENV=production NEXT_STANDALONE=1 npx next build
+# Next.js 16 默认用 Turbopack，不生成 .next/standalone，必须用 --webpack 强制 Webpack 构建
+RUN dotenv -e .env.prod -- env NODE_ENV=production npx next build --webpack
 
+# 校验 standalone 已生成，若缺失则立即失败（避免使用旧缓存导致 COPY 时才报错）
+RUN test -d /app/.next/standalone || (echo "ERROR: .next/standalone not found. Check next.config.js has output:'standalone'. Contents of .next:" && ls -la /app/.next/ && exit 1)
 
 FROM my-worksite-base:latest AS runner
 WORKDIR /app

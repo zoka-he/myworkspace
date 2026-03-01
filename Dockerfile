@@ -7,11 +7,12 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Install dependencies based on the preferred package manager
+# Use --ignore-scripts to skip postinstall (needs scripts/ and styles/ which are copied in builder)
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
 RUN \
-  if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
-  elif [ -f package-lock.json ]; then npm ci; \
-  elif [ -f pnpm-lock.yaml ]; then yarn global add pnpm && pnpm i --frozen-lockfile; \
+  if [ -f yarn.lock ]; then yarn install --frozen-lockfile --ignore-scripts; \
+  elif [ -f package-lock.json ]; then npm ci --ignore-scripts; \
+  elif [ -f pnpm-lock.yaml ]; then yarn global add pnpm && pnpm i --frozen-lockfile --ignore-scripts; \
   else echo "Lockfile not found." && exit 1; \
   fi
 
@@ -24,6 +25,10 @@ COPY . .
 
 # 必须设为 production，next.config.js 才会启用 output: 'standalone' 并生成 .next/standalone
 ENV NODE_ENV=production
+
+# Run postinstall scripts (patch + tailwind) that were skipped in deps stage
+RUN (test -f scripts/patch-chroma-default-embed.js && node scripts/patch-chroma-default-embed.js) || true; \
+  (test -f styles/globals.css && npm run tailwind:build) || true
 
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry

@@ -1,5 +1,6 @@
-import { ITimelineDef, IWorldViewData, IWorldViewDataWithExtra } from "@/src/types/IAiNoval";
-import { Space, Button, Divider, Typography, message } from "antd";
+import { ITimelineDef, IWorldViewData, IWorldViewDataWithExtra } from "@/src/types/IAiNoval";import { message } from '@/src/utils/antdAppMessage';
+
+import { Space, Button, Divider, Typography } from "antd";
 import { TimelineDefView } from "./timelineDefView";
 import { EditOutlined } from "@ant-design/icons";
 import { useWorldViewData, useWorldViewEditorRef, useLoadWorldviewList } from "../worldviewManageContext";

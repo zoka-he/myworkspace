@@ -1,5 +1,6 @@
-import { IContract } from "@/src/types/IContract";
-import { Button, Input, message, Space, Typography, Card, Divider, Row, Col } from "antd";
+import { IContract } from "@/src/types/IContract";import { message } from '@/src/utils/antdAppMessage';
+
+import { Button, Input, Space, Typography, Card, Divider, Row, Col } from "antd";
 import { useState, useEffect, createContext } from "react";
 import { ethers } from "ethers";
 import { useWalletContext } from "../WalletContext";

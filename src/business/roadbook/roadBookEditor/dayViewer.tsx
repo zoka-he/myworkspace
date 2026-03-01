@@ -1,4 +1,5 @@
-import { Card, Button, message, Space, Progress } from "antd";
+import { Card, Button, Space, Progress } from "antd";import { message } from '@/src/utils/antdAppMessage';
+
 import { 
     EditOutlined,
     CloseOutlined,

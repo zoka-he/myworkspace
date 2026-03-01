@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Modal, Form, Select, Input, Button, Space, Alert, message, Spin } from 'antd';
+import { useState, useEffect, useCallback } from 'react';import { message } from '@/src/utils/antdAppMessage';
+
+import { Modal, Form, Select, Input, Button, Space, Alert, Spin } from 'antd';
 import { WalletOutlined, SendOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { ethers } from 'ethers';
 import fetch from '@/src/fetch';

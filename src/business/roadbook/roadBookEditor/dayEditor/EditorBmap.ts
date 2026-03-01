@@ -1,4 +1,5 @@
-import { message } from "antd";
+import { message } from '@/src/utils/antdAppMessage';
+
 import fetch from '@/src/fetch';
 
 async function httpGetAsString(url: string) {

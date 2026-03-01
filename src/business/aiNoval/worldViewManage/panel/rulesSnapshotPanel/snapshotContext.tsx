@@ -1,10 +1,10 @@
-import { createContext, useContext, useCallback, useMemo, useState, ReactNode } from 'react';
+import { createContext, useContext, useCallback, useMemo, useState, ReactNode } from 'react';import { message } from '@/src/utils/antdAppMessage';
+
 import { IWorldBookGroup, IWorldBookItem } from '../rulesManagePanel/types';
 import { 
     getWorldRuleGroupList,
     getWorldRuleItemList
 } from '@/src/api/aiNovel';
-import { message } from 'antd';
 import { ISnapshotData, ISnapshotConfig } from './types';
 
 interface SnapshotContextState {

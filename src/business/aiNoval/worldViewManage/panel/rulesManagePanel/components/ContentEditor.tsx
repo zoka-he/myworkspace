@@ -1,4 +1,5 @@
-import { Space, Button, Card, Typography, Popconfirm, Empty, Divider, message } from 'antd';
+import { Space, Button, Card, Typography, Popconfirm, Empty, Divider } from 'antd';import { message } from '@/src/utils/antdAppMessage';
+
 import { FileTextOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useWorldRule } from '../worldRuleContext';
 import styles from '../index.module.scss';

@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { Card, Typography, Divider, Spin, Col, Row, Button, Space, Modal, Input, Radio, Pagination, message, Select } from 'antd';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';import { message } from '@/src/utils/antdAppMessage';
+
+import { Card, Typography, Divider, Spin, Col, Row, Button, Space, Modal, Input, Radio, Pagination, Select } from 'antd';
 import { ClockCircleOutlined, CopyOutlined, FileTextOutlined, IssuesCloseOutlined } from '@ant-design/icons';
 import { IGeoGeographyUnitData, GEO_UNIT_TYPES } from '@/src/types/IAiNoval';
 import DifyApi from '@/src/utils/dify/dify_api';

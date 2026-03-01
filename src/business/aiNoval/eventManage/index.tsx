@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react'
-import { Layout, Menu, Tabs, Card, Button, Space, Modal, Form, Input, Select, DatePicker, Divider, Typography, Tag, Row, Col, Breadcrumb, TreeSelect, Slider, InputNumber, message } from 'antd'
+import React, { useState, useEffect } from 'react'import { message } from '@/src/utils/antdAppMessage';
+
+import { Layout, Menu, Tabs, Card, Button, Space, Modal, Form, Input, Select, DatePicker, Divider, Typography, Tag, Row, Col, Breadcrumb, TreeSelect, Slider, InputNumber } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, SaveOutlined, BookOutlined, EnvironmentOutlined, TeamOutlined, UserOutlined, HomeOutlined, CloseOutlined, ReloadOutlined, ClockCircleOutlined } from '@ant-design/icons'
 import type { TabsProps } from 'antd'
 import dayjs from 'dayjs'

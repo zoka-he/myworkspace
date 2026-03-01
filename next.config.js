@@ -4,8 +4,8 @@ const nextConfig = {
   // 始终启用 standalone，供 Docker 等生产构建使用；next dev 不会生成此输出
   output: 'standalone',
   
-  // 将服务端专用模块标记为 external，避免 Turbopack 打包
-  serverExternalPackages: ['amqplib', 'chromadb'],
+  // 将服务端专用模块标记为 external，避免打包（chroma/amqplib 仅服务端用；postinstall 已裁剪 @chroma-core 避免 Unknown module type）
+  serverExternalPackages: ['amqplib', 'chromadb', '@chroma-core/default-embed', '@chroma-core/ai-embeddings-common'],
 
   async rewrites() {
     console.debug('=============== >> rewrite called');
@@ -38,11 +38,8 @@ const nextConfig = {
       {
         source: '/login/:path*',
         destination: '/login/:path*'
-      },
-      {
-        source: '/:path*',
-        destination: '/'
       }
+      // App Router 下由 app/[[...slug]]/page.tsx 承接所有前端路由，无需 /:path* -> /
     ]
   },
 

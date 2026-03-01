@@ -112,11 +112,11 @@ export default function WorldStateEditModal({ visible, worldState, onCancel, onS
   return (
     <Modal
       title={worldState ? '编辑世界态' : '创建世界态'}
-      visible={visible}
+      open={visible}
       onOk={handleOk}
       onCancel={onCancel}
       width={800}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form form={form} layout="vertical">
         <Form.Item name="title" label="标题" rules={[{ required: true, message: '请输入标题' }]}>

@@ -1,4 +1,5 @@
-import { Modal, Form, Input, InputNumber, Select, Button, Row, Col, Divider, TreeSelect, Space, Radio, message } from 'antd'
+import { Modal, Form, Input, InputNumber, Select, Button, Row, Col, Divider, TreeSelect, Space, Radio } from 'antd'import { message } from '@/src/utils/antdAppMessage';
+
 import { useState, useEffect, forwardRef, useImperativeHandle, useMemo } from 'react'
 import { IRoleInfo, IRoleData, IWorldViewData, IFactionDefData } from '@/src/types/IAiNoval'
 import factionApiCalls from '@/src/business/aiNoval/factionManage/apiCalls'

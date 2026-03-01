@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Card, Tree, Input, Button, Space, Empty, message } from 'antd';
+import { useEffect, useMemo, useState } from 'react';import { message } from '@/src/utils/antdAppMessage';
+
+import { Card, Tree, Input, Button, Space, Empty } from 'antd';
 import { SearchOutlined, PlusOutlined, BookOutlined, AppstoreOutlined, UpOutlined, DownOutlined } from '@ant-design/icons';
 import type { DataNode } from 'antd/es/tree';
 import { useMagicSystemManage } from '../context';

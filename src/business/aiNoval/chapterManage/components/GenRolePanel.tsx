@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react'
-import { Modal, Card, Input, Space, Button, message, Row, Col, Divider, Alert, Typography } from 'antd'
+import React, { useEffect, useState } from 'react'import { message } from '@/src/utils/antdAppMessage';
+
+import { Modal, Card, Input, Space, Button, Row, Col, Divider, Alert, Typography } from 'antd'
 import { CopyOutlined, SaveOutlined, RobotOutlined, UserOutlined, SettingOutlined } from '@ant-design/icons'
 import fetch from '@/src/fetch'
 import copyToClip from '@/src/utils/common/copy'

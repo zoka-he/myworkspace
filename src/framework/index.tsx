@@ -1,6 +1,7 @@
 import { Breadcrumb, Layout, Menu, FloatButton, Button, Space, Switch, MenuTheme, Drawer } from 'antd';
 import { connect } from 'react-redux';
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import type { IRootState } from '../store';
 import store from '../store';
@@ -19,6 +20,7 @@ import { setShowAll } from '@/src/store/navigatorSlice';
 import { useSelector, useDispatch } from 'react-redux';
 import { useAppState } from '../utils/hooks/useAppState';
 import AppState from './appState';
+import AppMenu from './appMenu';
 
 const { Sider, Header, Content } = Layout;
 
@@ -38,10 +40,22 @@ interface IMainFrameProps {
     showAll: boolean
 }
 
+/** 当 body 不滚动、由 main 滚动时，BackTop 监听的滚动容器元素 id（需在 layout 里给 main 设此 id） */
+export const MAIN_SCROLL_CONTAINER_ID = 'm-app-main';
+
+const HEADER_BLUR_STYLE: React.CSSProperties = {
+    background: 'var(--m-main-header-glass)',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
+};
+
 function MainFrame(props: IMainFrameProps) {
     const dispatch = useDispatch();
     const showAll = useSelector((state: IRootState) => state.navigatorSlice.showAll);
     const themeMode = useSelector((state: IRootState) => state.themeSlice.themeConfig.algorithm);
+    const [headerMounted, setHeaderMounted] = useState(false);
+
+    useEffect(() => setHeaderMounted(true), []);
 
     let location = useLocation();
     let navigate = useNavigate();
@@ -189,45 +203,46 @@ function MainFrame(props: IMainFrameProps) {
 
     // console.debug('menu -->', menu);
 
+    const headerNode = (
+        <div
+            id="m-mainframe-header"
+            className="p-0 m-0 flex flex-row app-layout-header fixed top-0 left-0 right-0 z-10"
+            style={HEADER_BLUR_STYLE}
+        >
+            <AppHeader className='px-12' urlMap={urlMap.current} permMap={permMap.current}/>
+            <div className='flex-1'>
+                <AppMenu />
+            </div>
+            <WorkspaceHeader urlMap={urlMap.current} permMap={permMap.current}/>
+        </div>
+    );
+
     return (
-        <Layout className="f-fit-height">
-            <Sider width={160} theme={themeMode === 'dark' ? 'dark' : 'light'}>
-                <div className="f-flex-col f-fit-height">
-                    <AppHeader/>
-                    <div className="f-flex-1 f-vertical-scroll">
-                        <div style={{ padding: '12px', textAlign: 'center' }}>
-                            <Switch checked={showAll} unCheckedChildren="公共" checkedChildren="全部" onChange={e => dispatch(setShowAll(e))} />
-                        </div>
-                        <Menu
-                            className="f-flex-1"
-                            theme={themeMode === 'dark' ? 'dark' : 'light'}
-                            mode="inline"
-                            inlineIndent={16}
-                            items={(menu as ItemType[])}
-                            onClick={e => onMenuClick(e)}
-                            openKeys={openKeys}
-                            onOpenChange={onOpenChange}
-                        />
-                    </div>
-                </div>
-            </Sider>
-            <Layout>
-                <Content style={{ backgroundColor: 'white' }}>
-                    <div className="m-mainframe_context f-fit-height f-flex-col f-bg-white f-vertical-scroll">
-                        <WorkspaceHeader urlMap={urlMap.current} permMap={permMap.current}/>
-                        <div className="m-mainframe_context-outlet f-flex-1" style={{ margin: '12px 0 0' }}>
-                            {/* 主界面 */}
-                            <Outlet />
-                        </div>
-                    </div>
-                </Content>
-            </Layout>
-            <FloatButton.BackTop />
+        <div className="min-h-screen m-mainframe-root">
+            {/* 挂载后 Portal 到 body 以正确应用 backdrop；未挂载时保留在树内避免首屏无顶栏 */}
+            {headerMounted ? createPortal(headerNode, document.body) : headerNode}
+
+            <div className="m-mainframe_context-outlet min-h-screen z-0 pt-15 px-6 pb-6">
+                {/* 主界面 */}
+                <Outlet />
+            </div>
+
+            
+
+            
+
+            {/* BackTop 挂载到 body；监听 main 滚动（main 需设 id={MAIN_SCROLL_CONTAINER_ID} 且可滚动），若无则回退到 window */}
+            {headerMounted && createPortal(
+                <FloatButton.BackTop
+                    target={() => document.getElementById(MAIN_SCROLL_CONTAINER_ID) || window}
+                />,
+                document.body
+            )}
 
             <Drawer title="状态" open={drawerVisible} onClose={() => toggleDrawerVisible()} width={500}>
                 <AppState />
             </Drawer>
-        </Layout>
+        </div>
     );
 };
 

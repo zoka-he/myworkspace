@@ -1,9 +1,10 @@
-import React, {FormEvent} from "react";
+import React, {FormEvent} from "react";import { message } from '@/src/utils/antdAppMessage';
+
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 
 import fetch from '@/src/fetch';
 import TaskTip from "./taskTip";
-import {Button, Input, message, Space, Switch, Select} from "antd";
+import { Button, Input, Space, Switch, Select } from "antd";
 
 // import TaskService from "../taskManage/taskService";
 import TaskEditor from "../projectManage/taskEditorExtend";
@@ -346,7 +347,7 @@ class Dashboard extends React.Component<{}, IDashboardState & IDashboardLists & 
             extendDroppableProps.direction = 'horizontal';
         }
 
-        return <Droppable droppableId={droppableId} {...extendDroppableProps}>
+        return <Droppable droppableId={droppableId} isDropDisabled={false} isCombineEnabled={false} ignoreContainerClipping={false} {...extendDroppableProps}>
             {(provided, snapshot) => {
                 return (
                     <div className="tips-wrapper" ref={provided.innerRef} {...provided.droppableProps}>

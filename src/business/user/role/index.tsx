@@ -1,5 +1,6 @@
-import { Button, Checkbox, Col, Input, Modal, Row, Space, Table, message } from "antd"
-import fetch from '@/src/fetch';
+import { Button, Checkbox, Col, Input, Modal, Row, Space, Table } from "antd"
+import fetch from '@/src/fetch';import { message } from '@/src/utils/antdAppMessage';
+
 import { Key, useEffect, useState } from "react"
 import AppendRoleModal from "./appendRoleModal";
 import getPermissionTree from "../permission/getPermissionTree";

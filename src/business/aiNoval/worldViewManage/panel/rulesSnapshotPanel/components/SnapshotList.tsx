@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Card, Table, Button, Popconfirm, Space, Empty, message } from 'antd';
+import { useState, useEffect, useCallback } from 'react';import { message } from '@/src/utils/antdAppMessage';
+
+import { Card, Table, Button, Popconfirm, Space, Empty } from 'antd';
 import { HistoryOutlined, EditOutlined, DeleteOutlined, PlusOutlined, EyeOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { getWorldRuleSnapshotList, deleteWorldRuleSnapshot } from '@/src/api/aiNovel';

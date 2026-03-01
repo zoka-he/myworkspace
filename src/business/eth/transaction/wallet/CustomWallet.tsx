@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Card, Select, Tag, message, Space, Divider, Descriptions, Button } from 'antd';
+import { useEffect, useMemo, useState } from 'react';import { message } from '@/src/utils/antdAppMessage';
+
+import { Card, Select, Tag, Space, Divider, Descriptions, Button } from 'antd';
 import { CopyOutlined, ReloadOutlined } from '@ant-design/icons';
 import { ethers } from 'ethers';
 import fetch from '@/src/fetch';

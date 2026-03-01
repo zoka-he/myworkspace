@@ -1,4 +1,5 @@
-import { Button, Card, Descriptions, Divider, message, Table, Typography } from 'antd';
+import { Button, Card, Descriptions, Divider, Table, Typography } from 'antd';import { message } from '@/src/utils/antdAppMessage';
+
 import { FactionRelationType, IFactionDefData, IFactionRelation } from '@/src/types/IAiNoval';
 import { EditOutlined } from '@ant-design/icons';
 import FactionRecallTest from './factionRecallTest';

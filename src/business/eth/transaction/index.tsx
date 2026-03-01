@@ -1,5 +1,6 @@
-import React, { useState, createContext, useContext } from 'react';
-import { Row, Col, message } from 'antd';
+import React, { useState, createContext, useContext } from 'react';import { message } from '@/src/utils/antdAppMessage';
+
+import { Row, Col } from 'antd';
 import WalletConnect from '@/src/business/eth/transaction/wallet/walletConnect';
 import CustomWallet from '@/src/business/eth/transaction/wallet/CustomWallet';
 import NetworkManager from '@/src/business/eth/transaction/wallet/NetworkManager';

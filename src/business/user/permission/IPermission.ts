@@ -9,6 +9,7 @@ interface IPermission {
     children?: IPermission[];
     is_secret?: string;
     is_testing?: 0 | 1;
+    is_enable?: 'Y' | 'N';
 }
 
 export type {

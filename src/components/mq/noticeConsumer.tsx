@@ -1,5 +1,5 @@
-import { IMessage } from "@stomp/stompjs";
-import { message, notification } from "antd";
+import { IMessage } from "@stomp/stompjs";import { message, notification } from '@/src/utils/antdAppMessage';
+
 import { useMQ } from "../context/aiNovel";
 import { useEffect, useRef } from "react";
 

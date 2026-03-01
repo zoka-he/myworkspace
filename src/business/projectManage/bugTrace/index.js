@@ -1,5 +1,6 @@
-import React, {useEffect, useRef, useState} from "react";
-import {Input, Button, Table, Space, message} from "antd";
+import React, {useEffect, useRef, useState} from "react";import { message } from '@/src/utils/antdAppMessage';
+
+import { Input, Button, Table, Space } from "antd";
 import {ExclamationCircleFilled, SearchOutlined} from "@ant-design/icons";
 import BugEditor from './bugEditor';
 // import BugService from "./bugService";
@@ -147,7 +148,7 @@ export default function BugTrace() {
 
 
             <div className="f-flex-1" style={{ margin: '12px 0' }}>
-                <Table dataSource={listData} size={'small'}
+                <Table dataSource={listData} rowKey="ID" size={'small'}
                        pagination={{ pageSize, total, onChange: onPageChange, showTotal: renderTotal }}>
                     <Column title="关联任务" dataIndex="task_name" key="task_name"/>
                     <Column title="上报渠道" dataIndex="source" key="source"/>

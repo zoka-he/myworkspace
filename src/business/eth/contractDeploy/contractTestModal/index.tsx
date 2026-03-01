@@ -1,4 +1,5 @@
-import { Alert, Button, Col, Descriptions, Divider, Form, Input, message, Modal, Row, Select, Space, Tag, Typography } from "antd";
+import { Alert, Button, Col, Descriptions, Divider, Form, Input, Modal, Row, Select, Space, Tag, Typography } from "antd";import { message } from '@/src/utils/antdAppMessage';
+
 import { InteractionOutlined } from '@ant-design/icons';
 import styles from './index.module.scss';
 import { IContract, IContractCallResult, IContractMethod } from "@/src/types/IContract";

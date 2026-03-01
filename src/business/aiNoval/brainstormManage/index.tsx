@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { Row, Col, Select, Button, Space, Input, message } from 'antd';
+import React, { useEffect, useState } from 'react';import { message } from '@/src/utils/antdAppMessage';
+
+import { Row, Col, Select, Button, Space, Input } from 'antd';
 import { PlusOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 import { BrainstormManageContextProvider, useWorldviewId, useWorldviewList, useBrainstormList, useFilters, useCurrentBrainstorm } from './BrainstormManageContext';
 import BrainstormList from './components/BrainstormList';

@@ -1,21 +1,6 @@
-import { useState, useMemo } from "react";
-import { 
-    Alert, 
-    Button, 
-    Card, 
-    Collapse, 
-    Divider, 
-    Form, 
-    Input, 
-    List, 
-    Modal, 
-    Space, 
-    Tag, 
-    Tooltip, 
-    TreeSelect, 
-    Typography, 
-    message 
-} from "antd";
+import { useState, useMemo } from "react";import { message } from '@/src/utils/antdAppMessage';
+
+import { Alert, Button, Card, Collapse, Divider, Form, Input, List, Modal, Space, Tag, Tooltip, TreeSelect, Typography } from "antd";
 import { 
     BulbOutlined, 
     CheckOutlined, 

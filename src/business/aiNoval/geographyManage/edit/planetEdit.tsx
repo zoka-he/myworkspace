@@ -1,5 +1,6 @@
-import { useRef, useState, forwardRef, useImperativeHandle } from "react";
-import {Form, Modal, Input, Button, message, FormInstance, Radio, Select, TreeSelect, Space} from "antd";
+import { useRef, useState, forwardRef, useImperativeHandle } from "react";import { message } from '@/src/utils/antdAppMessage';
+
+import { Form, Modal, Input, Button, FormInstance, Radio, Select, TreeSelect, Space } from "antd";
 import _ from 'lodash';
 import fetch from '@/src/fetch';
 import { IGeoPlanetData } from "@/src/types/IAiNoval";

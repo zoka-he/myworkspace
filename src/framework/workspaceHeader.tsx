@@ -4,7 +4,7 @@ import store, { IRootState } from "../store";
 // import { useSession, signOut } from 'next-auth/react';
 import { useNavigate } from "react-router-dom";
 import { UserOutlined, SettingOutlined, LogoutOutlined } from '@ant-design/icons';
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { IPermission } from "@/pages/api/web/user/permission/type";
 import { setLastPathname, setHistoryTags, setShowAll } from "@/src/store/navigatorSlice";
 import _ from 'lodash';
@@ -46,6 +46,11 @@ function WorkspaceHeader(props: IWorkspaceHeaderProps) {
     let { toggleDrawerVisible } = useAppState();
     let deepseekBalance = useDeepseekBalance();
 
+    // 显示模式 Switch 乐观更新：本地状态立即翻转，Redux/ConfigProvider 延后派发，避免整树重渲染卡住界面
+    const isDarkFromRedux = props.themeMode === 'dark';
+    const [switchChecked, setSwitchChecked] = useState(isDarkFromRedux);
+    useEffect(() => { setSwitchChecked(isDarkFromRedux); }, [isDarkFromRedux]);
+
     // let userLabel = null;
     // if (props?.loginUser?.nickname || session?.data?.user?.name) {
     //     const openProfile = () => navigate('/user/profile?tabKey=1');
@@ -73,58 +78,56 @@ function WorkspaceHeader(props: IWorkspaceHeaderProps) {
         }
     }
 
-    // 监测url地址，如果跟store里面不一致，则更新store，并添加tag
-    if (pathname !== props.lastPathname) {
-        store.dispatch(setLastPathname(location.pathname));
-        if (-1 === _.findIndex(props.hisTags, { url: pathname })) {
-            let tags2 = [
-                { label: navItems.map(item => item.label).join('/') || pathname, url: pathname },
-                ...props.hisTags
-            ];
+    // 监测url地址，如果跟store里面不一致，则更新store，并添加tag（放在 useEffect 中，避免在 render 时 dispatch）
+    // useEffect(() => {
+    //     if (pathname === props.lastPathname) return;
+    //     store.dispatch(setLastPathname(pathname));
+    //     if (-1 === _.findIndex(props.hisTags, { url: pathname })) {
+    //         const label = navItems.map((item: IPermission) => item.label ?? '').join('/') || pathname;
+    //         let tags2 = [
+    //             { label, url: pathname },
+    //             ...props.hisTags
+    //         ];
+    //         if (tags2.length > 6) tags2.pop();
+    //         store.dispatch(setHistoryTags(tags2));
+    //     }
+    // }, [pathname, props.lastPathname, props.hisTags]);
 
-            if (tags2.length > 6) {
-                tags2.pop();
-            }
+    // function removeHisTag(index: number) {
+    //     let tags2 = [...props.hisTags];
+    //     tags2.splice(index, 1);
+    //     store.dispatch(setHistoryTags(tags2));
+    // }
 
-            store.dispatch(setHistoryTags(tags2));
-        }
-    }
+    // function renderHisTag(item: any, index: number) {
+    //     // console.debug('tags -->', item);
 
-    function removeHisTag(index: number) {
-        let tags2 = [...props.hisTags];
-        tags2.splice(index, 1);
-        store.dispatch(setHistoryTags(tags2));
-    }
+    //     let color: string;
+    //     let removable: boolean = false; // TODO 以前是true，有问题待解决
+    //     if (pathname === item.url) {
+    //         color = 'orange';
+    //         removable = false;
+    //     } else if (index % 2) {
+    //         color = 'blue';
+    //     } else {
+    //         color = 'green';
+    //     }
 
-    function renderHisTag(item: any, index: number) {
-        // console.debug('tags -->', item);
-
-        let color: string;
-        let removable: boolean = false; // TODO 以前是true，有问题待解决
-        if (pathname === item.url) {
-            color = 'orange';
-            removable = false;
-        } else if (index % 2) {
-            color = 'blue';
-        } else {
-            color = 'green';
-        }
-
-        return <Tag 
-            key={item.url}
-            className="m-mainframe_context-mainheader-tabs-tab" 
-            color={color} 
-            closable={removable}
-            onClick={e => navigate(item.url)}
-            onClose={e => removeHisTag(index)}
-        >{item.label}</Tag>
-    }
+    //     return <Tag 
+    //         key={item.url}
+    //         className="m-mainframe_context-mainheader-tabs-tab" 
+    //         color={color} 
+    //         closable={removable}
+    //         onClick={e => navigate(item.url)}
+    //         onClose={e => removeHisTag(index)}
+    //     >{item.label}</Tag>
+    // }
 
     return (
         <div className="m-mainframe_context-mainheader">
             <div className="m-mainframe_context-mainheader-tabs">
-                <div className="m-mainframe_context-mainheader-tabs-shifter">
-                    <div className="m-mainframe_context-mainheader-breadcrumb">
+                {/* <div className="m-mainframe_context-mainheader-tabs-shifter"> */}
+                    {/* <div className="m-mainframe_context-mainheader-breadcrumb">
                         <Breadcrumb>
                             {navItems.map(item => {
                                 return <Breadcrumb.Item key={item.ID}>{item.label}</Breadcrumb.Item>
@@ -133,8 +136,8 @@ function WorkspaceHeader(props: IWorkspaceHeaderProps) {
                     </div>
                     <div className="m-mainframe_context-mainheader-tabs-group">
                         {props.hisTags.map(renderHisTag)}
-                    </div>
-                </div>
+                    </div> */}
+                {/* </div> */}
             </div>
             <Space size={16}>
                 {/* <Typography.Text strong>mysql主机: </Typography.Text>
@@ -143,10 +146,20 @@ function WorkspaceHeader(props: IWorkspaceHeaderProps) {
                 {/* <Typography.Text strong>dify主机: </Typography.Text>
                 <Select style={{ width: 130 }} options={props.difyFrontHostOptions.map(option => ({ label: option, value: option }))} value={props.difyFrontHost} onChange={e => store.dispatch(setFrontHost(e))} /> */}
                 <Typography.Text strong>DeepSeek余额: </Typography.Text>
-                <Tag color="green">{deepseekBalance}</Tag>
+                <Tag color="green">{deepseekBalance}￥</Tag>
 
                 <Typography.Text strong>显示模式</Typography.Text>
-                <Switch checked={props.themeMode === 'dark'} unCheckedChildren="白天" checkedChildren="黑夜" onChange={e => store.dispatch(setTheme(e ? 'dark' : 'light'))} />
+                <Switch
+                    checked={switchChecked}
+                    unCheckedChildren="白天"
+                    checkedChildren="黑夜"
+                    onChange={e => {
+                        const nextDark = !!e;
+                        setSwitchChecked(nextDark);
+                        document.documentElement.setAttribute('data-theme', nextDark ? 'dark' : 'light');
+                        setTimeout(() => store.dispatch(setTheme(nextDark ? 'dark' : 'light')), 0);
+                    }}
+                />
                 {/* {userLabel} */}
                 {settingLabel}
                 {/* <Button type="text" icon={<FullscreenOutlined />}>全屏</Button> */}

@@ -1,5 +1,6 @@
-import React from "react";
-import {Form, Modal, Input, Button, message, FormInstance, Radio} from "antd";
+import React from "react";import { message } from '@/src/utils/antdAppMessage';
+
+import { Form, Modal, Input, Button, FormInstance, Radio } from "antd";
 import _ from 'lodash';
 import fetch from '@/src/fetch';
 import { IWorldViewData } from "@/src/types/IAiNoval";

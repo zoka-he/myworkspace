@@ -1,4 +1,5 @@
-import { Button, Tree, message, Input, Tag, Space } from 'antd';
+import { Button, Tree, Input, Tag, Space } from 'antd';import { message } from '@/src/utils/antdAppMessage';
+
 import { IGeoStarSystemData } from '@/src/types/IAiNoval';
 import React, { Key, useEffect, useRef, useState, useMemo } from 'react';
 import { type IGeoTreeItem, loadGeoTree } from '../common/geoDataUtil';

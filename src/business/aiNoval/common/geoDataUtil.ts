@@ -1,7 +1,6 @@
+import { notification } from '@/src/utils/antdAppMessage';
 import { IGeoStarSystemData, IGeoStarData, IGeoPlanetData, IGeoSatelliteData, IGeoGeographyUnitData, IGeoUnionData } from '@/src/types/IAiNoval';
 import fetch from '@/src/fetch';
-import { notification } from 'antd';
-
 function wrapDataToTreeData(
     data: IGeoStarSystemData | IGeoStarData | IGeoPlanetData,
     type: string

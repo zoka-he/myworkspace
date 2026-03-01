@@ -1,6 +1,7 @@
-import { Button, Card, Form, Input, Table, message } from "antd";
+import { Button, Card, Form, Input, Table } from "antd";
 import sm2PubKey from '@/src/utils/cipher/sm2/loginPub.json';
-import fetch from '@/src/fetch';
+import fetch from '@/src/fetch';import { message } from '@/src/utils/antdAppMessage';
+
 import { useEffect, useState } from "react";
 import DayJS from 'dayjs';
 
