@@ -34,7 +34,7 @@ const handler: MessageHandler = async (ctx, ack, nack, reject) => {
         return;
     }
 
-    if (!['character', 'worldview', 'location', 'faction', 'event'].includes(type)) {
+    if (!['character', 'worldview', 'location', 'faction', 'event', 'race'].includes(type)) {
         console.error('[AI Novel Embed Tasks] Invalid data type:', data);
         reject();
         return;
@@ -88,6 +88,9 @@ const handler: MessageHandler = async (ctx, ack, nack, reject) => {
                 break;
             case 'faction':
                 await embedService.saveFactionDocument(worldview_id, document, metaData, model);
+                break;
+            case 'race':
+                await embedService.saveRaceDocument(worldview_id, document, metaData, model);
                 break;
             case 'location':
                 await embedService.saveGeoDocument(worldview_id, document, metaData, model);

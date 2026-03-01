@@ -6,6 +6,8 @@ import { FindFactionTool } from './tools/findFaction';
 import { FindRoleTool } from './tools/findRole';
 import { BaseMCPTool } from './core/baseMcpTool';
 import { FactionStructureTool } from './tools/factionStructure';
+import { RaceStructureTool } from './tools/raceStructure';
+import { FindRaceTool } from './tools/findRace';
 import { GeoStructureTool } from './tools/geoStructure';
 import { WorldbookTool } from './tools/worldbook';
 import { MagicSystemTool } from './tools/magicSystem';
@@ -19,6 +21,8 @@ export {
   WorldStateTool,
   MagicSystemTool,
   FactionStructureTool,
+  RaceStructureTool,
+  FindRaceTool,
   GeoStructureTool,
   FindGeoTool,
   FindFactionTool,
@@ -33,6 +37,8 @@ export const allTools: BaseMCPTool[] = [
   new WorldStateTool(),
   new MagicSystemTool(),
   new FactionStructureTool(),
+  new RaceStructureTool(),
+  new FindRaceTool(),
   new GeoStructureTool(),
   new FindGeoTool(),
   new FindFactionTool(),

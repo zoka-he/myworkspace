@@ -118,6 +118,28 @@ export interface IFactionTerritory {
     description?: string | null,
 }
 
+/** 族群/种族定义（主种族 + 亚种树形，同世界观下 order_num 同层排序） */
+export interface IRaceData {
+    id?: number | null,
+    worldview_id?: number | null,
+    name?: string | null,
+    description?: string | null,
+    parent_id?: number | null,
+    order_num?: number | null,
+    embed_document?: string | null,
+    /** 外形、寿命、特质、弱点等，供生成与一致性用 */
+    appearance?: string | null,
+    lifespan?: string | null,
+    traits?: string | null,
+    weaknesses?: string | null,
+    /** 命名习惯、习俗等 */
+    naming_habit?: string | null,
+    customs?: string | null,
+    /** ChromaDB 等向量库关联（可选） */
+    chroma_collection?: string | null,
+    chroma_doc_id?: string | null,
+}
+
 export interface IFactionDefData {
     id?: number | null,
     worldview_id?: number | null,
