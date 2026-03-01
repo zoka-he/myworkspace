@@ -101,6 +101,35 @@ body .ant-drawer.ant-drawer-open .ant-drawer-mask {
 body .ant-drawer-content-wrapper {
   pointer-events: auto !important;
 }
+/* 菜单下拉浮层毛玻璃：亮色主题 */
+body .ant-menu.ant-menu-sub.ant-menu-vertical {
+  background: rgba(255, 255, 255, 0.65) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+/* 菜单下拉浮层毛玻璃：dark 主题（html[data-theme="dark"]）或 ant-menu-dark 子菜单 */
+html[data-theme="dark"] body .ant-menu.ant-menu-sub.ant-menu-vertical,
+body .ant-menu-dark .ant-menu.ant-menu-sub.ant-menu-vertical {
+  background: rgba(30, 30, 30, 0.75) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+/* Select 下拉浮层毛玻璃：亮色主题 */
+body .ant-select-dropdown {
+  background: rgba(255, 255, 255, 0.65) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+/* Select 下拉浮层毛玻璃：dark 主题 */
+html[data-theme="dark"] body .ant-select-dropdown {
+  background: rgba(30, 30, 30, 0.75) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+body .ant-tree-select-dropdown .ant-select-tree {
+  background: transparent !important;
+}
 `;
 
 const STYLE_ID = 'antd-modal-drawer-blur';
