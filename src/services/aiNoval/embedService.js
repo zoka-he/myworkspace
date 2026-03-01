@@ -221,6 +221,10 @@ class EmbedService {
         return `ai_noval_factions_${worldview_id}`;
     }
 
+    getRaceCollectionName(worldview_id) {
+        return `ai_noval_races_${worldview_id}`;
+    }
+
     getGeoCollectionName(worldview_id) {
         return `ai_noval_geo_${worldview_id}`;
     }
@@ -362,6 +366,26 @@ class EmbedService {
             // 如果文档不存在，忽略删除错误
         }
         
+        await chromaServer.addDocument(collectionName, {
+            id: documentId,
+            content: document,
+            metadata: this.normalizeMetadata(metadata),
+            embedding: embedding,
+        });
+    }
+
+    async saveRaceDocument(worldview_id, document, metadata, embedding_model = chromaConfig.EMBEDDING_MODEL) {
+        const embedding = await this.embedQuery(document, { model: embedding_model });
+        const chromaServer = ChromaServer.getInstance();
+        const collectionName = this.getRaceCollectionName(worldview_id);
+        const documentId = this.nomalizeId(metadata.id);
+
+        try {
+            await chromaServer.deleteById(collectionName, documentId);
+        } catch (error) {
+            // ignore if not exists
+        }
+
         await chromaServer.addDocument(collectionName, {
             id: documentId,
             content: document,

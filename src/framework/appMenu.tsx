@@ -96,6 +96,7 @@ function AppMenu(props: IAppMenuProps) {
                 inlineIndent={16}
                 items={toMenuItems(menu)}
                 onClick={e => onMenuClick(e)}
+                triggerSubMenuAction="click"
                 // openKeys={openKeys}
                 // onOpenChange={onOpenChange}
             />

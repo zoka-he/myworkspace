@@ -4,6 +4,7 @@ import _ from 'lodash';
 import RoleDefService from "@/src/services/aiNoval/roleDefService";
 import RoleInfoService from "@/src/services/aiNoval/roleInfoService";
 import FactionDefService from "@/src/services/aiNoval/factionDefService";
+import RaceDefService from "@/src/services/aiNoval/raceDefService";
 import GeoGeographyService from "@/src/services/aiNoval/geoGeographyService";
 import WorldviewDefService from "@/src/services/aiNoval/worldViewManageService";
 import TimelineEventService from "@/src/services/aiNoval/timelineEventService";
@@ -13,6 +14,7 @@ import { getRabbitMQProducer, getRabbitMQProducerAsync } from "@/src/server/rabb
 const roleDefService = new RoleDefService();
 const roleInfoService = new RoleInfoService();
 const factionDefService = new FactionDefService();
+const raceDefService = new RaceDefService();
 const geoGeographyService = new GeoGeographyService();
 const worldviewDefService = new WorldviewDefService();
 const timelineEventService = new TimelineEventService();
@@ -26,10 +28,10 @@ export default async function handler(
         return;
     }
 
-    const { worldviews, characters, locations, factions, events } = req.body;
+    const { worldviews, characters, locations, factions, events, races } = req.body;
 
-    if (!checkArrayData(characters) || !checkArrayData(worldviews) || !checkArrayData(locations) || !checkArrayData(factions) || !checkArrayData(events)) {
-        res.status(400).json({ success: false, error: 'Invalid data, characters, worldviews, locations, factions, and events must be arrays of strings or numbers' });
+    if (!checkArrayData(characters) || !checkArrayData(worldviews) || !checkArrayData(locations) || !checkArrayData(factions) || !checkArrayData(events) || !checkArrayData(races ?? [])) {
+        res.status(400).json({ success: false, error: 'Invalid data, characters, worldviews, locations, factions, events, and races must be arrays of strings or numbers' });
         return;
     }
 
@@ -40,12 +42,14 @@ export default async function handler(
             locationData,
             factionData,
             eventData,
+            raceData,
         ] = await Promise.all([
             prepareCharacterDocument(characters),
             prepareWorldviewDocument(worldviews),
             prepareGeoDocument(locations),
             prepareFactionDocument(factions),
             prepareEventDocument(events),
+            prepareRaceDocument(races ?? []),
         ]);
 
         console.info('characterData ----------------> ', characterData);
@@ -87,6 +91,10 @@ export default async function handler(
             events: await producer.sendBatchToQueue(
                 'ai_novel_embed_tasks', 
                 eventData.map((t: any) => JSON.stringify({ ...t, type: 'event' }))
+            ),
+            races: await producer.sendBatchToQueue(
+                'ai_novel_embed_tasks',
+                raceData.map((t: any) => JSON.stringify({ ...t, type: 'race' }))
             ),
         }
 
@@ -167,6 +175,19 @@ async function prepareFactionDocument(factions: number[]) {
     }
     let ret = await factionDefService.getFactionDocumentByIds(factions);
     return ret.data;
+}
+
+async function prepareRaceDocument(races: number[]) {
+    if (races.length === 0) {
+        return [];
+    }
+    const ret = await raceDefService.getRaceDocumentByIds(races);
+    return (ret.data || []).map((r: { id: number; worldview_id: number; document: string; fingerprint: string }) => ({
+        id: r.id,
+        worldview_id: r.worldview_id,
+        document: r.document || '',
+        fingerprint: r.fingerprint || '',
+    }));
 }
 
 async function prepareEventDocument(events: number[]) {

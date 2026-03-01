@@ -2,7 +2,8 @@
  * 角色信息面板组件
  * 用于显示和管理AI小说角色的详细信息、版本管理和Dify文档集成
  */
-import { message } from '@/src/utils/antdAppMessage';
+
+import { message } from '@/src/utils/antdAppMessage';
 
 import { Card, Select, Button, Space, Typography, Descriptions, Dropdown, Alert, MenuProps, Modal, Divider, Row, Col, Radio, Pagination, Input, Form, Tag } from 'antd'
 import { PlusOutlined, DownOutlined, EditOutlined, DeleteOutlined, SafetyCertificateFilled, SearchOutlined, CopyOutlined, RetweetOutlined } from '@ant-design/icons'
@@ -20,6 +21,7 @@ import { connect } from 'react-redux'
 import { calculateRoleInfoFingerprint, useFactionList, useLoadRoleDefList, useLoadRoleChromaMetadataList, useRoleChromaMetadata, useRoleDef, useRoleDefList, useRoleId, useRoleInfo, useRoleInfoId, useRoleInfoList, useWorldViewId, useWorldViewList } from '../roleManageContext'
 import { prepareTextEmbedding } from '@/src/api/aiNovel'
 import { deleteChromaDocument } from '@/src/api/chroma'
+import RacePathDisplay from '@/src/components/aiNovel/racePathDisplay'
 
 const { Title, Text } = Typography
 
@@ -318,7 +320,7 @@ export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
                 {roleInfo.age_in_worldview}
               </Descriptions.Item>
               <Descriptions.Item label="角色种族">
-                {roleInfo.race_id}
+                <RacePathDisplay worldviewId={roleInfo.worldview_id} raceId={roleInfo.race_id} />
               </Descriptions.Item>
               <Descriptions.Item label="角色阵营">
                 {roleInfo.faction_id ? factionList.find(faction => faction.id === roleInfo.faction_id)?.name || '未知阵营ID' : '未设置阵营'}
