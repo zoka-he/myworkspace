@@ -52,12 +52,23 @@ export default function RaceSelect({
     return buildTreeWithPath(list, null, '');
   }, [list]);
 
-  const normalizedStyle = useMemo(() => ({ width: 200, ...style }), [style]);
+  const normalizedStyle = useMemo(() => {
+    // 未传入 style 时不设置默认 width，避免覆盖 Form.Item 的 width: 100%
+    if (style === undefined) {
+      return undefined;
+    }
+    if (style.width !== undefined) {
+      return style;
+    }
+    return { ...style, width: 200 };
+  }, [style]);
 
   return (
     <TreeSelect
       {...rest}
       style={normalizedStyle}
+      popupMatchSelectWidth={false}
+      dropdownStyle={{ minWidth: 300, ...rest.dropdownStyle }}
       loading={isLoading}
       treeData={treeData}
       value={value ?? undefined}

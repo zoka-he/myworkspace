@@ -506,9 +506,9 @@ export const genChapterAttention = async (params: {
     return (body?.data?.attention ?? (body as any)?.attention) ?? ''
 }
 
-// 从文本中提取目标数据
+// 从文本中提取目标数据（fetch 拦截器已返回 response.data，故 body 在 response 上）
 export const pickFromText = async (target: string, src_text: string): Promise<any> => {
-    const response = await fetch.post(`/api/aiNoval/chapters/pick`, 
+    const response = await fetch.post(`/api/aiNoval/chapters/pick`,
         {src_text},
         {
             params: {target},
@@ -516,9 +516,10 @@ export const pickFromText = async (target: string, src_text: string): Promise<an
         }
     );
 
-    let text = response.data?.outputs?.output || '';
+    const body = response?.data ?? response;
+    let text = body?.outputs?.output ?? '';
     try {
-        text = text.replace(/<think>.*?<\/think>/g, '');
+        text = (text || '').replace(/<think>.*?<\/think>/g, '');
     } catch {
         // ignore replace error on older runtimes
     }

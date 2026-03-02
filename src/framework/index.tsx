@@ -222,7 +222,7 @@ function MainFrame(props: IMainFrameProps) {
             {/* 挂载后 Portal 到 body 以正确应用 backdrop；未挂载时保留在树内避免首屏无顶栏 */}
             {headerMounted ? createPortal(headerNode, document.body) : headerNode}
 
-            <div className="m-mainframe_context-outlet min-h-screen z-0 pt-15 px-6 pb-6">
+            <div className="m-mainframe_context-outlet min-h-screen z-0 pt-15 px-6 pb-0">
                 {/* 主界面 */}
                 <Outlet />
             </div>

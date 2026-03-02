@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';import { message } from '@/src/utils/antdAppMessage';
+import React, { useEffect, useState } from 'react';
+import { message } from '@/src/utils/antdAppMessage';
 
-import { Row, Col, Select, Button, Space, Input } from 'antd';
+import { Row, Col, Select, Button, Space, Input, FloatButton } from 'antd';
 import { PlusOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 import { BrainstormManageContextProvider, useWorldviewId, useWorldviewList, useBrainstormList, useFilters, useCurrentBrainstorm } from './BrainstormManageContext';
 import BrainstormList from './components/BrainstormList';
@@ -120,7 +121,7 @@ function BrainstormManageContent() {
 
       <Row gutter={10} style={{ flex: 1, overflow: 'hidden' }}>
         {/* 主列表 */}
-        <Col span={10} style={{ height: '100%', overflow: 'auto' }}>
+        <Col span={10} style={{ height: 'calc(100vh - 120px)', overflow: 'auto' }}>
           <BrainstormList
             onEdit={handleEdit}
             onDelete={handleDelete}
@@ -129,8 +130,9 @@ function BrainstormManageContent() {
         </Col>
 
         {/* 右侧详情面板 */}
-        <Col span={14} style={{ height: '100%', overflow: 'auto' }}>
+        <Col id="brainstorm-detail-panel" span={14} style={{ height: 'calc(100vh - 120px)', overflow: 'auto' }}>
           <BrainstormDetailPanel onAnalyze={handleAnalyze} />
+          <FloatButton.BackTop target={() => document.getElementById('brainstorm-detail-panel') || window} />
         </Col>
       </Row>
 
