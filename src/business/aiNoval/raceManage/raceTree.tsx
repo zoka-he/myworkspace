@@ -1,7 +1,7 @@
 import { Tree, Button, Modal } from 'antd';
 import { message } from '@/src/utils/antdAppMessage';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { IRaceData } from '@/src/types/IAiNoval';
 import {
   useCurrentRaceId,
@@ -114,6 +114,27 @@ export default function RaceTree() {
     return build(null);
   }, [raceList]);
 
+  const allExpandableKeys = useMemo((): React.Key[] => {
+    const keys: React.Key[] = [];
+    const collect = (nodes: TreeNodeData[]) => {
+      for (const node of nodes) {
+        if (node.children?.length) {
+          keys.push(node.key);
+          collect(node.children);
+        }
+      }
+    };
+    collect(treeData);
+    return keys;
+  }, [treeData]);
+
+  const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
+  useEffect(() => {
+    if (allExpandableKeys.length > 0) {
+      setExpandedKeys(allExpandableKeys);
+    }
+  }, [allExpandableKeys]);
+
   return (
     <div style={{ height: '100%', overflow: 'auto' }}>
       <Tree
@@ -121,6 +142,8 @@ export default function RaceTree() {
         showLine
         showIcon={false}
         blockNode
+        expandedKeys={expandedKeys}
+        onExpand={(keys) => setExpandedKeys(keys)}
         onSelect={(keys) => {
           if (keys.length > 0 && keys[0]) {
             setCurrentRaceId(keys[0] as number);
