@@ -49,6 +49,7 @@ const statusOrder: Record<BrainstormStatus, number> = {
 };
 
 interface BrainstormListProps {
+  style?: React.CSSProperties;
   onEdit: (brainstorm: IBrainstorm) => void;
   onDelete: (id: number) => void;
   onSelect: (id: number | null) => void;
@@ -63,7 +64,7 @@ function normalizeRelatedChapterIds(ids: any): number[] {
   return [];
 }
 
-export default function BrainstormList({ onEdit, onDelete, onSelect }: BrainstormListProps) {
+export default function BrainstormList({ style, onEdit, onDelete, onSelect }: BrainstormListProps) {
   const [brainstormList] = useBrainstormList();
   const [worldviewId] = useWorldviewId();
   const { currentBrainstormId } = useCurrentBrainstorm();
@@ -101,6 +102,7 @@ export default function BrainstormList({ onEdit, onDelete, onSelect }: Brainstor
   }, [brainstormList]);
 
   return (
+    <div style={style}>
     <List
       dataSource={sortedList}
       renderItem={(item) => {
@@ -260,5 +262,6 @@ export default function BrainstormList({ onEdit, onDelete, onSelect }: Brainstor
         );
       }}
     />
+    </div>
   );
 }
