@@ -15,11 +15,12 @@ RUN npm install --strict-ssl=false -g node-gyp@latest
 ENV PYTHON=/usr/bin/python3
 
 # Install dependencies based on the preferred package manager
+# Use --ignore-scripts: postinstall needs scripts/ and styles/ which are only in builder stage
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
 RUN \
-  if [ -f yarn.lock ]; then yarn --no-strict-ssl --frozen-lockfile --verbose; \
-  elif [ -f package-lock.json ]; then npm ci; \
-  elif [ -f pnpm-lock.yaml ]; then yarn global add pnpm && pnpm i --frozen-lockfile; \
+  if [ -f yarn.lock ]; then yarn install --no-strict-ssl --frozen-lockfile --ignore-scripts; \
+  elif [ -f package-lock.json ]; then npm ci --ignore-scripts; \
+  elif [ -f pnpm-lock.yaml ]; then yarn global add pnpm && pnpm i --frozen-lockfile --ignore-scripts; \
   else echo "Lockfile not found." && exit 1; \
   fi
 
