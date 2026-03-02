@@ -1,7 +1,9 @@
 import React from 'react';
-import { Card, Descriptions, Tag, Empty, Tabs } from 'antd';
+import { Card, Descriptions, Tag, Empty, Tabs, Typography } from 'antd';
 import { useCurrentWorldState } from '../WorldStateManageContext';
 import { IWorldState, WorldStateType, WorldStateStatus, ImpactLevel } from '@/src/types/IAiNoval';
+
+const { Text } = Typography;
 
 const stateTypeMap: Record<WorldStateType, string> = {
   world_event: '世界大事件',
@@ -46,7 +48,7 @@ export default function WorldStateDetailPanel() {
               </Tag>
             </Descriptions.Item>
             <Descriptions.Item label="描述">
-              {currentWorldState.description || '无'}
+              <Text className='whitespace-pre-wrap line-height-1.5'>{currentWorldState.description || '无'}</Text>
             </Descriptions.Item>
             <Descriptions.Item label="标签">
               {currentWorldState.tags?.map(tag => (
@@ -54,7 +56,7 @@ export default function WorldStateDetailPanel() {
               )) || '无'}
             </Descriptions.Item>
             <Descriptions.Item label="影响描述">
-              {currentWorldState.impact_description || '暂无'}
+              <Text className='whitespace-pre-wrap line-height-1.5'>{currentWorldState.impact_description || '暂无'}</Text>
             </Descriptions.Item>
             <Descriptions.Item label="受影响领域">
               {currentWorldState.affected_areas?.length ? (

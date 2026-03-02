@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'import { message } from '@/src/utils/antdAppMessage';
+import { useState, useEffect } from 'react'
+import { message } from '@/src/utils/antdAppMessage';
 
-import { Card, Select, Space, Row, Col, Typography, Button, Input, Modal, Form, Radio, Tag, Pagination, Tooltip } from 'antd'
+import { Card, Select, Space, Row, Col, Typography, Button, Input, Modal, Form, Radio, Tag, Pagination, Tooltip, Affix } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined, WarningOutlined } from '@ant-design/icons'
 import { IChapter } from '@/src/types/IAiNoval'
 import { ExtendedNovelData } from './types'
@@ -229,103 +230,105 @@ function ChapterManage() {
   
 
   return (
-    <div className={styles.container}>
-      <div className={styles.leftLayout}>
-          {/* 章节列表外框 */}
-          <Card 
-            className='f-fit-height'
-            title={  // 章节列表title
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text>选择小说：</Text>
-                <Select
-                  style={{ flex: 1 }}
-                  placeholder="请选择小说"
-                  value={selectedNovel || undefined}
-                  onChange={handleNovelChange}
-                  loading={loading}
-                >
-                  {novels.map(novel => (
-                    <Select.Option key={novel.id} value={novel.id}>
-                      {novel.title}
-                    </Select.Option>
-                  ))}
-                </Select>
-                <Button
-                  icon={<ReloadOutlined />}
-                  onClick={fetchNovels}
-                  loading={loading}
-                />
-              </div>
-            }
-          >
-            {/* 章节列表内容 */}
-            {selectedNovel ? (
-              <Space direction="vertical" size="large" style={{ width: '100%' }}>
-                <div>
-                  <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                    <Text strong>章节列表</Text>
-                    <Button
-                      type="primary"
-                      icon={<PlusOutlined />}
-                      onClick={handleAddChapter}
-                    >
-                      添加章节
-                    </Button>
-                  </Space>
-                  <div className={styles.chapterList}>
-                    {novels
-                      .find(novel => novel.id === selectedNovel)
-                      ?.chapters.map(chapter => (
-                        <div key={chapter.id} className={styles.chapterItem}>
-                          <Space style={{ cursor: 'pointer' }} onClick={() => handleChapterChange(chapter?.id || null)}>
-                            <Text type="secondary">第{chapter.chapter_number}章</Text>
-                            {chapter.title ? (
-                              <Text>{chapter.title}</Text>
-                            ) : (
-                              <Text type="secondary" italic>章节标题未设定</Text>
-                            )}
-                            <Tag color="green">v{chapter.version}</Tag>
-                            {(!chapter.event_ids || chapter.event_ids.length === 0) && (
-                              <Tooltip title="章节未关联事件">
-                                <WarningOutlined style={{ color: '#faad14' }} />
-                              </Tooltip>
-                            )}
-                          </Space>
-                          <Space>
-                            <Button
-                              type="text"
-                              icon={<EditOutlined />}
-                              onClick={() => handleEditChapter(chapter)}
-                            />
-                            <Button
-                              type="text"
-                              danger
-                              icon={<DeleteOutlined />}
-                              onClick={() => handleDeleteChapter(chapter.id || 0)}
-                            />
-                          </Space>
-                        </div>
-                      ))}
-                  </div>
-                  <div style={{ marginTop: 16, textAlign: 'right' }}>
-                    <Pagination
-                      current={currentPage}
-                      pageSize={pageSize}
-                      total={totalChapters}
-                      onChange={handlePageChange}
-                      showSizeChanger={false}
-                      align='center'
-                    />
-                  </div>
+    <div id="chapter-manage-container" className={styles.container}>
+      <Affix offsetTop={60} target={() => document.getElementById('m-app-main') || window}>
+        <div className={styles.leftLayout}>
+            {/* 章节列表外框 */}
+            <Card 
+              style={{ height: 'calc(100vh - 80px)' }}
+              title={  // 章节列表title
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text>选择小说：</Text>
+                  <Select
+                    style={{ flex: 1 }}
+                    placeholder="请选择小说"
+                    value={selectedNovel || undefined}
+                    onChange={handleNovelChange}
+                    loading={loading}
+                  >
+                    {novels.map(novel => (
+                      <Select.Option key={novel.id} value={novel.id}>
+                        {novel.title}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                  <Button
+                    icon={<ReloadOutlined />}
+                    onClick={fetchNovels}
+                    loading={loading}
+                  />
                 </div>
-              </Space>
-            ) : (
-              <div className={styles.selectPrompt}>
-                <Text>请先选择小说</Text>
-              </div>
-            )}
-          </Card>
-      </div>
+              }
+            >
+              {/* 章节列表内容 */}
+              {selectedNovel ? (
+                <Space direction="vertical" size="large" style={{ width: '100%' }}>
+                  <div>
+                    <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                      <Text strong>章节列表</Text>
+                      <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={handleAddChapter}
+                      >
+                        添加章节
+                      </Button>
+                    </Space>
+                    <div className={styles.chapterList}>
+                      {novels
+                        .find(novel => novel.id === selectedNovel)
+                        ?.chapters.map(chapter => (
+                          <div key={chapter.id} className={styles.chapterItem}>
+                            <Space style={{ cursor: 'pointer' }} onClick={() => handleChapterChange(chapter?.id || null)}>
+                              <Text type="secondary">第{chapter.chapter_number}章</Text>
+                              {chapter.title ? (
+                                <Text>{chapter.title}</Text>
+                              ) : (
+                                <Text type="secondary" italic>章节标题未设定</Text>
+                              )}
+                              <Tag color="green">v{chapter.version}</Tag>
+                              {(!chapter.event_ids || chapter.event_ids.length === 0) && (
+                                <Tooltip title="章节未关联事件">
+                                  <WarningOutlined style={{ color: '#faad14' }} />
+                                </Tooltip>
+                              )}
+                            </Space>
+                            <Space>
+                              <Button
+                                type="text"
+                                icon={<EditOutlined />}
+                                onClick={() => handleEditChapter(chapter)}
+                              />
+                              <Button
+                                type="text"
+                                danger
+                                icon={<DeleteOutlined />}
+                                onClick={() => handleDeleteChapter(chapter.id || 0)}
+                              />
+                            </Space>
+                          </div>
+                        ))}
+                    </div>
+                    <div style={{ marginTop: 16, textAlign: 'right' }}>
+                      <Pagination
+                        current={currentPage}
+                        pageSize={pageSize}
+                        total={totalChapters}
+                        onChange={handlePageChange}
+                        showSizeChanger={false}
+                        align='center'
+                      />
+                    </div>
+                  </div>
+                </Space>
+              ) : (
+                <div className={styles.selectPrompt}>
+                  <Text>请先选择小说</Text>
+                </div>
+              )}
+            </Card>
+        </div>
+      </Affix>
 
       <div className={styles.rightLayout}>
           {/* 右方面板 */}
@@ -410,7 +413,7 @@ function ChapterCard(props: ChapterCardProps) {
   
   return (
     <Card
-      className="f-fit-height"
+      // className="f-fit-height"
       title={  // 右方面板title
         <Space>
           {selectedChapter ? [
