@@ -139,7 +139,9 @@ function RightPanel({ editRef }: { editRef: React.RefObject<RoleGroupEditRef | n
 
     return (
         <Card title="角色组详情">
-            <RoleGroupInfoPanel editRef={editRef} onRefresh={handleRefresh} />
+            <div style={{ minHeight: 'calc(100vh - 180px)' }}>
+                <RoleGroupInfoPanel editRef={editRef} onRefresh={handleRefresh} />
+            </div>
         </Card>
     );
 }
