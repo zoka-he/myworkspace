@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { message } from '@/src/utils/antdAppMessage';
 
-import { Alert, Button, Card, Collapse, Divider, Form, Input, List, Modal, Space, Tag, Tooltip, TreeSelect, Typography } from "antd";
+import { Alert, Button, Card, Checkbox, Collapse, Divider, Form, Input, List, Modal, Space, Tag, Tooltip, TreeSelect, Typography } from "antd";
 import { 
     BulbOutlined, 
     CheckOutlined, 
@@ -290,6 +290,21 @@ export default function CreateAdvicePanel() {
         }
         const excludeNames = Array.from(new Set(excludeNamesList)).filter(Boolean).join('、') || undefined;
 
+        // 语言约束：仅当勾选且填写目标语系时生效
+        const languageConstraintEnabled = !!constraintValues.languageConstraintEnabled;
+        const languageConstraintTarget = (constraintValues.languageConstraintTarget as string | undefined)?.trim();
+        let finalProhibition = constraintValues.prohibition?.trim() || '';
+        if (languageConstraintEnabled) {
+            if (!languageConstraintTarget) {
+                message.warning('请填写语言约束的目标语系');
+                return;
+            }
+            const languageConstraintText = `禁止直接交付汉语、拼音或含义直白的地名，必须按照${languageConstraintTarget}音译得到地名，并考虑漫长历史所产生的误读现象。`;
+            finalProhibition = finalProhibition
+                ? `${finalProhibition}\n${languageConstraintText}`
+                : languageConstraintText;
+        }
+
         setGenerateLoading(true);
         try {
             const response = await apiCalls.generateGeoNames({
@@ -301,7 +316,7 @@ export default function CreateAdvicePanel() {
                 namingHabit: constraintValues.namingHabit?.trim() || '',
                 specialRequirement: constraintValues.specialRequirement?.trim() || '',
                 specialSuffix: constraintValues.specialSuffix?.trim() || '',
-                prohibition: constraintValues.prohibition?.trim() || '',
+                prohibition: finalProhibition,
                 adjacentGeoNames: adjacentGeoNames || undefined,
                 excludeNames,
             });
@@ -600,6 +615,25 @@ export default function CreateAdvicePanel() {
                             rows={2} 
                             placeholder="命名时需要避免的事项"
                         />
+                    </Form.Item>
+                    <Form.Item label=" " colon={false}>
+                        <Space>
+                            <Form.Item
+                                name="languageConstraintEnabled"
+                                valuePropName="checked"
+                                noStyle
+                            >
+                                <Checkbox>语言约束（使用**国模**生成外文地名时，强烈建议勾选！）</Checkbox>
+                            </Form.Item>
+                            <Form.Item
+                                name="languageConstraintTarget"
+                                noStyle
+                            >
+                                <Input
+                                    placeholder="目标语系，如：古希腊语系、拉丁语系等"
+                                />
+                            </Form.Item>
+                        </Space>
                     </Form.Item>
                 </Form>
             </Card>
