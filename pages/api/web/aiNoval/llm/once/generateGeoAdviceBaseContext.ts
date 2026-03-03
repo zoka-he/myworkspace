@@ -23,6 +23,7 @@ const contextPrompt = PromptTemplate.fromTemplate(`
 {parentGeoBlock}
 {adjacentGeosBlock}
 {relatedFactionsBlock}
+{userPreferenceBlock}
 
 【输出要求】
 1. **区域特征**（2-4 句话）：
@@ -87,21 +88,30 @@ function buildRelatedFactionsBlock(relatedFactions?: RelatedFactionInput[] | nul
     return `- 相关阵营（命名权归属）：\n${lines.join("\n")}`;
 }
 
+function buildUserPreferenceBlock(userPreferenceHint?: string | null): string {
+    const hint = typeof userPreferenceHint === "string" ? userPreferenceHint.trim() : "";
+    if (!hint) return "";
+    return `- 用户偏好提示（请酌情体现）：${hint}`;
+}
+
 async function generateGeoContext(params: {
     locationType: string;
     parentGeo?: ParentGeoInput | null;
     adjacentGeos?: AdjacentGeoInput[] | null;
     relatedFactions?: RelatedFactionInput[] | null;
+    userPreferenceHint?: string | null;
 }): Promise<{ regionFeature: string; namingBackground: string }> {
     const parentGeoBlock = buildParentGeoBlock(params.parentGeo);
     const adjacentGeosBlock = buildAdjacentGeosBlock(params.adjacentGeos);
     const relatedFactionsBlock = buildRelatedFactionsBlock(params.relatedFactions);
+    const userPreferenceBlock = buildUserPreferenceBlock(params.userPreferenceHint);
 
     const response = await generateChain.invoke({
         locationType: params.locationType.trim(),
         parentGeoBlock: parentGeoBlock || "（未指定上级地点）",
         adjacentGeosBlock: adjacentGeosBlock || "（未指定相邻地点）",
         relatedFactionsBlock: relatedFactionsBlock || "（未指定相关阵营）",
+        userPreferenceBlock: userPreferenceBlock || "",
     });
 
     const text = (response.content as string) || "";
@@ -149,7 +159,7 @@ export default async function handler(
     }
 
     try {
-        const { locationType, parentGeo, adjacentGeos, relatedFactions } = req.body;
+        const { locationType, parentGeo, adjacentGeos, relatedFactions, userPreferenceHint } = req.body;
 
         if (!locationType || typeof locationType !== "string") {
             res.status(400).json({
@@ -164,6 +174,7 @@ export default async function handler(
             parentGeo: parentGeo || null,
             adjacentGeos: adjacentGeos || null,
             relatedFactions: relatedFactions || null,
+            userPreferenceHint: userPreferenceHint ?? null,
         });
 
         res.status(200).json({

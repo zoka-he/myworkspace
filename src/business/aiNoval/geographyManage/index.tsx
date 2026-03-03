@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';import { message } from '@/src/utils/antdAppMessage';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { message } from '@/src/utils/antdAppMessage';
 
-import { Button, Select, Space, Card, Radio } from 'antd';
+import { Button, Select, Space, Card, Radio, Affix } from 'antd';
 
 import { IGeoStarSystemData, IGeoPlanetData, IGeoSatelliteData, IGeoGeographyUnitData } from '@/src/types/IAiNoval';
 import GeoTree, { type IGeoTreeItem } from './geoTree';
@@ -23,7 +24,7 @@ import { IMessage } from '@stomp/stompjs';
 import FindGeo from './panel/FindGeo';
 import CreateAdvicePanel from './panel/CreateAdvicePanel';
 
-const LEFT_PANEL_WIDTH = 400; // 左侧面板宽度，必须大于320
+const LEFT_PANEL_WIDTH = 450; // 左侧面板宽度，必须大于320
 
 export default function GeoManage() {
 
@@ -37,12 +38,14 @@ export default function GeoManage() {
             <ManageStateProvider>
                 <WatchMq/>
                 <EditProvider>
-                    <div style={{ display: 'flex', height: '100%' }}>
-                        <div style={{ width: LEFT_PANEL_WIDTH, height: '100%', padding: '0 0 10px 0' }}>
-                            {/* 左面板卡片 */}
-                            <LeftPanel/>
-                        </div>
-                        <div style={{ flex: 1, height: '100%', padding: '0 0 10px 10px' }}>
+                    <div style={{ display: 'flex' }}>
+                        <Affix offsetTop={60} target={() => document.getElementById('m-app-main') || window}>
+                            <div style={{ minWidth: LEFT_PANEL_WIDTH, height: 'calc(100vh - 65px)', padding: '0 0 10px 0' }}>
+                                {/* 左面板卡片 */}
+                                <LeftPanel/>
+                            </div>
+                        </Affix>
+                        <div style={{ flex: 1, padding: '0 0 10px 10px' }}>
                             {/* 右面板卡片 */}
                             <RightPanel/>
                             

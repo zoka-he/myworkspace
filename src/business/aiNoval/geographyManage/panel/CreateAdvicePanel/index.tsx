@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";import { message } from '@/src/utils/antdAppMessage';
+import { useState, useMemo } from "react";
+import { message } from '@/src/utils/antdAppMessage';
 
-import { Alert, Button, Card, Collapse, Divider, Form, Input, List, Modal, Space, Tag, Tooltip, TreeSelect, Typography } from "antd";
+import { Alert, Button, Card, Checkbox, Collapse, Divider, Form, Input, List, Modal, Space, Tag, Tooltip, TreeSelect, Typography } from "antd";
 import { 
     BulbOutlined, 
     CheckOutlined, 
@@ -141,6 +142,8 @@ export default function CreateAdvicePanel() {
                 description: f.description ? String(f.description).slice(0, 500) : undefined,
             }));
 
+        const userPreferenceHint = baseForm.getFieldValue('userPreferenceHint') as string | undefined;
+
         setContextLoading(true);
         try {
             const response = await apiCalls.generateGeoContext({
@@ -148,6 +151,7 @@ export default function CreateAdvicePanel() {
                 parentGeo: parentGeo ? { name: parentGeo.name || '-', description: parentGeo.description || undefined } : null,
                 adjacentGeos: adjacentGeos.length ? adjacentGeos : null,
                 relatedFactions: relatedFactions.length ? relatedFactions : null,
+                userPreferenceHint: userPreferenceHint?.trim() || undefined,
             });
             const result = response as unknown as ApiResponse<{ regionFeature: string; namingBackground: string }>;
 
@@ -286,6 +290,21 @@ export default function CreateAdvicePanel() {
         }
         const excludeNames = Array.from(new Set(excludeNamesList)).filter(Boolean).join('、') || undefined;
 
+        // 语言约束：仅当勾选且填写目标语系时生效
+        const languageConstraintEnabled = !!constraintValues.languageConstraintEnabled;
+        const languageConstraintTarget = (constraintValues.languageConstraintTarget as string | undefined)?.trim();
+        let finalProhibition = constraintValues.prohibition?.trim() || '';
+        if (languageConstraintEnabled) {
+            if (!languageConstraintTarget) {
+                message.warning('请填写语言约束的目标语系');
+                return;
+            }
+            const languageConstraintText = `禁止直接交付汉语、拼音或含义直白的地名，必须按照${languageConstraintTarget}音译得到地名，并考虑漫长历史所产生的误读现象。`;
+            finalProhibition = finalProhibition
+                ? `${finalProhibition}\n${languageConstraintText}`
+                : languageConstraintText;
+        }
+
         setGenerateLoading(true);
         try {
             const response = await apiCalls.generateGeoNames({
@@ -297,7 +316,7 @@ export default function CreateAdvicePanel() {
                 namingHabit: constraintValues.namingHabit?.trim() || '',
                 specialRequirement: constraintValues.specialRequirement?.trim() || '',
                 specialSuffix: constraintValues.specialSuffix?.trim() || '',
-                prohibition: constraintValues.prohibition?.trim() || '',
+                prohibition: finalProhibition,
                 adjacentGeoNames: adjacentGeoNames || undefined,
                 excludeNames,
             });
@@ -315,7 +334,7 @@ export default function CreateAdvicePanel() {
             } else {
                 message.error(result?.error || '生成失败');
                 if (result?.data?.items && result.data.items.length === 0) {
-                    message.info('Dify 返回为空，可能输出格式无法解析，请检查工作流配置');
+                    message.info('返回为空，可能输出格式无法解析');
                 }
             }
         } catch (error: any) {
@@ -403,24 +422,10 @@ export default function CreateAdvicePanel() {
             <Card 
                 size="small" 
                 title={<><BulbOutlined /> 基础参数</>}
-                extra={
-                    <Tooltip title="根据上方选择的上级地点、相邻地点、地点类型，LLM 自动生成「区域特征」和「命名背景」">
-                        <Button 
-                            type="primary"
-                            size="small"
-                            icon={<ThunderboltOutlined />}
-                            onClick={handleGenerateContext}
-                            loading={contextLoading}
-                            disabled={!worldViewId}
-                        >
-                            生成情境与基础参数
-                        </Button>
-                    </Tooltip>
-                }
                 style={{ marginBottom: 16 }}
             >
                 <Alert
-                    message="先选择/填写下方「上下文」和「地点类型」，再点击右上角按钮，可自动生成「区域特征」「命名背景」；「命名权来源」可由「从相关阵营生成」按钮填充。"
+                    message="先选择/填写「上下文」和「地点类型」，在下方「生成情境与基础参数」区块点击按钮可自动生成「区域特征」「命名背景」；「命名权来源」可由「从相关阵营生成」按钮填充。"
                     type="info"
                     showIcon
                     style={{ marginBottom: 16 }}
@@ -475,11 +480,48 @@ export default function CreateAdvicePanel() {
                         <Input placeholder="如：山脉、城市、恒星间转移轨道..." style={{ width: 280 }} allowClear />
                     </Form.Item>
 
+
+                    <Divider orientation="left">
+                        <ThunderboltOutlined style={{ marginRight: 6 }} />
+                        生成情境与基础参数
+                    </Divider>
+                    {/* 生成情境与基础参数：置于区域特征上方，带用户偏好提示 */}
+                    <div
+                        
+                    >
+                        
+                        <Form.Item
+                            name="userPreferenceHint"
+                            label="偏好提示"
+                            extra="可选。如：希望风格偏东方、偏科幻、强调寒冷氛围等，将作为附加提示参与生成。"
+                        >
+                            <TextArea
+                                placeholder="可选：如希望风格偏东方、偏科幻、强调某类氛围等"
+                                allowClear
+                                autoSize={{ minRows: 2 }}
+                            />
+                        </Form.Item>
+                        <Form.Item label=" " colon={false}>
+                            <Tooltip title="根据上方上下文与地点类型生成「区域特征」和「命名背景」，若有偏好提示会一并考虑">
+                                <Button
+                                    type="primary"
+                                    size="small"
+                                    icon={<ThunderboltOutlined />}
+                                    onClick={handleGenerateContext}
+                                    loading={contextLoading}
+                                    disabled={!worldViewId}
+                                >
+                                    生成情境与基础参数
+                                </Button>
+                            </Tooltip>
+                        </Form.Item>
+                    </div>
+
                     <Divider orientation="left" plain>情境描述（LLM 可生成 或 手动填写）</Divider>
                     <Form.Item 
                         name="regionFeature" 
                         label={
-                            <Tooltip title="点击右上角「生成情境与基础参数」按钮，LLM 将根据上下文和地点类型自动填充">
+                            <Tooltip title="点击上方「生成情境与基础参数」按钮，LLM 将根据上下文和地点类型自动填充">
                                 <span>区域特征 <Text type="secondary" style={{ fontSize: 12 }}>（LLM 可生成）</Text></span>
                             </Tooltip>
                         }
@@ -493,7 +535,7 @@ export default function CreateAdvicePanel() {
                     <Form.Item 
                         name="namingBackground" 
                         label={
-                            <Tooltip title="点击右上角「生成情境与基础参数」按钮，LLM 将根据上下文和地点类型自动填充">
+                            <Tooltip title="点击上方「生成情境与基础参数」按钮，LLM 将根据上下文和地点类型自动填充">
                                 <span>命名背景 <Text type="secondary" style={{ fontSize: 12 }}>（LLM 可生成）</Text></span>
                             </Tooltip>
                         }
@@ -573,6 +615,25 @@ export default function CreateAdvicePanel() {
                             rows={2} 
                             placeholder="命名时需要避免的事项"
                         />
+                    </Form.Item>
+                    <Form.Item label=" " colon={false}>
+                        <Space>
+                            <Form.Item
+                                name="languageConstraintEnabled"
+                                valuePropName="checked"
+                                noStyle
+                            >
+                                <Checkbox>语言约束（使用**国模**生成外文地名时，强烈建议勾选！）</Checkbox>
+                            </Form.Item>
+                            <Form.Item
+                                name="languageConstraintTarget"
+                                noStyle
+                            >
+                                <Input
+                                    placeholder="目标语系，如：古希腊语系、拉丁语系等"
+                                />
+                            </Form.Item>
+                        </Space>
                     </Form.Item>
                 </Form>
             </Card>

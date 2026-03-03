@@ -231,6 +231,66 @@ export interface IRoleRelation {
     worldview_id?: number
   }
 
+/** 角色组：少量角色的集体及其集体行动方式 */
+export interface IRoleGroup {
+    id?: number | null
+    worldview_id?: number | null
+    name?: string | null
+    description?: string | null
+    collective_behavior?: string | null
+    group_type?: string | null
+    group_status?: string | null
+    sort_order?: number | null
+    decision_style?: string | null
+    conflict_points?: string | null
+    accord_points?: string | null
+    action_pattern?: string | null
+    group_style?: string | null
+    shared_goal?: string | null
+    taboo?: string | null
+    situation_responses?: string | null
+    group_mannerisms?: string | null
+    group_type_notes?: string | null
+    status_since?: string | number | null
+    status_notes?: string | null
+    created_at?: Date | string | null
+    updated_at?: Date | string | null
+    members?: IRoleGroupMember[]
+}
+
+/** 角色组成员 */
+export interface IRoleGroupMember {
+    id?: number | null
+    role_group_id?: number | null
+    role_info_id?: number | null
+    sort_order?: number | null
+    role_in_group?: string | null
+    notes_with_others?: string | null
+}
+
+/** 角色组类型枚举（PRD 6.1） */
+export const ROLE_GROUP_TYPES = [
+    { value: 'fixed_team', label: '固定小队' },
+    { value: 'ad_hoc', label: '临时组合' },
+    { value: 'meeting', label: '会议/集会' },
+    { value: 'master_disciple', label: '师徒/师徒团' },
+    { value: 'family', label: '家庭/家族' },
+    { value: 'task_force', label: '任务小组' },
+    { value: 'antagonist_group', label: '敌对组合' },
+    { value: 'secret_society', label: '秘密结社' },
+    { value: 'other', label: '其他' },
+]
+
+/** 角色组状态枚举（PRD 6.2） */
+export const ROLE_GROUP_STATUSES = [
+    { value: 'active', label: '活跃' },
+    { value: 'dormant', label: '休眠' },
+    { value: 'dissolved', label: '已解散' },
+    { value: 'ad_hoc_assembled', label: '临时集结' },
+    { value: 'splitting', label: '分裂中' },
+    { value: 'reforming', label: '重组中' },
+]
+
   export const RELATION_TYPES = [
     { value: 'friend', label: '朋友', color: 'blue', presetStrength: 80 },
     { value: 'confidant', label: '知己', color: 'blue', presetStrength: 85 },
