@@ -40,7 +40,7 @@ export default function GeoManage() {
                 <EditProvider>
                     <div style={{ display: 'flex' }}>
                         <Affix offsetTop={60} target={() => document.getElementById('m-app-main') || window}>
-                            <div style={{ width: LEFT_PANEL_WIDTH, height: 'calc(100vh - 65px)', padding: '0 0 10px 0' }}>
+                            <div style={{ minWidth: LEFT_PANEL_WIDTH, height: 'calc(100vh - 65px)', padding: '0 0 10px 0' }}>
                                 {/* 左面板卡片 */}
                                 <LeftPanel/>
                             </div>
