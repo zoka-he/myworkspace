@@ -439,15 +439,17 @@ function ChapterCard(props: ChapterCardProps) {
         </Space>
       }
     >
-      <WorldViewContextProvider worldViewId={selectedChapter?.worldview_id || null}>
-        {props.selectedNovelId && selectedChapter ? (
-          renderModuleContent()
-        ) : (
-          <div className={styles.selectPrompt}>
-            <Text>请先选择小说和章节</Text>
-          </div>
-        )}
-      </WorldViewContextProvider>
+      <div style={{ minHeight: 'calc(100vh - 185px)' }}>
+        <WorldViewContextProvider worldViewId={selectedChapter?.worldview_id || null}>
+          {props.selectedNovelId && selectedChapter ? (
+            renderModuleContent()
+          ) : (
+            <div className={styles.selectPrompt}>
+              <Text>请先选择小说和章节</Text>
+            </div>
+          )}
+        </WorldViewContextProvider>
+      </div>
     </Card>
   )
 }
