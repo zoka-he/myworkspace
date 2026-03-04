@@ -14,6 +14,8 @@ export interface GenChapterSegmentOutlineInput {
   prev_content?: string;
   /** MCP 收集的设定摘要，可选 */
   mcp_context?: string;
+  /** 角色组名称，逗号分隔，可选 */
+  role_group_names?: string;
   /** 角色名称，逗号分隔，可选 */
   role_names?: string;
   /** 阵营名称，逗号分隔，可选 */
@@ -76,9 +78,15 @@ function buildUserPrompt(body: GenChapterSegmentOutlineInput): string {
   if ((body.mcp_context || "").trim()) {
     parts.push("【相关设定（MCP 收集）】", body.mcp_context.trim(), "");
   }
-  if ((body.role_names || "").trim() || (body.faction_names || "").trim() || (body.geo_names || "").trim()) {
+  if (
+    (body.role_group_names || "").trim() ||
+    (body.role_names || "").trim() ||
+    (body.faction_names || "").trim() ||
+    (body.geo_names || "").trim()
+  ) {
     parts.push(
       "【涉及实体】",
+      `角色组：${(body.role_group_names || "").trim() || "（无）"}`,
       `角色：${(body.role_names || "").trim() || "（无）"}`,
       `阵营：${(body.faction_names || "").trim() || "（无）"}`,
       `地理：${(body.geo_names || "").trim() || "（无）"}`,
