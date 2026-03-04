@@ -4,6 +4,7 @@ import { DecomposeCommandTool } from './tools/decomposeCommand';
 import { FindGeoTool } from './tools/findGeo';
 import { FindFactionTool } from './tools/findFaction';
 import { FindRoleTool } from './tools/findRole';
+import { FindRoleGroupTool } from './tools/findRoleGroup';
 import { BaseMCPTool } from './core/baseMcpTool';
 import { FactionStructureTool } from './tools/factionStructure';
 import { RaceStructureTool } from './tools/raceStructure';
@@ -27,6 +28,7 @@ export {
   FindGeoTool,
   FindFactionTool,
   FindRoleTool,
+  FindRoleGroupTool,
 };
 
 // 工具实例数组，方便批量注册
@@ -43,6 +45,7 @@ export const allTools: BaseMCPTool[] = [
   new FindGeoTool(),
   new FindFactionTool(),
   new FindRoleTool(),
+  new FindRoleGroupTool(),
   // expand_cultural_style  --> 扩展文化风格(半固定，负责把文化翻译成语言风格)
   // derive_naming_and_language_rules  --> 根据阵营特质反推命名和语言规则
   // world_state_snapshot --> 世界状态快照(负责生成世界状态快照)
