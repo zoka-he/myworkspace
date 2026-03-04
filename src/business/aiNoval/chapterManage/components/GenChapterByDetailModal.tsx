@@ -685,7 +685,7 @@ function GenChapterByDetailModal({
     }
   }
 
-  /** 编辑单段内容 */
+  /** 编辑单段内容（同步更新 ref，避免「从某段重写」时取到调整前的影子） */
   const handleEditSegment = (index: number, value: string) => {
     const newList = [...segmentedContentList]
     if (newList.length <= index) {
@@ -695,6 +695,7 @@ function GenChapterByDetailModal({
     }
     setSegmentedContentList(newList)
     setSegmentedContent(newList.join('\n\n'))
+    segmentedContentListRef.current = newList
   }
 
   /** 重写：清空已生成内容，重新启动续写流程 */
@@ -721,7 +722,8 @@ function GenChapterByDetailModal({
   /** 从指定段落开始重写 */
   const handleRewriteFromSegment = (segmentIndex: number) => {
     console.log('[handleRewriteFromSegment] 从第', segmentIndex, '段开始重写')
-    if (segmentIndex < 1 || segmentIndex > segmentedContentList.length + 1) {
+    const currentList = segmentedContentListRef.current ?? segmentedContentList
+    if (segmentIndex < 1 || segmentIndex > currentList.length + 1) {
       message.warning('无效的段落索引')
       return
     }
@@ -737,8 +739,8 @@ function GenChapterByDetailModal({
     pauseRequestedRef.current = false
     stopRequestedRef.current = false
     
-    // 保留前面的段落，清空从该段开始的所有后续段落
-    const newContentList = segmentedContentList.slice(0, segmentIndex - 1)
+    // 保留前面的段落（用 ref 取最新，避免用户刚改完前序段落时 state 仍是调整前的影子），清空从该段开始的所有后续段落
+    const newContentList = currentList.slice(0, segmentIndex - 1)
     const newContent = newContentList.join('\n\n')
     
     setSegmentedContentList(newContentList)
