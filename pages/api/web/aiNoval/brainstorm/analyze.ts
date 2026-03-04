@@ -69,7 +69,8 @@ ${p.expanded_questions ? `- 扩展问题：${p.expanded_questions.substring(0, 1
 4. 若脑洞内容中涉及具体势力/组织名称，可调用 find_faction 按关键词检索相关阵营详情。
 5. 若脑洞内容中涉及具体地理/地点名称，可调用 find_geo 按关键词检索相关地理详情。
 6. 若脑洞内容中涉及具体角色名称，可调用 find_role 按关键词检索相关角色详情。
-7. 在收集到足够信息后，给出 Final Answer，不要继续调用工具。${parentContext}
+7. 检索到角色后，可调用 find_role_group 按角色名称检索相关角色组详情。
+8. 在收集到足够信息后，给出 Final Answer，不要继续调用工具。${parentContext}
 
 Final Answer 必须用自然语言写出，不要使用 JSON。必须且仅包含以下三个二级标题（Markdown 格式），每段下直接写分析内容：
 

@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';import { message } from '@/src/utils/antdAppMessage';
+import React, { useEffect, useState } from 'react';
+import { message } from '@/src/utils/antdAppMessage';
 
 import { Modal, Form, Button, theme } from 'antd';
 import { IBrainstorm } from '@/src/types/IAiNoval';
@@ -158,6 +159,7 @@ export default function BrainstormEditModal({ visible, brainstorm, onCancel, onS
     }
   };
 
+  // 分析可行性及思路扩展
   const handleAnalyze = async () => {
     // 如果是新建，先保存表单数据
     if (!currentBrainstorm?.id) {

@@ -9,6 +9,7 @@ import { RunnableSequence } from "@langchain/core/runnables";
 import _ from 'lodash';
 import { getRelationTypeText } from "@/src/business/aiNoval/factionManage/utils/relationTypeMap";
 import type { IFactionRelation } from "@/src/types/IAiNoval";
+import findRoleGroup from "@/src/domain/novel/findRoleGroup";
 
 interface Data {
     message?: string;
@@ -136,7 +137,7 @@ function buildUserInput(prevContent: string, currContext: string): string {
 /** 审稿员（critic）系统提示：检测滥用加密表述、提前解释/剧透等致命问题（供 genChapter 与 genChapterSegmentMultiTurn 复用） */
 export const CRITIC_SYSTEM_PROMPT = `你是一名小说章节审稿员，专门检测以下**致命问题**（任一项出现即判为不通过）：
 
-1. **滥用加密/晦涩表述**：使用故意含糊、加密式、读者无法从上下文理解的表述；堆砌术语却不解释；用「某种」「那个」「这件事」等指代不明且无后文交代。
+1. **表述缺乏主体**：出现「一种」「某种」「特有的」，但前后文其实没有交代指代的对象。
 2. **提前解释或剧透**：在情节尚未展开前就提前解释结局、真相或关键转折；把本该在后文揭晓的信息在本段说破。
 3. **概括式剧透**：用概括性语句代替具体情节（例如「后来他们经历了种种终于……」），导致本该在本段呈现的情节被一笔带过或剧透。
 4. **滥用网络安全/VPN 等现实技术表述**：严禁在小说叙事中出现「加密通讯」「加密标识」「VPN」「端到端加密」「安全信道」「加密链路」等一切网络安全/翻墙/通信技术用语。出现此类表述一律判为不通过；若确需涉及通信保密，应使用隐晦和一语双关的表达技巧，或真人交流，或通过动作和场景描写，不得使用技术术语。
@@ -289,8 +290,18 @@ function formatRelationForContext(
 }
 
 // 聚合所有检索结果
-function aggregateContext(results: { roles: any[], factions: any[], geographies: any[], factionRelationsSection?: string }): string {
+function aggregateContext(results: { roleGroups: any[], roles: any[], factions: any[], geographies: any[], factionRelationsSection?: string }): string {
     const parts: string[] = [];
+
+    if (results.roleGroups.length > 0) {
+        parts.push('【角色组设定】');
+        results.roleGroups.forEach(roleGroup => {
+            if (roleGroup.content) {
+                parts.push(roleGroup.content);
+            }
+        });
+        parts.push('');
+    }
 
     if (results.roles.length > 0) {
         parts.push('【角色设定】');
@@ -334,15 +345,49 @@ function aggregateContext(results: { roles: any[], factions: any[], geographies:
 /** 聚合角色/阵营/地理设定为 context 字符串（供 genChapter 与 genChapterSegment 复用） */
 export async function getAggregatedContext(
     worldviewIdNum: number,
+    role_group_names: string,
     role_names: string,
     faction_names: string,
     geo_names: string
 ): Promise<string> {
-    const aggregatedResults: { roles: any[]; factions: any[]; geographies: any[]; factionRelationsSection?: string } = {
+    const aggregatedResults: { roleGroups: any[]; roles: any[]; factions: any[]; geographies: any[]; factionRelationsSection?: string } = {
+        roleGroups: [],
         roles: [],
         factions: [],
         geographies: []
     };
+
+    if (role_group_names && role_group_names.trim().length > 0) {
+        const roleGroupNameList = splitNames(role_group_names);
+        for (const roleGroupName of roleGroupNameList) {
+            const result = await findRoleGroup(worldviewIdNum, {
+                group_name: roleGroupName,
+                group_status: 'active',
+            });
+            const groups = (result as any)?.data ?? result ?? [];
+            (groups as any[]).forEach((roleGroup) => {
+                const lines: string[] = [];
+                if (roleGroup.name) lines.push(`角色组：${roleGroup.name}`);
+                if (roleGroup.group_type) lines.push(`类型：${roleGroup.group_type}`);
+                if (roleGroup.group_status) lines.push(`状态：${roleGroup.group_status}`);
+                if (roleGroup.description) lines.push(roleGroup.description);
+                if (roleGroup.collective_behavior) lines.push(`集体行为：${roleGroup.collective_behavior}`);
+                if (roleGroup.action_pattern) lines.push(`行动模式：${roleGroup.action_pattern}`);
+                if (roleGroup.shared_goal) lines.push(`共同目标：${roleGroup.shared_goal}`);
+                if (roleGroup.taboo) lines.push(`禁忌：${roleGroup.taboo}`);
+                const members = Array.isArray(roleGroup.members) ? roleGroup.members : [];
+                const memberNames = members
+                    .map((m: any) => m?.name_in_worldview)
+                    .filter((name: any) => typeof name === 'string' && name.trim().length > 0);
+                if (memberNames.length > 0) {
+                    lines.push(`成员：${memberNames.join('、')}`);
+                }
+                const content = lines.join('\n').trim();
+                if (content.length > 0) aggregatedResults.roleGroups.push({ content });
+            });
+        }
+    }
+
     if (role_names && role_names.trim().length > 0) {
         const roleNameList = splitNames(role_names);
         for (const roleName of roleNameList) {
@@ -495,6 +540,7 @@ async function handleGenChapter(req: NextApiRequest, res: NextApiResponse<Data>)
         prev_content = '',
         curr_context = '',
         role_names = '',
+        role_group_names = '',
         faction_names = '',
         geo_names = '',
         attension = '',
@@ -523,7 +569,7 @@ async function handleGenChapter(req: NextApiRequest, res: NextApiResponse<Data>)
         // 4. 聚合上下文（依赖 embedding；失败时 403 提示检查余额，其它错误用空上下文继续）
         let context: string;
         try {
-            context = await getAggregatedContext(worldviewIdNum, role_names, faction_names, geo_names);
+            context = await getAggregatedContext(worldviewIdNum, role_group_names, role_names, faction_names, geo_names);
         } catch (ctxErr: any) {
             const msg = String(ctxErr?.message || ctxErr || '');
             const is403 = msg.includes('403') || (ctxErr?.status === 403);
