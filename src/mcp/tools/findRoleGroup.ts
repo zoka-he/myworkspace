@@ -50,6 +50,10 @@ export class FindRoleGroupTool extends BaseMCPTool {
           type: 'string',
           description: '可选，按角色名称（模糊匹配）筛选，只返回包含该角色的角色组',
         },
+        group_name: {
+          type: 'string',
+          description: '可选，按角色组名称（模糊匹配）筛选',
+        },
       },
       required: ['worldview_id'],
     },
@@ -75,6 +79,7 @@ export class FindRoleGroupTool extends BaseMCPTool {
     limit?: number;
     group_status?: string;
     role_name?: string;
+    group_name?: string;
   }): Promise<any> {
     const worldviewId =
       typeof args.worldview_id === 'string' ? _.toNumber(args.worldview_id) : args.worldview_id;
@@ -87,6 +92,7 @@ export class FindRoleGroupTool extends BaseMCPTool {
         limit,
         group_status: args.group_status,
         role_name: args.role_name,
+        group_name: args.group_name,
       });
 
       // 对返回内容做精简：

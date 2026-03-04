@@ -17,7 +17,9 @@ import { message } from '@/src/utils/antdAppMessage'
 import { useWorldViewContext } from '../WorldViewContext'
 import { useChapterContext } from '../chapterContext'
 import { getRoleListForChapter } from '@/src/api/aiNovel'
+import roleGroupApiCalls from '@/src/business/aiNoval/roleGroupManage/apiCalls'
 import { textDecorationLine } from 'html2canvas/dist/types/css/property-descriptors/text-decoration-line'
+import CharacterGroupSelect from '@/src/components/aiNovel/characterGroupSelect'
 
 const { Text } = Typography
 const { TextArea } = Input
@@ -168,6 +170,7 @@ function ChapterSkeletonPanel({
         geo_ids: chapterContext.geo_ids || [],
         faction_ids: chapterContext.faction_ids || [],
         role_ids: (chapterContext.role_ids || []).map(String),
+        role_group_ids: chapterContext.role_group_ids || [],
         seed_prompt: chapterContext.seed_prompt || '',
         related_chapter_ids: chapterContext.related_chapter_ids || [],
         skeleton_prompt: chapterContext.skeleton_prompt || '',
@@ -406,18 +409,134 @@ function ChapterSkeletonPanel({
       }
       const resolvedRoleIds = _.uniq(roleIds)
 
-      console.debug(LOG, '6. 最终结果', { resolvedGeoIds, resolvedFactionIds, resolvedRoleIds })
+      // 根据匹配到的角色尝试自动补全角色组
+      let resolvedRoleGroupIds: number[] = []
+      try {
+        const worldviewId = worldViewData?.id
+        if (worldviewId && resolvedRoleIds.length && roleListForChapter?.length) {
+          // 1）先把 union_id -> info_id 建立映射
+          const unionIdToInfoId = new Map<string, number>()
+          for (const r of roleListForChapter) {
+            if (r.union_id && r.info_id != null) {
+              unionIdToInfoId.set(String(r.union_id), Number(r.info_id))
+            }
+          }
+
+          const selectedInfoIds = resolvedRoleIds
+            .map((id) => unionIdToInfoId.get(String(id)))
+            .filter((v): v is number => v != null)
+
+          console.debug(LOG, '6.1 角色 info_id 映射', {
+            unionIdToInfoIdSize: unionIdToInfoId.size,
+            selectedInfoIds,
+          })
+
+          if (selectedInfoIds.length) {
+            // 2）获取世界观下的所有活跃角色组
+            const groupResp = await roleGroupApiCalls.getRoleGroupList(worldviewId, {
+              limit: 500,
+              group_status: 'active',
+            })
+            const groups = (groupResp as { data?: any[] })?.data || []
+
+            console.debug(LOG, '6.2 角色组列表', {
+              worldviewId,
+              groupCount: groups.length,
+            })
+
+            const roleGroupMembersMap = new Map<number, number[]>()
+
+            // 优先使用列表中已经带上的 members 字段，避免额外请求
+            for (const g of groups) {
+              if (g?.id == null) continue
+              const members = Array.isArray(g.members) ? g.members : []
+              if (members.length) {
+                roleGroupMembersMap.set(
+                  Number(g.id),
+                  members
+                    .map((m: any) => m.role_info_id)
+                    .filter((v: any): v is number => v != null)
+                    .map((v: any) => Number(v)),
+                )
+              }
+            }
+
+            // 如果大部分 group 没有 members，再按需补充请求
+            if (roleGroupMembersMap.size === 0 && groups.length) {
+              const memberResults = await Promise.all(
+                groups
+                  .filter((g: any) => g?.id != null)
+                  .map(async (g: any) => {
+                    try {
+                      const members = await roleGroupApiCalls.getRoleGroupMembers(Number(g.id))
+                      return {
+                        id: Number(g.id),
+                        members: Array.isArray((members as any)?.data)
+                          ? (members as any).data
+                          : (members as any),
+                      }
+                    } catch (e) {
+                      console.warn(LOG, 'getRoleGroupMembers 失败', g.id, e)
+                      return { id: Number(g.id), members: [] as any[] }
+                    }
+                  }),
+              )
+
+              for (const item of memberResults) {
+                const memberInfoIds = (item.members || [])
+                  .map((m: any) => m.role_info_id)
+                  .filter((v: any): v is number => v != null)
+                  .map((v: any) => Number(v))
+                if (memberInfoIds.length) {
+                  roleGroupMembersMap.set(item.id, memberInfoIds)
+                }
+              }
+            }
+
+            console.debug(LOG, '6.3 角色组成员映射', {
+              groupCount: groups.length,
+              mappedGroups: roleGroupMembersMap.size,
+            })
+
+            const matchedGroupIds: number[] = []
+            roleGroupMembersMap.forEach((memberInfoIds, groupId) => {
+              const hasIntersection = memberInfoIds.some((infoId) => selectedInfoIds.includes(infoId))
+              if (hasIntersection) {
+                matchedGroupIds.push(groupId)
+              }
+            })
+
+            resolvedRoleGroupIds = _.uniq(matchedGroupIds)
+
+            console.debug(LOG, '6.4 基于角色匹配到的角色组', {
+              resolvedRoleGroupIds,
+            })
+          }
+        }
+      } catch (e) {
+        console.warn(LOG, '自动回填角色组失败（忽略不中断主流程）', e)
+      }
+
+      console.debug(LOG, '7. 最终结果', { resolvedGeoIds, resolvedFactionIds, resolvedRoleIds, resolvedRoleGroupIds })
+
+      const currentValues = form.getFieldsValue()
+      const mergedRoleGroupIds = _.uniq([
+        ...(Array.isArray(currentValues.role_group_ids) ? currentValues.role_group_ids : []),
+        ...resolvedRoleGroupIds,
+      ])
 
       form.setFieldsValue({
         geo_ids: resolvedGeoIds,
         faction_ids: resolvedFactionIds,
         role_ids: resolvedRoleIds,
+        role_group_ids: mergedRoleGroupIds,
       })
       const parts = []
       if (resolvedGeoIds.length) parts.push(`地点 ${resolvedGeoIds.length} 个`)
       if (resolvedFactionIds.length) parts.push(`阵营 ${resolvedFactionIds.length} 个`)
       if (resolvedRoleIds.length) parts.push(`角色 ${resolvedRoleIds.length} 个`)
-      message.success(parts.length ? `已根据提示词与相关章节摘要补全：${parts.join('、')}` : '未匹配到可用的地点/阵营/角色，请检查世界观配置或提示词')
+      if (mergedRoleGroupIds.length) parts.push(`角色组 ${mergedRoleGroupIds.length} 个`)
+      message.success(parts.length ? `已根据提示词与相关章节摘要补全：${parts.join('、')}` : '未匹配到可用的地点/阵营/角色/角色组，请检查世界观配置或提示词')
     } catch (e: unknown) {
       console.error(LOG, 'Agent 提取失败', e)
       message.error((e as Error)?.message || 'Agent 提取关联信息失败')
@@ -573,6 +692,7 @@ function ChapterSkeletonPanel({
         geo_ids: processIds<string>(values.geo_ids),
         faction_ids: processIds<number>(values.faction_ids),
         role_ids: processIds<string>(values.role_ids),
+        role_group_ids: processIds<number>(values.role_group_ids),
         seed_prompt: values.seed_prompt,
         related_chapter_ids: values.related_chapter_ids,
         skeleton_prompt: values.skeleton_prompt,
@@ -877,6 +997,19 @@ function ChapterSkeletonPanel({
               fieldNames={{label:'title', value: 'key'}}    // fuck antd
             >
             </TreeSelect>
+          </Form.Item>
+
+          <Form.Item
+            label={
+              <div className={styles.formItemLabel}>
+                <Text strong>章节关联角色组</Text>
+              </div>
+            }
+            name="role_group_ids"
+          >
+            <CharacterGroupSelect
+              worldviewId={worldViewData?.id || null}
+            />
           </Form.Item>
 
           <Form.Item

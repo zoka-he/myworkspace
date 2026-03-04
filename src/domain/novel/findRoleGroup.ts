@@ -14,6 +14,8 @@ export interface FindRoleGroupOptions {
   group_status?: string;
   /** 可选：按角色名称（模糊匹配）筛选，只返回包含该角色的角色组 */
   role_name?: string | null;
+  /** 可选：按角色组名称（模糊匹配）筛选 */
+  group_name?: string | null;
 }
 
 export interface FindRoleGroupResult {
@@ -24,10 +26,10 @@ export interface FindRoleGroupResult {
 async function attachMembersToGroups(groups: IRoleGroup[]): Promise<IRoleGroup[]> {
   if (!groups.length) return groups;
 
-  const groupIds = _.uniq(
+  const groupIds: number[] = _.uniq(
     groups
-      .map((g) => (g.id != null ? _.toNumber(g.id) : null))
-      .filter((id): id is number => Number.isInteger(id) && id > 0)
+      .map((g) => (_.toNumber(g.id) || 0))
+      .filter((id) => Number.isInteger(id) && id > 0)
   );
 
   if (!groupIds.length) return groups;
@@ -58,6 +60,25 @@ export default async function findRoleGroup(
   const limit = opts.limit ?? 100;
   const group_status = opts.group_status || undefined;
   const roleName = (opts.role_name || '').trim();
+  const groupName = (opts.group_name || '').trim();
+
+  // 若指定了角色组名称，则优先按组名在 role_group 表中模糊搜索
+  if (groupName) {
+    const cond: Record<string, any> = {
+      worldview_id: _.toNumber(worldviewId),
+      name: { $like: `%${groupName}%` },
+    };
+    if (group_status) {
+      cond.group_status = group_status;
+    }
+    const result = await roleGroupService.query(cond, [], ['sort_order asc', 'id asc'], page, limit);
+    const baseData = (result as { data?: IRoleGroup[] }).data ?? [];
+    const dataWithMembers = await attachMembersToGroups(baseData);
+    return {
+      data: dataWithMembers,
+      count: (result as { count?: number }).count ?? 0,
+    };
+  }
 
   // 未指定角色名：走原有按 worldview 直接列出角色组的逻辑
   if (!roleName) {
@@ -82,10 +103,10 @@ export default async function findRoleGroup(
 
   const roleQueryResult = await roleInfoService.query(roleCond, [], ['id asc'], 1, 500, true);
   const roleRows = (roleQueryResult as { data?: Array<{ id: number | null }> }).data ?? [];
-  const roleInfoIds = _.uniq(
+  const roleInfoIds: number[] = _.uniq(
     roleRows
-      .map((r) => (r.id != null ? _.toNumber(r.id) : null))
-      .filter((id): id is number => Number.isInteger(id) && id > 0)
+      .map((r) => (_.toNumber(r.id) || 0))
+      .filter((id) => Number.isInteger(id) && id > 0)
   );
 
   if (roleInfoIds.length === 0) {
@@ -106,10 +127,10 @@ export default async function findRoleGroup(
   );
   const memberRows =
     (memberQueryResult as { data?: Array<{ role_group_id: number | null }> }).data ?? [];
-  const groupIds = _.uniq(
+  const groupIds: number[] = _.uniq(
     memberRows
-      .map((m) => (m.role_group_id != null ? _.toNumber(m.role_group_id) : null))
-      .filter((id): id is number => Number.isInteger(id) && id > 0)
+      .map((m) => (_.toNumber(m.role_group_id) || 0))
+      .filter((id) => Number.isInteger(id) && id > 0)
   );
 
   if (groupIds.length === 0) {

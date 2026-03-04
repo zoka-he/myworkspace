@@ -3,6 +3,7 @@ import ChaptersService from "@/src/services/aiNoval/chaptersService";
 import RolesService from "@/src/services/aiNoval/roleDefService";
 import FactionsService from "@/src/services/aiNoval/factionDefService";
 import GeosService from "@/src/services/aiNoval/geoGeographyService";
+import RoleGroupService from "@/src/services/aiNoval/roleGroupService";
 import _ from "lodash";
 
 const keyOfApiKey = 'DIFY_PARAGRAPH_STRIPPER_API_KEY';
@@ -26,11 +27,48 @@ async function handleContinueInfo(req: NextApiRequest, res: NextApiResponse<any>
             res.status(500).json({ message: 'chapter not found' });
             return;
         }
-        
-        
+
         let roleNames = await new RolesService().getRoleNamesOfCurrentVersion(chapter.role_ids);
         let factionNames = await new FactionsService().getFactionNamesByIds(chapter.faction_ids);
         let geoNames = await new GeosService().getGeoNamesByIds(chapter.geo_ids);
+
+        // 根据章节中的角色组 ID 获取角色组名称列表（逗号分隔）
+        let roleGroupNames = '';
+        try {
+            const rawIds = (chapter as any).role_group_ids;
+            let groupIds: number[] = [];
+
+            if (Array.isArray(rawIds)) {
+                groupIds = rawIds
+                    .map((v) => _.toNumber(v))
+                    .filter((v) => Number.isInteger(v) && v > 0);
+            } else if (typeof rawIds === 'string' && rawIds.trim().length > 0) {
+                groupIds = rawIds
+                    .split(',')
+                    .map((s: string) => s.trim())
+                    .filter((s: string) => s.length > 0)
+                    .map((s: string) => _.toNumber(s))
+                    .filter((v) => Number.isInteger(v) && v > 0);
+            } else if (typeof rawIds === 'number') {
+                const n = _.toNumber(rawIds);
+                if (Number.isInteger(n) && n > 0) {
+                    groupIds = [n];
+                }
+            }
+
+            if (groupIds.length > 0) {
+                const placeholders = groupIds.map(() => '?').join(',');
+                const sql = `select id, name from role_group where id in (${placeholders}) order by id asc`;
+                const ret = await new RoleGroupService().queryBySql(sql, groupIds);
+                const rows = (ret as any)?.data || ret || [];
+                roleGroupNames = (rows as any[])
+                    .map((r) => r?.name)
+                    .filter((name: any) => typeof name === 'string' && name.trim().length > 0)
+                    .join('，');
+            }
+        } catch (e) {
+            console.warn('continueInfo: 获取角色组名称失败（忽略不中断）', e);
+        }
 
 
         let data = {
@@ -43,6 +81,7 @@ async function handleContinueInfo(req: NextApiRequest, res: NextApiResponse<any>
             role_names: roleNames,
             faction_names: factionNames,
             geo_names: geoNames,
+            role_group_names: roleGroupNames,
             seed_prompt: chapter.seed_prompt,
             content: chapter.content,
             actual_roles: chapter.actual_roles,

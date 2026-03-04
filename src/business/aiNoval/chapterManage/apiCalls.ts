@@ -131,6 +131,10 @@ function serializeChapter(chapter: IChapter) {
         _chapter.faction_ids = splitIds(_chapter.faction_ids).map(Number);
     }
 
+    if (_chapter.role_group_ids) {
+        _chapter.role_group_ids = splitIds(_chapter.role_group_ids).map(Number);
+    }
+
     if (_chapter.related_chapter_ids) {
         _chapter.related_chapter_ids = splitIds(_chapter.related_chapter_ids).map(Number);
     }
@@ -185,6 +189,7 @@ export const getChapterList = async (novelId: number, page: number = 1, limit: n
             chapter.geo_ids = splitIds(chapter.geo_ids).map(String);
             chapter.role_ids = splitIds(chapter.role_ids).map(String);
             chapter.faction_ids = splitIds(chapter.faction_ids).map(Number);
+            chapter.role_group_ids = splitIds(chapter.role_group_ids).map(Number);
             chapter.related_chapter_ids = splitIds(chapter.related_chapter_ids).map(Number);
         });
     }
@@ -212,6 +217,7 @@ export const getChapterListByWorldviewId = async (worldviewId: number, page: num
             chapter.geo_ids = splitIds(chapter.geo_ids).map(String);
             chapter.role_ids = splitIds(chapter.role_ids).map(String);
             chapter.faction_ids = splitIds(chapter.faction_ids).map(Number);
+            chapter.role_group_ids = splitIds(chapter.role_group_ids).map(Number);
             chapter.related_chapter_ids = splitIds(chapter.related_chapter_ids).map(Number);
         });
     }
@@ -239,6 +245,7 @@ export const getChapterListFrom = async (novelId: number, from: number = 1, to: 
             chapter.geo_ids = splitIds(chapter.geo_ids).map(String);
             chapter.role_ids = splitIds(chapter.role_ids).map(String);
             chapter.faction_ids = splitIds(chapter.faction_ids).map(Number);
+            chapter.role_group_ids = splitIds(chapter.role_group_ids).map(Number);
             chapter.related_chapter_ids = splitIds(chapter.related_chapter_ids).map(Number);
         });
     }
@@ -259,6 +266,7 @@ export const addChapter = async (chapter: IChapter) => {
         geo_ids: splitIds2String(chapter.geo_ids),
         role_ids: splitIds2String(chapter.role_ids),
         faction_ids: splitIds2String(chapter.faction_ids),
+        role_group_ids: splitIds2String(chapter.role_group_ids),
         related_chapter_ids: splitIds2String(chapter.related_chapter_ids),
     }
 
@@ -294,6 +302,10 @@ export const updateChapter = async (chapter: IChapter) => {
 
     if (po.hasOwnProperty('faction_ids')) {
         po.faction_ids = splitIds2String(po.faction_ids);
+    }
+
+    if (po.hasOwnProperty('role_group_ids')) {
+        po.role_group_ids = splitIds2String(po.role_group_ids);
     }
 
     if (po.hasOwnProperty('related_chapter_ids')) {
