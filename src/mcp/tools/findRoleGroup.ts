@@ -11,6 +11,16 @@ function parsePageOrLimit(v: unknown, defaultVal: number): number | null {
   return n;
 }
 
+function removeEmptyFields<T extends Record<string, any>>(obj: T): Partial<T> {
+  const result: Partial<T> = {};
+  Object.entries(obj).forEach(([key, value]) => {
+    if (value === null || value === undefined) return;
+    if (typeof value === 'string' && value.trim() === '') return;
+    (result as any)[key] = value;
+  });
+  return result;
+}
+
 export class FindRoleGroupTool extends BaseMCPTool {
   readonly definition: MCPToolDefinition = {
     name: 'find_role_group',
@@ -78,11 +88,40 @@ export class FindRoleGroupTool extends BaseMCPTool {
         group_status: args.group_status,
         role_name: args.role_name,
       });
-      const text = `找到 ${result.count} 个角色组（本页 ${result.data.length} 条）：\n${JSON.stringify(result.data, null, 2)}`;
+
+      // 对返回内容做精简：
+      // 1) 去掉角色组上的 created_at / updated_at / sort_order
+      // 2) 对角色组本体：移除值为空(null/undefined/空字符串)的字段
+      // 3) 去掉成员上的 sort_order / created_at / updated_at / id / role_group_id / role_in_group / notes_with_others
+      const cleanedData = result.data.map((group: any) => {
+        const { created_at, updated_at, sort_order, members, ...restGroup } = group || {};
+        const compactGroup = removeEmptyFields(restGroup);
+        const cleanedMembers = Array.isArray(members)
+          ? members.map((m: any) => {
+              const {
+                sort_order: memberSortOrder,
+                created_at: mCreated,
+                updated_at: mUpdated,
+                id: memberId,
+                role_group_id,
+                role_in_group,
+                notes_with_others,
+                ...restMember
+              } = m || {};
+              return restMember;
+            })
+          : undefined;
+        return {
+          ...compactGroup,
+          ...(cleanedMembers ? { members: cleanedMembers } : {}),
+        };
+      });
+
+      const finalResult = { ...result, data: cleanedData };
       return {
-        content: [{ type: 'text' as const, text }],
+        content: [{ type: 'json' as const, json: finalResult }],
         isError: false,
-        rawData: result,
+        rawData: finalResult,
       };
     } catch (e: any) {
       return {

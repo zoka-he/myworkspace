@@ -33,6 +33,29 @@ export default class RoleGroupMemberService extends MysqlNovalService {
     }
 
     /**
+     * 按多个角色组 ID 批量查询成员列表（含 role_info 名称）
+     */
+    async listByRoleGroupIds(roleGroupIds) {
+        if (!roleGroupIds || roleGroupIds.length === 0) return [];
+        const ids = roleGroupIds
+            .map((id) => _.toNumber(id))
+            .filter((id) => Number.isInteger(id) && id > 0);
+        if (ids.length === 0) return [];
+
+        const placeholders = ids.map(() => '?').join(',');
+        const sql = `
+            select m.id, m.role_group_id, m.role_info_id, m.sort_order, m.role_in_group, m.notes_with_others,
+                   ri.name_in_worldview
+            from role_group_member m
+            left join role_info ri on ri.id = m.role_info_id
+            where m.role_group_id in (${placeholders})
+            order by m.role_group_id asc, m.sort_order asc, m.id asc
+        `;
+        const ret = await this.queryBySql(sql, ids);
+        return ret?.data || ret || [];
+    }
+
+    /**
      * 删除某角色组下全部成员
      */
     async deleteByRoleGroupId(roleGroupId) {
