@@ -42,6 +42,7 @@ export interface GenChapterSegmentMultiTurnInput {
   worldview_id: number;
   curr_context: string;
   prev_content?: string; // 前序章节缩写后的内容
+  role_group_names?: string;
   role_names?: string;
   faction_names?: string;
   geo_names?: string;
@@ -245,6 +246,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   const {
     curr_context = "",
     prev_content = "",
+    role_group_names = "",
     role_names = "",
     faction_names = "",
     geo_names = "",
@@ -276,7 +278,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   try {
     let context = (mcp_context && mcp_context.trim())
       ? mcp_context.trim()
-      : await getAggregatedContext(worldviewId, role_names, faction_names, geo_names);
+      : await getAggregatedContext(worldviewId, role_group_names, role_names, faction_names, geo_names);
     // 仅在第一段加入本章总体要点，避免每段都带全章提纲导致模型回溯前文或提前写完后文
     if (segment_index === 1 && curr_context && curr_context.trim()) {
       context = context + "\n\n【本章待写内容（总体）】\n" + curr_context.trim();

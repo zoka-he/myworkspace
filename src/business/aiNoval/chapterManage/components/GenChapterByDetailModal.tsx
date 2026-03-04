@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react'import { message } from '@/src/utils/antdAppMessage';
+import React, { useState, useEffect, useRef } from 'react'
+import { message } from '@/src/utils/antdAppMessage';
 
 import { Modal, Button, Space, Row, Col, Divider, Checkbox, InputNumber, Select, Tag, Typography, Card, Alert, List, Input, Spin } from 'antd'
 import {
@@ -109,6 +110,7 @@ function GenChapterByDetailModal({
   // 表单（与现有续写对齐，PRD 3.3）
   const [seedPrompt, setSeedPrompt] = useState('')
   const [roleNames, setRoleNames] = useState('')
+  const [roleGroupNames, setRoleGroupNames] = useState('')
   const [factionNames, setFactionNames] = useState('')
   const [geoNames, setGeoNames] = useState('')
   const [attention, setAttention] = useState('')
@@ -184,11 +186,14 @@ function GenChapterByDetailModal({
     })
   }, [open, selectedChapter?.novel_id, selectedChapter?.chapter_number])
 
-  // 回填角色、阵营、地理、章节提示词、注意事项、额外设置、分段纲要（与 ChapterContinueModal 一致）
+  // 回填角色组、角色、阵营、地理、章节提示词、注意事项、额外设置、分段纲要（与 ChapterContinueModal 一致）
   useEffect(() => {
     if (!continueInfo) return
     setSeedPrompt(
       continueInfo.actual_seed_prompt || continueInfo.seed_prompt || ''
+    )
+    setRoleGroupNames(
+      continueInfo.actual_role_groups || continueInfo.role_group_names || ''
     )
     setRoleNames(
       continueInfo.actual_roles || continueInfo.role_names || ''
@@ -337,6 +342,7 @@ function GenChapterByDetailModal({
         curr_context: seedPrompt,
         prev_content: finalPrevContent || '',
         mcp_context: undefined,
+        role_group_names: roleGroupNames,
         role_names: roleNames,
         faction_names: factionNames,
         geo_names: geoNames,
@@ -413,6 +419,7 @@ function GenChapterByDetailModal({
         const res = await apiCalls.genChapterSegmentMultiTurn(worldviewId, {
           curr_context: seedPrompt,
           prev_content: prevContent || '',
+          role_group_names: roleGroupNames,
           role_names: roleNames,
           faction_names: factionNames,
           geo_names: geoNames,
@@ -530,6 +537,7 @@ function GenChapterByDetailModal({
         const res = await apiCalls.genChapterSegmentMultiTurn(worldviewId, {
           curr_context: seedPrompt,
           prev_content: prevContent || '',
+          role_group_names: roleGroupNames,
           role_names: roleNames,
           faction_names: factionNames,
           geo_names: geoNames,
@@ -764,7 +772,8 @@ function GenChapterByDetailModal({
         chapter_style: chapterStyle,
         // 关联章节
         related_chapter_ids: relatedChapterIds,
-        // 角色 / 阵营 / 地理提示词（元数据字段）
+        // 角色组 / 角色 / 阵营 / 地理提示词（元数据字段）
+        role_group_names: roleGroupNames,
         role_names: roleNames,
         faction_names: factionNames,
         geo_names: geoNames,
@@ -780,6 +789,7 @@ function GenChapterByDetailModal({
               seed_prompt: seedPrompt,
               attension: attention,
               chapter_style: chapterStyle,
+              role_group_names: roleGroupNames,
               role_names: roleNames,
               faction_names: factionNames,
               geo_names: geoNames,
@@ -875,6 +885,55 @@ function GenChapterByDetailModal({
                 
 
                 <Divider orientation="left">提示词</Divider>
+                <div className={styles.prompt_title}>
+                  <div>
+                    <span>角色组：</span>
+                    {continueInfo && roleGroupNames === (continueInfo.role_group_names || '') && (
+                      <Tag color="blue">初始值</Tag>
+                    )}
+                    {continueInfo && roleGroupNames === (continueInfo.actual_role_groups || '') && (
+                      <Tag color="green">存储值</Tag>
+                    )}
+                    {continueInfo &&
+                      roleGroupNames !== (continueInfo.role_group_names || '') &&
+                      roleGroupNames !== (continueInfo.actual_role_groups || '') &&
+                      roleGroupNames && (
+                        <Tag color="red">已修改</Tag>
+                      )}
+                  </div>
+                  <div>
+                    {continueInfo?.role_group_names && (
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<RedoOutlined />}
+                        disabled={isFormDisabled}
+                        onClick={() => setRoleGroupNames(continueInfo.role_group_names || '')}
+                      >
+                        切换为初始值
+                      </Button>
+                    )}
+                    {continueInfo?.actual_role_groups && (
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<RedoOutlined />}
+                        disabled={isFormDisabled}
+                        onClick={() => setRoleGroupNames(continueInfo.actual_role_groups || '')}
+                      >
+                        切换为存储值
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <TextArea
+                  autoSize={{ minRows: 1 }}
+                  disabled={isFormDisabled}
+                  value={roleGroupNames}
+                  onChange={(e) => setRoleGroupNames(e.target.value)}
+                  placeholder="角色组名称，逗号分隔"
+                  style={{ marginBottom: 8 }}
+                />
                 <div className={styles.prompt_title}>
                   <div>
                     <span>角色：</span>

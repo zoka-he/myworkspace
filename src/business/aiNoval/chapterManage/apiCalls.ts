@@ -460,6 +460,7 @@ export const genChapterSegmentOutline = async (params: {
     curr_context: string
     prev_content?: string
     mcp_context?: string
+    role_group_names?: string
     role_names?: string
     faction_names?: string
     geo_names?: string
@@ -476,6 +477,7 @@ export const genChapterSegmentOutline = async (params: {
             curr_context: params.curr_context || '',
             prev_content: params.prev_content || '',
             mcp_context: params.mcp_context || '',
+            role_group_names: params.role_group_names || '',
             role_names: params.role_names || '',
             faction_names: params.faction_names || '',
             geo_names: params.geo_names || '',
@@ -560,6 +562,7 @@ export const genChapterSegment = async (
     params: {
         curr_context: string
         prev_content?: string
+        role_group_names?: string
         role_names?: string
         faction_names?: string
         geo_names?: string
@@ -580,6 +583,7 @@ export const genChapterSegment = async (
             worldview_id: worldviewId,
             curr_context: params.curr_context || '',
             prev_content: params.prev_content || '',
+            role_group_names: params.role_group_names || '',
             role_names: params.role_names || '',
             faction_names: params.faction_names || '',
             geo_names: params.geo_names || '',
@@ -607,6 +611,7 @@ export const genChapterSegmentMultiTurn = async (
     params: {
         curr_context: string
         prev_content?: string
+        role_group_names?: string
         role_names?: string
         faction_names?: string
         geo_names?: string
@@ -643,6 +648,7 @@ export const genChapterSegmentMultiTurn = async (
             worldview_id: worldviewId,
             curr_context: params.curr_context || '',
             prev_content: params.prev_content || '',
+            role_group_names: params.role_group_names || '',
             role_names: params.role_names || '',
             faction_names: params.faction_names || '',
             geo_names: params.geo_names || '',
