@@ -92,6 +92,8 @@ function GenChapterByDetailModal({
   const [antiEnumReactionsStyle, setAntiEnumReactionsStyle] = useState(true)
   /** 抗套路样板词：避免恰到好处、不易察觉、微微一笑、深吸一口气等网文套路词，默认勾选 */
   const [antiClichePhraseStyle, setAntiClichePhraseStyle] = useState(true)
+  /** 抗剧情解释：禁止在小说正文中用旁白或叙述者口吻解释剧情、动机、因果，默认勾选 */
+  const [antiPlotExplanation, setAntiPlotExplanation] = useState(true)
   /** 是否启用审稿员（多轮文风纠正），默认关闭 */
   const [enableCritic, setEnableCritic] = useState(false)
   /** 审稿员最多审核次数，默认 5 */
@@ -439,6 +441,7 @@ function GenChapterByDetailModal({
           anti_wasteland_style: antiWastelandStyle,
           anti_enum_reactions_style: antiEnumReactionsStyle,
           anti_cliche_phrase_style: antiClichePhraseStyle,
+          anti_plot_explanation: antiPlotExplanation,
           enable_critic: enableCritic,
           critic_max_rounds: criticMaxRounds,
         })
@@ -557,6 +560,7 @@ function GenChapterByDetailModal({
           anti_wasteland_style: antiWastelandStyle,
           anti_enum_reactions_style: antiEnumReactionsStyle,
           anti_cliche_phrase_style: antiClichePhraseStyle,
+          anti_plot_explanation: antiPlotExplanation,
           enable_critic: enableCritic,
           critic_max_rounds: criticMaxRounds,
         })
@@ -1425,6 +1429,13 @@ function GenChapterByDetailModal({
             disabled={isFormDisabled}
           >
             抗套路样板词
+          </Checkbox>
+          <Checkbox
+            checked={antiPlotExplanation}
+            onChange={(e) => setAntiPlotExplanation(e.target.checked)}
+            disabled={isFormDisabled}
+          >
+            抗剧情解释
           </Checkbox>
           
         </Space>
