@@ -94,8 +94,10 @@ function GenChapterByDetailModal({
   const [antiClichePhraseStyle, setAntiClichePhraseStyle] = useState(true)
   /** 抗剧情解释：禁止在小说正文中用旁白或叙述者口吻解释剧情、动机、因果，默认勾选 */
   const [antiPlotExplanation, setAntiPlotExplanation] = useState(true)
+  /** 抗演讲腔/军事腔/总结性台词：避免对白像演讲、命令式或口号式，要求生动自然，默认勾选 */
+  const [antiSpeechMilitarySummaryStyle, setAntiSpeechMilitarySummaryStyle] = useState(true)
   /** 是否启用审稿员（多轮文风纠正），默认关闭 */
-  const [enableCritic, setEnableCritic] = useState(false)
+  const [enableCritic, setEnableCritic] = useState(true)
   /** 审稿员最多审核次数，默认 5 */
   const [criticMaxRounds, setCriticMaxRounds] = useState(5)
 
@@ -442,6 +444,7 @@ function GenChapterByDetailModal({
           anti_enum_reactions_style: antiEnumReactionsStyle,
           anti_cliche_phrase_style: antiClichePhraseStyle,
           anti_plot_explanation: antiPlotExplanation,
+          anti_speech_military_summary_style: antiSpeechMilitarySummaryStyle,
           enable_critic: enableCritic,
           critic_max_rounds: criticMaxRounds,
         })
@@ -561,6 +564,7 @@ function GenChapterByDetailModal({
           anti_enum_reactions_style: antiEnumReactionsStyle,
           anti_cliche_phrase_style: antiClichePhraseStyle,
           anti_plot_explanation: antiPlotExplanation,
+          anti_speech_military_summary_style: antiSpeechMilitarySummaryStyle,
           enable_critic: enableCritic,
           critic_max_rounds: criticMaxRounds,
         })
@@ -1370,7 +1374,7 @@ function GenChapterByDetailModal({
           <Typography.Text>审稿员审核次数：</Typography.Text>
           <InputNumber
             min={1}
-            max={5}
+            max={10}
             value={criticMaxRounds}
             onChange={(v) => setCriticMaxRounds(v ?? 5)}
             disabled={isFormDisabled}
@@ -1436,6 +1440,13 @@ function GenChapterByDetailModal({
             disabled={isFormDisabled}
           >
             抗剧情解释
+          </Checkbox>
+          <Checkbox
+            checked={antiSpeechMilitarySummaryStyle}
+            onChange={(e) => setAntiSpeechMilitarySummaryStyle(e.target.checked)}
+            disabled={isFormDisabled}
+          >
+            抗演讲腔/军事腔/总结性台词
           </Checkbox>
           
         </Space>
