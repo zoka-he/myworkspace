@@ -683,13 +683,38 @@ function GenChapterByDetailModal({
     }
   }
 
-  const handleCopyContent = () => {
-    const content = segmentedContentList.length > 0 
-      ? segmentedContentList.join('\n\n') 
+  const handleCopyContent = async () => {
+    const content = segmentedContentList.length > 0
+      ? segmentedContentList.join('\n\n')
       : segmentedContent
-    if (content) {
-      navigator.clipboard.writeText(content)
+    if (!content) return
+
+    // 优先使用现代 Clipboard API（需安全上下文，如 https 或 localhost）
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(content)
+        message.success('已复制到剪贴板')
+        return
+      }
+    } catch (e) {
+      // 忽略，降级到旧方案
+    }
+
+    // 非安全上下文或 Clipboard API 不可用时，使用隐藏 textarea + execCommand 兜底
+    try {
+      const textarea = document.createElement('textarea')
+      textarea.value = content
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      textarea.style.pointerEvents = 'none'
+      textarea.style.left = '-9999px'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
       message.success('已复制到剪贴板')
+    } catch (e) {
+      message.error('复制失败，请手动全选复制')
     }
   }
 
