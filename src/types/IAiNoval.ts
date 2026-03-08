@@ -268,6 +268,76 @@ export interface IRoleGroupMember {
     notes_with_others?: string | null
 }
 
+/** 角色记忆：与章节发展关联，支持优先级与槽位指向性 */
+export interface IRoleMemory {
+    id?: number | null
+    worldview_id?: number | null
+    role_info_id?: number | null
+    chapter_id?: number | null
+    scope?: 'global' | 'from_chapter' | 'at_chapter' | null
+    start_chapter_id?: number | null
+    end_chapter_id?: number | null
+    content?: string | null
+    /** 此记忆对角色构成的影响摘要（可选） */
+    impact_summary?: string | null
+    /** 重要性：关键/重要/一般/参考/备选（词汇标记，非数字） */
+    importance?: string | null
+    memory_type?: string | null
+    affects_slot?: string | null
+    affects_slots?: string[] | null
+    related_role_info_id?: number | null
+    /** 剧情中的使用：明线=可直接体现；暗线=仅作动机/伏笔，不在叙述中直接写出 */
+    narrative_usage?: 'mingxian' | 'anxian' | null
+    sort_order?: number | null
+    created_at?: Date | string | null
+    updated_at?: Date | string | null
+}
+
+/** 角色记忆 scope 枚举 */
+export const ROLE_MEMORY_SCOPE = [
+    { value: 'global', label: '全局' },
+    { value: 'at_chapter', label: '单章' },
+    { value: 'from_chapter', label: '章节区间' },
+] as const;
+
+/** 角色记忆影响维度（槽位）枚举 */
+export const ROLE_MEMORY_AFFECTS_SLOTS = [
+    { value: 'belief', label: '信念/认知' },
+    { value: 'desire', label: '欲望/目标' },
+    { value: 'intention', label: '意图/计划' },
+    { value: 'personality', label: '性格/习惯' },
+    { value: 'relationship', label: '对某人态度' },
+    { value: 'knowledge', label: '所知信息/秘密' },
+    { value: 'principle', label: '原则/禁忌' },
+    { value: 'trauma', label: '经历/创伤' },
+] as const;
+
+/** 角色记忆重要性（词汇标记，用于排序与筛选「不低于某重要性」） */
+export const ROLE_MEMORY_IMPORTANCE = [
+    { value: 'critical', label: '关键' },
+    { value: 'high', label: '重要' },
+    { value: 'medium', label: '一般' },
+    { value: 'low', label: '参考' },
+    { value: 'marginal', label: '备选' },
+] as const;
+
+/** 角色记忆在剧情中的使用方式 */
+export const ROLE_MEMORY_NARRATIVE_USAGE = [
+    { value: 'mingxian', label: '明线' },
+    { value: 'anxian', label: '暗线' },
+] as const;
+
+/** 角色记忆叙事类型枚举 */
+export const ROLE_MEMORY_TYPES = [
+    { value: 'fact', label: '事实' },
+    { value: 'relationship_change', label: '关系变化' },
+    { value: 'goal', label: '目标' },
+    { value: 'secret', label: '秘密' },
+    { value: 'trauma', label: '创伤' },
+    { value: 'key_experience', label: '关键经历' },
+    { value: 'rule', label: '行为规则' },
+] as const;
+
 /** 角色组类型枚举（PRD 6.1） */
 export const ROLE_GROUP_TYPES = [
     { value: 'fixed_team', label: '固定小队' },

@@ -13,6 +13,7 @@ import { GeoStructureTool } from './tools/geoStructure';
 import { WorldbookTool } from './tools/worldbook';
 import { MagicSystemTool } from './tools/magicSystem';
 import { WorldStateTool } from './tools/worldState';
+import { GetRoleMemoriesTool } from './tools/getRoleMemories';
 
 // 导出所有工具类
 export {
@@ -29,6 +30,7 @@ export {
   FindFactionTool,
   FindRoleTool,
   FindRoleGroupTool,
+  GetRoleMemoriesTool,
 };
 
 // 工具实例数组，方便批量注册
@@ -46,6 +48,7 @@ export const allTools: BaseMCPTool[] = [
   new FindFactionTool(),
   new FindRoleTool(),
   new FindRoleGroupTool(),
+  new GetRoleMemoriesTool(),
   // expand_cultural_style  --> 扩展文化风格(半固定，负责把文化翻译成语言风格)
   // derive_naming_and_language_rules  --> 根据阵营特质反推命名和语言规则
   // world_state_snapshot --> 世界状态快照(负责生成世界状态快照)
