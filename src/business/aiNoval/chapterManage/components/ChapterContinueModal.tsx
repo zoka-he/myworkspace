@@ -114,7 +114,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
   const [isReferSelf, setIsReferSelf] = useState<boolean>(false)
 
   // LLM类型, 默认使用 deepseek
-  const [llmType, setLlmType] = useState<'gemini' | 'deepseek' | 'gemini3'>('deepseek')
+  const [llmType, setLlmType] = useState<'gemini' | 'deepseek' | 'deepseek-chat' | 'gemini3'>('deepseek')
 
   // 是否缩写本章
   const [isStripSelf, setIsStripSelf] = useState<boolean>(false)
@@ -207,6 +207,10 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
   const [antiEnumReactionsStyle, setAntiEnumReactionsStyle] = useState(true)
   /** 抗套路样板词：避免恰到好处、不易察觉、微微一笑、深吸一口气等网文套路词，默认勾选 */
   const [antiClichePhraseStyle, setAntiClichePhraseStyle] = useState(true)
+  /** 抗剧透及解释：禁止提前剧透和用旁白解释剧情、动机、因果，默认勾选 */
+  const [antiPlotExplanation, setAntiPlotExplanation] = useState(true)
+  /** 抗演讲/军事腔调：避免对白像演讲、口号或军事命令，默认勾选 */
+  const [antiSpeechMilitarySummaryStyle, setAntiSpeechMilitarySummaryStyle] = useState(true)
 
   // 初始化
   useEffect(() => {
@@ -557,6 +561,8 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
       anti_wasteland_style: antiWastelandStyle,
       anti_enum_reactions_style: antiEnumReactionsStyle,
       anti_cliche_phrase_style: antiClichePhraseStyle,
+      anti_plot_explanation: antiPlotExplanation,
+      anti_speech_military_summary_style: antiSpeechMilitarySummaryStyle,
     };
     console.info('auto write reqObj -> ', reqObj);
 
@@ -1073,6 +1079,8 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
                   <Checkbox checked={antiWastelandStyle} onChange={(e) => setAntiWastelandStyle(e.target.checked)} disabled={isContinuing}>反废土文风</Checkbox>
                   <Checkbox checked={antiEnumReactionsStyle} onChange={(e) => setAntiEnumReactionsStyle(e.target.checked)} disabled={isContinuing}>反逐人枚举</Checkbox>
                   <Checkbox checked={antiClichePhraseStyle} onChange={(e) => setAntiClichePhraseStyle(e.target.checked)} disabled={isContinuing}>抗套路样板词</Checkbox>
+                  <Checkbox checked={antiPlotExplanation} onChange={(e) => setAntiPlotExplanation(e.target.checked)} disabled={isContinuing}>抗剧透及解释</Checkbox>
+                  <Checkbox checked={antiSpeechMilitarySummaryStyle} onChange={(e) => setAntiSpeechMilitarySummaryStyle(e.target.checked)} disabled={isContinuing}>抗演讲/军事腔调</Checkbox>
                 </Space>
                 <Divider orientation="left">续写选项</Divider>
                 <Space>
@@ -1101,7 +1109,8 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
                   <Select value={llmType} onChange={(value) => setLlmType(value)} disabled={isContinuing}>
                     {/* <Select.Option value="gemini">Gemini2.5</Select.Option> */}
                     <Select.Option value="gemini3">Gemini3</Select.Option>
-                    <Select.Option value="deepseek">DeepSeek</Select.Option>
+                    <Select.Option value="deepseek">DeepSeek（reasoner）</Select.Option>
+                    <Select.Option value="deepseek-chat">DeepSeek-Chat</Select.Option>
                     {/* <Select.Option value="deepseek-chat">DeepSeek-Chat（实验）</Select.Option> */}
                     <Select.Option value="gpt" disabled>GPT-4o（实验）</Select.Option>
                   </Select>

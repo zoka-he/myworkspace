@@ -362,9 +362,9 @@ function RolePanel({ style }: RolePanelProps) {
 
     return (
         <>
-            <Card style={style} title={roleListTitle} styles={{ body: { height: 'calc(100vh - 130px)', overflow: 'auto' } }}>
+            <Card style={style} title={roleListTitle} styles={{ body: { height: 'calc(100vh - 130px)', overflow: 'auto', width: '470px' } }}>
                 <div className="flex flex-col">
-                    <Alert style={{ marginBottom: 10 }} message="添加角色后，角色不会立即出现在世界观，需要添加关联世界观的角色属性版本，相关角色会显示感叹号" type="info" />
+                    <Alert style={{ marginBottom: 10, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }} message="添加角色后，角色不会立即出现在世界观，需要添加关联世界观的角色属性版本，相关角色会显示感叹号" type="info" />
                     <Button 
                         className="w-full" 
                         onClick={() => openModal()}
