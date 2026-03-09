@@ -3,20 +3,24 @@ import EmbedService from "@/src/services/aiNoval/embedService";
 import { chromaService, QueryResult } from "@/src/server/chroma";
 import { distanceToSimilarity, sigmoid } from "@/src/utils/rag/scores";
 import _ from 'lodash';
-import { IRoleInfo } from "@/src/types/IAiNoval";
+import { IRoleInfo, IRoleMemory } from "@/src/types/IAiNoval";
 import { rerankService } from "@/src/services/aiNoval/rerankService";
+import RoleMemoryService from "@/src/services/aiNoval/roleMemoryService";
 
 const roleInfoService = new RoleInfoService();
 const embedService = new EmbedService();
+const roleMemoryService = new RoleMemoryService();
 
 export default async function findRole(worldviewId: number, keywords: string[], thresholdNum: number = 0.5) {
     // 先薅一波embedding数据（取用id，去mysql连带拉取role_info数据）
-    let chroma_data: (QueryResult & { chroma_score?: number })[] = await findInChroma(_.toNumber(worldviewId), keywords);
+    const worldviewIdNum = _.toNumber(worldviewId);
+
+    let chroma_data: (QueryResult & { chroma_score?: number })[] = await findInChroma(worldviewIdNum, keywords);
     let chroma_ids = chroma_data.map(item => item.id);
     chroma_data = processChromaData(chroma_data);
 
     // 再薅一波db数据，额外传入chroma_ids，用于拉取chroma_data所指代的数据
-    let db_data = await roleInfoService.getRoleMatchingByKeyword(_.toNumber(worldviewId), keywords, chroma_ids);
+    let db_data = await roleInfoService.getRoleMatchingByKeyword(worldviewIdNum, keywords, chroma_ids);
     if (db_data.length === 0) {
         // 大吉利是，再见
         return [];
@@ -78,8 +82,46 @@ export default async function findRole(worldviewId: number, keywords: string[], 
     // let combined_data_normalized = normalizeScore(combined_data, 'combined_score', 'score').map(item => _.omit(item, ['combined_score']));
     let rerank_data = await rerankData(combined_data, keywords as string[]);
 
+    // 为每个候选角色附带高重要度的角色记忆，方便下游直接使用
+    let resultWithMemories: (IRoleInfo & { score: number; db_score: number; memories?: IRoleMemory[] })[] =
+        rerank_data as any;
+
+    try {
+        const roleIds = rerank_data
+            .map(item => item.id)
+            .filter((id): id is number => id != null && Number.isFinite(Number(id))) as number[];
+
+        if (roleIds.length > 0) {
+            const memoriesMap = new Map<number, IRoleMemory[]>();
+
+            await Promise.all(
+                roleIds.map(async (roleInfoId) => {
+                    try {
+                        const memResult = await (roleMemoryService as any).getListForMcp({
+                            worldview_id: worldviewIdNum,
+                            role_info_id: roleInfoId,
+                            importance_min: 'high',
+                            limit: 20,
+                        });
+                        const list = (memResult && Array.isArray(memResult.data)) ? memResult.data as IRoleMemory[] : [];
+                        memoriesMap.set(roleInfoId, list);
+                    } catch (e) {
+                        console.error('load role memories failed for role_info_id:', roleInfoId, e);
+                    }
+                })
+            );
+
+            resultWithMemories = rerank_data.map((item) => ({
+                ...(item as any),
+                memories: item.id != null ? memoriesMap.get(item.id as number) ?? [] : [],
+            })) as any;
+        }
+    } catch (e) {
+        console.error('load role memories failed:', e);
+    }
+
     // console.debug('threshold ------------->> ', thresholdNum);
-    return rerank_data.filter(item => item.score >= thresholdNum);
+    return resultWithMemories.filter(item => item.score >= thresholdNum);
 }
 
 
