@@ -488,7 +488,7 @@ export const genChapterSegmentOutline = async (params: {
             model: params.model || 'deepseek-reasoner',
             screenwriter_mode: params.screenwriter_mode ?? false,
         },
-        { timeout: 1000 * 60 * 3 }
+        { timeout: 1000 * 60 * 15 }
     )
     const body = response?.data ?? response
     const outlines = body?.data?.outlines ?? (body as any)?.outlines ?? []
@@ -631,6 +631,8 @@ export const genChapterSegmentMultiTurn = async (
         anti_wasteland_style?: boolean
         anti_enum_reactions_style?: boolean
         anti_cliche_phrase_style?: boolean
+        anti_plot_explanation?: boolean
+        anti_speech_military_summary_style?: boolean
         enable_critic?: boolean
         critic_max_rounds?: number
     }
@@ -668,6 +670,8 @@ export const genChapterSegmentMultiTurn = async (
             anti_wasteland_style: params.anti_wasteland_style !== false,
             anti_enum_reactions_style: params.anti_enum_reactions_style !== false,
             anti_cliche_phrase_style: params.anti_cliche_phrase_style !== false,
+            anti_plot_explanation: params.anti_plot_explanation !== false,
+            anti_speech_military_summary_style: params.anti_speech_military_summary_style !== false,
             enable_critic: params.enable_critic === true,
             critic_max_rounds: params.critic_max_rounds ?? 5,
         },
