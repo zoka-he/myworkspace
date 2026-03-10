@@ -1,4 +1,5 @@
-import React, { useState } from 'react';import { message } from '@/src/utils/antdAppMessage';
+import React, { useState } from 'react';
+import { message } from '@/src/utils/antdAppMessage';
 
 import { Button, Card, Checkbox, Input, Select, Space, theme, Collapse } from 'antd';
 import { ReloadOutlined, UserOutlined, FormOutlined, PlusOutlined } from '@ant-design/icons';
@@ -33,6 +34,10 @@ export default function RoleIdeationPanel({
   const [seedCount, setSeedCount] = useState(DEFAULT_SEED_COUNT);
   /** 生成轮次：对同一批选中种子重复生成 N 轮（1 = 生成 1 遍，2 = 生成 2 遍…） */
   const [draftRoundCount, setDraftRoundCount] = useState(1);
+  /** 角色种子随机性：低/中/高，对应后端温度与提示扰动 */
+  const [seedRandomness, setSeedRandomness] = useState<'low' | 'medium' | 'high'>('medium');
+  /** 角色草稿随机性：低/中/高，主要影响人设与背景多样性 */
+  const [draftRandomness, setDraftRandomness] = useState<'low' | 'medium' | 'high'>('medium');
 
   const handleGenerateSeeds = async () => {
     if (!currentBrainstorm?.id) {
@@ -44,7 +49,7 @@ export default function RoleIdeationPanel({
       message.loading({ content: `正在生成 ${seedCount} 个角色种子...`, key: 'roleSeeds' });
       const newSeeds = await apiCalls.generateRoleSeeds(currentBrainstorm.id, {
         count: seedCount,
-        randomness: 'medium',
+        randomness: seedRandomness,
         adhere_worldview: true,
       });
       onSeedsChange(newSeeds);
@@ -67,7 +72,10 @@ export default function RoleIdeationPanel({
     }
     try {
       setRerollingId(seedId);
-      const updated = await apiCalls.rerollRoleSeed(currentBrainstorm.id, seedId);
+      const updated = await apiCalls.rerollRoleSeed(currentBrainstorm.id, seedId, {
+        randomness: seedRandomness,
+        adhere_worldview: true,
+      });
       const next = seeds.map((s) => (s.id === seedId ? { ...updated, edited: false } : s));
       onSeedsChange(next);
       message.success('已重骰该种子');
@@ -122,8 +130,10 @@ export default function RoleIdeationPanel({
       let worldviewSummary: string | undefined;
       /** 按 (seed_id, generation_round) 去重，同一种子同轮次只保留最新 */
       const draftKey = (d: IRoleDraft) => `${d.seed_id}_${d.generation_round ?? 0}`;
-      let currentDrafts = [...drafts];
-      const byKey = new Map<string, IRoleDraft>(currentDrafts.map((d) => [draftKey(d), d]));
+      // 每次点击生成按钮，视为开启一轮全新的多轮生成流程，先清空已有草稿，避免旧轮次残留
+      let currentDrafts: IRoleDraft[] = [];
+      const byKey = new Map<string, IRoleDraft>();
+      onDraftsChange([]);
 
       for (let round = 1; round <= rounds; round++) {
         for (let i = 0; i < ids.length; i++) {
@@ -136,7 +146,8 @@ export default function RoleIdeationPanel({
             currentBrainstorm.id,
             [ids[i]],
             seeds,
-            worldviewSummary
+            worldviewSummary,
+            { randomness: draftRandomness }
           );
           if (nextSummary) worldviewSummary = nextSummary;
           newDrafts.forEach((d) => byKey.set(`${d.seed_id}_${round}`, { ...d, generation_round: round }));
@@ -171,6 +182,16 @@ export default function RoleIdeationPanel({
         <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
           <span style={{ fontWeight: 'bold' }}>角色种子（自然语言，可编辑与重骰）</span>
           <Space>
+            <Select
+              value={seedRandomness}
+              onChange={setSeedRandomness}
+              options={[
+                { value: 'low', label: '随机性：低（更稳、更集中）' },
+                { value: 'medium', label: '随机性：中（均衡）' },
+                { value: 'high', label: '随机性：高（更发散）' },
+              ]}
+              style={{ width: 190 }}
+            />
             <Select
               value={seedCount}
               onChange={setSeedCount}
@@ -250,6 +271,16 @@ export default function RoleIdeationPanel({
         <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
           <span style={{ fontWeight: 'bold' }}>角色草稿（角色卡 + 背景）</span>
           <Space>
+            <Select
+              value={draftRandomness}
+              onChange={setDraftRandomness}
+              options={[
+                { value: 'low', label: '随机性：低（更稳、更集中）' },
+                { value: 'medium', label: '随机性：中（均衡）' },
+                { value: 'high', label: '随机性：高（更发散）' },
+              ]}
+              style={{ width: 190 }}
+            />
             <span style={{ color: token.colorTextSecondary, fontSize: '13px' }}>生成轮次：</span>
             <Select
               value={draftRoundCount}

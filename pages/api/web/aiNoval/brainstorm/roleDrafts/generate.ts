@@ -12,6 +12,25 @@ import { buildRelatedChapterContext } from "../../utils/relatedChapterContext";
 const LOG_TAG = "[brainstormRoleDraftsGenerate]";
 const service = new BrainstormService();
 
+type RandomnessLevel = "low" | "medium" | "high";
+
+function normalizeRandomness(raw?: string): RandomnessLevel {
+  if (raw === "low" || raw === "medium" || raw === "high") return raw;
+  return "medium";
+}
+
+function randomnessToTemperature(level: RandomnessLevel): number {
+  switch (level) {
+    case "low":
+      return 0.45;
+    case "high":
+      return 0.95;
+    case "medium":
+    default:
+      return 0.6;
+  }
+}
+
 const CARD_KEYS = ["name", "gender", "age", "race_or_species", "faction_or_stance", "appearance", "strengths", "weaknesses", "resources", "behavior_style", "personality"];
 
 const GATHER_CONTEXT_SYSTEM_PROMPT = `你是小说世界设定助手。任务：使用 MCP 工具查阅世界观，收集与角色设定相关的信息，在 Final Answer 中输出一份简明摘要。
@@ -60,13 +79,15 @@ export default async function handler(
       return;
     }
     const brainstormId = Number(id);
-    const body = (req.body || {}) as { seed_ids?: string[]; seeds?: IRoleSeed[]; worldview_summary?: string };
+    const body = (req.body || {}) as { seed_ids?: string[]; seeds?: IRoleSeed[]; worldview_summary?: string; randomness?: string };
     const seedIds = Array.isArray(body.seed_ids) ? body.seed_ids : [];
     if (seedIds.length === 0) {
       res.status(400).json({ success: false, error: "seed_ids is required and must be non-empty" });
       return;
     }
     const incomingWorldviewSummary = typeof body.worldview_summary === "string" ? body.worldview_summary.trim() : "";
+    const randomness = normalizeRandomness(body.randomness);
+    const noiseToken = Math.random().toString(36).slice(2, 10);
 
     const brainstorm = await service.getBrainstormById(brainstormId);
     if (!brainstorm) {
@@ -143,12 +164,22 @@ export default async function handler(
     seedsFromBody.forEach((s: IRoleSeed) => seedMap.set(s.id, s.content || ""));
     seedsFromBrainstorm.forEach((s: IRoleSeed) => { if (!seedMap.has(s.id)) seedMap.set(s.id, s.content || ""); });
 
-    const model = createDeepSeekModel({ model: "deepseek-chat", temperature: 0.6 });
+    const model = createDeepSeekModel({ model: "deepseek-chat", temperature: randomnessToTemperature(randomness) });
     const drafts: IRoleDraft[] = [];
 
     for (const seedId of seedIds) {
       const seedContent = seedMap.get(seedId) || "（无种子描述）";
-      const systemPrompt = `你是小说角色设定助手。根据世界观设定、脑洞与角色种子，生成「角色卡」和「角色背景」。角色需符合世界观（势力、文化、命名等）。
+      const randomnessHint =
+        randomness === "low"
+          ? "在保证角色与世界观、剧情高度贴合的前提下，适度拉开不同角色的姓名、阵营、性格与背景，不要完全模板化。"
+          : randomness === "high"
+          ? "大胆在姓名、身份、阵营、人生经历和角色弧线设计上做出差异化，尽量避免角色之间出现高度相似的履历或人设模板。"
+          : "在兼顾世界观合理性的前提下，让不同角色在姓名、身份、阵营、性格与背景故事上有清晰区分。";
+      const systemPrompt = `你是小说角色设定助手。根据世界观设定、脑洞与角色种子，生成「角色卡」和「角色背景」。角色需符合世界观（势力、文化、命名等），并避免多个角色出现高度相似的人设与履历。
+${randomnessHint}
+为提升多样性，你可以在势力、出身阶层、人生阶段、创伤与动机等维度做差异化设计。
+（内部随机扰动标识：${noiseToken}，仅用于帮助你打破固定模式，请不要在回答中直接提及）
+
 角色卡为 JSON 对象，只包含以下键（均为字符串）：name, gender, age, race_or_species, faction_or_stance, appearance, strengths, weaknesses, resources, behavior_style, personality。未确定的字段可省略。
 输出格式：先一行 JSON（角色卡），然后换行写 "---BACKGROUND---"，再写角色背景长文本（出身、经历、与脑洞的关联、角色弧线等）。`;
       const userPrompt = `脑洞与世界观上下文：\n${context}\n\n角色种子：\n${seedContent}\n\n请生成该角色的角色卡（JSON）与角色背景（---BACKGROUND--- 后的长文本）。`;
