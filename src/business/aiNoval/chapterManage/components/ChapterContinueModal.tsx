@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { message } from '@/src/utils/antdAppMessage';
 
-import { Modal, Button, Space, Row, Col, Form, Select, Checkbox, Divider, Input, Tag, Typography, Card, Alert } from 'antd'
+import { Modal, Button, Space, Row, Col, Form, Select, Checkbox, Divider, Input, Tag, Typography, Card, Alert, InputNumber } from 'antd'
 import { CloseCircleOutlined, CloseOutlined, CopyOutlined, EditOutlined, ExpandAltOutlined, RedoOutlined, RobotOutlined } from '@ant-design/icons'
 import { IChapter } from '@/src/types/IAiNoval'
 import * as chapterApi from '../apiCalls'
@@ -211,6 +211,9 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
   const [antiPlotExplanation, setAntiPlotExplanation] = useState(true)
   /** 抗演讲/军事腔调：避免对白像演讲、口号或军事命令，默认勾选 */
   const [antiSpeechMilitarySummaryStyle, setAntiSpeechMilitarySummaryStyle] = useState(true)
+
+  /** 审稿员最多审核次数，默认 5（与 GenChapterByDetailModal 对齐） */
+  const [criticMaxRounds, setCriticMaxRounds] = useState(5)
 
   // 初始化
   useEffect(() => {
@@ -563,6 +566,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
       anti_cliche_phrase_style: antiClichePhraseStyle,
       anti_plot_explanation: antiPlotExplanation,
       anti_speech_military_summary_style: antiSpeechMilitarySummaryStyle,
+      critic_max_rounds: criticMaxRounds,
     };
     console.info('auto write reqObj -> ', reqObj);
 
@@ -1083,7 +1087,31 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
                   <Checkbox checked={antiSpeechMilitarySummaryStyle} onChange={(e) => setAntiSpeechMilitarySummaryStyle(e.target.checked)} disabled={isContinuing}>抗演讲/军事腔调</Checkbox>
                 </Space>
                 <Divider orientation="left">续写选项</Divider>
-                <Space>
+                <Space wrap>
+                  
+
+                  <Typography.Text>模型：</Typography.Text>
+                  <Select value={llmType} onChange={(value) => setLlmType(value)} disabled={isContinuing}>
+                    {/* <Select.Option value="gemini">Gemini2.5</Select.Option> */}
+                    <Select.Option value="gemini3">Gemini3</Select.Option>
+                    <Select.Option value="deepseek">DeepSeek（reasoner）</Select.Option>
+                    <Select.Option value="deepseek-chat">DeepSeek-Chat</Select.Option>
+                    {/* <Select.Option value="deepseek-chat">DeepSeek-Chat（实验）</Select.Option> */}
+                    <Select.Option value="gpt" disabled>GPT-4o（实验）</Select.Option>
+                  </Select>
+
+                  <Typography.Text>审稿员审核次数：</Typography.Text>
+                  <InputNumber
+                    min={1}
+                    max={10}
+                    value={criticMaxRounds}
+                    onChange={(v) => setCriticMaxRounds(v ?? 5)}
+                    disabled={isContinuing}
+                  />
+
+                  <Checkbox checked={isReferSelf} onChange={(e) => setIsReferSelf(e.target.checked)} disabled={isContinuing}>参考本章已有内容</Checkbox>
+                  <Checkbox checked={isStripSelf} onChange={(e) => setIsStripSelf(e.target.checked)} disabled={isContinuing}>缩写本章</Checkbox>
+
                   { isContinuing ? (
                     <Button
                       type="primary"
@@ -1104,20 +1132,9 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
                       开始续写
                     </Button>
                   )}
-
-                  <Typography.Text>模型：</Typography.Text>
-                  <Select value={llmType} onChange={(value) => setLlmType(value)} disabled={isContinuing}>
-                    {/* <Select.Option value="gemini">Gemini2.5</Select.Option> */}
-                    <Select.Option value="gemini3">Gemini3</Select.Option>
-                    <Select.Option value="deepseek">DeepSeek（reasoner）</Select.Option>
-                    <Select.Option value="deepseek-chat">DeepSeek-Chat</Select.Option>
-                    {/* <Select.Option value="deepseek-chat">DeepSeek-Chat（实验）</Select.Option> */}
-                    <Select.Option value="gpt" disabled>GPT-4o（实验）</Select.Option>
-                  </Select>
-
-                  <Checkbox checked={isReferSelf} onChange={(e) => setIsReferSelf(e.target.checked)} disabled={isContinuing}>参考本章已有内容</Checkbox>
-                  <Checkbox checked={isStripSelf} onChange={(e) => setIsStripSelf(e.target.checked)} disabled={isContinuing}>缩写本章</Checkbox>
                 </Space>
+
+                
                 
                 <Divider orientation='left'>
                   {isContinuing ? '续写中...' : '点击上方按钮开始续写...'}

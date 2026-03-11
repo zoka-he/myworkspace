@@ -11,7 +11,33 @@ import { buildRelatedChapterContext } from "../../utils/relatedChapterContext";
 const LOG_TAG = "[brainstormRoleSeedsGenerate]";
 const service = new BrainstormService();
 
-function buildReActSystemPrompt(count: number): string {
+type RandomnessLevel = "low" | "medium" | "high";
+
+function normalizeRandomness(raw?: string): RandomnessLevel {
+  if (raw === "low" || raw === "medium" || raw === "high") return raw;
+  return "medium";
+}
+
+function randomnessToTemperature(level: RandomnessLevel): number {
+  switch (level) {
+    case "low":
+      return 0.55;
+    case "high":
+      return 1.05;
+    case "medium":
+    default:
+      return 0.8;
+  }
+}
+
+function buildReActSystemPrompt(count: number, randomness: RandomnessLevel, noiseToken: string): string {
+  const randomnessHint =
+    randomness === "low"
+      ? "在保持整体风格稳定的前提下，适度区分不同角色的设定与姓名，避免完全重复。"
+      : randomness === "high"
+      ? "尽量让不同角色在姓名、身份、阵营、性格和剧情钩子上高度多样化，避免刻板模板化。"
+      : "在合理范围内保持适度多样性，让角色姓名、身份和剧情钩子之间有明显区分。";
+
   return `你是小说角色构思助手。任务：先使用 MCP 工具查阅世界观相关设定，再根据脑洞信息生成角色种子。
 
 工作步骤（必须按顺序，按需调用工具后再给出 Final Answer）：
@@ -26,6 +52,12 @@ Final Answer 格式要求：
 - 直接输出恰好 ${count} 段「角色种子」正文，每段一段话（约 50～150 字），描述一个潜在角色的定位、核心特征、与当前剧情的钩子等；风格可多样（主角、配角、反派、导师等）。
 - 段与段之间用单独一行的 "---" 分隔。
 - 不要任何解释、标题或前缀（如「好的」「下面」「【角色种子1】」等），Final Answer 的第一行就是第一个种子的内容。
+
+多样性与随机性要求（重要）：
+- ${randomnessHint}
+- 每个角色都应有风格各异、便于记忆的姓名／称号，避免多个角色姓名或称谓过于相似。
+- 可以在世界观约束允许的前提下，对角色的种族、阶层、职业、所属势力等做出差异化设定。
+- 下述随机扰动标识仅用于帮助你打破固定模式，请不要在回答中直接提及：${noiseToken}
 
 要求：任何需要 worldview_id 的工具调用，必须使用请求中提供的 worldview_id。`;
 }
@@ -63,6 +95,9 @@ export default async function handler(
       return;
     }
 
+    const randomness = normalizeRandomness(body.randomness);
+    const noiseToken = Math.random().toString(36).slice(2, 10);
+
     let relatedChaptersContext = "";
     const relatedChapterIds = parsed.related_chapter_ids;
     if (Array.isArray(relatedChapterIds) && relatedChapterIds.length > 0) {
@@ -73,7 +108,7 @@ export default async function handler(
       }
     }
 
-    const model = createDeepSeekModel({ model: "deepseek-chat", temperature: 0.8 });
+    const model = createDeepSeekModel({ model: "deepseek-chat", temperature: randomnessToTemperature(randomness) });
     const tools = mcpToolRegistry.getAllToolDefinitions();
     const toolExecutor = async (name: string, args: Record<string, any> | string) => {
       let obj: Record<string, any> = {};
@@ -90,6 +125,7 @@ export default async function handler(
     const userQuery = [
       `世界观 ID：${worldviewId}`,
       "",
+      `随机性设置：${randomness}（用于控制创意分散程度，用户不可见）`,
       "【脑洞信息】",
       brainstormContext,
       relatedChaptersContext ? ["", "【关联章节缩写（角色需与已有剧情兼容）】", relatedChaptersContext].join("\n") : "",
@@ -97,7 +133,7 @@ export default async function handler(
       `请先按需调用 MCP 工具查阅世界观，再在 Final Answer 中直接输出恰好 ${count} 个角色种子，段间用 "---" 分隔，不要任何前言。`,
     ].filter(Boolean).join("\n");
 
-    const llmOutput = await executeReAct(model, tools, toolExecutor, buildReActSystemPrompt(count), userQuery, {
+    const llmOutput = await executeReAct(model, tools, toolExecutor, buildReActSystemPrompt(count, randomness, noiseToken), userQuery, {
       maxIterations: 15,
       finalAnswerKeywords: ["---"],
       logTag: LOG_TAG,

@@ -375,11 +375,13 @@ function GenChapterByDetailModal({
   /** 逐段生成并逐段输出；支持暂停、停止（多轮对话模式）
    * @param initialHistory 从指定段落重写时传入截断后的历史，避免保留已删除段的旧 user/agent 对
    * @param initialContentList 从指定段落重写时传入「该段之前」的已写内容列表，避免 setState 未生效时 previous_content_snippet 取到被删段落
+   * @param options 断点重写/恢复时显式传入审稿人开关与轮数，避免闭包拿到旧 state
    */
   const runSegmentLoop = async (
     startFromIndex: number,
     initialHistory?: Array<{ role: 'user' | 'assistant'; content: string }>,
-    initialContentList?: string[]
+    initialContentList?: string[],
+    options?: { enableCritic?: boolean; criticMaxRounds?: number }
   ) => {
     if (!worldviewId) {
       message.error('无法获取世界观 ID')
@@ -413,7 +415,9 @@ function GenChapterByDetailModal({
     setPhase('writing_segment')
     setSegmentIndex(startFromIndex)
     setErrorMessage('')
-    
+    const useEnableCritic = options?.enableCritic ?? enableCritic
+    const useCriticMaxRounds = options?.criticMaxRounds ?? criticMaxRounds
+
     // 第一轮：确认理解（仅在第一次启动时）
     if (startFromIndex === 1 && history.length === 0) {
       if (stopRequestedRef.current || pauseRequestedRef.current) {
@@ -445,8 +449,8 @@ function GenChapterByDetailModal({
           anti_cliche_phrase_style: antiClichePhraseStyle,
           anti_plot_explanation: antiPlotExplanation,
           anti_speech_military_summary_style: antiSpeechMilitarySummaryStyle,
-          enable_critic: enableCritic,
-          critic_max_rounds: criticMaxRounds,
+          enable_critic: useEnableCritic,
+          critic_max_rounds: useCriticMaxRounds,
         })
         if (res.status === 'error' || res.error) {
           setErrorMessage(res.error || '确认阶段失败')
@@ -565,8 +569,8 @@ function GenChapterByDetailModal({
           anti_cliche_phrase_style: antiClichePhraseStyle,
           anti_plot_explanation: antiPlotExplanation,
           anti_speech_military_summary_style: antiSpeechMilitarySummaryStyle,
-          enable_critic: enableCritic,
-          critic_max_rounds: criticMaxRounds,
+          enable_critic: useEnableCritic,
+          critic_max_rounds: useCriticMaxRounds,
         })
         if (res.status === 'error' || res.error) {
           setErrorMessage(res.error || '本段生成失败')
@@ -635,8 +639,8 @@ function GenChapterByDetailModal({
   }
   const handleResume = () => {
     pauseRequestedRef.current = false
-    // 显式传入当前对话历史，避免闭包拿到旧 state 导致中间重启丢失设定/前文
-    runSegmentLoop(segmentIndex, conversationHistory)
+    // 显式传入当前对话历史与审稿人选项，避免闭包拿到旧 state 导致中间重启丢失设定/前文或审稿未启用
+    runSegmentLoop(segmentIndex, conversationHistory, undefined, { enableCritic, criticMaxRounds })
   }
   const handleStop = () => {
     stopRequestedRef.current = true
@@ -786,8 +790,8 @@ function GenChapterByDetailModal({
     const truncatedHistory = conversationHistory.slice(0, 2 * segmentIndex)
     setConversationHistory(truncatedHistory)
     message.info(`已清空第 ${segmentIndex} 段及之后的内容，正在重新生成...`)
-    // 传入截断后的内容列表，保证 previous_content_snippet 取的是「当前段的前一段」末尾，而不是被删段落
-    runSegmentLoop(segmentIndex, truncatedHistory, newContentList)
+    // 传入截断后的内容列表，保证 previous_content_snippet 取的是「当前段的前一段」末尾，而不是被删段落；显式传入审稿人选项，确保断点重写时审稿员被启用
+    runSegmentLoop(segmentIndex, truncatedHistory, newContentList, { enableCritic, criticMaxRounds })
   }
 
   /** 将当前提示词 / 前序章节等写回章节元数据 */
