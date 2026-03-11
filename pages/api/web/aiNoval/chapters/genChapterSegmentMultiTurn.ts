@@ -330,7 +330,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     anti_cliche_phrase_style = true,
     anti_plot_explanation = true,
     anti_speech_military_summary_style = true,
-    enable_critic = false,
+    enable_critic = true, // 与前端默认一致；断点重写时也需审稿员
     critic_max_rounds = 5,
   } = body || {};
 
