@@ -150,17 +150,63 @@ function VirtualCoordinateLayer() {
 }
 
 function TimeAxisSvg() {
-    const { virtualTopOffset, virtualTotalHeight, virtualToScreenY } = useContext(FigureCommonContext);
+    const { 
+        svgSize,
+        virtualTopOffset, 
+        virtualTotalHeight, 
+        timelineToScreenY,
+        timelineVisibleSeconds,
+        screenYToTimeline,
+    } = useContext(FigureCommonContext);
     const [timelineList] = useTimelines();
+    const [worldViewData] = useWorldViewData();
 
     if (virtualTotalHeight <= 0) {
         return null;
     }
 
-    const tickCount = 6;
-    const ticks = Array.from([0], (value: number, index: number) => {
-        const y = virtualToScreenY(value);
-        return { y, value };
+    const hourSeconds = (worldViewData?.tl_hour_length_in_seconds ?? 3600);
+    const daySeconds = hourSeconds *  (worldViewData?.tl_day_length_in_hours ?? 24);
+    const monthSeconds = daySeconds * (worldViewData?.tl_month_length_in_days ?? 30);
+    const yearSeconds = monthSeconds * (worldViewData?.tl_year_length_in_months ?? 12);
+
+    const tickSizes = [
+        { trigger: 20 * hourSeconds, size: hourSeconds },
+        { trigger: daySeconds, size: 2 * hourSeconds },
+        { trigger: 2 * daySeconds, size: 0.5 * daySeconds },
+        { trigger: 5 * daySeconds, size: daySeconds },
+        { trigger: monthSeconds, size: 2 * daySeconds },
+        { trigger: 2 * monthSeconds, size: 0.5 * monthSeconds },
+        { trigger: 5 * monthSeconds, size: monthSeconds },
+        { trigger: yearSeconds, size: 2 * monthSeconds },
+        { trigger: 2 * yearSeconds, size: 4 * monthSeconds },
+        { trigger: 5 * yearSeconds, size: 0.5 *yearSeconds },
+        { trigger: 10 * yearSeconds, size: 1 * yearSeconds },
+        { trigger: 20 * yearSeconds, size: 2 *yearSeconds },
+        { trigger: 50 * yearSeconds, size: 5 * yearSeconds },
+        { trigger: 100 * yearSeconds, size: 10 * yearSeconds },
+        { trigger: 200 * yearSeconds, size: 20 * yearSeconds },
+        { trigger: 500 * yearSeconds, size: 50 * yearSeconds },
+        { trigger: 1000 * yearSeconds, size: 100 * yearSeconds },
+        { trigger: 2000 * yearSeconds, size: 200 * yearSeconds },
+        { trigger: 5000 * yearSeconds, size: 500 * yearSeconds },
+    ]
+
+    const tickSize = tickSizes.findLast(item => timelineVisibleSeconds >= item.trigger)?.size ?? 0;
+    const minTickTime = Math.ceil(screenYToTimeline(svgSize.height) / tickSize) * tickSize;
+    const maxTickTime = (Math.floor(screenYToTimeline(0) / tickSize) + 1) * tickSize;
+    console.debug(minTickTime, maxTickTime);
+
+    let tickTimes = [minTickTime];
+    for (let i = minTickTime; i < maxTickTime; i += tickSize) {
+        tickTimes.push(i);
+        console.debug(tickTimes);
+    }
+    
+    
+    const ticks = tickTimes.map(time => {
+        const y = timelineToScreenY(time);
+        return { y, time };
     });
 
     const epochLabel = timelineList[0]?.epoch ?? '时间';
@@ -188,7 +234,7 @@ function TimeAxisSvg() {
                         textAnchor="end"
                         fill="#666"
                     >
-                        {Math.round(tick.value)}
+                        {tick.time}
                     </text>
                 </g>
             ))}

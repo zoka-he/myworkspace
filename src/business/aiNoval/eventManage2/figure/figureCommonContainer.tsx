@@ -9,11 +9,13 @@ export interface IFigureCommonContextData {
     /** 虚拟纵坐标总高度（缩放后） */
     virtualTotalHeight: number;
     /** 虚拟 Y -> 屏幕比例（0~1，对应当前视口内的位置） */
-    virtualToScreenY: (virtualY: number) => number;
+    timelineToScreenY: (virtualY: number) => number;
     /** 屏幕比例（0~1） -> 虚拟 Y */
-    screenToVirtualY: (screenRatio: number) => number;
+    screenYToTimeline: (screenRatio: number) => number;
     /** 基于 d3 的线性比例尺，domain: 虚拟 Y，range: 0~1（视口内比例） */
     yScale: d3.ScaleLinear<number, number>;
+    /** 当前视口内可见的秒数 */
+    timelineVisibleSeconds: number;
 }
 
 const defaultScale = d3.scaleLinear<number, number>().domain([0, 1]).range([0, 1]);
@@ -22,9 +24,10 @@ const FigureCommonContext = createContext<IFigureCommonContextData>({
     svgSize: { width: 0, height: 0 },
     virtualTopOffset: 0,
     virtualTotalHeight: 0,
-    virtualToScreenY: () => 0,
-    screenToVirtualY: () => 0,
+    timelineToScreenY: () => 0,
+    screenYToTimeline: () => 0,
     yScale: defaultScale,
+    timelineVisibleSeconds: 0,
 });
 
 export default FigureCommonContext;
@@ -59,17 +62,20 @@ export function FigureCommonProvider(props: IFigureCommonProviderProps) {
         return yScale(virtualY);
     };
 
-    const screenToVirtualY = (screenRatio: number) => {
+    const screenYToVirtualY = (screenRatio: number) => {
         return yScale.invert(screenRatio);
     };
+
+    const timelineVisibleSeconds = yScale.invert(0) - yScale.invert(svgSize.height);
 
     const value: IFigureCommonContextData = {
         svgSize,
         virtualTopOffset,
         virtualTotalHeight,
-        virtualToScreenY,
-        screenToVirtualY,
+        timelineToScreenY: virtualToScreenY,
+        screenYToTimeline: screenYToVirtualY,
         yScale,
+        timelineVisibleSeconds,
     };
 
     return (
