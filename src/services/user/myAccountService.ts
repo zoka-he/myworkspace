@@ -78,7 +78,7 @@ class MyAccountService {
         }
 
         if (useDb) {
-            let params: any = { type: 'menu' };
+            let params: any = { type: { $in: ['menu', 'group'] } };
             if (process.env.NODE_ENV === 'production') {
                 params.is_testing = 0;
             }

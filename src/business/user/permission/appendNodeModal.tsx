@@ -1,4 +1,5 @@
-import { Button, Form, Input, Modal, Radio, TreeSelect } from "antd";import { message } from '@/src/utils/antdAppMessage';
+import { Button, Form, Input, Modal, Radio, TreeSelect } from "antd";
+import { message } from '@/src/utils/antdAppMessage';
 
 import { useEffect, useRef, useState } from "react";
 import fetch from '@/src/fetch';
@@ -118,8 +119,8 @@ function AppendNodeModal(props: IAppendNodeModalProps) {
                 <Form.Item label="类型" name='type'>
                     <Radio.Group>
                         <Radio value={'menu'}>菜单</Radio>
-                        <Radio value={'api'}>API</Radio>
-                        <Radio value={'obj'}>控件</Radio>
+                        <Radio value={'group'}>分组</Radio>
+                        {/* <Radio value={'obj'}>控件</Radio> */}
                     </Radio.Group>
                 </Form.Item>
                 <Form.Item label="URI" name="uri">

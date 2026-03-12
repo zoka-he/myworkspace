@@ -34,7 +34,7 @@ export default {
     search?: string;
     related_chapter_id?: number;
   }) => {
-    const result = await getBrainstormList(params, params.page || 1, params.limit || 20);
+    const result = await getBrainstormList(params, params.page || 1, params.limit || 2000);
     return {
       data: result.data,
       count: result.count,

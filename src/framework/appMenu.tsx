@@ -67,15 +67,24 @@ function AppMenu(props: IAppMenuProps) {
         setMenu(filterMenu(props.navMenu));
     }, [props.navMenu, props.showAll]);
 
+    /** 子菜单的直接子项中是否包含 group（有则弹出层横向排布，否则纵向） */
+    function hasGroupInChildren(children: any[]): boolean {
+        return children.some((c: any) => c?.type === 'group');
+    }
+
     /** Normalize menu items for Ant Design Menu: only pass key/label/children so ID, PID, etc. never reach the DOM. */
     function toMenuItems(menuItems: any[]): ItemType[] {
         return menuItems.map(item => {
             const result: ItemType = {
-                key: String(item.key ?? item.ID ?? ''),
+                key: item.type === 'group' ? 'group_' + String(item.ID ?? '') : String(item.key ?? ''),
                 label: item.label,
+                type: item.type
             };
             if (item.children?.length) {
                 result.children = toMenuItems(item.children);
+                if (hasGroupInChildren(item.children)) {
+                    (result as any).popupClassName = 'f-app-menu-subpopup';
+                }
             }
             return result;
         });
@@ -88,6 +97,28 @@ function AppMenu(props: IAppMenuProps) {
 
     return (
         <div className="f-flex-row f-align-items-center px-5">
+            <style>{`
+                .f-app-menu-subpopup {
+                    min-width: auto !important;
+                }
+                .f-app-menu-subpopup .ant-menu-sub,
+                .f-app-menu-subpopup .ant-menu-sub.ant-menu {
+                    display: flex !important;
+                    flex-direction: row !important;
+                    flex-wrap: wrap !important;
+                    min-width: auto !important;
+                    width: auto !important;
+                    border-right: none !important;
+                }
+                .f-app-menu-subpopup .ant-menu-item,
+                .f-app-menu-subpopup .ant-menu-submenu .ant-menu-submenu-title {
+                    margin: 0 12px !important;
+                    border-radius: 4px;
+                    padding-inline: 4px !important;
+                    width: auto !important;
+                    min-width: 8em !important;
+                }
+            `}</style>
             <Switch checked={showAll} unCheckedChildren="公共" checkedChildren="全部" onChange={e => dispatch(setShowAll(e))} />
             <Menu
                 className="f-flex-1"
