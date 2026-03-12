@@ -601,3 +601,16 @@ export async function getRoleListForChapter(worldviewId: number): Promise<{ id: 
 export async function getTimelineDefList(worldviewId: number, limit: number = 1000): Promise<ITimelineDef[]> {
     return await fetch.get('/api/aiNoval/timeline/list', { params: { worldview_id: worldviewId, limit } });
 }
+
+/**
+ * 获取所有世界观定义数据，含事件线范围
+ * @returns { data: IWorldViewDataWithExtra[], count: number }
+ */
+export const getWorldViewList = async (page: number = 1, limit: number = 100) => {
+    let params = {
+        page,
+        limit
+    };
+    const response = await fetch.get<IWorldViewDataWithExtra[]>('/api/aiNoval/worldView/list', { params });
+    return response;
+}

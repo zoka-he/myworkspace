@@ -52,3 +52,8 @@ export function useTimelines() {
     const { timelineList } = useContext(EventManage2DataContext);
     return [timelineList] as const;
 }
+
+export function useWorldViewData() {
+    const { worldViewData } = useContext(EventManage2DataContext);
+    return [worldViewData] as const;
+}

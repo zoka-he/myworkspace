@@ -1,8 +1,11 @@
 'use client';
 
 import * as d3 from "d3";
-import { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import FigureCommonContext from "./figureCommonContainer";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import FigureCommonContext, { FigureCommonProvider } from "./figureCommonContainer";
+import { useGeos, useTimelines } from "../hooks";
+import { time } from "console";
+import { useWorldViewData } from "../hooks";
 
 interface IFigureProps {
     children?: React.ReactNode;
@@ -14,11 +17,13 @@ export default function Figure(props: IFigureProps) {
     const svgRef = useRef<SVGSVGElement>(null);
     const [svgSize, setSvgSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
     const [zoomTransform, setZoomTransform] = useState<d3.ZoomTransform>(d3.zoomIdentity);
+    const [timelineList] = useTimelines();
+    const [worldViewData] = useWorldViewData();
 
     useEffect(() => {
         if (!svgRef.current) return;
 
-        let observer = new ResizeObserver((entries) => {
+        const observer = new ResizeObserver((entries) => {
             entries.forEach((entry) => {
                 setSvgSize({ width: entry.contentRect.width, height: entry.contentRect.height });
             });
@@ -57,27 +62,23 @@ export default function Figure(props: IFigureProps) {
         };
     }, [svgSize.width, svgSize.height]);
 
-    const { virtualTopOffset, virtualTotalHeight } = useMemo(() => {
-        if (svgSize.height <= 0) {
-            return {
-                virtualTopOffset: 0,
-                virtualTotalHeight: 0,
-            };
+    const timelineRange = useMemo(() => {
+        if (!timelineList || timelineList.length === 0) {
+            return [0, 1];
         }
-        // screenY = contentY * k + y
-        // 当 screenY = 0 时，contentY = -y / k，即当前视口顶部在原始坐标系中的位置
-        const k = zoomTransform.k || 1;
-        const y = zoomTransform.y || 0;
-        const top = -y / k;
-        const total = svgSize.height * k;
-        return {
-            virtualTopOffset: top,
-            virtualTotalHeight: total,
-        };
-    }, [svgSize.height, zoomTransform]);
+
+        let baseTimeline = timelineList.find(item => item.faction_id === null);
+
+        if (!baseTimeline) {
+            baseTimeline = timelineList[0];
+        }
+
+        return [baseTimeline.start_seconds || 0, worldViewData?.te_max_seconds || 1];
+
+    }, [timelineList, worldViewData]);
 
     const actualChildren = useMemo(() => {
-        let children: React.ReactNode[] = [];
+        const children: React.ReactNode[] = [];
 
         if (props.showDebugLayers) {
             children.push(<DimmisionLayer key="dimmision-layer" />);
@@ -94,38 +95,38 @@ export default function Figure(props: IFigureProps) {
     }, [props.children, props.showDebugLayers]);
 
     return (
-        <FigureCommonContext.Provider value={{ svgSize, virtualTopOffset, virtualTotalHeight }}>
+        <FigureCommonProvider svgSize={svgSize} zoomTransform={zoomTransform} timelineRange={timelineRange}>
             <div className="w-full h-full flex flex-col">
-                <div className="w-full h-0 flex flex-row" style={{ border: '1px solid red' }}>
+                <div className="w-full h-0 flex flex-row">
                     
                 </div>
                 <div className="w-full flex-1 flex flex-row">
-                    <svg className="h-full w-40" style={{ border: '1px solid red' }}>
-                        {/* 在此处建立时间轴 */}
+                    <svg className="h-full w-40">
+                        <TimeAxisSvg />
                     </svg>
-                    <svg ref={svgRef} className="flex-1 h-full" style={{ border: '1px solid red' }}>
+                    <svg ref={svgRef} className="flex-1 h-full">
                         {actualChildren}
                     </svg>
 
-                    <svg className="h-full w-40" style={{ border: '1px solid red' }}>
+                    <svg className="h-full w-40">
                         {/* 在此处建立示意图标 */}
                     </svg>
                 </div>
                 <div className="w-full h-30 flex flex-row">
-                    <svg className="h-full w-40" style={{ border: '1px solid red' }}>
+                    <svg className="h-full w-40">
                         {/* 留空 */}
                     </svg>
                     
-                    <svg className="flex-1 h-full" style={{ border: '1px solid red' }}>
-                        {/* 在此处建立地理轴 */}
+                    <svg className="flex-1 h-full">
+                        <GeoAxisSvg />
                     </svg>
 
-                    <svg className="h-full w-40" style={{ border: '1px solid red' }}>
+                    <svg className="h-full w-40">
                         {/* 留空 */}
                     </svg>
                 </div>
             </div>
-        </FigureCommonContext.Provider>
+        </FigureCommonProvider>
     )
 }
 
@@ -146,5 +147,101 @@ function VirtualCoordinateLayer() {
             <text textAnchor="end" x={svgSize.width - 150} y={32}>vh: {virtualTotalHeight}</text>
         </g>
     )
+}
 
+function TimeAxisSvg() {
+    const { virtualTopOffset, virtualTotalHeight, virtualToScreenY } = useContext(FigureCommonContext);
+    const [timelineList] = useTimelines();
+
+    if (virtualTotalHeight <= 0) {
+        return null;
+    }
+
+    const tickCount = 6;
+    const ticks = Array.from([0], (value: number, index: number) => {
+        const y = virtualToScreenY(value);
+        return { y, value };
+    });
+
+    const epochLabel = timelineList[0]?.epoch ?? '时间';
+
+    return (
+        <g>
+            {/* 轴线紧贴容器右侧 */}
+            <line x1="100%" x2="100%" y1="0%" y2="100%" stroke="#999" strokeWidth={1} />
+            <text x="10%" y="10" fontSize={10} fill="#666">{epochLabel}</text>
+            {ticks.map((tick, idx) => (
+                <g key={idx}>
+                    <line
+                        x1="95%"
+                        x2="100%"
+                        y1={`${tick.y}`}
+                        y2={`${tick.y}`}
+                        stroke="#999"
+                        strokeWidth={0.5}
+                    />
+                    <text
+                        x="90%"
+                        y={`${tick.y}`}
+                        dy="0.32em"
+                        fontSize={9}
+                        textAnchor="end"
+                        fill="#666"
+                    >
+                        {Math.round(tick.value)}
+                    </text>
+                </g>
+            ))}
+        </g>
+    );
+}
+
+function GeoAxisSvg() {
+    const { svgSize } = useContext(FigureCommonContext);
+    const [geoList] = useGeos();
+
+    if (!geoList || geoList.length === 0 || svgSize.width <= 0) {
+        return null;
+    }
+
+    const maxLabels = 20;
+    const total = geoList.length;
+
+    const step = Math.max(1, Math.floor(total / maxLabels));
+    const sampled = geoList.filter((_, index) => true);
+
+    const count = sampled.length;
+
+    return (
+        <g>
+            {/* 轴线紧贴容器上侧，宽度按照 svgSize.width */}
+            <line x1={0} x2={svgSize.width} y1={0} y2={0} stroke="#999" strokeWidth={1} />
+            {sampled.map((geo, idx) => {
+                const x = ((idx + 0.5) / count) * svgSize.width;
+                return (
+                    <g key={geo.code ?? idx}>
+                        <line
+                            x1={x}
+                            x2={x}
+                            y1={0}
+                            y2={6}
+                            stroke="#999"
+                            strokeWidth={0.5}
+                        />
+                        <text
+                            x={x}
+                            y={10}
+                            fontSize={4}
+                            textAnchor="start"
+                            fill="#666"
+                            transform={`rotate(90, ${x}, 10)`}
+                            alignmentBaseline="middle"
+                        >
+                            {geo.name}
+                        </text>
+                    </g>
+                );
+            })}
+        </g>
+    );
 }

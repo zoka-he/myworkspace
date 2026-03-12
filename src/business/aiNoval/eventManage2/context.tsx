@@ -1,7 +1,7 @@
 import { createContext, useMemo, useReducer } from "react";
 import useSWR from "swr";
-import { getFactionList, getRoleOptionsForWorldState, getChapterList, getTimelineDefList } from '@/src/api/aiNovel';
-import { IFactionDefData, IGeoUnionData, IRoleData, IChapter, ITimelineDef } from "@/src/types/IAiNoval";
+import { getFactionList, getRoleOptionsForWorldState, getChapterList, getTimelineDefList, getWorldViewList } from '@/src/api/aiNovel';
+import { IFactionDefData, IGeoUnionData, IRoleData, IChapter, ITimelineDef, IWorldViewDataWithExtra } from "@/src/types/IAiNoval";
 import { IGeoTreeItem, loadGeoTree } from "@/src/business/aiNoval/common/geoDataUtil";
 import _ from "lodash";
 
@@ -14,6 +14,7 @@ interface EventManage2ContextType {
     roleList: IRoleData[];
     chapterList: IChapter[];
     timelineList: ITimelineDef[];
+    worldViewData: IWorldViewDataWithExtra | null;
 }
 
 interface EventManage2DispatchType {
@@ -30,6 +31,7 @@ function defaultContextData(): EventManage2ContextType {
         roleList: [],
         chapterList: [],
         timelineList: [],
+        worldViewData: null,
     }
 }
 
@@ -51,6 +53,15 @@ function eventManage2Reducer(state: EventManage2ContextType, action: any): Event
 
 export default function EventManage2ContextProvider({ children }: { children: React.ReactNode }) {
     const [state, dispatch] = useReducer(eventManage2Reducer, defaultContextData());
+
+    const { data: worldviewData, isLoading: isLoadingWorldview, error: errorWorldview } = useSWR(
+        state.worldViewId ? ['worldview-data', state.worldViewId] : null,
+        async () => {
+            if (!state.worldViewId) return null;
+            const response = await getWorldViewList(state.worldViewId);
+            return response.data?.[0] ?? null;
+        }
+    );
 
     const { data: factionList, isLoading: isLoadingFactions, error: errorFactions } = useSWR(
         state.worldViewId ? ['faction-list', state.worldViewId] : null, 
@@ -126,6 +137,7 @@ export default function EventManage2ContextProvider({ children }: { children: Re
                 roleList: roleList ?? [], 
                 chapterList: chapterList ?? [],
                 timelineList: timelineList ?? [],
+                worldViewData: worldviewData ?? null,
             }}
         >
             <EventManage2DispatchContext.Provider value={{ dispatch }}>
