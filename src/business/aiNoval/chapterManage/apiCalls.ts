@@ -131,6 +131,10 @@ function serializeChapter(chapter: IChapter) {
         _chapter.faction_ids = splitIds(_chapter.faction_ids).map(Number);
     }
 
+    if (_chapter.role_group_ids) {
+        _chapter.role_group_ids = splitIds(_chapter.role_group_ids).map(Number);
+    }
+
     if (_chapter.related_chapter_ids) {
         _chapter.related_chapter_ids = splitIds(_chapter.related_chapter_ids).map(Number);
     }
@@ -185,6 +189,7 @@ export const getChapterList = async (novelId: number, page: number = 1, limit: n
             chapter.geo_ids = splitIds(chapter.geo_ids).map(String);
             chapter.role_ids = splitIds(chapter.role_ids).map(String);
             chapter.faction_ids = splitIds(chapter.faction_ids).map(Number);
+            chapter.role_group_ids = splitIds(chapter.role_group_ids).map(Number);
             chapter.related_chapter_ids = splitIds(chapter.related_chapter_ids).map(Number);
         });
     }
@@ -212,6 +217,7 @@ export const getChapterListByWorldviewId = async (worldviewId: number, page: num
             chapter.geo_ids = splitIds(chapter.geo_ids).map(String);
             chapter.role_ids = splitIds(chapter.role_ids).map(String);
             chapter.faction_ids = splitIds(chapter.faction_ids).map(Number);
+            chapter.role_group_ids = splitIds(chapter.role_group_ids).map(Number);
             chapter.related_chapter_ids = splitIds(chapter.related_chapter_ids).map(Number);
         });
     }
@@ -239,6 +245,7 @@ export const getChapterListFrom = async (novelId: number, from: number = 1, to: 
             chapter.geo_ids = splitIds(chapter.geo_ids).map(String);
             chapter.role_ids = splitIds(chapter.role_ids).map(String);
             chapter.faction_ids = splitIds(chapter.faction_ids).map(Number);
+            chapter.role_group_ids = splitIds(chapter.role_group_ids).map(Number);
             chapter.related_chapter_ids = splitIds(chapter.related_chapter_ids).map(Number);
         });
     }
@@ -259,6 +266,7 @@ export const addChapter = async (chapter: IChapter) => {
         geo_ids: splitIds2String(chapter.geo_ids),
         role_ids: splitIds2String(chapter.role_ids),
         faction_ids: splitIds2String(chapter.faction_ids),
+        role_group_ids: splitIds2String(chapter.role_group_ids),
         related_chapter_ids: splitIds2String(chapter.related_chapter_ids),
     }
 
@@ -294,6 +302,10 @@ export const updateChapter = async (chapter: IChapter) => {
 
     if (po.hasOwnProperty('faction_ids')) {
         po.faction_ids = splitIds2String(po.faction_ids);
+    }
+
+    if (po.hasOwnProperty('role_group_ids')) {
+        po.role_group_ids = splitIds2String(po.role_group_ids);
     }
 
     if (po.hasOwnProperty('related_chapter_ids')) {
@@ -448,6 +460,7 @@ export const genChapterSegmentOutline = async (params: {
     curr_context: string
     prev_content?: string
     mcp_context?: string
+    role_group_names?: string
     role_names?: string
     faction_names?: string
     geo_names?: string
@@ -464,6 +477,7 @@ export const genChapterSegmentOutline = async (params: {
             curr_context: params.curr_context || '',
             prev_content: params.prev_content || '',
             mcp_context: params.mcp_context || '',
+            role_group_names: params.role_group_names || '',
             role_names: params.role_names || '',
             faction_names: params.faction_names || '',
             geo_names: params.geo_names || '',
@@ -474,7 +488,7 @@ export const genChapterSegmentOutline = async (params: {
             model: params.model || 'deepseek-reasoner',
             screenwriter_mode: params.screenwriter_mode ?? false,
         },
-        { timeout: 1000 * 60 * 3 }
+        { timeout: 1000 * 60 * 15 }
     )
     const body = response?.data ?? response
     const outlines = body?.data?.outlines ?? (body as any)?.outlines ?? []
@@ -506,9 +520,9 @@ export const genChapterAttention = async (params: {
     return (body?.data?.attention ?? (body as any)?.attention) ?? ''
 }
 
-// 从文本中提取目标数据
+// 从文本中提取目标数据（fetch 拦截器已返回 response.data，故 body 在 response 上）
 export const pickFromText = async (target: string, src_text: string): Promise<any> => {
-    const response = await fetch.post(`/api/aiNoval/chapters/pick`, 
+    const response = await fetch.post(`/api/aiNoval/chapters/pick`,
         {src_text},
         {
             params: {target},
@@ -516,9 +530,10 @@ export const pickFromText = async (target: string, src_text: string): Promise<an
         }
     );
 
-    let text = response.data?.outputs?.output || '';
+    const body = response?.data ?? response;
+    let text = body?.outputs?.output ?? '';
     try {
-        text = text.replace(/<think>.*?<\/think>/g, '');
+        text = (text || '').replace(/<think>.*?<\/think>/g, '');
     } catch {
         // ignore replace error on older runtimes
     }
@@ -547,6 +562,7 @@ export const genChapterSegment = async (
     params: {
         curr_context: string
         prev_content?: string
+        role_group_names?: string
         role_names?: string
         faction_names?: string
         geo_names?: string
@@ -567,6 +583,7 @@ export const genChapterSegment = async (
             worldview_id: worldviewId,
             curr_context: params.curr_context || '',
             prev_content: params.prev_content || '',
+            role_group_names: params.role_group_names || '',
             role_names: params.role_names || '',
             faction_names: params.faction_names || '',
             geo_names: params.geo_names || '',
@@ -594,6 +611,7 @@ export const genChapterSegmentMultiTurn = async (
     params: {
         curr_context: string
         prev_content?: string
+        role_group_names?: string
         role_names?: string
         faction_names?: string
         geo_names?: string
@@ -613,6 +631,8 @@ export const genChapterSegmentMultiTurn = async (
         anti_wasteland_style?: boolean
         anti_enum_reactions_style?: boolean
         anti_cliche_phrase_style?: boolean
+        anti_plot_explanation?: boolean
+        anti_speech_military_summary_style?: boolean
         enable_critic?: boolean
         critic_max_rounds?: number
     }
@@ -630,6 +650,7 @@ export const genChapterSegmentMultiTurn = async (
             worldview_id: worldviewId,
             curr_context: params.curr_context || '',
             prev_content: params.prev_content || '',
+            role_group_names: params.role_group_names || '',
             role_names: params.role_names || '',
             faction_names: params.faction_names || '',
             geo_names: params.geo_names || '',
@@ -649,6 +670,8 @@ export const genChapterSegmentMultiTurn = async (
             anti_wasteland_style: params.anti_wasteland_style !== false,
             anti_enum_reactions_style: params.anti_enum_reactions_style !== false,
             anti_cliche_phrase_style: params.anti_cliche_phrase_style !== false,
+            anti_plot_explanation: params.anti_plot_explanation !== false,
+            anti_speech_military_summary_style: params.anti_speech_military_summary_style !== false,
             enable_critic: params.enable_critic === true,
             critic_max_rounds: params.critic_max_rounds ?? 5,
         },
@@ -672,7 +695,7 @@ export const genChapterBlocking = async (worldviewId: number, inputs: any, difyH
         inputs,
         {
             params: {worldviewId, difyHost},
-            timeout: 1000 * 60 * 15
+            timeout: 1000 * 60 * 25
         }
     );
     return {

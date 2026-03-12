@@ -1,7 +1,7 @@
-import React, {useEffect, useRef, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";import { message } from '@/src/utils/antdAppMessage';
+
 import {Button, Input, Space, Spin, Table, Switch} from "antd";
 import moment from "moment";
-import {message} from "antd";
 import _ from 'lodash';
 import confirm from "antd/es/modal/confirm";
 import UplineCheckEditor from './uplineCheckEditor';

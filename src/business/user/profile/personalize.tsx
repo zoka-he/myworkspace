@@ -1,5 +1,6 @@
-import { IRootState } from "@/src/store";
-import { Button, Card, Form, TreeSelect, message } from "antd";
+import { IRootState } from "@/src/store";import { message } from '@/src/utils/antdAppMessage';
+
+import { Button, Card, Form, TreeSelect } from "antd";
 import { connect } from 'react-redux';
 import fetch from '@/src/fetch';
 import { useEffect } from "react";

@@ -1,4 +1,5 @@
-import { Modal, message } from "antd";
+import { Modal } from "antd";import { message } from '@/src/utils/antdAppMessage';
+
 import { useRef, useMemo, createContext, useContext } from "react";
 import GeographyUnitEditModal from "./geographyUnitEdit";
 import PlanetEdit from "./planetEdit";

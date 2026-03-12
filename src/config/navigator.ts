@@ -159,6 +159,10 @@ const navObj: INavMenu[] = [
                 key: '/factionManage'
             },
             {
+                label: '角色组',
+                key: '/roleGroupManage'
+            },
+            {
                 label: '事件管理',
                 key: '/eventManage'
             },

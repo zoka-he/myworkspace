@@ -1,5 +1,6 @@
-import React from "react";
-import {Button, Modal, Table, Space, message} from "antd";
+import React from "react";import { message } from '@/src/utils/antdAppMessage';
+
+import { Button, Modal, Table, Space } from "antd";
 import moment from "moment";
 import fetch from '@/src/fetch';
 import { IAccount } from "@/src/types/IAccount";

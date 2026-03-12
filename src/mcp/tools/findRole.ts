@@ -74,7 +74,31 @@ export class FindRoleTool extends BaseMCPTool {
 
     try {
       const data = await findRoleDomain(worldviewId, keywords, threshold);
-      const text = `找到 ${data.length} 条角色（相似度 ≥ ${threshold}）：\n${JSON.stringify(data, null, 2)}`;
+
+      // 为 MCP 文本输出增加角色记忆摘要，方便模型直接感知关键记忆
+      const lines: string[] = [];
+      lines.push(`找到 ${data.length} 条角色（相似度 ≥ ${threshold}）：`);
+      data.forEach((item: any, idx: number) => {
+        const name = item.name_in_worldview ?? item.name ?? `#${item.id ?? ''}`;
+        const score = item.score ?? 0;
+        const memories = Array.isArray(item.memories) ? item.memories : [];
+        lines.push(
+          `${idx + 1}. 角色：${name}（score=${score.toFixed?.(3) ?? score}）`,
+        );
+        if (memories.length > 0) {
+          const memSummaries = memories.slice(0, 5).map((m: any, mi: number) => {
+            const imp = m.importance ?? '-';
+            const slot = m.affects_slot ?? '-';
+            const snippet = (m.content || '').slice(0, 80) + ((m.content || '').length > 80 ? '...' : '');
+            return `    - 记忆${mi + 1} [${imp}][${slot}]: ${snippet}`;
+          });
+          lines.push(`   关联记忆（共 ${memories.length} 条，展示前 ${Math.min(5, memories.length)} 条）：`);
+          lines.push(...memSummaries);
+        }
+      });
+      lines.push('\n原始 JSON 数据如下：');
+      const text = lines.join('\n') + '\n' + JSON.stringify(data, null, 2);
+
       return {
         content: [{ type: 'text' as const, text }],
         isError: false,

@@ -1,4 +1,5 @@
-import { Button, Card, Checkbox, Col, Form, Input, Row, Space, Switch, Tag, DatePicker, message, Dropdown, MenuProps, Select } from "antd";
+import { Button, Card, Checkbox, Col, Form, Input, Row, Space, Switch, Tag, DatePicker, Dropdown, MenuProps, Select } from "antd";import { message } from '@/src/utils/antdAppMessage';
+
 import { CloseOutlined, EnvironmentOutlined, SyncOutlined, DownOutlined, DeleteOutlined } from '@ant-design/icons';
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import GaodeSearch from '../../GeoSearch/gaodeSearch';

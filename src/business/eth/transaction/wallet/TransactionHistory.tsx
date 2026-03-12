@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Card, Row, Col, Table, Descriptions, Tag, Space, Input, Button, Spin, message, Typography, Pagination, Select } from 'antd';
+import { useState, useEffect } from 'react';import { message } from '@/src/utils/antdAppMessage';
+
+import { Card, Row, Col, Table, Descriptions, Tag, Space, Input, Button, Spin, Typography, Pagination, Select } from 'antd';
 import { SearchOutlined, ReloadOutlined, CopyOutlined } from '@ant-design/icons';
 import copyToClip from '@/src/utils/common/copy';
 import fetch from '@/src/fetch';

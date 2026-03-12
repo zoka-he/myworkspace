@@ -1,6 +1,5 @@
+import { message } from '@/src/utils/antdAppMessage';
 import axios from 'axios';
-import { message } from 'antd';
-
 const service = axios.create({
     timeout: 30 * 1000
 });

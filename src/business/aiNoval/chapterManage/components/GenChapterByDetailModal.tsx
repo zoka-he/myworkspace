@@ -1,23 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
-import {
-  Modal,
-  Button,
-  Space,
-  Row,
-  Col,
-  Divider,
-  Checkbox,
-  InputNumber,
-  Select,
-  Tag,
-  Typography,
-  Card,
-  Alert,
-  List,
-  Input,
-  Spin,
-  message,
-} from 'antd'
+import { message } from '@/src/utils/antdAppMessage';
+
+import { Modal, Button, Space, Row, Col, Divider, Checkbox, InputNumber, Select, Tag, Typography, Card, Alert, List, Input, Spin } from 'antd'
 import {
   RobotOutlined,
   CopyOutlined,
@@ -108,8 +92,12 @@ function GenChapterByDetailModal({
   const [antiEnumReactionsStyle, setAntiEnumReactionsStyle] = useState(true)
   /** 抗套路样板词：避免恰到好处、不易察觉、微微一笑、深吸一口气等网文套路词，默认勾选 */
   const [antiClichePhraseStyle, setAntiClichePhraseStyle] = useState(true)
+  /** 抗剧情解释：禁止在小说正文中用旁白或叙述者口吻解释剧情、动机、因果，默认勾选 */
+  const [antiPlotExplanation, setAntiPlotExplanation] = useState(true)
+  /** 抗演讲腔/军事腔/总结性台词：避免对白像演讲、命令式或口号式，要求生动自然，默认勾选 */
+  const [antiSpeechMilitarySummaryStyle, setAntiSpeechMilitarySummaryStyle] = useState(true)
   /** 是否启用审稿员（多轮文风纠正），默认关闭 */
-  const [enableCritic, setEnableCritic] = useState(false)
+  const [enableCritic, setEnableCritic] = useState(true)
   /** 审稿员最多审核次数，默认 5 */
   const [criticMaxRounds, setCriticMaxRounds] = useState(5)
 
@@ -126,6 +114,7 @@ function GenChapterByDetailModal({
   // 表单（与现有续写对齐，PRD 3.3）
   const [seedPrompt, setSeedPrompt] = useState('')
   const [roleNames, setRoleNames] = useState('')
+  const [roleGroupNames, setRoleGroupNames] = useState('')
   const [factionNames, setFactionNames] = useState('')
   const [geoNames, setGeoNames] = useState('')
   const [attention, setAttention] = useState('')
@@ -201,11 +190,14 @@ function GenChapterByDetailModal({
     })
   }, [open, selectedChapter?.novel_id, selectedChapter?.chapter_number])
 
-  // 回填角色、阵营、地理、章节提示词、注意事项、额外设置、分段纲要（与 ChapterContinueModal 一致）
+  // 回填角色组、角色、阵营、地理、章节提示词、注意事项、额外设置、分段纲要（与 ChapterContinueModal 一致）
   useEffect(() => {
     if (!continueInfo) return
     setSeedPrompt(
       continueInfo.actual_seed_prompt || continueInfo.seed_prompt || ''
+    )
+    setRoleGroupNames(
+      continueInfo.actual_role_groups || continueInfo.role_group_names || ''
     )
     setRoleNames(
       continueInfo.actual_roles || continueInfo.role_names || ''
@@ -354,6 +346,7 @@ function GenChapterByDetailModal({
         curr_context: seedPrompt,
         prev_content: finalPrevContent || '',
         mcp_context: undefined,
+        role_group_names: roleGroupNames,
         role_names: roleNames,
         faction_names: factionNames,
         geo_names: geoNames,
@@ -382,11 +375,13 @@ function GenChapterByDetailModal({
   /** 逐段生成并逐段输出；支持暂停、停止（多轮对话模式）
    * @param initialHistory 从指定段落重写时传入截断后的历史，避免保留已删除段的旧 user/agent 对
    * @param initialContentList 从指定段落重写时传入「该段之前」的已写内容列表，避免 setState 未生效时 previous_content_snippet 取到被删段落
+   * @param options 断点重写/恢复时显式传入审稿人开关与轮数，避免闭包拿到旧 state
    */
   const runSegmentLoop = async (
     startFromIndex: number,
     initialHistory?: Array<{ role: 'user' | 'assistant'; content: string }>,
-    initialContentList?: string[]
+    initialContentList?: string[],
+    options?: { enableCritic?: boolean; criticMaxRounds?: number }
   ) => {
     if (!worldviewId) {
       message.error('无法获取世界观 ID')
@@ -420,7 +415,9 @@ function GenChapterByDetailModal({
     setPhase('writing_segment')
     setSegmentIndex(startFromIndex)
     setErrorMessage('')
-    
+    const useEnableCritic = options?.enableCritic ?? enableCritic
+    const useCriticMaxRounds = options?.criticMaxRounds ?? criticMaxRounds
+
     // 第一轮：确认理解（仅在第一次启动时）
     if (startFromIndex === 1 && history.length === 0) {
       if (stopRequestedRef.current || pauseRequestedRef.current) {
@@ -430,6 +427,7 @@ function GenChapterByDetailModal({
         const res = await apiCalls.genChapterSegmentMultiTurn(worldviewId, {
           curr_context: seedPrompt,
           prev_content: prevContent || '',
+          role_group_names: roleGroupNames,
           role_names: roleNames,
           faction_names: factionNames,
           geo_names: geoNames,
@@ -449,8 +447,10 @@ function GenChapterByDetailModal({
           anti_wasteland_style: antiWastelandStyle,
           anti_enum_reactions_style: antiEnumReactionsStyle,
           anti_cliche_phrase_style: antiClichePhraseStyle,
-          enable_critic: enableCritic,
-          critic_max_rounds: criticMaxRounds,
+          anti_plot_explanation: antiPlotExplanation,
+          anti_speech_military_summary_style: antiSpeechMilitarySummaryStyle,
+          enable_critic: useEnableCritic,
+          critic_max_rounds: useCriticMaxRounds,
         })
         if (res.status === 'error' || res.error) {
           setErrorMessage(res.error || '确认阶段失败')
@@ -547,6 +547,7 @@ function GenChapterByDetailModal({
         const res = await apiCalls.genChapterSegmentMultiTurn(worldviewId, {
           curr_context: seedPrompt,
           prev_content: prevContent || '',
+          role_group_names: roleGroupNames,
           role_names: roleNames,
           faction_names: factionNames,
           geo_names: geoNames,
@@ -566,8 +567,10 @@ function GenChapterByDetailModal({
           anti_wasteland_style: antiWastelandStyle,
           anti_enum_reactions_style: antiEnumReactionsStyle,
           anti_cliche_phrase_style: antiClichePhraseStyle,
-          enable_critic: enableCritic,
-          critic_max_rounds: criticMaxRounds,
+          anti_plot_explanation: antiPlotExplanation,
+          anti_speech_military_summary_style: antiSpeechMilitarySummaryStyle,
+          enable_critic: useEnableCritic,
+          critic_max_rounds: useCriticMaxRounds,
         })
         if (res.status === 'error' || res.error) {
           setErrorMessage(res.error || '本段生成失败')
@@ -636,8 +639,8 @@ function GenChapterByDetailModal({
   }
   const handleResume = () => {
     pauseRequestedRef.current = false
-    // 显式传入当前对话历史，避免闭包拿到旧 state 导致中间重启丢失设定/前文
-    runSegmentLoop(segmentIndex, conversationHistory)
+    // 显式传入当前对话历史与审稿人选项，避免闭包拿到旧 state 导致中间重启丢失设定/前文或审稿未启用
+    runSegmentLoop(segmentIndex, conversationHistory, undefined, { enableCritic, criticMaxRounds })
   }
   const handleStop = () => {
     stopRequestedRef.current = true
@@ -684,17 +687,42 @@ function GenChapterByDetailModal({
     }
   }
 
-  const handleCopyContent = () => {
-    const content = segmentedContentList.length > 0 
-      ? segmentedContentList.join('\n\n') 
+  const handleCopyContent = async () => {
+    const content = segmentedContentList.length > 0
+      ? segmentedContentList.join('\n\n')
       : segmentedContent
-    if (content) {
-      navigator.clipboard.writeText(content)
+    if (!content) return
+
+    // 优先使用现代 Clipboard API（需安全上下文，如 https 或 localhost）
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(content)
+        message.success('已复制到剪贴板')
+        return
+      }
+    } catch (e) {
+      // 忽略，降级到旧方案
+    }
+
+    // 非安全上下文或 Clipboard API 不可用时，使用隐藏 textarea + execCommand 兜底
+    try {
+      const textarea = document.createElement('textarea')
+      textarea.value = content
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      textarea.style.pointerEvents = 'none'
+      textarea.style.left = '-9999px'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
       message.success('已复制到剪贴板')
+    } catch (e) {
+      message.error('复制失败，请手动全选复制')
     }
   }
 
-  /** 编辑单段内容 */
+  /** 编辑单段内容（同步更新 ref，避免「从某段重写」时取到调整前的影子） */
   const handleEditSegment = (index: number, value: string) => {
     const newList = [...segmentedContentList]
     if (newList.length <= index) {
@@ -704,6 +732,7 @@ function GenChapterByDetailModal({
     }
     setSegmentedContentList(newList)
     setSegmentedContent(newList.join('\n\n'))
+    segmentedContentListRef.current = newList
   }
 
   /** 重写：清空已生成内容，重新启动续写流程 */
@@ -730,7 +759,8 @@ function GenChapterByDetailModal({
   /** 从指定段落开始重写 */
   const handleRewriteFromSegment = (segmentIndex: number) => {
     console.log('[handleRewriteFromSegment] 从第', segmentIndex, '段开始重写')
-    if (segmentIndex < 1 || segmentIndex > segmentedContentList.length + 1) {
+    const currentList = segmentedContentListRef.current ?? segmentedContentList
+    if (segmentIndex < 1 || segmentIndex > currentList.length + 1) {
       message.warning('无效的段落索引')
       return
     }
@@ -746,8 +776,8 @@ function GenChapterByDetailModal({
     pauseRequestedRef.current = false
     stopRequestedRef.current = false
     
-    // 保留前面的段落，清空从该段开始的所有后续段落
-    const newContentList = segmentedContentList.slice(0, segmentIndex - 1)
+    // 保留前面的段落（用 ref 取最新，避免用户刚改完前序段落时 state 仍是调整前的影子），清空从该段开始的所有后续段落
+    const newContentList = currentList.slice(0, segmentIndex - 1)
     const newContent = newContentList.join('\n\n')
     
     setSegmentedContentList(newContentList)
@@ -760,8 +790,8 @@ function GenChapterByDetailModal({
     const truncatedHistory = conversationHistory.slice(0, 2 * segmentIndex)
     setConversationHistory(truncatedHistory)
     message.info(`已清空第 ${segmentIndex} 段及之后的内容，正在重新生成...`)
-    // 传入截断后的内容列表，保证 previous_content_snippet 取的是「当前段的前一段」末尾，而不是被删段落
-    runSegmentLoop(segmentIndex, truncatedHistory, newContentList)
+    // 传入截断后的内容列表，保证 previous_content_snippet 取的是「当前段的前一段」末尾，而不是被删段落；显式传入审稿人选项，确保断点重写时审稿员被启用
+    runSegmentLoop(segmentIndex, truncatedHistory, newContentList, { enableCritic, criticMaxRounds })
   }
 
   /** 将当前提示词 / 前序章节等写回章节元数据 */
@@ -781,7 +811,8 @@ function GenChapterByDetailModal({
         chapter_style: chapterStyle,
         // 关联章节
         related_chapter_ids: relatedChapterIds,
-        // 角色 / 阵营 / 地理提示词（元数据字段）
+        // 角色组 / 角色 / 阵营 / 地理提示词（元数据字段）
+        role_group_names: roleGroupNames,
         role_names: roleNames,
         faction_names: factionNames,
         geo_names: geoNames,
@@ -797,6 +828,7 @@ function GenChapterByDetailModal({
               seed_prompt: seedPrompt,
               attension: attention,
               chapter_style: chapterStyle,
+              role_group_names: roleGroupNames,
               role_names: roleNames,
               faction_names: factionNames,
               geo_names: geoNames,
@@ -892,6 +924,55 @@ function GenChapterByDetailModal({
                 
 
                 <Divider orientation="left">提示词</Divider>
+                <div className={styles.prompt_title}>
+                  <div>
+                    <span>角色组：</span>
+                    {continueInfo && roleGroupNames === (continueInfo.role_group_names || '') && (
+                      <Tag color="blue">初始值</Tag>
+                    )}
+                    {continueInfo && roleGroupNames === (continueInfo.actual_role_groups || '') && (
+                      <Tag color="green">存储值</Tag>
+                    )}
+                    {continueInfo &&
+                      roleGroupNames !== (continueInfo.role_group_names || '') &&
+                      roleGroupNames !== (continueInfo.actual_role_groups || '') &&
+                      roleGroupNames && (
+                        <Tag color="red">已修改</Tag>
+                      )}
+                  </div>
+                  <div>
+                    {continueInfo?.role_group_names && (
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<RedoOutlined />}
+                        disabled={isFormDisabled}
+                        onClick={() => setRoleGroupNames(continueInfo.role_group_names || '')}
+                      >
+                        切换为初始值
+                      </Button>
+                    )}
+                    {continueInfo?.actual_role_groups && (
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<RedoOutlined />}
+                        disabled={isFormDisabled}
+                        onClick={() => setRoleGroupNames(continueInfo.actual_role_groups || '')}
+                      >
+                        切换为存储值
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <TextArea
+                  autoSize={{ minRows: 1 }}
+                  disabled={isFormDisabled}
+                  value={roleGroupNames}
+                  onChange={(e) => setRoleGroupNames(e.target.value)}
+                  placeholder="角色组名称，逗号分隔"
+                  style={{ marginBottom: 8 }}
+                />
                 <div className={styles.prompt_title}>
                   <div>
                     <span>角色：</span>
@@ -1322,7 +1403,7 @@ function GenChapterByDetailModal({
           <Typography.Text>审稿员审核次数：</Typography.Text>
           <InputNumber
             min={1}
-            max={5}
+            max={10}
             value={criticMaxRounds}
             onChange={(v) => setCriticMaxRounds(v ?? 5)}
             disabled={isFormDisabled}
@@ -1381,6 +1462,20 @@ function GenChapterByDetailModal({
             disabled={isFormDisabled}
           >
             抗套路样板词
+          </Checkbox>
+          <Checkbox
+            checked={antiPlotExplanation}
+            onChange={(e) => setAntiPlotExplanation(e.target.checked)}
+            disabled={isFormDisabled}
+          >
+            抗剧情解释
+          </Checkbox>
+          <Checkbox
+            checked={antiSpeechMilitarySummaryStyle}
+            onChange={(e) => setAntiSpeechMilitarySummaryStyle(e.target.checked)}
+            disabled={isFormDisabled}
+          >
+            抗演讲腔/军事腔/总结性台词
           </Checkbox>
           
         </Space>

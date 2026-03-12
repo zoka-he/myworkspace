@@ -1,6 +1,7 @@
-import {Button, message, Space, Table, Modal, Select} from "antd";
+import { Button, Space, Table, Modal, Select } from "antd";
 import DayJS from 'dayjs';
-import AddPlaceModal from './addPlaceModal';
+import AddPlaceModal from './addPlaceModal';import { message } from '@/src/utils/antdAppMessage';
+
 import {MutableRefObject, useEffect, useRef, useState} from "react";
 import fetch from '@/src/fetch';
 import Openweather from "@/src/utils/openweather";

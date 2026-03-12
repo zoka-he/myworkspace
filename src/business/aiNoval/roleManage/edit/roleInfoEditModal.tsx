@@ -1,4 +1,6 @@
-import { Modal, Form, Input, InputNumber, Select, Button, Row, Col, Divider, TreeSelect, Space, Radio, message } from 'antd'
+import { Modal, Form, Input, InputNumber, Select, Button, Row, Col, Divider, TreeSelect, Space, Radio } from 'antd'
+import { message } from '@/src/utils/antdAppMessage';
+
 import { useState, useEffect, forwardRef, useImperativeHandle, useMemo } from 'react'
 import { IRoleInfo, IRoleData, IWorldViewData, IFactionDefData } from '@/src/types/IAiNoval'
 import factionApiCalls from '@/src/business/aiNoval/factionManage/apiCalls'
@@ -6,6 +8,7 @@ import { CopyOutlined } from '@ant-design/icons'
 import { useFactionList, useLoadRoleInfoList, useRoleDefList, useRoleId, useWorldViewList } from '../roleManageContext'
 import apiCalls from '../apiCalls'
 import { generateRoleEmbedText } from '@/src/api/aiNovel'
+import RaceSelect from '@/src/components/aiNovel/raceSelect'
 
 interface RoleInfoEditModalProps {
   open: boolean
@@ -44,6 +47,8 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
   // const [factionList, setFactionList] = useState<IFactionDefData[]>([])
 
   const [factionList] = useFactionList();
+
+  const worldviewId = Form.useWatch('worldview_id', form) ?? null;
 
   const loadRoleInfoList = useLoadRoleInfoList();
 
@@ -363,9 +368,7 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
               name="race_id"
               label="角色种族"
             >
-              <Select placeholder="请选择角色种族">
-                {/* TODO: 添加种族选项 */}
-              </Select>
+              <RaceSelect worldviewId={worldviewId} placeholder="请选择角色种族" />
             </Form.Item>
           </Col>
           <Col span={12}>

@@ -1,4 +1,5 @@
-import { Button, Card, message, Space, Table, Tag } from 'antd';
+import { Button, Card, Space, Table, Tag } from 'antd';import { message } from '@/src/utils/antdAppMessage';
+
 import { IWalletInfo } from '../IWalletInfo';
 import { useEffect, useState } from 'react';
 import EtherscanUtil from '../common/etherscanUtil';

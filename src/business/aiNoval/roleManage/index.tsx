@@ -1,4 +1,6 @@
-import { Row, Col, Card, Space, Button, Select, List, Modal, message, Alert, Table, Typography, Radio, Tree, TreeProps, TreeDataNode, Tag, notification } from "antd";
+import { Row, Col, Card, Space, Button, Select, List, Modal, Alert, Table, Typography, Radio, Tree, TreeProps, TreeDataNode, Tag, Affix } from "antd";
+import { message, notification } from '@/src/utils/antdAppMessage';
+
 import { useEffect, useState, useRef, useMemo, ReactNode } from "react";
 import { getWorldViews } from "../common/worldViewUtil";
 import { IRoleData, IWorldViewData, IRoleInfo } from "@/src/types/IAiNoval";
@@ -14,7 +16,8 @@ import { IFactionDefData } from "@/src/types/IAiNoval";
 import _ from 'lodash';
 import { getRabbitMQClient, RabbitMQClient } from "@/src/utils/rabbitmq";
 import { IMessage } from "@stomp/stompjs";
-import { QueryTestPanel } from "./panel/queryTestPanel";    
+import { QueryTestPanel } from "./panel/queryTestPanel"; 
+import RoleMemoryPanel from "./panel/roleMemoryPanel";
 
 export default function RoleManage() {
 
@@ -70,45 +73,46 @@ export default function RoleManage() {
         case 'query':
             content = <QueryTestPanel />;
             break;
+        case 'memory':
+            content = <RoleMemoryPanel />;
+            break;
     }
 
 
     return (
         <RoleManageContextProvider>
-            <div className="f-fit-height" style={{ paddingBottom: 10 }}>
-                <Row className="f-fit-height" gutter={8}>
-                    <Col className="f-fit-height" span={7}>
-                        <RolePanel/>
-                    </Col>
-                <Col className="f-fit-height" span={17}>
-                    <Card 
-                      className="f-fit-height" 
-                      title={
-                        <Radio.Group 
-                          value={activePanel} 
-                          onChange={e => setActivePanel(e.target.value)}
-                          buttonStyle="solid"
-                          optionType="button"
-                        >
-                          <Radio.Button value="attributes">角色属性及版本</Radio.Button>
-                          <Radio.Button value="relations">角色关系</Radio.Button>
-                          <Radio.Button value="query">查询测试</Radio.Button>
-                        </Radio.Group>
-                      }
-                    >
-                      {content}
-                    </Card>
-                </Col>
-            </Row>
+            <div className="flex flex-row w-full gap-3 pb-3 ">
+                <Affix offsetTop={60} target={() => document.getElementById('m-app-main') || window}>
+               
+                    <RolePanel/>
+                </Affix>
 
-            
+                <Card 
+                    className="flex-1" 
+                    title={
+                        <Radio.Group 
+                        value={activePanel} 
+                        onChange={e => setActivePanel(e.target.value)}
+                        buttonStyle="solid"
+                        optionType="button"
+                        >
+                        <Radio.Button value="attributes">角色属性及版本</Radio.Button>
+                        <Radio.Button value="memory">角色记忆</Radio.Button>
+                        <Radio.Button value="relations">角色关系</Radio.Button>
+                        <Radio.Button value="query">查询测试</Radio.Button>
+                        </Radio.Group>
+                    }
+                    >
+                    {content}
+                </Card>
+                
+            </div>
 
             <RoleInfoEditModal
                 ref={roleInfoEditModalRef}
                 open={editModalVisible}
                 onCancel={() => setEditModalVisible(false)}
             />
-            </div>
 
             <MqProvider></MqProvider>
         </RoleManageContextProvider>
@@ -212,10 +216,10 @@ function MqProvider({ children }: MqProviderProps) {
 }
 
 interface RolePanelProps {
-    
+    style?: React.CSSProperties;
 }
 
-function RolePanel(props: RolePanelProps) {
+function RolePanel({ style }: RolePanelProps) {
 
     const [worldViewId, setWorldViewId] = useWorldViewId();
     const [worldViewList, setWorldViewList] = useWorldViewList();
@@ -358,17 +362,17 @@ function RolePanel(props: RolePanelProps) {
 
     return (
         <>
-            <Card className="f-fit-height" title={roleListTitle}>
-                <div className="f-flex-col">
-                    <Alert style={{ marginBottom: 10 }} message="添加角色后，角色不会立即出现在世界观，需要添加关联世界观的角色属性版本，相关角色会显示感叹号" type="info" />
+            <Card style={style} title={roleListTitle} styles={{ body: { height: 'calc(100vh - 130px)', overflow: 'auto', width: '470px' } }}>
+                <div className="flex flex-col">
+                    <Alert style={{ marginBottom: 10, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }} message="添加角色后，角色不会立即出现在世界观，需要添加关联世界观的角色属性版本，相关角色会显示感叹号" type="info" />
                     <Button 
-                        className="f-fit-width" 
+                        className="w-full" 
                         onClick={() => openModal()}
                     >
                         添加角色
                     </Button>
                     <Tree 
-                        className="f-flex-1" 
+                        className="flex-1" 
                         treeData={roleManageTreeData}
                         onClick={(e, node: any) => {
                             const keyStr = String(node.key);

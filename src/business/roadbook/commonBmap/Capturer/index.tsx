@@ -1,7 +1,8 @@
 import { MutableRefObject, useContext, useEffect, useState } from "react";
 import BmapContext from "../BmapContext";
-import html2canvas from 'html2canvas';
-import { Button, Modal, message } from "antd";
+import html2canvas from 'html2canvas';import { message } from '@/src/utils/antdAppMessage';
+
+import { Button, Modal } from "antd";
 import copyToClip from "@/src/utils/common/copy";
 
 interface ICapturer {

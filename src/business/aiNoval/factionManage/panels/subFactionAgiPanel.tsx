@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Button, Form, Input, InputNumber, message, Card, Typography, Divider, Spin, Space, Switch, Row, Col } from 'antd';
+import { useState, useEffect } from 'react';import { message } from '@/src/utils/antdAppMessage';
+
+import { Button, Form, Input, InputNumber, Card, Typography, Divider, Spin, Space, Switch, Row, Col } from 'antd';
 import { useCurrentFaction, useWorldViewId } from '../FactionManageContext';
 import fetch from '@/src/fetch';
 import { ApiResponse } from '@/src/types/ApiResponse';

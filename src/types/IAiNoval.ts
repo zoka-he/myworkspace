@@ -118,6 +118,28 @@ export interface IFactionTerritory {
     description?: string | null,
 }
 
+/** 族群/种族定义（主种族 + 亚种树形，同世界观下 order_num 同层排序） */
+export interface IRaceData {
+    id?: number | null,
+    worldview_id?: number | null,
+    name?: string | null,
+    description?: string | null,
+    parent_id?: number | null,
+    order_num?: number | null,
+    embed_document?: string | null,
+    /** 外形、寿命、特质、弱点等，供生成与一致性用 */
+    appearance?: string | null,
+    lifespan?: string | null,
+    traits?: string | null,
+    weaknesses?: string | null,
+    /** 命名习惯、习俗等 */
+    naming_habit?: string | null,
+    customs?: string | null,
+    /** ChromaDB 等向量库关联（可选） */
+    chroma_collection?: string | null,
+    chroma_doc_id?: string | null,
+}
+
 export interface IFactionDefData {
     id?: number | null,
     worldview_id?: number | null,
@@ -208,6 +230,136 @@ export interface IRoleRelation {
     is_active?: number
     worldview_id?: number
   }
+
+/** 角色组：少量角色的集体及其集体行动方式 */
+export interface IRoleGroup {
+    id?: number | null
+    worldview_id?: number | null
+    name?: string | null
+    description?: string | null
+    collective_behavior?: string | null
+    group_type?: string | null
+    group_status?: string | null
+    sort_order?: number | null
+    decision_style?: string | null
+    conflict_points?: string | null
+    accord_points?: string | null
+    action_pattern?: string | null
+    group_style?: string | null
+    shared_goal?: string | null
+    taboo?: string | null
+    situation_responses?: string | null
+    group_mannerisms?: string | null
+    group_type_notes?: string | null
+    status_since?: string | number | null
+    status_notes?: string | null
+    created_at?: Date | string | null
+    updated_at?: Date | string | null
+    members?: IRoleGroupMember[]
+}
+
+/** 角色组成员 */
+export interface IRoleGroupMember {
+    id?: number | null
+    role_group_id?: number | null
+    role_info_id?: number | null
+    sort_order?: number | null
+    role_in_group?: string | null
+    notes_with_others?: string | null
+}
+
+/** 角色记忆：与章节发展关联，支持优先级与槽位指向性 */
+export interface IRoleMemory {
+    id?: number | null
+    worldview_id?: number | null
+    role_info_id?: number | null
+    chapter_id?: number | null
+    scope?: 'global' | 'from_chapter' | 'at_chapter' | null
+    start_chapter_id?: number | null
+    end_chapter_id?: number | null
+    content?: string | null
+    /** 此记忆对角色构成的影响摘要（可选） */
+    impact_summary?: string | null
+    /** 重要性：关键/重要/一般/参考/备选（词汇标记，非数字） */
+    importance?: string | null
+    memory_type?: string | null
+    affects_slot?: string | null
+    affects_slots?: string[] | null
+    related_role_info_id?: number | null
+    /** 剧情中的使用：明线=可直接体现；暗线=仅作动机/伏笔，不在叙述中直接写出 */
+    narrative_usage?: 'mingxian' | 'anxian' | null
+    sort_order?: number | null
+    created_at?: Date | string | null
+    updated_at?: Date | string | null
+}
+
+/** 角色记忆 scope 枚举 */
+export const ROLE_MEMORY_SCOPE = [
+    { value: 'global', label: '全局' },
+    { value: 'at_chapter', label: '单章' },
+    { value: 'from_chapter', label: '章节区间' },
+] as const;
+
+/** 角色记忆影响维度（槽位）枚举 */
+export const ROLE_MEMORY_AFFECTS_SLOTS = [
+    { value: 'belief', label: '信念/认知' },
+    { value: 'desire', label: '欲望/目标' },
+    { value: 'intention', label: '意图/计划' },
+    { value: 'personality', label: '性格/习惯' },
+    { value: 'relationship', label: '对某人态度' },
+    { value: 'knowledge', label: '所知信息/秘密' },
+    { value: 'principle', label: '原则/禁忌' },
+    { value: 'trauma', label: '经历/创伤' },
+] as const;
+
+/** 角色记忆重要性（词汇标记，用于排序与筛选「不低于某重要性」） */
+export const ROLE_MEMORY_IMPORTANCE = [
+    { value: 'critical', label: '关键' },
+    { value: 'high', label: '重要' },
+    { value: 'medium', label: '一般' },
+    { value: 'low', label: '参考' },
+    { value: 'marginal', label: '备选' },
+] as const;
+
+/** 角色记忆在剧情中的使用方式 */
+export const ROLE_MEMORY_NARRATIVE_USAGE = [
+    { value: 'mingxian', label: '明线' },
+    { value: 'anxian', label: '暗线' },
+] as const;
+
+/** 角色记忆叙事类型枚举 */
+export const ROLE_MEMORY_TYPES = [
+    { value: 'fact', label: '事实' },
+    { value: 'relationship_change', label: '关系变化' },
+    { value: 'goal', label: '目标' },
+    { value: 'secret', label: '秘密' },
+    { value: 'trauma', label: '创伤' },
+    { value: 'key_experience', label: '关键经历' },
+    { value: 'rule', label: '行为规则' },
+] as const;
+
+/** 角色组类型枚举（PRD 6.1） */
+export const ROLE_GROUP_TYPES = [
+    { value: 'fixed_team', label: '固定小队' },
+    { value: 'ad_hoc', label: '临时组合' },
+    { value: 'meeting', label: '会议/集会' },
+    { value: 'master_disciple', label: '师徒/师徒团' },
+    { value: 'family', label: '家庭/家族' },
+    { value: 'task_force', label: '任务小组' },
+    { value: 'antagonist_group', label: '敌对组合' },
+    { value: 'secret_society', label: '秘密结社' },
+    { value: 'other', label: '其他' },
+]
+
+/** 角色组状态枚举（PRD 6.2） */
+export const ROLE_GROUP_STATUSES = [
+    { value: 'active', label: '活跃' },
+    { value: 'dormant', label: '休眠' },
+    { value: 'dissolved', label: '已解散' },
+    { value: 'ad_hoc_assembled', label: '临时集结' },
+    { value: 'splitting', label: '分裂中' },
+    { value: 'reforming', label: '重组中' },
+]
 
   export const RELATION_TYPES = [
     { value: 'friend', label: '朋友', color: 'blue', presetStrength: 80 },
@@ -367,6 +519,7 @@ export interface IChapter {
     geo_ids?: string[]
     faction_ids?: number[]
     role_ids?: string[]
+    role_group_ids?: number[]
     seed_prompt?: string
     skeleton_prompt?: string
     content?: string
@@ -374,6 +527,7 @@ export interface IChapter {
     actual_roles?: string
     actual_factions?: string
     actual_locations?: string
+    actual_role_groups?: string
     attension?: string
     /** 章节文风：叙述视角、文风、节奏等整体风格要求 */
     chapter_style?: string

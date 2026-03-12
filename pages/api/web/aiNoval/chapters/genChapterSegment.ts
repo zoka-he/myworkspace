@@ -9,6 +9,7 @@ export interface GenChapterSegmentInput {
   worldview_id: number;
   curr_context: string;
   prev_content?: string;
+  role_group_names?: string;
   role_names?: string;
   faction_names?: string;
   geo_names?: string;
@@ -95,6 +96,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   const {
     curr_context = "",
     prev_content = "",
+    role_group_names = "",
     role_names = "",
     faction_names = "",
     geo_names = "",
@@ -115,7 +117,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   try {
     const context = (mcp_context && mcp_context.trim())
       ? mcp_context.trim()
-      : await getAggregatedContext(worldviewId, role_names, faction_names, geo_names);
+      : await getAggregatedContext(worldviewId, role_group_names, role_names, faction_names, geo_names);
     const basePrompt = buildPromptTemplate(attensionText);
     
     // 对于第2段及以后的段落，更强烈地强调不要回顾

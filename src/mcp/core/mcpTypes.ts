@@ -18,11 +18,18 @@ export interface MCPSchemaProperty {
     inputSchema: MCPInputSchema;
   }
   
+  export type MCPToolContent =
+    | {
+        type: 'text';
+        text: string;
+      }
+    | {
+        type: 'json';
+        json: any;
+      };
+  
   export interface MCPToolResult {
-    content: Array<{
-      type: 'text';
-      text: string;
-    }>;
+    content: MCPToolContent[];
     isError: boolean;
     rawData?: any;
   }

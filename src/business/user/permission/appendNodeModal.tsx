@@ -1,4 +1,5 @@
-import { Button, Form, Input, Modal, Radio, TreeSelect, message } from "antd";
+import { Button, Form, Input, Modal, Radio, TreeSelect } from "antd";import { message } from '@/src/utils/antdAppMessage';
+
 import { useEffect, useRef, useState } from "react";
 import fetch from '@/src/fetch';
 import { IPermission } from "./IPermission";

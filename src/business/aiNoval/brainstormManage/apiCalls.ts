@@ -34,7 +34,7 @@ export default {
     search?: string;
     related_chapter_id?: number;
   }) => {
-    const result = await getBrainstormList(params, params.page || 1, params.limit || 20);
+    const result = await getBrainstormList(params, params.page || 1, params.limit || 2000);
     return {
       data: result.data,
       count: result.count,
@@ -127,7 +127,7 @@ export default {
     const res = await fetch.post<ApiResponse<{ seeds: IRoleSeed[] }>>(
       `/api/web/aiNoval/brainstorm/roleSeeds/generate?id=${brainstormId}`,
       { count: params.count, randomness: params.randomness ?? 'medium', adhere_worldview: params.adhere_worldview ?? true },
-      { timeout: 1000 * 60 * 3 }
+      { timeout: 1000 * 60 * 10 }
     );
     if (!res.success || res.error) throw new Error(res.error || '生成角色种子失败');
     if (!res.data?.seeds) throw new Error('未返回角色种子');
@@ -155,12 +155,18 @@ export default {
     brainstormId: number,
     seedIds: string[],
     seeds?: IRoleSeed[],
-    worldviewSummary?: string
+    worldviewSummary?: string,
+    options?: { randomness?: 'low' | 'medium' | 'high' }
   ): Promise<{ drafts: IRoleDraft[]; worldview_summary?: string }> => {
     const res = await fetch.post<ApiResponse<{ drafts: IRoleDraft[]; worldview_summary?: string }>>(
       `/api/web/aiNoval/brainstorm/roleDrafts/generate?id=${brainstormId}`,
-      { seed_ids: seedIds, seeds: seeds ?? undefined, worldview_summary: worldviewSummary || undefined },
-      { timeout: 1000 * 60 * 3 }
+      {
+        seed_ids: seedIds,
+        seeds: seeds ?? undefined,
+        worldview_summary: worldviewSummary || undefined,
+        randomness: options?.randomness ?? 'medium',
+      },
+      { timeout: 1000 * 60 * 15 }
     );
     if (!res.success || res.error) throw new Error(res.error || '生成角色草稿失败');
     if (!res.data?.drafts) throw new Error('未返回角色草稿');

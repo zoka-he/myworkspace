@@ -1,4 +1,5 @@
-import { Form, Input, TreeSelect, Button, Modal, DatePicker, Typography, Tag, Space, Select, InputNumber, message } from 'antd';
+import { Form, Input, TreeSelect, Button, Modal, DatePicker, Typography, Tag, Space, Select, InputNumber } from 'antd';import { message } from '@/src/utils/antdAppMessage';
+
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatGeoDataTree } from './FlatGeoData';
 import { useSimpleFactionContext } from '../../../common/SimpleFactionProvider';

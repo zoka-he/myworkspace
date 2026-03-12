@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Space, Typography, Button, Input, message, Form, Tag, Select, TreeSelect, Row, Col, GetRef, Divider, Affix } from 'antd'
+import { Space, Typography, Button, Input, Form, Tag, Select, TreeSelect, Row, Col, GetRef, Divider, Affix } from 'antd'
 import { ReloadOutlined, EditOutlined, CopyOutlined, SortAscendingOutlined, RobotOutlined, InfoCircleOutlined } from '@ant-design/icons'
 import { IChapter, IWorldViewDataWithExtra, IGeoUnionData, IFactionDefData, IRoleData, ITimelineEvent, IGeoStarSystemData, IGeoGeographyUnitData, IGeoPlanetData, IGeoSatelliteData, IGeoStarData } from '@/src/types/IAiNoval'
 import styles from './ChapterSkeletonPanel.module.scss'
 import { getTimelineEventByIds, updateChapter, getChapterById, getChapterList } from '../apiCalls'
-import _, { divide } from 'lodash'
+import _ from 'lodash'
 import { TimelineDateFormatter } from '@/src/business/aiNoval/common/novelDateUtils'
 import * as apiCalls from '../apiCalls'
 import { loadGeoTree, transfromGeoUnionToGeoTree, type IGeoTreeItem } from '../../common/geoDataUtil'
@@ -13,10 +13,13 @@ import GenRolePanel from './GenRolePanel'
 import copyToClip from '@/src/utils/common/copy'
 import PromptTools from './PromptTools'
 import AttentionRefModal from './AttentionRefModal'
+import { message } from '@/src/utils/antdAppMessage'
 import { useWorldViewContext } from '../WorldViewContext'
 import { useChapterContext } from '../chapterContext'
 import { getRoleListForChapter } from '@/src/api/aiNovel'
+import roleGroupApiCalls from '@/src/business/aiNoval/roleGroupManage/apiCalls'
 import { textDecorationLine } from 'html2canvas/dist/types/css/property-descriptors/text-decoration-line'
+import CharacterGroupSelect from '@/src/components/aiNovel/characterGroupSelect'
 
 const { Text } = Typography
 const { TextArea } = Input
@@ -64,6 +67,7 @@ function ChapterSkeletonPanel({
   const [isGenRoleModalVisible, setIsGenRoleModalVisible] = useState(false)
   const [isAttentionRefModalVisible, setIsAttentionRefModalVisible] = useState(false)
   const [isGeneratingAttention, setIsGeneratingAttention] = useState(false)
+  const [isExtractingEntities, setIsExtractingEntities] = useState(false)
 
   const promptTextAreaRef = useRef<GetRef<typeof Input.TextArea> | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -166,6 +170,7 @@ function ChapterSkeletonPanel({
         geo_ids: chapterContext.geo_ids || [],
         faction_ids: chapterContext.faction_ids || [],
         role_ids: (chapterContext.role_ids || []).map(String),
+        role_group_ids: chapterContext.role_group_ids || [],
         seed_prompt: chapterContext.seed_prompt || '',
         related_chapter_ids: chapterContext.related_chapter_ids || [],
         skeleton_prompt: chapterContext.skeleton_prompt || '',
@@ -232,6 +237,311 @@ function ChapterSkeletonPanel({
     for (const node of nodes) {
       if (node.key) acc.set(String(node.key), node.title || '')
       if (node.children?.length) collectGeoCodeToName(node.children as IGeoTreeItem<IGeoStarSystemData | IGeoStarData | IGeoPlanetData | IGeoSatelliteData | IGeoGeographyUnitData>[], acc)
+    }
+  }
+
+  /** 从 geo 树中收集 name -> keys 映射（用于 Agent 提取后按名称匹配地点） */
+  const collectGeoNameToKeys = (
+    nodes: IGeoTreeItem<IGeoStarSystemData | IGeoStarData | IGeoPlanetData | IGeoSatelliteData | IGeoGeographyUnitData>[],
+    acc: Map<string, string[]>
+  ): void => {
+    if (!nodes?.length) return
+    for (const node of nodes) {
+      const name = (node.title || '').trim()
+      if (name && node.key) {
+        const keys = acc.get(name) || []
+        if (!keys.includes(String(node.key))) keys.push(String(node.key))
+        acc.set(name, keys)
+      }
+      if (node.children?.length) collectGeoNameToKeys(node.children as IGeoTreeItem<IGeoStarSystemData | IGeoStarData | IGeoPlanetData | IGeoSatelliteData | IGeoGeographyUnitData>[], acc)
+    }
+  }
+
+  /** 解析 pick 接口返回的文本为名称列表（支持换行、逗号、顿号、空格分隔；去除行首编号与前缀） */
+  const parsePickNames = (raw: string): string[] => {
+    if (!raw || typeof raw !== 'string') return []
+    const skipValues = ['无', '无。', '暂无', '没有', '无相关']
+    const items = raw
+      .split(/[\n,，、\s]+/)
+      .map((s) =>
+        s
+          .trim()
+          .replace(/^\d+[.．、]\s*/, '') // 去掉 "1. " "1、"
+          .replace(/^[名称：:]\s*/i, '')
+          .trim()
+      )
+      .filter((s) => Boolean(s) && !skipValues.includes(s))
+    return _.uniq(items)
+  }
+
+  /** 匹配用规范化：去空格、全角转半角（仅数字/英文），便于 LLM 返回与后台名称一致 */
+  const normalizeNameForMatch = (s: string): string => {
+    const t = (s || '').trim().replace(/\s+/g, '')
+    return t
+  }
+
+  /** 部分匹配：提取名与实体名任一方包含另一方即视为匹配（用于不完整名称）；比较前先规范化 */
+  const isPartialNameMatch = (extracted: string, entityName: string): boolean => {
+    const a = normalizeNameForMatch(extracted)
+    const b = normalizeNameForMatch(entityName)
+    if (!a || !b) return false
+    return b.includes(a) || a.includes(b)
+  }
+
+  /** 精确匹配（规范化后相等） */
+  const isExactNameMatch = (extracted: string, entityName: string): boolean => {
+    return normalizeNameForMatch(extracted) === normalizeNameForMatch(entityName)
+  }
+
+  /** Agent 从章节提示词与相关章节摘要中提取关联地点、阵营、角色，并自动更正表单选项 */
+  const handleAgentFillEntities = async () => {
+    if (!worldViewData?.id) {
+      message.warning('请先选择世界观')
+      return
+    }
+    const values = form.getFieldsValue()
+    const seedPrompt = values.seed_prompt || ''
+    const skeletonPrompt = values.skeleton_prompt || ''
+    const relatedIds: number[] = Array.isArray(values.related_chapter_ids) ? values.related_chapter_ids : []
+
+    const relatedSummaries: string[] = []
+    for (const id of relatedIds) {
+      try {
+        const ch = await getChapterById(Number(id))
+        const sum = (ch?.summary ?? '').toString().trim()
+        if (sum) relatedSummaries.push(`【相关章节 ${ch?.chapter_number ?? id}】\n${sum}`)
+      } catch {
+        // 单章失败不影响其余
+      }
+    }
+
+    const combinedText = [
+      seedPrompt,
+      skeletonPrompt,
+      relatedSummaries.length ? '相关章节摘要：\n' + relatedSummaries.join('\n\n') : '',
+    ]
+      .filter(Boolean)
+      .join('\n\n')
+
+    if (!combinedText.trim()) {
+      message.warning('请先填写章节提示词或选择并加载相关章节摘要')
+      return
+    }
+
+    const LOG = '[AgentFillEntities]'
+    console.debug(LOG, '0. 当前世界观数据', {
+      worldViewId: worldViewData?.id,
+      geoTreeLength: geoTree?.length,
+      factionListLength: factionList?.length,
+      roleListForChapterLength: roleListForChapter?.length,
+    })
+    setIsExtractingEntities(true)
+    try {
+      const [locationsRaw, factionsRaw, rolesRaw] = await Promise.all([
+        apiCalls.pickFromText('locations', combinedText),
+        apiCalls.pickFromText('factions', combinedText),
+        apiCalls.pickFromText('roles', combinedText),
+      ])
+
+      console.debug(LOG, '1. pick API 原始返回', {
+        locationsRaw: typeof locationsRaw === 'string' ? locationsRaw.slice(0, 300) + (locationsRaw.length > 300 ? '...' : '') : locationsRaw,
+        factionsRaw: typeof factionsRaw === 'string' ? factionsRaw.slice(0, 300) + (factionsRaw.length > 300 ? '...' : '') : factionsRaw,
+        rolesRaw: typeof rolesRaw === 'string' ? rolesRaw.slice(0, 300) + (rolesRaw.length > 300 ? '...' : '') : rolesRaw,
+      })
+
+      const locationNames = parsePickNames(locationsRaw)
+      const factionNames = parsePickNames(factionsRaw)
+      const roleNames = parsePickNames(rolesRaw)
+      console.debug(LOG, '2. 解析后的名称列表', { locationNames, factionNames, roleNames })
+
+      const geoNameToKeys = new Map<string, string[]>()
+      collectGeoNameToKeys(geoTree, geoNameToKeys)
+      const geoEntries = Array.from(geoNameToKeys.entries()).map(([k, v]) => `${k}->[${v.join(',')}]`)
+      console.debug(LOG, '3. 地点候选 geoNameToKeys', { size: geoNameToKeys.size, geoTreeNodes: geoTree?.length, entries: geoEntries.slice(0, 25) })
+
+      const geoIds: string[] = []
+      for (const name of locationNames) {
+        const exactKeys =
+          Array.from(geoNameToKeys.entries())
+            .filter(([title]) => isExactNameMatch(name, title))
+            .flatMap(([, keys]) => keys) ||
+          geoNameToKeys.get(name) ||
+          []
+        const partialEntries = Array.from(geoNameToKeys.entries()).filter(([title]) => isPartialNameMatch(name, title))
+        const partialKeys = partialEntries.flatMap(([, keys]) => keys)
+        console.debug(LOG, '  地点匹配', { extracted: name, normalized: normalizeNameForMatch(name), exactKeys, partialTitles: partialEntries.map(([t]) => t), partialKeys })
+        geoIds.push(...exactKeys, ...partialKeys)
+      }
+      const resolvedGeoIds = _.uniq(geoIds)
+
+      const factionNamesFromData = (factionList || []).map((f) => f.name || '')
+      console.debug(LOG, '4. 阵营候选 factionList', { count: factionList?.length ?? 0, names: factionNamesFromData })
+
+      const factionIds: number[] = []
+      for (const name of factionNames) {
+        const exact = factionList?.find((x) => isExactNameMatch(name, x.name || ''))
+        const partial = factionList?.filter((x) => isPartialNameMatch(name, x.name || '')) || []
+        const matched = exact ? [exact] : partial
+        console.debug(LOG, '  阵营匹配', { extracted: name, normalized: normalizeNameForMatch(name), exact: exact ? { id: exact.id, name: exact.name } : null, partialNames: partial.map((p) => p.name), matchedIds: matched.map((f) => f.id) })
+        matched.forEach((f) => { if (f?.id != null) factionIds.push(f.id) })
+      }
+      const resolvedFactionIds = _.uniq(factionIds)
+
+      const roleItemsPreview = (roleListForChapter || []).slice(0, 15).map((r) => ({ name: r.name, version_name: r.version_name, union_id: r.union_id }))
+      console.debug(LOG, '5. 角色候选 roleListForChapter', { count: roleListForChapter?.length ?? 0, items: roleItemsPreview })
+
+      const roleIds: string[] = []
+      for (const name of roleNames) {
+        const exact = roleListForChapter?.find(
+          (x) =>
+            isExactNameMatch(name, x.name || '') ||
+            isExactNameMatch(name, String(x.version_name ?? ''))
+        )
+        const partial =
+          roleListForChapter?.filter(
+            (x) =>
+              isPartialNameMatch(name, x.name || '') ||
+              isPartialNameMatch(name, String(x.version_name ?? ''))
+          ) || []
+        const matched = exact ? [exact] : partial
+        console.debug(LOG, '  角色匹配', { extracted: name, normalized: normalizeNameForMatch(name), exact: exact ? { union_id: exact.union_id, name: exact.name, version_name: exact.version_name } : null, partialCount: partial.length, matchedUnionIds: matched.map((r) => r.union_id) })
+        matched.forEach((r) => { if (r?.union_id) roleIds.push(String(r.union_id)) })
+      }
+      const resolvedRoleIds = _.uniq(roleIds)
+
+      // 根据匹配到的角色尝试自动补全角色组
+      let resolvedRoleGroupIds: number[] = []
+      try {
+        const worldviewId = worldViewData?.id
+        if (worldviewId && resolvedRoleIds.length && roleListForChapter?.length) {
+          // 1）先把 union_id -> info_id 建立映射
+          const unionIdToInfoId = new Map<string, number>()
+          for (const r of roleListForChapter) {
+            if (r.union_id && r.info_id != null) {
+              unionIdToInfoId.set(String(r.union_id), Number(r.info_id))
+            }
+          }
+
+          const selectedInfoIds = resolvedRoleIds
+            .map((id) => unionIdToInfoId.get(String(id)))
+            .filter((v): v is number => v != null)
+
+          console.debug(LOG, '6.1 角色 info_id 映射', {
+            unionIdToInfoIdSize: unionIdToInfoId.size,
+            selectedInfoIds,
+          })
+
+          if (selectedInfoIds.length) {
+            // 2）获取世界观下的所有活跃角色组
+            const groupResp = await roleGroupApiCalls.getRoleGroupList(worldviewId, {
+              limit: 500,
+              group_status: 'active',
+            })
+            const groups = (groupResp as { data?: any[] })?.data || []
+
+            console.debug(LOG, '6.2 角色组列表', {
+              worldviewId,
+              groupCount: groups.length,
+            })
+
+            const roleGroupMembersMap = new Map<number, number[]>()
+
+            // 优先使用列表中已经带上的 members 字段，避免额外请求
+            for (const g of groups) {
+              if (g?.id == null) continue
+              const members = Array.isArray(g.members) ? g.members : []
+              if (members.length) {
+                roleGroupMembersMap.set(
+                  Number(g.id),
+                  members
+                    .map((m: any) => m.role_info_id)
+                    .filter((v: any): v is number => v != null)
+                    .map((v: any) => Number(v)),
+                )
+              }
+            }
+
+            // 如果大部分 group 没有 members，再按需补充请求
+            if (roleGroupMembersMap.size === 0 && groups.length) {
+              const memberResults = await Promise.all(
+                groups
+                  .filter((g: any) => g?.id != null)
+                  .map(async (g: any) => {
+                    try {
+                      const members = await roleGroupApiCalls.getRoleGroupMembers(Number(g.id))
+                      return {
+                        id: Number(g.id),
+                        members: Array.isArray((members as any)?.data)
+                          ? (members as any).data
+                          : (members as any),
+                      }
+                    } catch (e) {
+                      console.warn(LOG, 'getRoleGroupMembers 失败', g.id, e)
+                      return { id: Number(g.id), members: [] as any[] }
+                    }
+                  }),
+              )
+
+              for (const item of memberResults) {
+                const memberInfoIds = (item.members || [])
+                  .map((m: any) => m.role_info_id)
+                  .filter((v: any): v is number => v != null)
+                  .map((v: any) => Number(v))
+                if (memberInfoIds.length) {
+                  roleGroupMembersMap.set(item.id, memberInfoIds)
+                }
+              }
+            }
+
+            console.debug(LOG, '6.3 角色组成员映射', {
+              groupCount: groups.length,
+              mappedGroups: roleGroupMembersMap.size,
+            })
+
+            const matchedGroupIds: number[] = []
+            roleGroupMembersMap.forEach((memberInfoIds, groupId) => {
+              const hasIntersection = memberInfoIds.some((infoId) => selectedInfoIds.includes(infoId))
+              if (hasIntersection) {
+                matchedGroupIds.push(groupId)
+              }
+            })
+
+            resolvedRoleGroupIds = _.uniq(matchedGroupIds)
+
+            console.debug(LOG, '6.4 基于角色匹配到的角色组', {
+              resolvedRoleGroupIds,
+            })
+          }
+        }
+      } catch (e) {
+        console.warn(LOG, '自动回填角色组失败（忽略不中断主流程）', e)
+      }
+
+      console.debug(LOG, '7. 最终结果', { resolvedGeoIds, resolvedFactionIds, resolvedRoleIds, resolvedRoleGroupIds })
+
+      const currentValues = form.getFieldsValue()
+      const mergedRoleGroupIds = _.uniq([
+        ...(Array.isArray(currentValues.role_group_ids) ? currentValues.role_group_ids : []),
+        ...resolvedRoleGroupIds,
+      ])
+
+      form.setFieldsValue({
+        geo_ids: resolvedGeoIds,
+        faction_ids: resolvedFactionIds,
+        role_ids: resolvedRoleIds,
+        role_group_ids: mergedRoleGroupIds,
+      })
+      const parts = []
+      if (resolvedGeoIds.length) parts.push(`地点 ${resolvedGeoIds.length} 个`)
+      if (resolvedFactionIds.length) parts.push(`阵营 ${resolvedFactionIds.length} 个`)
+      if (resolvedRoleIds.length) parts.push(`角色 ${resolvedRoleIds.length} 个`)
+      if (mergedRoleGroupIds.length) parts.push(`角色组 ${mergedRoleGroupIds.length} 个`)
+      message.success(parts.length ? `已根据提示词与相关章节摘要补全：${parts.join('、')}` : '未匹配到可用的地点/阵营/角色/角色组，请检查世界观配置或提示词')
+    } catch (e: unknown) {
+      console.error(LOG, 'Agent 提取失败', e)
+      message.error((e as Error)?.message || 'Agent 提取关联信息失败')
+    } finally {
+      setIsExtractingEntities(false)
     }
   }
 
@@ -309,9 +619,11 @@ function ChapterSkeletonPanel({
         break
       case 'role':
         sourceData = Array.from(characters).map(def_id => {
-          let roleForChapter = roleListForChapter?.find(role => role.role_id === def_id);
+          const roleForChapter = roleListForChapter?.find(
+            role => role.union_id === def_id || String(role.role_id) === String(def_id)
+          );
           return roleForChapter?.union_id;
-        }).filter(union_id => union_id !== undefined && union_id !== null);
+        }).filter((union_id): union_id is string => union_id != null);
         emptyMessage = '世界观中暂无关联角色'
         break
     }
@@ -380,6 +692,7 @@ function ChapterSkeletonPanel({
         geo_ids: processIds<string>(values.geo_ids),
         faction_ids: processIds<number>(values.faction_ids),
         role_ids: processIds<string>(values.role_ids),
+        role_group_ids: processIds<number>(values.role_group_ids),
         seed_prompt: values.seed_prompt,
         related_chapter_ids: values.related_chapter_ids,
         skeleton_prompt: values.skeleton_prompt,
@@ -633,6 +946,7 @@ function ChapterSkeletonPanel({
                 >
                   从关联信息复制
                 </Button>
+                
               </div>
             }
             name="geo_ids"
@@ -683,6 +997,19 @@ function ChapterSkeletonPanel({
               fieldNames={{label:'title', value: 'key'}}    // fuck antd
             >
             </TreeSelect>
+          </Form.Item>
+
+          <Form.Item
+            label={
+              <div className={styles.formItemLabel}>
+                <Text strong>章节关联角色组</Text>
+              </div>
+            }
+            name="role_group_ids"
+          >
+            <CharacterGroupSelect
+              worldviewId={worldViewData?.id || null}
+            />
           </Form.Item>
 
           <Form.Item
@@ -809,7 +1136,18 @@ function ChapterSkeletonPanel({
             </Col>
             <Col span={18}>
               <div className="f-flex-two-side f-fit-width" style={{marginBottom: 12}}>
-                <Text strong>章节提示词</Text>
+                <Space>
+                  <Text strong>章节提示词</Text>
+                  <Button
+                    type="link"
+                    size="small"
+                    icon={<RobotOutlined />}
+                    onClick={handleAgentFillEntities}
+                    loading={isExtractingEntities}
+                  >
+                    Agent 自动补全地点、阵营、角色
+                  </Button>
+                </Space>
                 <Space>
                   <Button size="small" type="primary" onClick={handleSaveChapterInfo}>保存</Button>
                   <Button size="small" type="primary" danger onClick={() => handleSaveChapterInfo()}>保存并覆盖实际配置</Button>
@@ -882,9 +1220,11 @@ function FactionTag({ faction }: { faction: number }) {
   return <Tag color="green">{factionItem?.name}</Tag>
 }
 
-function CharacterTag({ character }: { character: number }) {
-  const { roleList } = useWorldViewContext();
-  const characterItem = roleList?.find(item => item.id === character);
+function CharacterTag({ character }: { character: number | string }) {
+  const { roleList, roleListForChapter } = useWorldViewContext();
+  const byUnionId = typeof character === 'string' ? roleListForChapter?.find(r => r.union_id === character) : undefined;
+  const byRoleId = roleList?.find(item => item.id === Number(character));
+  const characterItem = byUnionId ?? byRoleId;
   return <Tag color="purple">{characterItem?.name}</Tag>
 }
 
@@ -904,7 +1244,6 @@ function formatDate(date: number, worldViewData?: IWorldViewDataWithExtra | null
 }
 
 function EventTag({ event }: { event: ITimelineEvent }) {
-
   const { worldViewData } = useWorldViewContext();
 
   return (

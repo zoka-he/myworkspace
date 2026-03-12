@@ -1,9 +1,9 @@
+import { message } from '@/src/utils/antdAppMessage';
 import auth from './auth';
 import moment from 'moment';
 import fetch from '../../fetch';
 import kibana from "../../config/kibana";
 import authUtils from "./auth";
-import {message} from "antd";
 import _ from 'lodash';
 
 import testData from './bucket_data.test.json';

@@ -1,5 +1,5 @@
 import fetch from "@/src/fetch";
-import { IRoleData, IRoleInfo, IRoleRelation } from "@/src/types/IAiNoval";
+import { IRoleData, IRoleInfo, IRoleRelation, IRoleMemory } from "@/src/types/IAiNoval";
 
 const apiCalls = {
     getRoleList: (worldViewId?: number | null, page: number = 1, limit: number = 100) => {
@@ -52,7 +52,22 @@ const apiCalls = {
                 threshold: threshold || 0.5
             } 
         });
-    }
+    },
+    getRoleMemoryList: (params: { worldview_id: number; role_info_id?: number; affects_slot?: string; memory_type?: string; importance_min?: string; page?: number; limit?: number }) => {
+        return fetch.get('/api/web/aiNoval/roleMemory/list', { params });
+    },
+    getRoleMemory: (id: number) => {
+        return fetch.get('/api/web/aiNoval/roleMemory', { params: { id } });
+    },
+    createRoleMemory: (data: Partial<IRoleMemory>) => {
+        return fetch.post('/api/web/aiNoval/roleMemory', data);
+    },
+    updateRoleMemory: (id: number, data: Partial<IRoleMemory>) => {
+        return fetch.post('/api/web/aiNoval/roleMemory', data, { params: { id } });
+    },
+    deleteRoleMemory: (id: number) => {
+        return fetch.delete('/api/web/aiNoval/roleMemory', { params: { id } });
+    },
 }
 
 export default apiCalls;

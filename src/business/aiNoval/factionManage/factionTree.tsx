@@ -1,4 +1,5 @@
-import { Tree, Button, message, Modal, Tag } from 'antd';
+import { Tree, Button, Modal, Tag } from 'antd';import { message } from '@/src/utils/antdAppMessage';
+
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { Key, useEffect, useMemo, useState } from 'react';
 import { IFactionDefData } from '@/src/types/IAiNoval';

@@ -1,4 +1,5 @@
-import { Button, Select, Input, Radio, List, Tag, Col, Row, Alert, message } from "antd";
+import { Button, Select, Input, Radio, List, Tag, Col, Row, Alert } from "antd";import { message } from '@/src/utils/antdAppMessage';
+
 import { useEffect, useState } from "react";
 import fetch from "@/src/fetch";
 import store from "@/src/store";

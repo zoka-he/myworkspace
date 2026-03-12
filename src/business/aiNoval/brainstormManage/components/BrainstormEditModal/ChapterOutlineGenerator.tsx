@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Button, theme, message } from 'antd';
+import React, { useState } from 'react';import { message } from '@/src/utils/antdAppMessage';
+
+import { Button, theme } from 'antd';
 import { FileTextOutlined } from '@ant-design/icons';
 import { IBrainstorm } from '@/src/types/IAiNoval';
 import apiCalls from '../../apiCalls';

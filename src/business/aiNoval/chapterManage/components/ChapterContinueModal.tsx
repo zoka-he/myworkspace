@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
-import { Modal, Button, Space, message, Row, Col, Form, Select, Checkbox, Divider, Input, Tag, Typography, Card, Alert } from 'antd'
+import { message } from '@/src/utils/antdAppMessage';
+
+import { Modal, Button, Space, Row, Col, Form, Select, Checkbox, Divider, Input, Tag, Typography, Card, Alert, InputNumber } from 'antd'
 import { CloseCircleOutlined, CloseOutlined, CopyOutlined, EditOutlined, ExpandAltOutlined, RedoOutlined, RobotOutlined } from '@ant-design/icons'
 import { IChapter } from '@/src/types/IAiNoval'
 import * as chapterApi from '../apiCalls'
@@ -112,7 +114,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
   const [isReferSelf, setIsReferSelf] = useState<boolean>(false)
 
   // LLM类型, 默认使用 deepseek
-  const [llmType, setLlmType] = useState<'gemini' | 'deepseek' | 'gemini3'>('deepseek')
+  const [llmType, setLlmType] = useState<'gemini' | 'deepseek' | 'deepseek-chat' | 'gemini3'>('deepseek')
 
   // 是否缩写本章
   const [isStripSelf, setIsStripSelf] = useState<boolean>(false)
@@ -181,6 +183,9 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
   // 额外设置
   const [extraSettings, setExtraSettings] = useState<string>('')
 
+  // 角色组名称（使用章节的 actual_role_groups 字段）
+  const [roleGroupNames, setRoleGroupNames] = useState<string>('')
+
   // 注意事项参考 Modal
   const [isAttentionRefVisible, setIsAttentionRefVisible] = useState(false)
 
@@ -202,6 +207,13 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
   const [antiEnumReactionsStyle, setAntiEnumReactionsStyle] = useState(true)
   /** 抗套路样板词：避免恰到好处、不易察觉、微微一笑、深吸一口气等网文套路词，默认勾选 */
   const [antiClichePhraseStyle, setAntiClichePhraseStyle] = useState(true)
+  /** 抗剧透及解释：禁止提前剧透和用旁白解释剧情、动机、因果，默认勾选 */
+  const [antiPlotExplanation, setAntiPlotExplanation] = useState(true)
+  /** 抗演讲/军事腔调：避免对白像演讲、口号或军事命令，默认勾选 */
+  const [antiSpeechMilitarySummaryStyle, setAntiSpeechMilitarySummaryStyle] = useState(true)
+
+  /** 审稿员最多审核次数，默认 5（与 GenChapterByDetailModal 对齐） */
+  const [criticMaxRounds, setCriticMaxRounds] = useState(5)
 
   // 初始化
   useEffect(() => {
@@ -263,6 +275,8 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
       setAutoWriteError('')
 
       setAutoWriteElapsed(0)
+      // 角色组名称
+      setRoleGroupNames(selectedChapter?.actual_role_groups || selectedChapter?.role_group_names || '')
     }
   }, [selectedChapter])
 
@@ -533,6 +547,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
         .map(chapter => chapter.strippedContent)
         .join('\n\n'),
       curr_context: prompt,
+      role_group_names: roleGroupNames || '',
       role_names: roleNames || '',
       faction_names: factionNames || '',
       geo_names: geoNames || '',
@@ -549,6 +564,9 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
       anti_wasteland_style: antiWastelandStyle,
       anti_enum_reactions_style: antiEnumReactionsStyle,
       anti_cliche_phrase_style: antiClichePhraseStyle,
+      anti_plot_explanation: antiPlotExplanation,
+      anti_speech_military_summary_style: antiSpeechMilitarySummaryStyle,
+      critic_max_rounds: criticMaxRounds,
     };
     console.info('auto write reqObj -> ', reqObj);
 
@@ -585,6 +603,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
         actual_roles: roleNames,
         actual_factions: factionNames,
         actual_locations: geoNames,
+        actual_role_groups: roleGroupNames,
         actual_seed_prompt: seedPrompt,
         attension: attention,
         chapter_style: chapterStyle,
@@ -629,6 +648,10 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
 
       case 'actual_locations':
         setGeoNames(selectedChapter?.actual_locations || '')
+        break;
+
+      case 'actual_role_groups':
+        setRoleGroupNames(selectedChapter?.actual_role_groups || '')
         break;
 
       case 'actual_seed_prompt':
@@ -861,17 +884,36 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
 
                 <div className={styles.prompt_title}>
                   <div>
+                    <span>角色组提示词：</span>
+                    { roleGroupNames === selectedChapter?.role_group_names ? <Tag color="blue">初始值</Tag> : null }
+                    { roleGroupNames === selectedChapter?.actual_role_groups ?  <Tag color="green">存储值</Tag> : null }
+                    { (roleGroupNames !== selectedChapter?.role_group_names && roleGroupNames !== selectedChapter?.actual_role_groups) ?  <Tag color="red">已修改</Tag> : null }
+                  </div>
+                  <div>
+                    {/* <Button size="small" disabled={isLoading} onClick={() => handleOptimizePrompt('roles')}>AI优化</Button> */}
+                    <Button type="link" size="small" icon={<RedoOutlined />} disabled={isLoading} onClick={() => handleResetPrompt('role_group_names')}>复原初始值</Button>
+                    <Button type="link" size="small" icon={<RedoOutlined />} disabled={isLoading} onClick={() => handleResetPrompt('actual_role_groups')}>复原存储值</Button>
+                  </div>
+                </div>
+
+                <div>
+                  <TextArea autoSize={{ minRows: 1 }} disabled={isLoading} value={roleGroupNames} onChange={(e) => setRoleGroupNames(e.target.value)} />
+                </div>
+
+                <div className={styles.prompt_title}>
+                  <div>
                     <span>角色提示词：</span>
                     { roleNames === selectedChapter?.role_names ? <Tag color="blue">初始值</Tag> : null }
                     { roleNames === selectedChapter?.actual_roles ?  <Tag color="green">存储值</Tag> : null }
                     { (roleNames !== selectedChapter?.role_names && roleNames !== selectedChapter?.actual_roles) ?  <Tag color="red">已修改</Tag> : null }
                   </div>
                   <div>
-                    <Button size="small" disabled={isLoading} onClick={() => handleOptimizePrompt('roles')}>AI优化</Button>
+                    {/* <Button size="small" disabled={isLoading} onClick={() => handleOptimizePrompt('roles')}>AI优化</Button> */}
                     <Button type="link" size="small" icon={<RedoOutlined />} disabled={isLoading} onClick={() => handleResetPrompt('role_names')}>复原初始值</Button>
                     <Button type="link" size="small" icon={<RedoOutlined />} disabled={isLoading} onClick={() => handleResetPrompt('actual_roles')}>复原存储值</Button>
                   </div>
                 </div>
+
                 <div>
                   <TextArea autoSize={{ minRows: 1 }} disabled={isLoading} value={roleNames} onChange={(e) => setRoleNames(e.target.value)} />
                 </div>
@@ -884,7 +926,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
                     { (factionNames !== selectedChapter?.faction_names && factionNames !== selectedChapter?.actual_factions) ?  <Tag color="red">已修改</Tag> : null }
                   </div>
                   <div>
-                    <Button size="small" disabled={isLoading} onClick={() => handleOptimizePrompt('factions')}>AI优化</Button>
+                    {/* <Button size="small" disabled={isLoading} onClick={() => handleOptimizePrompt('factions')}>AI优化</Button> */}
                     <Button type="link" size="small" icon={<RedoOutlined />} disabled={isLoading} onClick={() => handleResetPrompt('faction_names')}>复原初始值</Button>
                     <Button type="link" size="small" icon={<RedoOutlined />} disabled={isLoading} onClick={() => handleResetPrompt('actual_factions')}>复原存储值</Button>
                   </div>
@@ -901,7 +943,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
                     { (geoNames !== selectedChapter?.geo_names && geoNames !== selectedChapter?.actual_locations) ?  <Tag color="red">已修改</Tag> : null }
                   </div>
                   <div>
-                    <Button size="small" disabled={isLoading} onClick={() => handleOptimizePrompt('locations')}>AI优化</Button>
+                    {/* <Button size="small" disabled={isLoading} onClick={() => handleOptimizePrompt('locations')}>AI优化</Button> */}
                     <Button type="link" size="small" icon={<RedoOutlined />} disabled={isLoading} onClick={() => handleResetPrompt('geo_names')}>复原初始值</Button>
                     <Button type="link" size="small" icon={<RedoOutlined />} disabled={isLoading} onClick={() => handleResetPrompt('actual_locations')}>复原存储值</Button>
                   </div>
@@ -1041,9 +1083,35 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
                   <Checkbox checked={antiWastelandStyle} onChange={(e) => setAntiWastelandStyle(e.target.checked)} disabled={isContinuing}>反废土文风</Checkbox>
                   <Checkbox checked={antiEnumReactionsStyle} onChange={(e) => setAntiEnumReactionsStyle(e.target.checked)} disabled={isContinuing}>反逐人枚举</Checkbox>
                   <Checkbox checked={antiClichePhraseStyle} onChange={(e) => setAntiClichePhraseStyle(e.target.checked)} disabled={isContinuing}>抗套路样板词</Checkbox>
+                  <Checkbox checked={antiPlotExplanation} onChange={(e) => setAntiPlotExplanation(e.target.checked)} disabled={isContinuing}>抗剧透及解释</Checkbox>
+                  <Checkbox checked={antiSpeechMilitarySummaryStyle} onChange={(e) => setAntiSpeechMilitarySummaryStyle(e.target.checked)} disabled={isContinuing}>抗演讲/军事腔调</Checkbox>
                 </Space>
                 <Divider orientation="left">续写选项</Divider>
-                <Space>
+                <Space wrap>
+                  
+
+                  <Typography.Text>模型：</Typography.Text>
+                  <Select value={llmType} onChange={(value) => setLlmType(value)} disabled={isContinuing}>
+                    {/* <Select.Option value="gemini">Gemini2.5</Select.Option> */}
+                    <Select.Option value="gemini3">Gemini3</Select.Option>
+                    <Select.Option value="deepseek">DeepSeek（reasoner）</Select.Option>
+                    <Select.Option value="deepseek-chat">DeepSeek-Chat</Select.Option>
+                    {/* <Select.Option value="deepseek-chat">DeepSeek-Chat（实验）</Select.Option> */}
+                    <Select.Option value="gpt" disabled>GPT-4o（实验）</Select.Option>
+                  </Select>
+
+                  <Typography.Text>审稿员审核次数：</Typography.Text>
+                  <InputNumber
+                    min={1}
+                    max={10}
+                    value={criticMaxRounds}
+                    onChange={(v) => setCriticMaxRounds(v ?? 5)}
+                    disabled={isContinuing}
+                  />
+
+                  <Checkbox checked={isReferSelf} onChange={(e) => setIsReferSelf(e.target.checked)} disabled={isContinuing}>参考本章已有内容</Checkbox>
+                  <Checkbox checked={isStripSelf} onChange={(e) => setIsStripSelf(e.target.checked)} disabled={isContinuing}>缩写本章</Checkbox>
+
                   { isContinuing ? (
                     <Button
                       type="primary"
@@ -1064,19 +1132,9 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
                       开始续写
                     </Button>
                   )}
-
-                  <Typography.Text>模型：</Typography.Text>
-                  <Select value={llmType} onChange={(value) => setLlmType(value)} disabled={isContinuing}>
-                    {/* <Select.Option value="gemini">Gemini2.5</Select.Option> */}
-                    <Select.Option value="gemini3">Gemini3</Select.Option>
-                    <Select.Option value="deepseek">DeepSeek</Select.Option>
-                    {/* <Select.Option value="deepseek-chat">DeepSeek-Chat（实验）</Select.Option> */}
-                    <Select.Option value="gpt" disabled>GPT-4o（实验）</Select.Option>
-                  </Select>
-
-                  <Checkbox checked={isReferSelf} onChange={(e) => setIsReferSelf(e.target.checked)} disabled={isContinuing}>参考本章已有内容</Checkbox>
-                  <Checkbox checked={isStripSelf} onChange={(e) => setIsStripSelf(e.target.checked)} disabled={isContinuing}>缩写本章</Checkbox>
                 </Space>
+
+                
                 
                 <Divider orientation='left'>
                   {isContinuing ? '续写中...' : '点击上方按钮开始续写...'}
@@ -1142,6 +1200,9 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
         isVisible={isAttentionRefVisible}
         onClose={() => setIsAttentionRefVisible(false)}
         content={selectedChapter?.attension || ''}
+        onApply={(str) => {
+          setAttention(str)
+        }}
       />
     </>
   )

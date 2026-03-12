@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import fetch from '@/src/fetch';
-import { Button, Input, Space, List, message, Card, Row, Col, Typography, Radio, Divider } from 'antd';
+import fetch from '@/src/fetch';import { message } from '@/src/utils/antdAppMessage';
+
+import { Button, Input, Space, List, Card, Row, Col, Typography, Radio, Divider } from 'antd';
 import { ExclamationCircleFilled, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import confirm from "antd/es/modal/confirm";
 import WorldViewInfoEditor from './edit/worldViewInfoEditor';

@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
-import { Card, Button, Input, Space, Modal, message, Typography, Upload, InputNumber } from 'antd'
+import React, { useState } from 'react'import { message } from '@/src/utils/antdAppMessage';
+
+import { Card, Button, Input, Space, Modal, Typography, Upload, InputNumber } from 'antd'
 import { EditOutlined, CopyOutlined, UploadOutlined, CompressOutlined, TagOutlined, RobotOutlined, FileTextOutlined } from '@ant-design/icons'
 import { IChapter } from '@/src/types/IAiNoval'
 import * as chapterApi from '../apiCalls'

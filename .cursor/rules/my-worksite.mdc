@@ -11,6 +11,10 @@ orm框架目前是自定义的，针对mysql，基类位于src\utils\mysql\serve
 ## 前端路由及业务分块
 参考src\router\index.tsx，其中render函数的注释准确性是很高的
 
+## 重要约定
+1.代码联想/代码补全时，不得整段删除代码
+2.进行重大调整前，遵循 **plan -> 确认 -> 调整** 的思路
+
 
 ## 项目目录：
   ├── cypress                 # 基于cypress的e2e测试
@@ -23,10 +27,12 @@ orm框架目前是自定义的，针对mysql，基类位于src\utils\mysql\serve
   │   └── my-worksite         # 构建应用镜像
   ├── interceptors            # nextjs拦截器层
   │   └── userInterceptor.ts  # 用户鉴权拦截器
+  ├── app                     # 应用入口（以此为准）
+  │   └── api                 # 该目录下均api将会映射到/api路径，浏览器端要使用的api均在此实现，新接口均在此处添加
   ├── pages                   # nextjs应用路由层
   │   ├── api                 # 该目录下均为应用接口实现，userInterceptor会自动对其鉴权
   │   │   ├── app             # 该目录下的api将会映射到/app路径，目前仅作预留，实际没有使用
-  │   │   └── web             # 该目录下均api将会映射到/api路径，浏览器端要使用的api均在此实现
+  │   │   └── web             # 该目录下均的接口均桥接到app标准，再映射到/api路径，当前不再维护，不要再添加新接口
   │   ├── login               # 该目录下为登录页面及接口实现，不鉴权
   │   └── index.tsx           # spa入口
   ├── public                  # 静态web资源

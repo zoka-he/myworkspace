@@ -1,4 +1,5 @@
-import { Alert, Button, Card, Col, Input, message, Modal, Row, Space, Tag, Typography } from 'antd'
+import { Alert, Button, Card, Col, Input, Modal, Row, Space, Tag, Typography } from 'antd'import { message } from '@/src/utils/antdAppMessage';
+
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import ChapterStripState, { type ChapterStripReport, type ChapterStripStateProps } from './ChapterStripState'
 import * as apiCalls from '../apiCalls';

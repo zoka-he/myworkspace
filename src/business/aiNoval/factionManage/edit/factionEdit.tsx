@@ -1,4 +1,5 @@
-import { Modal, Form, Input, TreeSelect, Select, message, Space, Button, Divider, Flex } from 'antd';
+import { Modal, Form, Input, TreeSelect, Select, Space, Button, Divider, Flex } from 'antd';import { message } from '@/src/utils/antdAppMessage';
+
 import { IFactionDefData } from '@/src/types/IAiNoval';
 import { useEffect, forwardRef, useImperativeHandle, useState } from 'react';
 import { useWorldViewId, useFactionTree, useWorldViewList, useLoadFactionList } from '../FactionManageContext';

@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Modal, Form, Input, message, Alert } from 'antd';
+import { useState } from 'react';import { message } from '@/src/utils/antdAppMessage';
+
+import { Modal, Form, Input, Alert } from 'antd';
 import { useMagicSystemManage } from '../context';
 import fetch from '@/src/fetch';
 

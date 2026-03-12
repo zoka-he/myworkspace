@@ -70,21 +70,23 @@ export async function getFactionList(worldViewId: number, limit: number = 200) {
 }
 
 interface PrepareTextEmbeddingRequest {
-    worldviews: number[];
-    characters: number[];
-    locations: string[];
-    factions: number[];
-    events: number[];
+    worldviews?: number[];
+    characters?: number[];
+    locations?: string[];
+    factions?: number[];
+    events?: number[];
+    races?: number[];
 }
 
 interface PrepareTextEmbeddingResponse {
     pushed: {
-        worldviews: number;
-        characters: number;
-        locations: string;
-        factions: number;
-        events: number;
-    }
+        worldviews?: number;
+        characters?: number;
+        locations?: string;
+        factions?: number;
+        events?: number;
+        races?: number;
+    };
 }
 
 export async function prepareTextEmbedding(data: PrepareTextEmbeddingRequest): Promise<PrepareTextEmbeddingResponse> {
@@ -148,6 +150,38 @@ export async function generateFactionEmbedText(params: {
         return response.data.embedText;
     }
     throw new Error('API 返回数据格式不正确');
+}
+
+/**
+ * 生成族群/种族设定嵌入标签原文
+ */
+export async function generateRaceEmbedText(params: {
+    description?: string;
+    appearance?: string;
+    lifespan?: string;
+    traits?: string;
+    weaknesses?: string;
+    naming_habit?: string;
+    customs?: string;
+    hasParent?: boolean;
+}): Promise<string> {
+    const response = await fetch.post(
+        '/api/web/aiNoval/race/embed-text',
+        {
+            description: params.description,
+            appearance: params.appearance,
+            lifespan: params.lifespan,
+            traits: params.traits,
+            weaknesses: params.weaknesses,
+            naming_habit: params.naming_habit,
+            customs: params.customs,
+            hasParent: Boolean(params.hasParent),
+        }
+    ) as unknown as { success: boolean; data?: { embedText: string }; error?: string };
+    if (response?.success && response?.data?.embedText) {
+        return response.data.embedText;
+    }
+    throw new Error(response?.error || 'API 返回数据格式不正确');
 }
 
 /**

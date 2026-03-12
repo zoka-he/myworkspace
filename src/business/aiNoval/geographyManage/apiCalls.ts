@@ -6,6 +6,8 @@ export interface GenerateGeoContextParams {
     parentGeo?: { name: string; description?: string } | null;
     adjacentGeos?: Array<{ name: string; description?: string }> | null;
     relatedFactions?: Array<{ name: string; description?: string }> | null;
+    /** 用户可选偏好提示，会作为附加提示参与生成 */
+    userPreferenceHint?: string;
 }
 
 export interface GenerateGeoContextResult {
@@ -83,7 +85,7 @@ const apiCalls = {
     },
     generateGeoNames: (params: GenerateGeoNamesParams) => {
         return fetch.post<{ items: GeoAdviceItem[] }>(
-            '/api/web/aiNoval/llm/once/difyGenGeoNames', 
+            '/api/web/aiNoval/llm/once/genGeoNames',
             params,
             {
                 timeout: 1000 * 60 * 5, // 5 minutes
