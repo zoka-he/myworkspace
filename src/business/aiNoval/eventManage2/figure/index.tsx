@@ -6,6 +6,7 @@ import FigureCommonContext, { FigureCommonProvider } from "./figureCommonContain
 import { useGeos, useTimelines } from "../hooks";
 import { time } from "console";
 import { useWorldViewData } from "../hooks";
+import { TimelineDateFormatter } from "../../common/novelDateUtils";
 
 interface IFigureProps {
     children?: React.ReactNode;
@@ -203,10 +204,13 @@ function TimeAxisSvg() {
         console.debug(tickTimes);
     }
     
+    const dateFormatter = TimelineDateFormatter.fromWorldViewWithExtra(worldViewData);
     
     const ticks = tickTimes.map(time => {
         const y = timelineToScreenY(time);
-        return { y, time };
+        const text = dateFormatter.formatSecondsToDate(time);
+        
+        return { y, time, text };
     });
 
     const epochLabel = timelineList[0]?.epoch ?? '时间';
@@ -234,7 +238,7 @@ function TimeAxisSvg() {
                         textAnchor="end"
                         fill="#666"
                     >
-                        {tick.time}
+                        {tick.text}
                     </text>
                 </g>
             ))}
