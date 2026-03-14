@@ -38,7 +38,8 @@ export default class ChaptersService extends MysqlNovalService {
             'actual_skeleton_prompt',
             'chapter_style',
             'summary',
-            'effects'
+            'effects',
+            'time_in_worldview'
         ]);
     }
 

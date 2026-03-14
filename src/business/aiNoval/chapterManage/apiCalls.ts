@@ -618,6 +618,8 @@ export const genChapterSegmentMultiTurn = async (
         attention?: string
         llm_type?: string
         segment_index: number
+        /** 本章分段总数；传入后审稿员在非末段会警惕提前收束全章 */
+        segment_count?: number
         segment_outline: string
         previous_content_snippet: string
         segment_target_chars?: number
@@ -657,6 +659,7 @@ export const genChapterSegmentMultiTurn = async (
             attention: params.attention || '',
             llm_type: params.llm_type || 'deepseek-chat',
             segment_index: params.segment_index,
+            segment_count: params.segment_count,
             segment_outline: params.segment_outline || '',
             previous_content_snippet: params.previous_content_snippet || '',
             segment_target_chars: params.segment_target_chars ?? 600,
