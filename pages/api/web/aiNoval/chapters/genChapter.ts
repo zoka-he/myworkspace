@@ -463,19 +463,33 @@ export async function getAggregatedContext(
     return aggregateContext(aggregatedResults);
 }
 
+/** 写作模型专用采样参数：提高 temperature、大幅降低 Frequency Penalty、大幅提高 Presence Penalty 与 Top_P，以增加多样性与表达丰富度 */
+const WRITER_SAMPLING = {
+    temperature: 1.2,
+    frequencyPenalty: 0,
+    presencePenalty: 1.8,
+    topP: 1,
+};
+
 // 调用 LLM
 export async function callLLM(
     llmType: string,
     systemPrompt: string,
     userInput: string,
-    context: string
+    context: string,
+    options?: { forWriting?: boolean }
 ): Promise<string> {
     const systemPromptWithContext = systemPrompt.replace('{{context}}', context);
     const effectiveType = llmType || 'gemini';
+    const isWriter = options?.forWriting === true;
+    const temp = isWriter ? WRITER_SAMPLING.temperature : 0.9;
+    const freqPenalty = isWriter ? WRITER_SAMPLING.frequencyPenalty : undefined;
+    const presPenalty = isWriter ? WRITER_SAMPLING.presencePenalty : undefined;
+    const topP = isWriter ? WRITER_SAMPLING.topP : undefined;
 
     // 根据 llmType 选择模型
     if (effectiveType === 'deepseek') {
-        console.debug('[genChapter] callLLM using deepseek-reasoner');
+        console.debug('[genChapter] callLLM using deepseek-reasoner', { forWriting: isWriter });
         const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
         if (!DEEPSEEK_API_KEY) {
             throw new Error('DEEPSEEK_API_KEY is not configured');
@@ -484,7 +498,9 @@ export async function callLLM(
         const model = new ChatDeepSeek({
             apiKey: DEEPSEEK_API_KEY,
             model: "deepseek-reasoner",
-            temperature: 0.9,
+            temperature: temp,
+            ...(freqPenalty !== undefined && { frequencyPenalty: freqPenalty }),
+            ...(presPenalty !== undefined && { presencePenalty: presPenalty }),
         });
 
         // 使用 ChatPromptTemplate 构建消息
@@ -498,7 +514,7 @@ export async function callLLM(
         
         return response.content as string;
     } else if (effectiveType === 'deepseek-chat') {
-        console.debug('[genChapter] callLLM using deepseek-chat');
+        console.debug('[genChapter] callLLM using deepseek-chat', { forWriting: isWriter });
         const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
         if (!DEEPSEEK_API_KEY) {
             throw new Error('DEEPSEEK_API_KEY is not configured');
@@ -507,7 +523,9 @@ export async function callLLM(
         const model = new ChatDeepSeek({
             apiKey: DEEPSEEK_API_KEY,
             model: "deepseek-chat",
-            temperature: 0.9,
+            temperature: temp,
+            ...(freqPenalty !== undefined && { frequencyPenalty: freqPenalty }),
+            ...(presPenalty !== undefined && { presencePenalty: presPenalty }),
         });
 
         // 使用 ChatPromptTemplate 构建消息
@@ -531,11 +549,14 @@ export async function callLLM(
         const modelName = effectiveType === 'gemini3' || effectiveType?.includes('gemini3') 
             ? 'google/gemini-2.0-flash-exp:free'
             : 'google/gemini-2.5-pro';
-        console.debug('[genChapter] callLLM using OpenRouter', { modelName });
+        console.debug('[genChapter] callLLM using OpenRouter', { modelName, forWriting: isWriter });
 
         const model = new ChatOpenAI({
             model: modelName,
-            temperature: 0.9,
+            temperature: temp,
+            ...(freqPenalty !== undefined && { frequencyPenalty: freqPenalty }),
+            ...(presPenalty !== undefined && { presencePenalty: presPenalty }),
+            ...(topP !== undefined && { topP }),
             configuration: {
                 apiKey: OPENROUTER_API_KEY,
                 baseURL: "https://openrouter.ai/api/v1",
@@ -624,7 +645,7 @@ async function handleGenChapter(req: NextApiRequest, res: NextApiResponse<Data>)
         const maxRewrites = Math.max(1, Math.min(10, Number(critic_max_rounds) || 5));
         console.debug('[genChapter] callLLM', { llmType: effectiveLlmType });
         let llmStart = Date.now();
-        let output = await callLLM(effectiveLlmType, systemPrompt, userInput, context);
+        let output = await callLLM(effectiveLlmType, systemPrompt, userInput, context, { forWriting: true });
         const draftMs = Date.now() - llmStart;
         console.debug('[genChapter] writer draft done', { outputLen: output?.length ?? 0, ms: draftMs });
         console.debug('[genChapter] writer draft output (preview)', {
@@ -684,7 +705,7 @@ async function handleGenChapter(req: NextApiRequest, res: NextApiResponse<Data>)
             });
             const rewriteUserInput = buildRewriteUserInput(prev_content, curr_context, criticResult.reason!);
             llmStart = Date.now();
-            output = await callLLM(effectiveLlmType, systemPrompt, rewriteUserInput, context);
+            output = await callLLM(effectiveLlmType, systemPrompt, rewriteUserInput, context, { forWriting: true });
             const rewriteMs = Date.now() - llmStart;
             console.debug('[genChapter] writer rewrite done', {
                 rewriteCount,

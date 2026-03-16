@@ -122,22 +122,42 @@ interface Data {
   };
 }
 
+/** 写作模型专用采样参数：提高 temperature、大幅降低 Frequency Penalty、大幅提高 Presence Penalty 与 Top_P */
+const WRITER_SAMPLING = {
+  temperature: 1.2,
+  frequencyPenalty: 0,
+  presencePenalty: 1.8,
+  topP: 1,
+};
+
 function createModel(llmType: string): any {
   const effectiveType = (llmType || "deepseek-chat").toLowerCase();
-  
+
   if (effectiveType === "deepseek" || effectiveType === "deepseek-reasoner") {
     const key = process.env.DEEPSEEK_API_KEY;
     if (!key) throw new Error("DEEPSEEK_API_KEY is not configured");
-    return new ChatDeepSeek({ apiKey: key, model: "deepseek-reasoner", temperature: 0.9 });
+    return new ChatDeepSeek({
+      apiKey: key,
+      model: "deepseek-reasoner",
+      temperature: WRITER_SAMPLING.temperature,
+      frequencyPenalty: WRITER_SAMPLING.frequencyPenalty,
+      presencePenalty: WRITER_SAMPLING.presencePenalty,
+    });
   }
-  
+
   if (effectiveType === "deepseek-chat") {
     const key = process.env.DEEPSEEK_API_KEY;
     if (!key) throw new Error("DEEPSEEK_API_KEY is not configured");
-    return new ChatDeepSeek({ apiKey: key, model: "deepseek-chat", temperature: 0.9 });
+    return new ChatDeepSeek({
+      apiKey: key,
+      model: "deepseek-chat",
+      temperature: WRITER_SAMPLING.temperature,
+      frequencyPenalty: WRITER_SAMPLING.frequencyPenalty,
+      presencePenalty: WRITER_SAMPLING.presencePenalty,
+    });
   }
-  
-  // Gemini
+
+  // Gemini（OpenRouter）
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
   if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not configured");
   const modelName = effectiveType === "gemini3" || effectiveType?.includes("gemini3")
@@ -145,7 +165,10 @@ function createModel(llmType: string): any {
     : "google/gemini-2.5-pro";
   return new ChatOpenAI({
     model: modelName,
-    temperature: 0.9,
+    temperature: WRITER_SAMPLING.temperature,
+    frequencyPenalty: WRITER_SAMPLING.frequencyPenalty,
+    presencePenalty: WRITER_SAMPLING.presencePenalty,
+    topP: WRITER_SAMPLING.topP,
     configuration: { apiKey: OPENROUTER_API_KEY, baseURL: "https://openrouter.ai/api/v1" },
   });
 }
