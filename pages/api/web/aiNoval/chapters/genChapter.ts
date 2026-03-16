@@ -240,23 +240,33 @@ export function parseCriticResponse(response: string): { pass: boolean; reason?:
     return { pass: false, reason: '审稿输出格式无法识别，视为不通过' };
 }
 
-/** 构建重写时的用户输入：在原有续写任务基础上附加审稿意见 */
+/** 构建重写时的用户输入：在原有续写任务基础上，由专门的改写写手在糟糕底稿上重写 */
 function buildRewriteUserInput(
     prevContent: string,
     currContext: string,
-    criticReason: string
+    criticReason: string,
+    rejectedDraft: string
 ): string {
     const base = buildUserInput(prevContent, currContext);
     return `${base}
 
-【审稿意见】
-上一稿存在以下致命问题，请你**逐条严格修正**后重新续写：
+【改写角色：在糟糕底稿上重写】
+你现在扮演一名**改写写手**。可以把下面这一稿视为「**糟糕但基本反映章节内容的稿件**」：剧情走向大致符合【本章待写内容】，但写法、节奏、细节和用词存在大量问题。
+
+【上一稿（糟糕但内容大致正确的底稿）】
+---
+${rejectedDraft}
+---
+
+【审稿员意见】
+以下是与你协作的**审稿员**给出的批注，请把他当作严厉但和你站在同一战线的编辑：他负责挑错，你负责落实改写。
 ${criticReason}
 
-请注意：
-1. 必须针对上述每一条意见进行修改，不能只做象征性改动；
-2. 若你忽略其中任何一条，审稿员会再次判为 FAIL 并继续要求重写；
-3. 仅输出修正后的续写内容，不要重写或改写【章节背景】，也不要输出修改说明或审稿意见本身。`;
+请按如下要求改写本章续写内容：
+1. 以【审稿员意见】为硬标准：凡被点名的问题，必须在改写稿中彻底消失或被实质性修正，不允许仅作表面改动或换皮保留。
+2. 在不违背【章节背景】与【本章待写内容】前提下，可以重写句子、段落乃至局部结构，但**不得改变已确立的剧情走向、人物动机和关键信息**。
+3. 输出的是**改写后的完整续写正文**，不要只写修改说明，也不要重复审稿意见，更不要混入对上一稿的评论。
+4. 默认延续上一稿中尚可保留的剧情选择，只对被审稿员点名的问题区域做大刀阔斧重写；如确实需要微调剧情以彻底消除问题，也必须保持与【本章待写内容】一致。`;
 }
 
 // 构建阵营设定内容（融入 faction 新字段：类型、文化、地理命名规范等）
@@ -703,7 +713,7 @@ async function handleGenChapter(req: NextApiRequest, res: NextApiResponse<Data>)
                 reason: criticResult.reason,
                 rawResponse: criticResponse?.trim()
             });
-            const rewriteUserInput = buildRewriteUserInput(prev_content, curr_context, criticResult.reason!);
+            const rewriteUserInput = buildRewriteUserInput(prev_content, curr_context, criticResult.reason!, output);
             llmStart = Date.now();
             output = await callLLM(effectiveLlmType, systemPrompt, rewriteUserInput, context, { forWriting: true });
             const rewriteMs = Date.now() - llmStart;
