@@ -135,12 +135,12 @@ function createModel(modelOption: string): BaseLanguageModel {
   if (m === "deepseek-reasoner" || m === "deepseek") {
     const key = process.env.DEEPSEEK_API_KEY;
     if (!key) throw new Error("DEEPSEEK_API_KEY is not configured");
-    return new ChatDeepSeek({ apiKey: key, model: "deepseek-reasoner", temperature: 0.5 });
+    return new ChatDeepSeek({ apiKey: key, model: "deepseek-reasoner", temperature: 0.9 });
   }
   if (m === "deepseek-chat") {
     const key = process.env.DEEPSEEK_API_KEY;
     if (!key) throw new Error("DEEPSEEK_API_KEY is not configured");
-    return new ChatDeepSeek({ apiKey: key, model: "deepseek-chat", temperature: 0.5 });
+    return new ChatDeepSeek({ apiKey: key, model: "deepseek-chat", temperature: 0.9 });
   }
   if (m === "gemini3" || m.includes("gemini")) {
     const key = process.env.OPENROUTER_API_KEY;
@@ -148,7 +148,7 @@ function createModel(modelOption: string): BaseLanguageModel {
     const modelName = m.includes("gemini3") ? "google/gemini-2.0-flash-exp:free" : "google/gemini-2.5-pro";
     return new ChatOpenAI({
       model: modelName,
-      temperature: 0.5,
+      temperature: 0.9,
       configuration: { apiKey: key, baseURL: "https://openrouter.ai/api/v1" },
     });
   }

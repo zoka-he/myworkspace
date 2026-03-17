@@ -809,15 +809,20 @@ function GenChapterByDetailModal({
         id: selectedChapter.id,
         // 根提示词 & 注意事项 & 文风
         seed_prompt: seedPrompt,
+        actual_seed_prompt: seedPrompt,
         attension: attention,
         chapter_style: chapterStyle,
         // 关联章节
         related_chapter_ids: relatedChapterIds,
         // 角色组 / 角色 / 阵营 / 地理提示词（元数据字段）
         role_group_names: roleGroupNames,
+        actual_role_groups: roleGroupNames,
         role_names: roleNames,
+        actual_roles: roleNames,
         faction_names: factionNames,
+        actual_factions: factionNames,
         geo_names: geoNames,
+        actual_locations: geoNames,
       }
 
       await apiCalls.updateChapter(payload as any)
@@ -828,12 +833,17 @@ function GenChapterByDetailModal({
           ? {
               ...prev,
               seed_prompt: seedPrompt,
+              actual_seed_prompt: seedPrompt,
               attension: attention,
               chapter_style: chapterStyle,
               role_group_names: roleGroupNames,
+              actual_role_groups: roleGroupNames,
               role_names: roleNames,
+              actual_roles: roleNames,
               faction_names: factionNames,
+              actual_factions: factionNames,
               geo_names: geoNames,
+              actual_locations: geoNames,
             }
           : prev
       )
