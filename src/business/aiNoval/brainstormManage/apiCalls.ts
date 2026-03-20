@@ -100,10 +100,10 @@ export default {
   },
 
   // 生成章节纲要
-  generateChapterOutline: async (id: number): Promise<string> => {
+  generateChapterOutline: async (id: number, model_provider: string = 'deepseek-chat'): Promise<string> => {
     const res = await fetch.post<ApiResponse<{ chapter_outline: string }>>(
       `/api/web/aiNoval/brainstorm/generateChapterOutline?id=${id}`,
-      {},
+      { model_provider },
       {
         timeout: 1000 * 60 * 5, // 5分钟超时
       }
