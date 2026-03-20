@@ -15,6 +15,7 @@ export interface ExpandAnalysisDirectionPayload {
   content: string;
   user_question?: string;
   expanded_questions?: string;
+  model_provider?: string;
 }
 
 export interface ExpandAnalysisDirectionResult {
@@ -68,7 +69,7 @@ export default {
       '/api/web/aiNoval/llm/once/brainstormExpandQuestions',
       payload,
       {
-        timeout: 1000 * 60 * 5,
+        timeout: 1000 * 60 * 25,
       }
     );
     if (!res.success || res.error) throw new Error(res.error || '生成分析方向失败');

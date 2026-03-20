@@ -52,6 +52,7 @@ export default function BrainstormEditModal({ visible, brainstorm, onCancel, onS
           brainstorm_type: 'inspiration',
           status: 'draft',
           priority: 'medium',
+          extend_question_model_provider: 'deepseek-chat',
         });
         setCurrentBrainstorm(null);
       }
@@ -90,6 +91,7 @@ export default function BrainstormEditModal({ visible, brainstorm, onCancel, onS
         related_world_state_ids: values.related_world_state_ids,
         role_seeds: currentBrainstorm?.role_seeds,
         role_drafts: currentBrainstorm?.role_drafts,
+        extend_question_model_provider: values.extend_question_model_provider,
       };
       
       let savedBrainstorm: IBrainstorm;
@@ -123,7 +125,13 @@ export default function BrainstormEditModal({ visible, brainstorm, onCancel, onS
       message.error('缺少世界观上下文');
       return;
     }
-    const { title = '', content = '', user_question = '', expanded_questions = '' } = form.getFieldsValue(['title', 'content', 'user_question', 'expanded_questions']);
+    const { 
+      title = '', 
+      content = '', 
+      user_question = '', 
+      expanded_questions = '', 
+      extend_question_model_provider = 'deepseek-chat' 
+    } = form.getFieldsValue(['title', 'content', 'user_question', 'expanded_questions', 'extend_question_model_provider']);
     if (!title?.trim() && !content?.trim()) {
       message.warning('请先填写标题或内容');
       return;
@@ -137,6 +145,7 @@ export default function BrainstormEditModal({ visible, brainstorm, onCancel, onS
         content: content?.trim() || '',
         user_question: user_question?.trim() || undefined,
         expanded_questions: expanded_questions?.trim() || undefined,
+        model_provider: extend_question_model_provider,
       });
       if (result.expanded_questions) {
         form.setFieldValue('expanded_questions', result.expanded_questions);
@@ -186,6 +195,7 @@ export default function BrainstormEditModal({ visible, brainstorm, onCancel, onS
           related_world_state_ids: values.related_world_state_ids,
           role_seeds: currentBrainstorm?.role_seeds,
           role_drafts: currentBrainstorm?.role_drafts,
+          extend_question_model_provider: values.extend_question_model_provider,
         };
         const newBrainstorm = await apiCalls.createBrainstorm({ ...formFields, worldview_id: worldviewId! });
         setCurrentBrainstorm(newBrainstorm);

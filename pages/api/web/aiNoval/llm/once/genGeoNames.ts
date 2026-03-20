@@ -3,8 +3,11 @@ import { ApiResponse } from "@/src/types/ApiResponse";
 import { ChatDeepSeek } from "@langchain/deepseek";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { RunnableSequence } from "@langchain/core/runnables";
+import { invokeWithRetry } from "@/src/utils/ai/llmRetry";
+import { createSiliconFlowModel } from "@/src/utils/ai";
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
+const SILICONFLOW_API_KEY = process.env.SILICONFLOW_API_KEY;
 
 export interface GenGeoNamesInput {
     worldview_id: number;
@@ -20,6 +23,8 @@ export interface GenGeoNamesInput {
     adjacentGeoNames?: string;
     /** 已有地名、势力名（由 FindGeo/FindFaction 等获取），生成时需避免重名/谐音 */
     excludeNames?: string;
+    /** 模型提供商 */
+    model_provider: string;
 }
 
 export interface GeoAdviceItem {
@@ -193,6 +198,7 @@ export default async function handler(
             prohibition,
             adjacentGeoNames,
             excludeNames,
+            model_provider,
         } = req.body as GenGeoNamesInput;
 
         if (worldview_id === null || worldview_id === undefined) {
@@ -212,11 +218,19 @@ export default async function handler(
             return;
         }
 
-        const model = new ChatDeepSeek({
-            apiKey: DEEPSEEK_API_KEY,
-            model: "deepseek-chat",
-            temperature: 1,
-        });
+        let model;
+        if (model_provider === 'deepseek-chat-siliconflow') {
+            model = createSiliconFlowModel({
+                model: "Pro/deepseek-ai/DeepSeek-V3.2",
+                temperature: 1,
+            });
+        } else {
+            model = new ChatDeepSeek({
+                apiKey: DEEPSEEK_API_KEY,
+                model: "deepseek-chat",
+                temperature: 1,
+            });
+        }
 
         const prompt = ChatPromptTemplate.fromMessages([
             ["system", SYSTEM_INSTRUCTION],
@@ -227,19 +241,29 @@ export default async function handler(
 
         const excludeNamesBlock = buildExcludeNamesBlock(excludeNames);
 
-        const response = await chain.invoke({
-            worldview_id: Number(worldview_id),
-            locationType: String(locationType).trim(),
-            regionFeature: String(regionFeature).trim(),
-            namingBackground: String(namingBackground || "").trim() || "（未指定）",
-            namingSource: String(namingSource).trim(),
-            namingHabit: String(namingHabit || "").trim() || "（未指定）",
-            specialRequirement: String(specialRequirement || "").trim() || "（未指定）",
-            specialSuffix: String(specialSuffix || "").trim() || "（未指定）",
-            prohibition: String(prohibition || "").trim() || "（未指定）",
-            adjacentGeoNames: String(adjacentGeoNames || "").trim() || "（未指定）",
-            excludeNamesBlock: excludeNamesBlock || "",
-        });
+        const response = await invokeWithRetry(
+            (config) => chain.invoke(
+                {
+                    worldview_id: Number(worldview_id),
+                    locationType: String(locationType).trim(),
+                    regionFeature: String(regionFeature).trim(),
+                    namingBackground: String(namingBackground || "").trim() || "（未指定）",
+                    namingSource: String(namingSource).trim(),
+                    namingHabit: String(namingHabit || "").trim() || "（未指定）",
+                    specialRequirement: String(specialRequirement || "").trim() || "（未指定）",
+                    specialSuffix: String(specialSuffix || "").trim() || "（未指定）",
+                    prohibition: String(prohibition || "").trim() || "（未指定）",
+                    adjacentGeoNames: String(adjacentGeoNames || "").trim() || "（未指定）",
+                    excludeNamesBlock: excludeNamesBlock || "",
+                },
+                config
+            ),
+            {
+                timeoutMs: 6 * 60 * 1000,
+                maxRetries: 1,
+                logTag: "[genGeoNames]",
+            }
+        );
 
         const text = (response.content as string) || "";
         const items = parseGeoAdviceOutput(text);
