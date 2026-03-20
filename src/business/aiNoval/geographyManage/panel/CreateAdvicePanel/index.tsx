@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { message } from '@/src/utils/antdAppMessage';
 
-import { Alert, Button, Card, Checkbox, Collapse, Divider, Form, Input, List, Modal, Space, Tag, Tooltip, TreeSelect, Typography } from "antd";
+import { Alert, Button, Card, Checkbox, Collapse, Divider, Form, Input, List, Modal, Select, Space, Tag, Tooltip, TreeSelect, Typography } from "antd";
 import { 
     BulbOutlined, 
     CheckOutlined, 
@@ -94,6 +94,8 @@ export default function CreateAdvicePanel() {
     const [rejectModalVisible, setRejectModalVisible] = useState(false);
     const [rejectingItem, setRejectingItem] = useState<IAdviceItem | null>(null);
     const [rejectReason, setRejectReason] = useState('');
+
+    const [generateModelProvider, setGenerateModelProvider] = useState<string>('deepseek-chat');
 
     // 从相关阵营生成命名权来源（程序化）
     function handleGenerateNamingSource() {
@@ -319,6 +321,7 @@ export default function CreateAdvicePanel() {
                 prohibition: finalProhibition,
                 adjacentGeoNames: adjacentGeoNames || undefined,
                 excludeNames,
+                model_provider: generateModelProvider,
             });
             const result = response as unknown as ApiResponse<{ items: { id: string; name: string; description?: string }[] }>;
 
@@ -643,15 +646,22 @@ export default function CreateAdvicePanel() {
                 size="small" 
                 title={<><RocketOutlined /> 生成与结果</>}
                 extra={
-                    <Button 
-                        type="primary"
-                        icon={<RocketOutlined />}
-                        onClick={handleGenerateAdvice}
-                        loading={generateLoading}
-                        disabled={!worldViewId}
-                    >
-                        生成建议
-                    </Button>
+                    <Space>
+                        <Select size="small" value={generateModelProvider} onChange={(value) => setGenerateModelProvider(value)} style={{ width: 240 }}>
+                            <Select.Option value="deepseek-chat">DeepSeek Chat</Select.Option>
+                            <Select.Option value="deepseek-chat-siliconflow">DeepSeek Chat (SiliconFlow)</Select.Option>
+                        </Select>
+                        <Button 
+                            size="small"
+                            type="primary"
+                            icon={<RocketOutlined />}
+                            onClick={handleGenerateAdvice}
+                            loading={generateLoading}
+                            disabled={!worldViewId}
+                        >
+                            生成建议
+                        </Button>
+                    </Space>
                 }
             >
                 {/* 结果列表 */}

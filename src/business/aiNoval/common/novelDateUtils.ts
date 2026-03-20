@@ -21,15 +21,15 @@ export class TimelineDateFormatter {
 
   public static fromWorldViewWithExtra(worldView: IWorldViewDataWithExtra): TimelineDateFormatter {
     return new TimelineDateFormatter({
-      id: worldView.tl_id ?? 0,
-      worldview_id: worldView.id ?? 0,
-      epoch: worldView.tl_epoch ?? '',
-      start_seconds: worldView.tl_start_seconds ?? 0,
-      hour_length_in_seconds: worldView.tl_hour_length_in_seconds ?? 3600,
-      day_length_in_hours: worldView.tl_day_length_in_hours ?? 24,
-      month_length_in_days: worldView.tl_month_length_in_days ?? 30,
-      year_length_in_months: worldView.tl_year_length_in_months ?? 365,
-      base_seconds: worldView.tl_base_seconds ?? 0
+      id: worldView?.tl_id ?? 0,
+      worldview_id: worldView?.id ?? 0,
+      epoch: worldView?.tl_epoch ?? '',
+      start_seconds: worldView?.tl_start_seconds ?? 0,
+      hour_length_in_seconds: worldView?.tl_hour_length_in_seconds ?? 3600,
+      day_length_in_hours: worldView?.tl_day_length_in_hours ?? 24,
+      month_length_in_days: worldView?.tl_month_length_in_days ?? 30,
+      year_length_in_months: worldView?.tl_year_length_in_months ?? 365,
+      base_seconds: worldView?.tl_base_seconds ?? 0
     })
   }
 

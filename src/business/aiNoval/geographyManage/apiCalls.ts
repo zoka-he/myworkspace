@@ -38,6 +38,7 @@ export interface GenerateNamingConstraintResult {
 
 export interface GenerateGeoNamesParams {
     worldview_id: number;
+    model_provider: string; // 模型提供商
     locationType: string;
     regionFeature: string;
     namingBackground?: string;

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Form, Input, Button, theme, Space } from 'antd';
+import { Form, Input, Button, theme, Space, Select } from 'antd';
 import { SaveOutlined } from '@ant-design/icons';
 import { IBrainstorm, IChapter } from '@/src/types/IAiNoval';
 import BrainstormFormFields from './BrainstormFormFields';
@@ -32,7 +32,7 @@ export default function BrainstormFormSection({
 }: BrainstormFormSectionProps) {
   const { token } = useToken();
   const [chapterList, setChapterList] = useState<IChapter[]>([]);
-
+  
   useEffect(() => {
     if (!worldviewId) {
       setChapterList([]);
@@ -76,15 +76,23 @@ export default function BrainstormFormSection({
       <div style={{ marginBottom: '24px', paddingBottom: '16px', borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
         <div style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontWeight: 'bold' }}>扩展后的问题</span>
-          <Button
-            type="default"
-            size="small"
-            loading={expandingDirection}
-            disabled={!worldviewId}
-            onClick={onExpandQuestions}
-          >
-            生成扩展问题
-          </Button>
+          <Space>
+            <Form.Item name="extend_question_model_provider" label={false} noStyle>
+              <Select size="small" style={{ width: 300 }}>
+                <Select.Option value="deepseek-chat">DeepSeek Chat</Select.Option>
+                <Select.Option value="deepseek-chat-siliconflow">DeepSeek Chat (SiliconFlow)</Select.Option>
+              </Select>
+            </Form.Item>
+            <Button
+              type="default"
+              size="small"
+              loading={expandingDirection}
+              disabled={!worldviewId}
+              onClick={onExpandQuestions}
+            >
+              生成扩展问题
+            </Button>
+          </Space>
         </div>
         <Form.Item name="expanded_questions" label={false}>
           <Input.TextArea

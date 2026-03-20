@@ -2,6 +2,7 @@ import { BaseLanguageModel } from "@langchain/core/language_models/base";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { RunnableSequence } from "@langchain/core/runnables";
 import type { MCPToolDefinition } from "@/src/mcp/core/mcpTypes";
+import { invokeWithRetry } from "@/src/utils/ai/llmRetry";
 
 /**
  * 转义 JSON 字符串中的大括号，防止 LangChain 将其解析为模板变量
@@ -247,6 +248,10 @@ function formatObservation(result: any): string {
 export interface ReActAgentOptions {
     /** 最大迭代次数，默认 10 */
     maxIterations?: number;
+    /** LLM 每次 chain.invoke 的超时时间（毫秒），用于覆盖默认超时（可设置更长） */
+    llmInvokeTimeoutMs?: number;
+    /** LLM 网络中断类错误重试次数，默认 1 */
+    llmInvokeMaxRetries?: number;
     /** Final Answer 关键词列表，用于检测最终答案 */
     finalAnswerKeywords?: string[];
     /** 日志标签，用于调试 */
@@ -283,6 +288,8 @@ export async function executeReAct(
 ): Promise<string> {
     const {
         maxIterations = 10,
+        llmInvokeTimeoutMs,
+        llmInvokeMaxRetries = 1,
         finalAnswerKeywords,
         logTag = "[ReAct]",
         verbose = false,
@@ -348,7 +355,14 @@ export async function executeReAct(
 
         const prompt = ChatPromptTemplate.fromMessages(promptMessages);
         const chain = RunnableSequence.from([prompt, model]);
-        const llmResponse = (await chain.invoke({})).content as string;
+        const llmResponse = (await invokeWithRetry(
+            (config) => chain.invoke({}, config),
+            {
+                timeoutMs: llmInvokeTimeoutMs,
+                maxRetries: llmInvokeMaxRetries,
+                logTag,
+            }
+        )).content as string;
 
         if (verbose) {
             console.log(logTag, `LLM响应长度: ${llmResponse.length}`);
@@ -455,7 +469,14 @@ export async function executeReAct(
         
         const prompt = ChatPromptTemplate.fromMessages(promptMessages);
         const chain = RunnableSequence.from([prompt, model]);
-        const finalResponse = (await chain.invoke({})).content as string;
+        const finalResponse = (await invokeWithRetry(
+            (config) => chain.invoke({}, config),
+            {
+                timeoutMs: llmInvokeTimeoutMs,
+                maxRetries: llmInvokeMaxRetries,
+                logTag,
+            }
+        )).content as string;
         
         if (verbose) {
             console.log(logTag, `最终响应长度: ${finalResponse.length}`);

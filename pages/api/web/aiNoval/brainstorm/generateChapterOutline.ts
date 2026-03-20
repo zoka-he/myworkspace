@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { ApiResponse } from "@/src/types/ApiResponse";
 import BrainstormService from "@/src/services/aiNoval/brainstormService";
-import { createDeepSeekModel } from "@/src/utils/ai/modelFactory";
+import { createDeepSeekModel, createSiliconFlowModel } from "@/src/utils/ai/modelFactory";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { buildRelatedChapterContext } from "../utils/relatedChapterContext";
 
@@ -62,6 +62,8 @@ export default async function handler(
         }
 
         const brainstormId = Number(id);
+        const body = (req.body || {}) as { model_provider?: string };
+        const modelProvider = body.model_provider || "deepseek-chat";
         console.log(LOG_TAG, "开始生成章节纲要，ID:", brainstormId);
 
         // 获取脑洞信息
@@ -87,10 +89,29 @@ export default async function handler(
         }
 
         // 初始化模型
-        const model = createDeepSeekModel({
-            model: "deepseek-chat",
-            temperature: 0.7,
-        });
+        let model;
+        try {
+            if (modelProvider === "deepseek-chat-siliconflow") {
+                model = createSiliconFlowModel({
+                    model: "Pro/deepseek-ai/DeepSeek-V3.2",
+                    temperature: 0.7,
+                });
+            } else {
+                model = createDeepSeekModel({
+                    model: "deepseek-chat",
+                    temperature: 0.7,
+                });
+            }
+        } catch (e: any) {
+            console.error(LOG_TAG, "模型初始化失败", e?.message);
+            res.status(503).json({
+                success: false,
+                error: modelProvider === "deepseek-chat-siliconflow"
+                    ? "生成服务未配置（需配置 SILICONFLOW_API_KEY）"
+                    : "生成服务未配置（需配置 DEEPSEEK_API_KEY）",
+            });
+            return;
+        }
 
         const systemPrompt = `你是小说章节规划助手。根据脑洞的元数据、用户问题、扩展问题和分析结果，生成该脑洞对应的章节纲要。
 

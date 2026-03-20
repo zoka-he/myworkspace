@@ -15,6 +15,7 @@ export interface ExpandAnalysisDirectionPayload {
   content: string;
   user_question?: string;
   expanded_questions?: string;
+  model_provider?: string;
 }
 
 export interface ExpandAnalysisDirectionResult {
@@ -68,7 +69,7 @@ export default {
       '/api/web/aiNoval/llm/once/brainstormExpandQuestions',
       payload,
       {
-        timeout: 1000 * 60 * 5,
+        timeout: 1000 * 60 * 25,
       }
     );
     if (!res.success || res.error) throw new Error(res.error || '生成分析方向失败');
@@ -99,10 +100,10 @@ export default {
   },
 
   // 生成章节纲要
-  generateChapterOutline: async (id: number): Promise<string> => {
+  generateChapterOutline: async (id: number, model_provider: string = 'deepseek-chat'): Promise<string> => {
     const res = await fetch.post<ApiResponse<{ chapter_outline: string }>>(
       `/api/web/aiNoval/brainstorm/generateChapterOutline?id=${id}`,
-      {},
+      { model_provider },
       {
         timeout: 1000 * 60 * 5, // 5分钟超时
       }

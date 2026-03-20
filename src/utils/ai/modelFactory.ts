@@ -27,6 +27,22 @@ export interface OpenRouterModelConfig {
 }
 
 /**
+ * SiliconFlow 模型配置
+ */
+export interface SiliconFlowModelConfig {
+    /** API Key */
+    apiKey?: string;
+    /** 模型名称，例如 "Qwen/Qwen2.5-72B-Instruct", "deepseek-ai/DeepSeek-V3" */
+    model: string;
+    /** 温度，默认 0.7 */
+    temperature?: number;
+    /** 重复惩罚（按出现频率惩罚），0-2，默认不传 */
+    frequencyPenalty?: number;
+    /** 存在惩罚（对已出现过的 token 惩罚），0-2，默认不传 */
+    presencePenalty?: number;
+}
+
+/**
  * 创建 DeepSeek 模型实例
  * 
  * @param config - 模型配置
@@ -84,9 +100,42 @@ export function createOpenRouterModel(config: OpenRouterModelConfig): BaseLangua
 }
 
 /**
+ * 创建 SiliconFlow 模型实例
+ *
+ * @param config - 模型配置
+ * @returns SiliconFlow 模型实例
+ */
+export function createSiliconFlowModel(config: SiliconFlowModelConfig): BaseLanguageModel {
+    const SILICONFLOW_API_KEY = config.apiKey || process.env.SILICONFLOW_API_KEY;
+    if (!SILICONFLOW_API_KEY) {
+        throw new Error("SILICONFLOW_API_KEY is not configured");
+    }
+
+    let actualConfig: Record<string, any> = {
+        model: config.model,
+        temperature: config.temperature || 0.7,
+    };
+
+    if (config.frequencyPenalty !== undefined) {
+        actualConfig.frequencyPenalty = config.frequencyPenalty;
+    }
+    if (config.presencePenalty !== undefined) {
+        actualConfig.presencePenalty = config.presencePenalty;
+    }
+
+    return new ChatOpenAI({
+        ...actualConfig,
+        configuration: {
+            apiKey: SILICONFLOW_API_KEY,
+            baseURL: "https://api.siliconflow.cn/v1",
+        },
+    });
+}
+
+/**
  * 模型供应商类型
  */
-export type ModelProvider = "deepseek" | "openrouter";
+export type ModelProvider = "deepseek" | "openrouter" | "siliconflow";
 
 /**
  * 通用模型配置（根据供应商自动选择）
@@ -123,6 +172,14 @@ export function createModel(config: ModelConfig): BaseLanguageModel {
                 throw new Error("model is required for OpenRouter provider");
             }
             return createOpenRouterModel({
+                model,
+                temperature,
+            });
+        case "siliconflow":
+            if (!model) {
+                throw new Error("model is required for SiliconFlow provider");
+            }
+            return createSiliconFlowModel({
                 model,
                 temperature,
             });

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';import { message } from '@/src/utils/antdAppMessage';
+import React, { useState } from 'react';
+import { message } from '@/src/utils/antdAppMessage';
 
-import { Button, theme } from 'antd';
+import { Button, Select, Space, theme } from 'antd';
 import { FileTextOutlined } from '@ant-design/icons';
 import { IBrainstorm } from '@/src/types/IAiNoval';
 import apiCalls from '../../apiCalls';
@@ -22,6 +23,7 @@ export default function ChapterOutlineGenerator({
 }: ChapterOutlineGeneratorProps) {
   const { token } = useToken();
   const [generating, setGenerating] = useState(false);
+  const [modelProvider, setModelProvider] = useState<'deepseek-chat' | 'deepseek-chat-siliconflow'>('deepseek-chat');
 
   const handleGenerate = async () => {
     if (!currentBrainstorm?.id) {
@@ -32,7 +34,7 @@ export default function ChapterOutlineGenerator({
     try {
       setGenerating(true);
       message.loading({ content: '正在生成章节纲要...', key: 'generateOutline' });
-      const outline = await apiCalls.generateChapterOutline(currentBrainstorm.id);
+      const outline = await apiCalls.generateChapterOutline(currentBrainstorm.id, modelProvider);
       message.success({ content: '章节纲要生成完成', key: 'generateOutline' });
       onGenerated(outline);
     } catch (error: any) {
@@ -48,16 +50,28 @@ export default function ChapterOutlineGenerator({
     <div style={{ marginBottom: '24px', paddingBottom: '16px', borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
       <div style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ fontWeight: 'bold' }}>章节纲要</span>
-        <Button
-          type="default"
-          size="small"
-          icon={<FileTextOutlined />}
-          loading={generating}
-          disabled={generating || !currentBrainstorm?.id}
-          onClick={handleGenerate}
-        >
-          {generating ? '生成中...' : '生成章节纲要'}
-        </Button>
+        <Space>
+          <Select
+            size="small"
+            style={{ width: 300 }}
+            value={modelProvider}
+            onChange={(value) => setModelProvider(value)}
+            disabled={generating}
+          >
+            <Select.Option value="deepseek-chat">DeepSeek Chat</Select.Option>
+            <Select.Option value="deepseek-chat-siliconflow">DeepSeek Chat (SiliconFlow)</Select.Option>
+          </Select>
+          <Button
+            type="default"
+            size="small"
+            icon={<FileTextOutlined />}
+            loading={generating}
+            disabled={generating || !currentBrainstorm?.id}
+            onClick={handleGenerate}
+          >
+            {generating ? '生成中...' : '生成章节纲要'}
+          </Button>
+        </Space>
       </div>
       
       {hasOutline ? (

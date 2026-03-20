@@ -9,9 +9,11 @@ export { executeReAct, type ReActAgentOptions, type ToolExecutor } from "./react
 export {
     createDeepSeekModel,
     createOpenRouterModel,
+    createSiliconFlowModel,
     createModel,
     type DeepSeekModelConfig,
     type OpenRouterModelConfig,
+    type SiliconFlowModelConfig,
     type ModelConfig,
     type ModelProvider,
 } from "./modelFactory";

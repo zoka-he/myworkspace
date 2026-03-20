@@ -2,7 +2,8 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { ApiResponse } from "@/src/types/ApiResponse";
 import { mcpToolRegistry } from "@/src/mcp/core/mcpToolRegistry";
 import { executeReAct } from "@/src/utils/ai/reactAgent";
-import { createDeepSeekModel } from "@/src/utils/ai/modelFactory";
+import { createDeepSeekModel, createSiliconFlowModel } from "@/src/utils/ai/modelFactory";
+import { extractLlmErrorMeta } from "@/src/utils/ai/llmRetry";
 
 export interface BrainstormExpandQuestionsInput {
     /** 世界观 ID，所有 MCP 工具必填 */
@@ -17,6 +18,8 @@ export interface BrainstormExpandQuestionsInput {
     expanded_questions?: string;
     /** 分析方向（可选，向后兼容，已废弃） */
     analysis_direction?: string;
+    /** 模型提供商 */
+    model_provider?: string;
 }
 
 export interface BrainstormExpandQuestionsOutput {
@@ -107,20 +110,40 @@ export default async function handler(
         const worldviewId = Number(worldview_id);
 
         let model;
-        try {
-            model = createDeepSeekModel({
-                model: "deepseek-chat",
-                temperature: 0.75, // 提高温度，增强创意性
-                frequencyPenalty: 0.35, // 重复惩罚，减少套路化
-                presencePenalty: 0.25, // 存在惩罚，鼓励多样表达
-            });
-        } catch (e: any) {
-            console.error(LOG_TAG, "DeepSeek 模型初始化失败", e?.message);
-            res.status(503).json({
-                success: false,
-                error: "分析服务未配置（需配置 DEEPSEEK_API_KEY）",
-            });
-            return;
+
+        if (body.model_provider === 'deepseek-chat-siliconflow') {
+            try {
+                model = createSiliconFlowModel({
+                    model: "Pro/deepseek-ai/DeepSeek-V3.2",
+                    temperature: 0.75, // 提高温度，增强创意性
+                    frequencyPenalty: 0.35, // 重复惩罚，减少套路化
+                    presencePenalty: 0.25, // 存在惩罚，鼓励多样表达
+                });
+            } catch (e: any) {
+                console.error(LOG_TAG, "SiliconFlow 模型初始化失败", e?.message);
+                res.status(503).json({
+                    success: false,
+                    error: "分析服务未配置（需配置 SILICONFLOW_API_KEY）",
+                });
+                return;
+            }
+        } else {
+
+            try {
+                model = createDeepSeekModel({
+                    model: "deepseek-chat",
+                    temperature: 0.75, // 提高温度，增强创意性
+                    frequencyPenalty: 0.35, // 重复惩罚，减少套路化
+                    presencePenalty: 0.25, // 存在惩罚，鼓励多样表达
+                });
+            } catch (e: any) {
+                console.error(LOG_TAG, "DeepSeek 模型初始化失败", e?.message);
+                res.status(503).json({
+                    success: false,
+                    error: "分析服务未配置（需配置 DEEPSEEK_API_KEY）",
+                });
+                return;
+            }
         }
 
         const tools = mcpToolRegistry.getAllToolDefinitions();
@@ -169,6 +192,8 @@ export default async function handler(
                 finalAnswerKeywords: ["扩展问题", "限制性假设"],
                 logTag: LOG_TAG,
                 verbose: true,
+                llmInvokeTimeoutMs: 6 * 60 * 1000,
+                llmInvokeMaxRetries: 1,
             }
         );
 
@@ -187,7 +212,7 @@ export default async function handler(
         });
     } catch (error: any) {
         const msg = error?.message ?? String(error);
-        console.error(LOG_TAG, "Error", msg, error?.stack || "");
+        console.error(LOG_TAG, "Error", extractLlmErrorMeta(error));
         if (!res.writableEnded) {
             res.status(500).json({
                 success: false,
