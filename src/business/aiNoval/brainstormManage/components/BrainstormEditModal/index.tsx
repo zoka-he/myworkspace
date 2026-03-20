@@ -43,6 +43,9 @@ export default function BrainstormEditModal({ visible, brainstorm, onCancel, onS
         if (brainstorm.parent_id && (!brainstorm.parent_ids || brainstorm.parent_ids.length === 0)) {
           formValues.parent_ids = [brainstorm.parent_id];
         }
+        if (!formValues.analysis_model_provider) {
+          formValues.analysis_model_provider = 'deepseek-chat';
+        }
         form.setFieldsValue(formValues);
         setCurrentBrainstorm(brainstorm);
       } else {
@@ -53,6 +56,7 @@ export default function BrainstormEditModal({ visible, brainstorm, onCancel, onS
           status: 'draft',
           priority: 'medium',
           extend_question_model_provider: 'deepseek-chat',
+          analysis_model_provider: 'deepseek-chat',
         });
         setCurrentBrainstorm(null);
       }

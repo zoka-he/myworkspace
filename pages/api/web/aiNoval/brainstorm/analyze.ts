@@ -3,7 +3,7 @@ import { ApiResponse } from "@/src/types/ApiResponse";
 import { IBrainstormAnalysisResult } from "@/src/types/IAiNoval";
 import BrainstormService from "@/src/services/aiNoval/brainstormService";
 import { mcpToolRegistry } from "@/src/mcp/core/mcpToolRegistry";
-import { createDeepSeekModel } from "@/src/utils/ai/modelFactory";
+import { createDeepSeekModel, createSiliconFlowModel } from "@/src/utils/ai/modelFactory";
 import { executeReAct } from "@/src/utils/ai/reactAgent";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { buildRelatedChapterContext } from "../utils/relatedChapterContext";
@@ -101,15 +101,28 @@ function stripFinalAnswerPrefix(raw: string): string {
 async function generateSuggestionsAndOpportunitiesText(
     brainstorm: any,
     _stage1Text: string,
-    relatedChaptersContext?: string
+    relatedChaptersContext?: string,
+    modelProvider: string = "deepseek-chat"
 ): Promise<{ text: string; modelName: string }> {
-    const modelConfig = {
-        model: "deepseek-reasoner" as const,
-        temperature: 0.78,
-        frequencyPenalty: 0.4,
-        presencePenalty: 0.3,
-    };
-    const model = createDeepSeekModel(modelConfig);
+    let model: any;
+    let modelName = "deepseek-reasoner";
+    if (modelProvider === "deepseek-chat-siliconflow") {
+        modelName = "Pro/deepseek-ai/DeepSeek-V3.2";
+        model = createSiliconFlowModel({
+            model: modelName,
+            temperature: 0.78,
+            frequencyPenalty: 0.4,
+            presencePenalty: 0.3,
+        });
+    } else {
+        const modelConfig = {
+            model: "deepseek-reasoner" as const,
+            temperature: 0.78,
+            frequencyPenalty: 0.4,
+            presencePenalty: 0.3,
+        };
+        model = createDeepSeekModel(modelConfig);
+    }
 
     const systemPrompt = `你是小说剧情脑洞顾问，负责「建议」和「机会」两部分，与前面的严谨分析步骤独立。
 本段只做剧情向、创意向输出，风格可更轻松、开放，不必延续前文的严肃口吻。
@@ -155,7 +168,7 @@ async function generateSuggestionsAndOpportunitiesText(
     console.log(LOG_TAG, "第二段自然语言长度:", response.length);
     return {
         text: response.trim(),
-        modelName: modelConfig.model,
+        modelName,
     };
 }
 
@@ -271,18 +284,25 @@ export default async function handler(
         }
 
         // 初始化模型
+        const modelProvider = formData?.analysis_model_provider || "deepseek-chat";
         const modelConfig = {
-            model: "deepseek-chat" as const,
+            model: modelProvider === "deepseek-chat-siliconflow" ? "Pro/deepseek-ai/DeepSeek-V3.2" : "deepseek-chat",
             temperature: 0.3, // 分析任务使用较低温度，更稳定
         };
         let model;
         try {
-            model = createDeepSeekModel(modelConfig);
+            if (modelProvider === "deepseek-chat-siliconflow") {
+                model = createSiliconFlowModel(modelConfig as any);
+            } else {
+                model = createDeepSeekModel(modelConfig as any);
+            }
         } catch (e: any) {
-            console.error(LOG_TAG, "DeepSeek 模型初始化失败", e?.message);
+            console.error(LOG_TAG, "分析模型初始化失败", e?.message);
             res.status(503).json({
                 success: false,
-                error: "分析服务未配置（需配置 DEEPSEEK_API_KEY）",
+                error: modelProvider === "deepseek-chat-siliconflow"
+                    ? "分析服务未配置（需配置 SILICONFLOW_API_KEY）"
+                    : "分析服务未配置（需配置 DEEPSEEK_API_KEY）",
             });
             return;
         }
@@ -366,7 +386,12 @@ export default async function handler(
         let stage2Text = "";
         let stage2ModelName = "";
         try {
-            const stage2Result = await generateSuggestionsAndOpportunitiesText(parsedBrainstorm, stage1Text, relatedChaptersContext);
+            const stage2Result = await generateSuggestionsAndOpportunitiesText(
+                parsedBrainstorm,
+                stage1Text,
+                relatedChaptersContext,
+                modelProvider
+            );
             stage2Text = stage2Result.text;
             stage2ModelName = stage2Result.modelName;
         } catch (e: any) {

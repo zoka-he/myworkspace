@@ -76,7 +76,7 @@ export default function BrainstormAnalysisPanel({
           key: opt.value,
           label: opt.label,
           children: (
-            <div style={{ marginTop: '16px' }}>
+            <div>
               {opt.value === 'feasibility_and_expansion' && (
                 <BrainstormAnalysisSection
                   currentBrainstorm={currentBrainstorm}

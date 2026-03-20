@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, theme } from 'antd';
+import { Button, Form, Select, Space, theme } from 'antd';
 import { RobotOutlined } from '@ant-design/icons';
 import { IBrainstorm } from '@/src/types/IAiNoval';
 import AnalysisResultDisplay from '../AnalysisResultDisplay';
@@ -71,17 +71,27 @@ export default function BrainstormAnalysisSection({
   return (
     <div>
       {/* 分析按钮 - 始终显示，状态由本地 analyzing 控制；分析结果为自然语言输出 */}
-      <div style={{ marginBottom: '16px' }}>
-        <Button
-          type="primary"
-          icon={<RobotOutlined />}
-          onClick={onAnalyze}
-          loading={analyzing}
-          disabled={analyzing}
-          block
-        >
-          {analyzing ? '分析中...' : '分析'}
-        </Button>
+      <div className='align-center'>
+        <Space style={{ width: '100%', marginBottom: '8px' }} direction="horizontal" size={8}>
+          <Form.Item name="analysis_model_provider" label={false} noStyle>
+            <Select size="small" style={{ width: 240 }}>
+              <Select.Option value="deepseek-chat">DeepSeek Chat</Select.Option>
+              <Select.Option value="deepseek-chat-siliconflow">DeepSeek Chat (SiliconFlow)</Select.Option>
+            </Select>
+          </Form.Item>
+          <Button
+            style={{ width: 240 }}
+            size="small"
+            type="primary"
+            icon={<RobotOutlined />}
+            onClick={onAnalyze}
+            loading={analyzing}
+            disabled={analyzing}
+            block
+          >
+            {analyzing ? '分析中...' : '分析'}
+          </Button>
+        </Space>
       </div>
 
       {/* 分析结果 - 优先 analysis_text（自然语言），兼容旧结构化结果 */}
