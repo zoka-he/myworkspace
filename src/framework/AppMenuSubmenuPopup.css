@@ -261,3 +261,7 @@ ul.f-app-menu-submenu-root-menu > li.ant-menu-item-group {
     min-width: min(18em, 40vw) !important;
     max-width: 22em !important;
 }
+
+li.ant-dropdown-menu-item-group-list + li.ant-dropdown-menu-item-group-list {
+    margin-top: 12px !important;
+}
