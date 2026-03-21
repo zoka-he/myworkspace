@@ -25,7 +25,7 @@
     width: max-content !important;
     min-width: 0 !important;
     max-width: min(100vw - 24px, 960px) !important;
-    padding: 0 !important;
+    /* padding: 0 !important; */
     margin: 0 !important;
     background: transparent !important;
     background-color: transparent !important;
@@ -315,4 +315,8 @@ li.ant-dropdown-menu-item-group {
 
 .f-app-menu-submenu-popup-surface--dark .f-app-menu-entry-new-window-btn:hover {
     background: rgba(255, 255, 255, 0.2);
+}
+
+.ant-dropdown-menu-vertical {
+    padding: 10px 10px !important;
 }
