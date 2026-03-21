@@ -265,3 +265,54 @@ ul.f-app-menu-submenu-root-menu > li.ant-menu-item-group {
 ul.ant-dropdown-menu-item-group-list li.ant-dropdown-menu-item-group:not(:first-child) {
     margin-top: 12px !important;
 }
+
+.f-app-menu-entry-label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+}
+
+.f-app-menu-entry-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.f-app-menu-entry-new-window-btn {
+    font-size: 12px;
+    line-height: 1;
+    padding: 4px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.12);
+    color: inherit;
+    flex: 0 0 auto;
+}
+
+.f-app-menu-entry-new-window-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* 按钮主题区分 */
+.f-app-menu-submenu-popup-surface--light .f-app-menu-entry-new-window-btn {
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    background: rgba(255, 255, 255, 0.75);
+    color: rgba(0, 0, 0, 0.78);
+}
+
+.f-app-menu-submenu-popup-surface--light .f-app-menu-entry-new-window-btn:hover {
+    background: rgba(255, 255, 255, 0.92);
+}
+
+.f-app-menu-submenu-popup-surface--dark .f-app-menu-entry-new-window-btn {
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.f-app-menu-submenu-popup-surface--dark .f-app-menu-entry-new-window-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}

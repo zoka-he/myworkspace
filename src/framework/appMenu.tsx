@@ -4,13 +4,18 @@ import type { MenuProps } from "antd";
 
 import { connect, useSelector } from "react-redux";
 
-import { AppMenuSubmenuPopup, APP_MENU_SUBMENU_POPUP_CLASS_NAME, APP_MENU_SUBMENU_POPUP_SURFACE_CLASS } from "./AppMenuSubmenuPopup";
+import {
+    AppMenuSubmenuPopup,
+    APP_MENU_SUBMENU_POPUP_CLASS_NAME,
+    APP_MENU_SUBMENU_POPUP_SURFACE_CLASS,
+    regroupChildrenForHorizontalLayout,
+} from "./AppMenuSubmenuPopup";
 
 import { IRootState } from "../store";
 
 import { useNavigate } from "react-router-dom";
 
-import { useEffect, useState } from "react";
+import { MouseEvent as ReactMouseEvent, useEffect, useState } from "react";
 
 import { setShowAll } from '@/src/store/navigatorSlice';
 
@@ -186,70 +191,6 @@ function AppMenu(props: IAppMenuProps) {
 
     }
 
-    /**
-     * 子菜单含 group 时，按“列”进行打包：
-     * - 每个 group 的体积 = 分组名(1) + 入口数量
-     * - 单列阈值为 10
-     * - 若当前列放不下新 group，则新开一列
-     * - group 不可切分；即使单个 group > 10，也整组放在单列里
-     */
-    function regroupChildrenForHorizontalLayout(children: any[]): any[] {
-        if (!hasGroupInChildren(children)) {
-            return children;
-        }
-
-        const maxItemsPerColumn = 10;
-        const columns: any[] = [];
-        let columnIndex = 1;
-        let currentColumnGroups: any[] = [];
-        let currentColumnUnits = 0;
-
-        const flushColumn = () => {
-            if (!currentColumnGroups.length) {
-                return;
-            }
-            columns.push({
-                type: 'group',
-                key: `group_col_${columnIndex++}`,
-                label: '',
-                children: currentColumnGroups,
-            });
-            currentColumnGroups = [];
-            currentColumnUnits = 0;
-        };
-
-        children.forEach((child: any, index: number) => {
-            const normalizedGroup =
-                child?.type === 'group' && Array.isArray(child.children)
-                    ? child
-                    : {
-                        type: 'group',
-                        key: `group_wrap_${String(child?.key ?? child?.ID ?? index)}`,
-                        label: '',
-                        children: [child],
-                    };
-
-            const groupUnits = 1 + (Array.isArray(normalizedGroup.children) ? normalizedGroup.children.length : 0);
-
-            if (currentColumnGroups.length && currentColumnUnits + groupUnits > maxItemsPerColumn) {
-                flushColumn();
-            }
-
-            currentColumnGroups.push(normalizedGroup);
-            currentColumnUnits += groupUnits;
-
-            // 单个 group 超阈值时不切分：独占一列，后续 group 进入新列
-            if (groupUnits > maxItemsPerColumn) {
-                flushColumn();
-            }
-        });
-
-        flushColumn();
-        return columns;
-    }
-
-
-
     function buildSubMenu(item: any): { children: MenuItemType[]; popupClassName?: string; popupOffset?: number[] } {
         const packedChildren = hasGroupInChildren(item.children)
             ? regroupChildrenForHorizontalLayout(item.children)
@@ -278,6 +219,31 @@ function AppMenu(props: IAppMenuProps) {
 
     }
 
+    function openMenuInNewWindow(url: string, e: ReactMouseEvent) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.open(url, '_blank', 'noopener,noreferrer');
+    }
+
+    function buildMenuEntryLabel(item: any, itemKey: string) {
+        if (item?.type === 'group' || item?.children?.length) {
+            return item.label;
+        }
+        return (
+            <span className="f-app-menu-entry-label">
+                <span className="f-app-menu-entry-text">{item.label}</span>
+                <button
+                    type="button"
+                    className="f-app-menu-entry-new-window-btn"
+                    title="新窗口打开"
+                    onClick={(e) => openMenuInNewWindow(itemKey, e)}
+                >
+                    新窗口
+                </button>
+            </span>
+        );
+    }
+
 
 
     /** Normalize menu items for Ant Design Menu: only pass key/label/children so ID, PID, etc. never reach the DOM. */
@@ -288,14 +254,14 @@ function AppMenu(props: IAppMenuProps) {
             : menuItems;
 
         return normalizedItems.map(item => {
+            const itemKey = item.type === 'group'
+                ? String(item.key ?? ('group_' + String(item.ID ?? '')))
+                : String(item.key ?? '');
 
             const result: MenuItemType = {
 
-                key: item.type === 'group'
-                    ? String(item.key ?? ('group_' + String(item.ID ?? '')))
-                    : String(item.key ?? ''),
-
-                label: item.label,
+                key: itemKey,
+                label: buildMenuEntryLabel(item, itemKey),
 
                 type: item.type
 
@@ -314,6 +280,30 @@ function AppMenu(props: IAppMenuProps) {
 
         });
 
+    }
+
+    function renderPopupMenu(hasGroupLayout: boolean, children: any[]) {
+        return (
+            <Menu
+                className="f-app-menu-submenu-root-menu"
+                theme={menuTheme}
+                mode="vertical"
+                style={hasGroupLayout ? {
+                    display: 'flex',
+                    flexDirection: 'row',
+                    flexWrap: 'nowrap',
+                    alignItems: 'flex-start',
+                    columnGap: 12,
+                    maxHeight: 'none',
+                    overflowX: 'auto',
+                    overflowY: 'visible',
+                } : undefined}
+                inlineIndent={16}
+                items={toMenuItems(children)}
+                onClick={onMenuClick}
+                triggerSubMenuAction="click"
+            />
+        );
     }
 
 
@@ -385,35 +375,7 @@ function AppMenu(props: IAppMenuProps) {
                     popupRender={() => (
 
                         <AppMenuSubmenuPopup hasGroupLayout={hasGroupLayout} theme={menuTheme}>
-
-                            <Menu
-
-                                className="f-app-menu-submenu-root-menu"
-
-                                theme={menuTheme}
-
-                                mode="vertical"
-
-                                style={hasGroupLayout ? {
-                                    display: 'flex',
-                                    flexDirection: 'row',
-                                    flexWrap: 'nowrap',
-                                    alignItems: 'flex-start',
-                                    columnGap: 12,
-                                    maxHeight: 'none',
-                                    overflowX: 'auto',
-                                    overflowY: 'visible',
-                                } : undefined}
-
-                                inlineIndent={16}
-
-                                items={toMenuItems(item.children)}
-
-                                onClick={onMenuClick}
-
-                                triggerSubMenuAction="click"
-
-                            />
+                            {renderPopupMenu(hasGroupLayout, item.children)}
 
                         </AppMenuSubmenuPopup>
 
