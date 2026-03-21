@@ -262,8 +262,8 @@ ul.f-app-menu-submenu-root-menu > li.ant-menu-item-group {
     max-width: 22em !important;
 }
 
-ul.ant-dropdown-menu-item-group-list li.ant-dropdown-menu-item-group:not(:first-child) {
-    margin-top: 12px !important;
+li.ant-dropdown-menu-item-group {
+    margin-bottom: 10px !important;
 }
 
 .f-app-menu-entry-label {
