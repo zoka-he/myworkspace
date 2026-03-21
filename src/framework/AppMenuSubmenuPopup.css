@@ -1,0 +1,166 @@
+/**
+ * 子菜单浮层：毛玻璃仅加在 AppMenuSubmenuPopup 内层容器上，不要挂到 Dropdown 的 overlay 根节点，
+ * 否则易与 ant-dropdown 布局冲突（例如浮层被拉满屏宽）。
+ *
+ * 毛玻璃：先保证半透明叠色 + 描边 + 阴影始终可见；若环境支持 backdrop-filter 再叠加模糊。
+ */
+
+.f-app-menu-submenu-trigger {
+    cursor: pointer;
+    display: inline-block;
+    width: max-content;
+    max-width: 100%;
+    vertical-align: middle;
+}
+
+/* 顶层 Dropdown 浮层：收窄宽度，避免占满整行/整屏 */
+.f-app-menu-dropdown-root.ant-dropdown {
+    width: max-content !important;
+    min-width: 0 !important;
+    max-width: min(100vw - 24px, 960px) !important;
+}
+
+.f-app-menu-dropdown-root .ant-dropdown-menu,
+.f-app-menu-dropdown-root ul.ant-dropdown-menu.ant-menu {
+    width: max-content !important;
+    min-width: 0 !important;
+    max-width: min(100vw - 24px, 960px) !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+.f-app-menu-dropdown-root {
+    --ant-color-bg-elevated: transparent;
+}
+
+/* ========== 毛玻璃外壳（仅 AppMenuSubmenuPopup 根节点 & rc SubMenu 弹层） ========== */
+.f-app-menu-submenu-popup-surface {
+    position: relative;
+    display: block;
+    width: max-content;
+    max-width: min(100vw - 24px, 960px);
+    border-radius: 8px;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+/* 浅色：无 backdrop 时也呈半透明“玻璃”感 */
+.f-app-menu-submenu-popup-surface--light {
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.72) 0%,
+        rgba(255, 255, 255, 0.45) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+.f-app-menu-submenu-popup-surface--dark {
+    background: linear-gradient(
+        135deg,
+        rgba(40, 40, 42, 0.78) 0%,
+        rgba(22, 22, 24, 0.55) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+    .f-app-menu-submenu-popup-surface--light {
+        background: rgba(255, 255, 255, 0.38);
+        -webkit-backdrop-filter: blur(18px) saturate(160%);
+        backdrop-filter: blur(18px) saturate(160%);
+    }
+
+    .f-app-menu-submenu-popup-surface--dark {
+        background: rgba(22, 22, 24, 0.42);
+        -webkit-backdrop-filter: blur(18px) saturate(140%);
+        backdrop-filter: blur(18px) saturate(140%);
+    }
+}
+
+.f-app-menu-submenu-popup-surface .ant-menu,
+.f-app-menu-submenu-popup-surface .ant-menu.ant-menu-dark,
+.f-app-menu-submenu-popup-surface .ant-menu.ant-menu-light,
+.f-app-menu-submenu-popup-surface .ant-menu.ant-menu-root {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* rc-menu 内层子菜单弹层（与 surface 同节点） */
+.ant-menu-submenu-popup.f-app-menu-submenu-popup-surface {
+    width: max-content !important;
+    min-width: 0 !important;
+    max-width: min(100vw - 24px, 960px) !important;
+    padding: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    --ant-color-bg-elevated: transparent;
+}
+
+.ant-menu-submenu-popup.f-app-menu-submenu-popup-surface.f-app-menu-submenu-popup-surface--light {
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.72) 0%,
+        rgba(255, 255, 255, 0.45) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+.ant-menu-submenu-popup.f-app-menu-submenu-popup-surface.f-app-menu-submenu-popup-surface--dark {
+    background: linear-gradient(
+        135deg,
+        rgba(40, 40, 42, 0.78) 0%,
+        rgba(22, 22, 24, 0.55) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+    .ant-menu-submenu-popup.f-app-menu-submenu-popup-surface.f-app-menu-submenu-popup-surface--light {
+        background: rgba(255, 255, 255, 0.38);
+        -webkit-backdrop-filter: blur(18px) saturate(160%);
+        backdrop-filter: blur(18px) saturate(160%);
+    }
+
+    .ant-menu-submenu-popup.f-app-menu-submenu-popup-surface.f-app-menu-submenu-popup-surface--dark {
+        background: rgba(22, 22, 24, 0.42);
+        -webkit-backdrop-filter: blur(18px) saturate(140%);
+        backdrop-filter: blur(18px) saturate(140%);
+    }
+}
+
+.ant-menu-submenu-popup.f-app-menu-submenu-popup-surface > .ant-menu {
+    background: transparent !important;
+}
+
+/* group 横向排布 */
+.f-app-menu-subpopup {
+    min-width: auto !important;
+}
+
+.f-app-menu-subpopup .ant-menu-sub,
+.f-app-menu-subpopup .ant-menu-sub.ant-menu {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    min-width: auto !important;
+    width: auto !important;
+    border-right: none !important;
+}
+
+.f-app-menu-subpopup .ant-menu-item,
+.f-app-menu-subpopup .ant-menu-submenu .ant-menu-submenu-title {
+    margin: 0 12px !important;
+    border-radius: 4px;
+    padding-inline: 4px !important;
+    width: auto !important;
+    min-width: 8em !important;
+}
