@@ -1,0 +1,322 @@
+/**
+ * 子菜单浮层：毛玻璃仅加在 AppMenuSubmenuPopup 内层容器上，不要挂到 Dropdown 的 overlay 根节点，
+ * 否则易与 ant-dropdown 布局冲突（例如浮层被拉满屏宽）。
+ *
+ * 毛玻璃：先保证半透明叠色 + 描边 + 阴影始终可见；若环境支持 backdrop-filter 再叠加模糊。
+ */
+
+.f-app-menu-submenu-trigger {
+    cursor: pointer;
+    display: inline-block;
+    width: max-content;
+    max-width: 100%;
+    vertical-align: middle;
+}
+
+/* 顶层 Dropdown 浮层：收窄宽度，避免占满整行/整屏 */
+.f-app-menu-dropdown-root.ant-dropdown {
+    width: max-content !important;
+    min-width: 0 !important;
+    max-width: min(100vw - 24px, 960px) !important;
+}
+
+.f-app-menu-dropdown-root .ant-dropdown-menu,
+.f-app-menu-dropdown-root ul.ant-dropdown-menu.ant-menu {
+    width: max-content !important;
+    min-width: 0 !important;
+    max-width: min(100vw - 24px, 960px) !important;
+    /* padding: 0 !important; */
+    margin: 0 !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+.f-app-menu-dropdown-root {
+    --ant-color-bg-elevated: transparent;
+}
+
+/* ========== 毛玻璃外壳（仅 AppMenuSubmenuPopup 根节点 & rc SubMenu 弹层） ========== */
+.f-app-menu-submenu-popup-surface {
+    position: relative;
+    display: block;
+    width: max-content;
+    max-width: min(100vw - 24px, 960px);
+    border-radius: 8px;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+/* 浅色：无 backdrop 时也呈半透明“玻璃”感 */
+.f-app-menu-submenu-popup-surface--light {
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.72) 0%,
+        rgba(255, 255, 255, 0.45) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+.f-app-menu-submenu-popup-surface--dark {
+    background: linear-gradient(
+        135deg,
+        rgba(40, 40, 42, 0.78) 0%,
+        rgba(22, 22, 24, 0.55) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+    .f-app-menu-submenu-popup-surface--light {
+        background: rgba(255, 255, 255, 0.38);
+        -webkit-backdrop-filter: blur(18px) saturate(160%);
+        backdrop-filter: blur(18px) saturate(160%);
+    }
+
+    .f-app-menu-submenu-popup-surface--dark {
+        background: rgba(22, 22, 24, 0.42);
+        -webkit-backdrop-filter: blur(18px) saturate(140%);
+        backdrop-filter: blur(18px) saturate(140%);
+    }
+}
+
+.f-app-menu-submenu-popup-surface .ant-menu,
+.f-app-menu-submenu-popup-surface .ant-menu.ant-menu-dark,
+.f-app-menu-submenu-popup-surface .ant-menu.ant-menu-light,
+.f-app-menu-submenu-popup-surface .ant-menu.ant-menu-root {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* rc-menu 内层子菜单弹层（与 surface 同节点） */
+.ant-menu-submenu-popup.f-app-menu-submenu-popup-surface {
+    width: max-content !important;
+    min-width: 0 !important;
+    max-width: min(100vw - 24px, 960px) !important;
+    padding: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    --ant-color-bg-elevated: transparent;
+}
+
+.ant-menu-submenu-popup.f-app-menu-submenu-popup-surface.f-app-menu-submenu-popup-surface--light {
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.72) 0%,
+        rgba(255, 255, 255, 0.45) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+.ant-menu-submenu-popup.f-app-menu-submenu-popup-surface.f-app-menu-submenu-popup-surface--dark {
+    background: linear-gradient(
+        135deg,
+        rgba(40, 40, 42, 0.78) 0%,
+        rgba(22, 22, 24, 0.55) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+    .ant-menu-submenu-popup.f-app-menu-submenu-popup-surface.f-app-menu-submenu-popup-surface--light {
+        background: rgba(255, 255, 255, 0.38);
+        -webkit-backdrop-filter: blur(18px) saturate(160%);
+        backdrop-filter: blur(18px) saturate(160%);
+    }
+
+    .ant-menu-submenu-popup.f-app-menu-submenu-popup-surface.f-app-menu-submenu-popup-surface--dark {
+        background: rgba(22, 22, 24, 0.42);
+        -webkit-backdrop-filter: blur(18px) saturate(140%);
+        backdrop-filter: blur(18px) saturate(140%);
+    }
+}
+
+.ant-menu-submenu-popup.f-app-menu-submenu-popup-surface > .ant-menu {
+    background: transparent !important;
+}
+
+/* group 横向排布 */
+.f-app-menu-subpopup {
+    min-width: auto !important;
+}
+
+/*
+ * 列打包后：顶层是多个 ant-menu-item-group（每列一个），需让根级 ul 横向排布。
+ * Dropdown 内层 ul 实际类名为 ant-dropdown-menu + ant-menu + ant-menu-vertical，
+ * antd 对 .ant-dropdown-menu-vertical 有 max-height/overflow-y，会干扰横向 flex，需覆盖。
+ */
+.f-app-menu-dropdown-root .f-app-menu-subpopup > ul.f-app-menu-submenu-root-menu.ant-dropdown-menu.ant-menu-vertical,
+.f-app-menu-subpopup > ul.f-app-menu-submenu-root-menu.ant-dropdown-menu.ant-menu-vertical,
+.f-app-menu-subpopup > .ant-menu.ant-menu-vertical,
+.f-app-menu-subpopup .ant-menu.ant-menu-vertical.ant-menu-root {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-start !important;
+    gap: 12px;
+    border-inline-end: none !important;
+    /* 覆盖 :where(...).ant-dropdown-menu-vertical */
+    max-height: none !important;
+    overflow-y: visible !important;
+    overflow-x: auto !important;
+}
+
+/* 每一列（一个 ItemGroup）不收缩，避免被挤成竖条 */
+.f-app-menu-dropdown-root .f-app-menu-subpopup ul.f-app-menu-submenu-root-menu > .ant-menu-item-group,
+.f-app-menu-subpopup > ul.f-app-menu-submenu-root-menu.ant-dropdown-menu > .ant-menu-item-group,
+.f-app-menu-subpopup > .ant-menu.ant-menu-vertical > .ant-menu-item-group,
+.f-app-menu-subpopup .ant-menu.ant-menu-vertical.ant-menu-root > .ant-menu-item-group {
+    flex: 0 0 auto;
+    min-width: min(18em, 40vw);
+    max-width: 22em;
+}
+
+/* 列分组标题为空时不占位 */
+.f-app-menu-subpopup .ant-menu-item-group-title:empty {
+    display: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* 列多时横向滚动，避免撑破视口 */
+.f-app-menu-submenu-popup-surface.f-app-menu-subpopup {
+    overflow-x: auto;
+    overflow-y: visible;
+}
+
+.f-app-menu-subpopup .ant-menu-sub,
+.f-app-menu-subpopup .ant-menu-sub.ant-menu {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    min-width: auto !important;
+    width: auto !important;
+    border-right: none !important;
+}
+
+/* rc-menu 内层子菜单弹层：同样可能是多列 ItemGroup */
+.ant-menu-submenu-popup.f-app-menu-subpopup .ant-menu.ant-menu-vertical {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-start !important;
+    gap: 12px;
+}
+
+.ant-menu-submenu-popup.f-app-menu-subpopup .ant-menu.ant-menu-vertical > .ant-menu-item-group {
+    flex: 0 0 auto;
+    min-width: min(18em, 40vw);
+    max-width: 22em;
+}
+
+.f-app-menu-subpopup .ant-menu-item,
+.f-app-menu-subpopup .ant-menu-submenu .ant-menu-submenu-title {
+    margin: 0 12px !important;
+    border-radius: 4px;
+    padding-inline: 4px !important;
+    width: auto !important;
+    min-width: 8em !important;
+}
+
+/* ===== 最终兜底：直接命中你看到的 ul 类名 ===== */
+.f-app-menu-subpopup ul.ant-dropdown-menu.ant-menu.ant-menu-root.ant-menu-vertical,
+.f-app-menu-subpopup ul.ant-dropdown-menu.ant-menu.ant-menu-vertical,
+.f-app-menu-subpopup ul.ant-menu.ant-menu-root.ant-menu-vertical {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    max-height: none !important;
+    overflow-y: visible !important;
+    overflow-x: auto !important;
+}
+
+.f-app-menu-subpopup ul.ant-dropdown-menu.ant-menu.ant-menu-root.ant-menu-vertical > li.ant-menu-item-group,
+.f-app-menu-subpopup ul.ant-dropdown-menu.ant-menu.ant-menu-vertical > li.ant-menu-item-group,
+.f-app-menu-subpopup ul.ant-menu.ant-menu-root.ant-menu-vertical > li.ant-menu-item-group {
+    flex: 0 0 auto !important;
+    min-width: min(18em, 40vw) !important;
+    max-width: 22em !important;
+}
+
+/* 直接命中内层 Menu 自定义类（不依赖父级 class） */
+ul.f-app-menu-submenu-root-menu.ant-menu.ant-menu-vertical,
+ul.f-app-menu-submenu-root-menu.ant-dropdown-menu.ant-menu-vertical {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+}
+
+ul.f-app-menu-submenu-root-menu > li.ant-menu-item-group {
+    flex: 0 0 auto !important;
+    min-width: min(18em, 40vw) !important;
+    max-width: 22em !important;
+}
+
+li.ant-dropdown-menu-item-group {
+    margin-bottom: 10px !important;
+}
+
+.f-app-menu-entry-label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+}
+
+.f-app-menu-entry-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.f-app-menu-entry-new-window-btn {
+    font-size: 12px;
+    line-height: 1;
+    padding: 4px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.12);
+    color: inherit;
+    flex: 0 0 auto;
+}
+
+.f-app-menu-entry-new-window-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* 按钮主题区分 */
+.f-app-menu-submenu-popup-surface--light .f-app-menu-entry-new-window-btn {
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    background: rgba(255, 255, 255, 0.75);
+    color: rgba(0, 0, 0, 0.78);
+}
+
+.f-app-menu-submenu-popup-surface--light .f-app-menu-entry-new-window-btn:hover {
+    background: rgba(255, 255, 255, 0.92);
+}
+
+.f-app-menu-submenu-popup-surface--dark .f-app-menu-entry-new-window-btn {
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.f-app-menu-submenu-popup-surface--dark .f-app-menu-entry-new-window-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.ant-dropdown-menu-vertical {
+    padding: 10px 10px !important;
+}

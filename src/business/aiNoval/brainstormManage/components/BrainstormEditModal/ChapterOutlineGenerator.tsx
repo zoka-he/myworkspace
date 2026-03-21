@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { message } from '@/src/utils/antdAppMessage';
 
-import { Button, Select, Space, theme } from 'antd';
+import { Button, Form, Input, Select, Space, theme } from 'antd';
 import { FileTextOutlined } from '@ant-design/icons';
 import { IBrainstorm } from '@/src/types/IAiNoval';
 import apiCalls from '../../apiCalls';
@@ -44,8 +44,6 @@ export default function ChapterOutlineGenerator({
     }
   };
 
-  const hasOutline = currentBrainstorm?.chapter_outline && currentBrainstorm.chapter_outline.trim();
-
   return (
     <div style={{ marginBottom: '24px', paddingBottom: '16px', borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
       <div style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -74,28 +72,15 @@ export default function ChapterOutlineGenerator({
         </Space>
       </div>
       
-      {hasOutline ? (
-        <div style={{ 
-          padding: '12px', 
-          backgroundColor: token.colorFillAlter, 
-          borderRadius: '4px',
-          whiteSpace: 'pre-wrap',
-          fontSize: '13px',
-          lineHeight: '1.6',
-        }}>
-          {currentBrainstorm.chapter_outline}
-        </div>
-      ) : (
-        <div style={{ 
-          padding: '12px', 
-          minHeight: '20em',
-          color: token.colorTextSecondary,
-          fontSize: '12px',
-          fontStyle: 'italic',
-        }}>
-          点击「生成章节纲要」按钮，将基于脑洞的元数据、用户问题、扩展问题和分析结果自动生成章节纲要
-        </div>
-      )}
+
+      <Form.Item name="chapter_outline" noStyle>
+        <Input.TextArea
+          autoSize={{
+            minRows: 10,
+          }}
+          placeholder="点击「生成章节纲要」将自动生成；也可直接在此编辑，保存脑洞时一并写入"
+        />
+      </Form.Item>
     </div>
   );
 }
