@@ -186,9 +186,74 @@ function AppMenu(props: IAppMenuProps) {
 
     }
 
+    /**
+     * 子菜单含 group 时，按“列”进行打包：
+     * - 每个 group 的体积 = 分组名(1) + 入口数量
+     * - 单列阈值为 10
+     * - 若当前列放不下新 group，则新开一列
+     * - group 不可切分；即使单个 group > 10，也整组放在单列里
+     */
+    function regroupChildrenForHorizontalLayout(children: any[]): any[] {
+        if (!hasGroupInChildren(children)) {
+            return children;
+        }
+
+        const maxItemsPerColumn = 10;
+        const columns: any[] = [];
+        let columnIndex = 1;
+        let currentColumnGroups: any[] = [];
+        let currentColumnUnits = 0;
+
+        const flushColumn = () => {
+            if (!currentColumnGroups.length) {
+                return;
+            }
+            columns.push({
+                type: 'group',
+                key: `group_col_${columnIndex++}`,
+                label: '',
+                children: currentColumnGroups,
+            });
+            currentColumnGroups = [];
+            currentColumnUnits = 0;
+        };
+
+        children.forEach((child: any, index: number) => {
+            const normalizedGroup =
+                child?.type === 'group' && Array.isArray(child.children)
+                    ? child
+                    : {
+                        type: 'group',
+                        key: `group_wrap_${String(child?.key ?? child?.ID ?? index)}`,
+                        label: '',
+                        children: [child],
+                    };
+
+            const groupUnits = 1 + (Array.isArray(normalizedGroup.children) ? normalizedGroup.children.length : 0);
+
+            if (currentColumnGroups.length && currentColumnUnits + groupUnits > maxItemsPerColumn) {
+                flushColumn();
+            }
+
+            currentColumnGroups.push(normalizedGroup);
+            currentColumnUnits += groupUnits;
+
+            // 单个 group 超阈值时不切分：独占一列，后续 group 进入新列
+            if (groupUnits > maxItemsPerColumn) {
+                flushColumn();
+            }
+        });
+
+        flushColumn();
+        return columns;
+    }
+
 
 
     function buildSubMenu(item: any): { children: MenuItemType[]; popupClassName?: string; popupOffset?: number[] } {
+        const packedChildren = hasGroupInChildren(item.children)
+            ? regroupChildrenForHorizontalLayout(item.children)
+            : item.children;
 
         const cls = [
             APP_MENU_SUBMENU_POPUP_SURFACE_CLASS,
@@ -203,7 +268,7 @@ function AppMenu(props: IAppMenuProps) {
 
         return {
 
-            children: toMenuItems(item.children),
+            children: toMenuItems(packedChildren, false),
 
             popupClassName: cls.join(' '),
 
@@ -217,13 +282,18 @@ function AppMenu(props: IAppMenuProps) {
 
     /** Normalize menu items for Ant Design Menu: only pass key/label/children so ID, PID, etc. never reach the DOM. */
 
-    function toMenuItems(menuItems: any[]): MenuItemType[] {
+    function toMenuItems(menuItems: any[], enableRegroup: boolean = true): MenuItemType[] {
+        const normalizedItems = enableRegroup
+            ? regroupChildrenForHorizontalLayout(menuItems)
+            : menuItems;
 
-        return menuItems.map(item => {
+        return normalizedItems.map(item => {
 
             const result: MenuItemType = {
 
-                key: item.type === 'group' ? 'group_' + String(item.ID ?? '') : String(item.key ?? ''),
+                key: item.type === 'group'
+                    ? String(item.key ?? ('group_' + String(item.ID ?? '')))
+                    : String(item.key ?? ''),
 
                 label: item.label,
 
@@ -232,8 +302,11 @@ function AppMenu(props: IAppMenuProps) {
             };
 
             if (item.children?.length) {
-
-                Object.assign(result as any, buildSubMenu(item));
+                if (item.type === 'group') {
+                    (result as any).children = toMenuItems(item.children, false);
+                } else {
+                    Object.assign(result as any, buildSubMenu(item));
+                }
 
             }
 
@@ -315,9 +388,22 @@ function AppMenu(props: IAppMenuProps) {
 
                             <Menu
 
+                                className="f-app-menu-submenu-root-menu"
+
                                 theme={menuTheme}
 
                                 mode="vertical"
+
+                                style={hasGroupLayout ? {
+                                    display: 'flex',
+                                    flexDirection: 'row',
+                                    flexWrap: 'nowrap',
+                                    alignItems: 'flex-start',
+                                    columnGap: 12,
+                                    maxHeight: 'none',
+                                    overflowX: 'auto',
+                                    overflowY: 'visible',
+                                } : undefined}
 
                                 inlineIndent={16}
 

@@ -146,6 +146,50 @@
     min-width: auto !important;
 }
 
+/*
+ * 列打包后：顶层是多个 ant-menu-item-group（每列一个），需让根级 ul 横向排布。
+ * Dropdown 内层 ul 实际类名为 ant-dropdown-menu + ant-menu + ant-menu-vertical，
+ * antd 对 .ant-dropdown-menu-vertical 有 max-height/overflow-y，会干扰横向 flex，需覆盖。
+ */
+.f-app-menu-dropdown-root .f-app-menu-subpopup > ul.f-app-menu-submenu-root-menu.ant-dropdown-menu.ant-menu-vertical,
+.f-app-menu-subpopup > ul.f-app-menu-submenu-root-menu.ant-dropdown-menu.ant-menu-vertical,
+.f-app-menu-subpopup > .ant-menu.ant-menu-vertical,
+.f-app-menu-subpopup .ant-menu.ant-menu-vertical.ant-menu-root {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-start !important;
+    gap: 12px;
+    border-inline-end: none !important;
+    /* 覆盖 :where(...).ant-dropdown-menu-vertical */
+    max-height: none !important;
+    overflow-y: visible !important;
+    overflow-x: auto !important;
+}
+
+/* 每一列（一个 ItemGroup）不收缩，避免被挤成竖条 */
+.f-app-menu-dropdown-root .f-app-menu-subpopup ul.f-app-menu-submenu-root-menu > .ant-menu-item-group,
+.f-app-menu-subpopup > ul.f-app-menu-submenu-root-menu.ant-dropdown-menu > .ant-menu-item-group,
+.f-app-menu-subpopup > .ant-menu.ant-menu-vertical > .ant-menu-item-group,
+.f-app-menu-subpopup .ant-menu.ant-menu-vertical.ant-menu-root > .ant-menu-item-group {
+    flex: 0 0 auto;
+    min-width: min(18em, 40vw);
+    max-width: 22em;
+}
+
+/* 列分组标题为空时不占位 */
+.f-app-menu-subpopup .ant-menu-item-group-title:empty {
+    display: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* 列多时横向滚动，避免撑破视口 */
+.f-app-menu-submenu-popup-surface.f-app-menu-subpopup {
+    overflow-x: auto;
+    overflow-y: visible;
+}
+
 .f-app-menu-subpopup .ant-menu-sub,
 .f-app-menu-subpopup .ant-menu-sub.ant-menu {
     display: flex !important;
@@ -156,6 +200,21 @@
     border-right: none !important;
 }
 
+/* rc-menu 内层子菜单弹层：同样可能是多列 ItemGroup */
+.ant-menu-submenu-popup.f-app-menu-subpopup .ant-menu.ant-menu-vertical {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-start !important;
+    gap: 12px;
+}
+
+.ant-menu-submenu-popup.f-app-menu-subpopup .ant-menu.ant-menu-vertical > .ant-menu-item-group {
+    flex: 0 0 auto;
+    min-width: min(18em, 40vw);
+    max-width: 22em;
+}
+
 .f-app-menu-subpopup .ant-menu-item,
 .f-app-menu-subpopup .ant-menu-submenu .ant-menu-submenu-title {
     margin: 0 12px !important;
@@ -163,4 +222,42 @@
     padding-inline: 4px !important;
     width: auto !important;
     min-width: 8em !important;
+}
+
+/* ===== 最终兜底：直接命中你看到的 ul 类名 ===== */
+.f-app-menu-subpopup ul.ant-dropdown-menu.ant-menu.ant-menu-root.ant-menu-vertical,
+.f-app-menu-subpopup ul.ant-dropdown-menu.ant-menu.ant-menu-vertical,
+.f-app-menu-subpopup ul.ant-menu.ant-menu-root.ant-menu-vertical {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    max-height: none !important;
+    overflow-y: visible !important;
+    overflow-x: auto !important;
+}
+
+.f-app-menu-subpopup ul.ant-dropdown-menu.ant-menu.ant-menu-root.ant-menu-vertical > li.ant-menu-item-group,
+.f-app-menu-subpopup ul.ant-dropdown-menu.ant-menu.ant-menu-vertical > li.ant-menu-item-group,
+.f-app-menu-subpopup ul.ant-menu.ant-menu-root.ant-menu-vertical > li.ant-menu-item-group {
+    flex: 0 0 auto !important;
+    min-width: min(18em, 40vw) !important;
+    max-width: 22em !important;
+}
+
+/* 直接命中内层 Menu 自定义类（不依赖父级 class） */
+ul.f-app-menu-submenu-root-menu.ant-menu.ant-menu-vertical,
+ul.f-app-menu-submenu-root-menu.ant-dropdown-menu.ant-menu-vertical {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+}
+
+ul.f-app-menu-submenu-root-menu > li.ant-menu-item-group {
+    flex: 0 0 auto !important;
+    min-width: min(18em, 40vw) !important;
+    max-width: 22em !important;
 }
