@@ -35,6 +35,11 @@ function AppCore() {
   function onMessage(_message: IMessage) {}
 
   function onConnectionChange(connected: boolean) {
+    if (document && document.visibilityState === 'hidden') {
+      // 如果页面隐藏，则不显示连接成功或连接失败的消息
+      return;
+    }
+
     if (connected) {
       message.success('已连接后端队列');
     } else {
