@@ -1,0 +1,42 @@
+diff --git a/node_modules/antd/es/modal/Modal.js b/node_modules/antd/es/modal/Modal.js
+index f2741cf..450415c 100644
+--- a/node_modules/antd/es/modal/Modal.js
++++ b/node_modules/antd/es/modal/Modal.js
+@@ -144,6 +144,8 @@ const Modal = props => {
+     }
+     return vars;
+   }, [prefixCls, responsiveWidth]);
++  // myworkspace: 全局默认点击遮罩不关闭（rc-dialog 在 maskClosable===undefined 时默认为 true）
++  const mergedMaskClosable = props.maskClosable !== undefined ? props.maskClosable : false;
+   // =========================== Render ===========================
+   return wrapCSSVar(/*#__PURE__*/React.createElement(ContextIsolator, {
+     form: true,
+@@ -153,6 +155,7 @@ const Modal = props => {
+   }, /*#__PURE__*/React.createElement(Dialog, Object.assign({
+     width: numWidth
+   }, restProps, {
++    maskClosable: mergedMaskClosable,
+     zIndex: zIndex,
+     getContainer: getContainer === undefined ? getContextPopupContainer : getContainer,
+     prefixCls: prefixCls,
+diff --git a/node_modules/antd/lib/modal/Modal.js b/node_modules/antd/lib/modal/Modal.js
+index f939490..1cf7c15 100644
+--- a/node_modules/antd/lib/modal/Modal.js
++++ b/node_modules/antd/lib/modal/Modal.js
+@@ -151,6 +151,8 @@ const Modal = props => {
+     }
+     return vars;
+   }, [prefixCls, responsiveWidth]);
++  // myworkspace: 全局默认点击遮罩不关闭（rc-dialog 在 maskClosable===undefined 时默认为 true）
++  const mergedMaskClosable = props.maskClosable !== undefined ? props.maskClosable : false;
+   // =========================== Render ===========================
+   return wrapCSSVar(/*#__PURE__*/React.createElement(_ContextIsolator.default, {
+     form: true,
+@@ -160,6 +162,7 @@ const Modal = props => {
+   }, /*#__PURE__*/React.createElement(_rcDialog.default, Object.assign({
+     width: numWidth
+   }, restProps, {
++    maskClosable: mergedMaskClosable,
+     zIndex: zIndex,
+     getContainer: getContainer === undefined ? getContextPopupContainer : getContainer,
+     prefixCls: prefixCls,

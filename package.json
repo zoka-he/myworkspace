@@ -11,7 +11,7 @@
     "tailwind:watch": "npx tailwindcss -i ./styles/globals.css -o ./styles/tailwind-generated.css --watch",
     "start": "next start &",
     "clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\"",
-    "postinstall": "node scripts/postinstall.js",
+    "postinstall": "patch-package && node scripts/postinstall.js",
     "generate:api-map": "node scripts/generate-pages-api-map.js",
     "prebuild": "npm run generate:api-map",
     "lint": "eslint .",
@@ -110,6 +110,7 @@
     "eslint": "9",
     "eslint-config-next": "16.0.10",
     "ignore-loader": "^0.1.2",
+    "patch-package": "^8.0.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.18"
   }

@@ -3,7 +3,7 @@ const nextConfig = {
   reactStrictMode: false,
   // 始终启用 standalone，供 Docker 等生产构建使用；next dev 不会生成此输出
   output: 'standalone',
-  
+
   // 将服务端专用模块标记为 external，避免打包（chroma/amqplib 仅服务端用；postinstall 已裁剪 @chroma-core 避免 Unknown module type）
   serverExternalPackages: ['amqplib', 'chromadb', '@chroma-core/default-embed', '@chroma-core/ai-embeddings-common'],
 
@@ -12,24 +12,23 @@ const nextConfig = {
     return [
       {
         source: '/api/app/:path*',
-        destination: '/api/app/:path*'
+        destination: '/api/app/:path*',
       },
       {
         source: '/app/:path*',
-        destination: '/api/app/:path*'
+        destination: '/api/app/:path*',
       },
       {
         source: '/api/web/:path*',
         destination: '/api/web/:path*',
       },
-      // 保证 /api/mcp 不被 /api/:path* 重写到 /api/web/mcp，必须放在 /api/:path* 之前
       {
         source: '/api/mcp',
-        destination: '/api/mcp'
+        destination: '/api/mcp',
       },
       {
         source: '/api/mcp/:path*',
-        destination: '/api/mcp/:path*'
+        destination: '/api/mcp/:path*',
       },
       {
         source: '/api/:path*',
@@ -37,10 +36,9 @@ const nextConfig = {
       },
       {
         source: '/login/:path*',
-        destination: '/login/:path*'
-      }
-      // App Router 下由 app/[[...slug]]/page.tsx 承接所有前端路由，无需 /:path* -> /
-    ]
+        destination: '/login/:path*',
+      },
+    ];
   },
 
   env: {
@@ -62,6 +60,6 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-}
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;
