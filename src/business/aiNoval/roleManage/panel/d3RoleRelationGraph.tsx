@@ -158,6 +158,20 @@ export function D3RoleRelationGraph({
       apiCalls.getWorldViewRoleRelationList(Number(worldViewId), 1, 2000),
       apiCalls.getWorldViewRoleInfoList(Number(worldViewId), 2000)
     ]).then(([roleRes, relationRes, roleInfoRes]) => {
+
+      roleRes.data = roleRes.data.filter((role: IRoleData) => role.is_enabled === 'Y');
+      roleInfoRes.data = roleInfoRes.data.filter((info: IRoleInfo) => info.is_enabled === 'Y');
+      relationRes.data = relationRes.data.filter((relation: IRoleRelation) => {
+        if (!roleRes.data.find((role: IRoleData) => role.id === relation.role_id)) {
+          return false;
+        }
+        if (!roleRes.data.find((role: IRoleData) => role.id === relation.related_role_id)) {
+          return false;
+        }
+        return true;
+      });
+
+
       console.warn('=== [D3Graph] DATA RECEIVED ===', { isCancelled });
       // 如果 effect 已经被清理，不要继续处理
       if (isCancelled) {
@@ -168,6 +182,8 @@ export function D3RoleRelationGraph({
         nodes: roleRes.data,
         relations: relationRes.data
       }
+
+      console.debug('=== [D3Graph] DATA ===', data);
 
       // Create a map of role info by role_id
       const roleInfoMap = new Map<number, IRoleInfo>()
