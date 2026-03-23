@@ -209,7 +209,7 @@ function MainFrame(props: IMainFrameProps) {
             className="p-0 m-0 flex flex-row app-layout-header fixed top-0 left-0 right-0 z-10"
             style={HEADER_BLUR_STYLE}
         >
-            <AppHeader className='px-12' urlMap={urlMap.current} permMap={permMap.current}/>
+            <AppHeader className='px-8' urlMap={urlMap.current} permMap={permMap.current}/>
             <div className='flex-1'>
                 <AppMenu />
             </div>

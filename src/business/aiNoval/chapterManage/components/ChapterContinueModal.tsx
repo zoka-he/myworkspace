@@ -13,6 +13,7 @@ import ChapterStripState, { type ChapterStripReport, type ChapterStripStateProps
 import copyToClip from '@/src/utils/common/copy';
 import store from '@/src/store'
 import AttentionRefModal from './AttentionRefModal'
+import { useDeepseekBalance } from '@/src/utils/hooks/useDeepseekBalance';
 
 /** 总体风格快速标签（与 GenChapterByDetailModal 对齐） */
 const STYLE_QUICK_TAGS = [
@@ -113,8 +114,9 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
   // 是否参考本章已有内容(默认不参考)
   const [isReferSelf, setIsReferSelf] = useState<boolean>(false)
 
-  // LLM类型, 默认使用 deepseek
-  const [llmType, setLlmType] = useState<'gemini' | 'deepseek' | 'deepseek-chat' | 'gemini3'>('deepseek')
+  // LLM类型（初稿/润色分离，默认均为 deepseek）
+  const [draftLlmType, setDraftLlmType] = useState<'gemini' | 'deepseek' | 'deepseek-chat' | 'gemini3'>('deepseek')
+  const [polishLlmType, setPolishLlmType] = useState<'gemini' | 'deepseek' | 'deepseek-chat' | 'gemini3'>('deepseek-chat')
 
   // 是否缩写本章
   const [isStripSelf, setIsStripSelf] = useState<boolean>(false)
@@ -214,6 +216,9 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
 
   /** 审稿员最多审核次数，默认 5（与 GenChapterByDetailModal 对齐） */
   const [criticMaxRounds, setCriticMaxRounds] = useState(5)
+
+  // Deepseek余额
+  const deepseekBalance = useDeepseekBalance()
 
   // 初始化
   useEffect(() => {
@@ -551,7 +556,10 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
       role_names: roleNames || '',
       faction_names: factionNames || '',
       geo_names: geoNames || '',
-      llm_type: llmType,
+      // 兼容旧后端参数 llm_type，同时传入拆分后的初稿/润色模型
+      llm_type: draftLlmType,
+      draft_llm_type: draftLlmType,
+      polish_llm_type: polishLlmType,
       attention: attention || '',
       manual_section: manualSection || '', // 手写部分，不落库，接口中拼在注意事项前
       chapter_style: chapterStyle || '',
@@ -1087,11 +1095,10 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
                   <Checkbox checked={antiSpeechMilitarySummaryStyle} onChange={(e) => setAntiSpeechMilitarySummaryStyle(e.target.checked)} disabled={isContinuing}>抗演讲/军事腔调</Checkbox>
                 </Space>
                 <Divider orientation="left">续写选项</Divider>
+                <div className="flex flex-col">
                 <Space wrap>
-                  
-
-                  <Typography.Text>模型：</Typography.Text>
-                  <Select value={llmType} onChange={(value) => setLlmType(value)} disabled={isContinuing}>
+                  <Typography.Text>初稿模型：</Typography.Text>
+                  <Select value={draftLlmType} onChange={(value) => setDraftLlmType(value)} disabled={isContinuing}>
                     {/* <Select.Option value="gemini">Gemini2.5</Select.Option> */}
                     <Select.Option value="gemini3">Gemini3</Select.Option>
                     <Select.Option value="deepseek">DeepSeek（reasoner）</Select.Option>
@@ -1100,6 +1107,18 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
                     <Select.Option value="gpt" disabled>GPT-4o（实验）</Select.Option>
                   </Select>
 
+                  <Typography.Text>润色模型：</Typography.Text>
+                  <Select value={polishLlmType} onChange={(value) => setPolishLlmType(value)} disabled={isContinuing}>
+                    {/* <Select.Option value="gemini">Gemini2.5</Select.Option> */}
+                    <Select.Option value="gemini3">Gemini3</Select.Option>
+                    <Select.Option value="deepseek">DeepSeek（reasoner）</Select.Option>
+                    <Select.Option value="deepseek-chat">DeepSeek-Chat</Select.Option>
+                    {/* <Select.Option value="deepseek-chat">DeepSeek-Chat（实验）</Select.Option> */}
+                    <Select.Option value="gpt" disabled>GPT-4o（实验）</Select.Option>
+                  </Select>
+                </Space>
+
+                <Space wrap className="mt-2">
                   <Typography.Text>审稿员审核次数：</Typography.Text>
                   <InputNumber
                     min={1}
@@ -1108,6 +1127,10 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
                     onChange={(v) => setCriticMaxRounds(v ?? 5)}
                     disabled={isContinuing}
                   />
+
+                </Space>
+
+                <Space wrap className="mt-2">
 
                   <Checkbox checked={isReferSelf} onChange={(e) => setIsReferSelf(e.target.checked)} disabled={isContinuing}>参考本章已有内容</Checkbox>
                   <Checkbox checked={isStripSelf} onChange={(e) => setIsStripSelf(e.target.checked)} disabled={isContinuing}>缩写本章</Checkbox>
@@ -1134,7 +1157,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
                   )}
                 </Space>
 
-                
+                </div>
                 
                 <Divider orientation='left'>
                   {isContinuing ? '续写中...' : '点击上方按钮开始续写...'}
@@ -1162,6 +1185,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
                             { autoWriteElapsed > 0 ? <Tag color="orange">({(autoWriteElapsed / 1000).toFixed(2)}秒)</Tag> : null }
                           </div>
                           <Space>
+                            <Tag color="green">Deepseek余额：{deepseekBalance}</Tag>
                             {/* <Button type="primary" size="small" disabled={isLoading || isContinuing || !autoWriteResult} onClick={handleClearThinking}>清除think</Button> */}
                             <Button type="primary" size="small" disabled={isLoading || isContinuing || !autoWriteResult} onClick={handleCopyContinued}>复制</Button>
                             <Button danger size="small" disabled={isLoading || isContinuing} onClick={handleReContinue}>重写</Button>
