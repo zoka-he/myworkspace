@@ -26,6 +26,9 @@ COPY . .
 # 必须设为 production，next.config.js 才会启用 output: 'standalone' 并生成 .next/standalone
 ENV NODE_ENV=production
 
+# deps 阶段用了 --ignore-scripts，postinstall 未跑：必须显式应用 patches/（含 antd Modal 等）
+RUN npx --yes patch-package
+
 # Run postinstall scripts (patch + tailwind) that were skipped in deps stage
 RUN (test -f scripts/patch-chroma-default-embed.js && node scripts/patch-chroma-default-embed.js) || true; \
   (test -f styles/globals.css && npm run tailwind:build) || true

@@ -6,6 +6,9 @@ COPY . .
 # 必须设为 production，next.config.js 才会启用 output: 'standalone' 并生成 .next/standalone
 ENV NODE_ENV=production
 
+# 若上游镜像的 deps 阶段用了 --ignore-scripts，postinstall 未跑：显式应用 patches/
+RUN npx --yes patch-package
+
 # 在deps基础上构建可执行代码
 RUN npm install -g dotenv-cli   # 安装dotenv-cli，不知道为什么builder就是不安装
 # patch-chroma-default-embed：裁剪 @chroma-core 避免 Turbopack 报 Unknown module type

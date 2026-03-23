@@ -60,6 +60,11 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+
+  // 避免被上层 yarn.lock 影响 root 推断，确保生产/开发使用当前项目依赖
+  turbopack: {
+    root: __dirname,
+  },
 };
 
 module.exports = nextConfig;
