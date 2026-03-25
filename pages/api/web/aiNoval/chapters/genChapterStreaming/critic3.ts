@@ -1,7 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import _ from "lodash";
-import { CRITIC3_SYSTEM_PROMPT, buildCritic3UserInput, callLLM, extractCritic3FinalSuggestion } from "../genChapter";
+import { CRITIC3_SYSTEM_PROMPT, buildCritic3UserInput, extractCritic3FinalSuggestion, parseCriticResponse } from "../genChapter";
 import { initNdjsonStream, writeError, writeNdjson, writePhaseEnd, writePhaseStart } from "@/src/utils/streaming/ndjson";
+import { createStreamingChain, getChunkText } from "./streamingChain";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -37,10 +38,43 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     writePhaseStart(res, step, { llm_type });
     const criticInput = buildCritic3UserInput(draft, prev_content, curr_context, critic1_pass, critic1_reason);
-    const resp = await callLLM(llm_type, CRITIC3_SYSTEM_PROMPT, criticInput, context);
-    const advice = extractCritic3FinalSuggestion(resp || "");
+    const systemPromptWithContext = CRITIC3_SYSTEM_PROMPT.replace("{{context}}", context || "");
+    const chain = createStreamingChain(llm_type, systemPromptWithContext, criticInput, {
+      temperature: 0.9,
+      frequencyPenalty: 0,
+      presencePenalty: 0,
+      topP: 1,
+    });
+    let resp = "";
+    const stream = await chain.stream({});
+    for await (const chunk of stream as any) {
+      if (isClosed()) return;
+      const text = getChunkText(chunk);
+      if (!text) continue;
+      resp += text;
+      writeNdjson(res, { type: "delta", step, text });
+    }
+    const parsed = parseCriticResponse(resp || "");
+    let advice = extractCritic3FinalSuggestion(resp || "");
+    // 删除“的虚拟形象”等高危词
+    advice = advice.replace(/^的?虚拟形象$/g, "");
+    advice = advice.replace(/^(他|她)?顿了顿$/g, "");
+    advice = advice.replace(/^重新看向$/g, "");
+    advice = advice.replace(/^一直安静的$/g, "");
+    advice = advice.replace(/^(他|她)?打破死寂$/g, "");
+    advice = advice.replace(/^(他|她)?打破了寂静$/g, "");
+    advice = advice.replace(/^(他|她)?目光锐利$/g, "");
+    advice = advice.replace(/^(他|她)?抬了抬下巴$/g, "");
+    advice = advice.replace(/^下一秒$/g, "");
+    advice = advice.replace(/^同一时刻$/g, "");
+    advice = advice.replace(/^无意识(的|地)?$/g, "");
+
     if (isClosed()) return;
-    writeNdjson(res, { type: "result", step, data: { advice, raw: (resp || "").trim() } });
+    writeNdjson(res, {
+      type: "result",
+      step,
+      data: { pass: parsed.pass, reason: parsed.reason || "", advice, raw: (resp || "").trim() },
+    });
     writePhaseEnd(res, step);
     res.end();
   } catch (e: any) {

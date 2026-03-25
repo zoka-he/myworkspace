@@ -1,7 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import _ from "lodash";
-import { CRITIC_SYSTEM_PROMPT, buildCriticUserInput, callLLM, parseCriticResponse } from "../genChapter";
+import { CRITIC_SYSTEM_PROMPT, buildCriticUserInput, parseCriticResponse } from "../genChapter";
 import { initNdjsonStream, writeError, writeNdjson, writePhaseEnd, writePhaseStart } from "@/src/utils/streaming/ndjson";
+import { createStreamingChain, getChunkText } from "./streamingChain";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -35,7 +36,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     writePhaseStart(res, step, { llm_type });
     const criticInput = buildCriticUserInput(draft, prev_content, curr_context);
-    const resp = await callLLM(llm_type, CRITIC_SYSTEM_PROMPT, criticInput, context);
+    const systemPromptWithContext = CRITIC_SYSTEM_PROMPT.replace("{{context}}", context || "");
+    const chain = createStreamingChain(llm_type, systemPromptWithContext, criticInput, {
+      temperature: 0.4,
+      frequencyPenalty: 0,
+      presencePenalty: 0,
+      topP: 1,
+    });
+    let resp = "";
+    const stream = await chain.stream({});
+    for await (const chunk of stream as any) {
+      if (isClosed()) return;
+      const text = getChunkText(chunk);
+      if (!text) continue;
+      resp += text;
+      writeNdjson(res, { type: "delta", step, text });
+    }
     const parsed = parseCriticResponse(resp);
     if (isClosed()) return;
     writeNdjson(res, {

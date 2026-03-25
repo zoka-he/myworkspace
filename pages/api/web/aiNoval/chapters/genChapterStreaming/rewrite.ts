@@ -1,15 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import _ from "lodash";
-import { buildPromptTemplate, buildRewriteUserInput, callLLM } from "../genChapter";
+import { buildPromptTemplate, buildRewriteUserInput } from "../genChapter";
 import { initNdjsonStream, writeError, writeNdjson, writePhaseEnd, writePhaseStart } from "@/src/utils/streaming/ndjson";
-
-function streamTextAsDeltas(res: NextApiResponse, step: string, fullText: string) {
-  const chunkSize = 120;
-  for (let i = 0; i < fullText.length; i += chunkSize) {
-    const text = fullText.slice(i, i + chunkSize);
-    writeNdjson(res, { type: "delta", step, text });
-  }
-}
+import { createStreamingChain, getChunkText } from "./streamingChain";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -46,9 +39,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     writePhaseStart(res, step, { llm_type });
     const systemPrompt = buildPromptTemplate(attensionText);
     const rewriteUserInput = buildRewriteUserInput(prev_content, curr_context, mergedCriticReason, rejectedDraft);
-    const draft = await callLLM(llm_type, systemPrompt, rewriteUserInput, context, { forWriting: true });
+    const systemPromptWithContext = systemPrompt.replace("{{context}}", context || "");
+    const chain = createStreamingChain(llm_type, systemPromptWithContext, rewriteUserInput, {
+      temperature: 1.2,
+      frequencyPenalty: 0,
+      presencePenalty: 1.8,
+      topP: 1,
+    });
+    let draft = "";
+    const stream = await chain.stream({});
+    for await (const chunk of stream as any) {
+      if (isClosed()) return;
+      const text = getChunkText(chunk);
+      if (!text) continue;
+      draft += text;
+      writeNdjson(res, { type: "delta", step, text });
+    }
     if (isClosed()) return;
-    streamTextAsDeltas(res, step, draft || "");
     writeNdjson(res, { type: "result", step, data: { draft: (draft || "").trim() } });
     writePhaseEnd(res, step);
     res.end();

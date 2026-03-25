@@ -40,6 +40,8 @@ export interface SiliconFlowModelConfig {
     frequencyPenalty?: number;
     /** 存在惩罚（对已出现过的 token 惩罚），0-2，默认不传 */
     presencePenalty?: number;
+    /** 是否开启思维链输出（Qwen3.x 等模型可用），默认由服务端决定 */
+    enableThinking?: boolean;
 }
 
 /**
@@ -122,9 +124,17 @@ export function createSiliconFlowModel(config: SiliconFlowModelConfig): BaseLang
     if (config.presencePenalty !== undefined) {
         actualConfig.presencePenalty = config.presencePenalty;
     }
+    if (config.enableThinking !== undefined) {
+        actualConfig.modelKwargs = {
+            ...(actualConfig.modelKwargs || {}),
+            enable_thinking: config.enableThinking,
+        };
+    }
 
     return new ChatOpenAI({
         ...actualConfig,
+        // 确保 SiliconFlow 走真正的 SSE 流式响应；否则 `.stream()` 可能退化为一次性完整输出
+        streaming: true,
         configuration: {
             apiKey: SILICONFLOW_API_KEY,
             baseURL: "https://api.siliconflow.cn/v1",
