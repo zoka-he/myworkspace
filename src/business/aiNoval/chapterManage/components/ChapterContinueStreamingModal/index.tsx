@@ -287,7 +287,219 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
     }
   }, [novelId, selectedChapter])
 
-  // 处理AI续写（全流程：缩写+续写）
+  // 处理AI续写（StepC+StepD：生成初稿 + 理解检查）
+  const runFromDraftAndCritic2 = async (prevContent: string, contextText: string) => {
+    if (!selectedChapter) {
+      throw new Error("章节为空，无法继续")
+    }
+
+    // StepC：初稿流式生成（NDJSON streaming）
+    stepMachine.stepStart("writerDraft", "生成初稿（流式）")
+    setDraftContent("")
+    setAutoWriteStatus("初稿生成中")
+    setAutoWriteError("")
+    setAutoWriteElapsed(0)
+    const writerDraftStartTime = Date.now()
+
+    const prompt = promptWorkMode === "full" ? seedPrompt : selectedPromptParts.join("\n")
+
+    const resp = await fetch(
+      `/api/aiNoval/chapters/genChapterStreaming/writerDraft?worldviewId=${selectedChapter.worldview_id}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prev_content: prevContent || "",
+          curr_context: prompt || "",
+          context: contextText || "",
+          attention: attention || "",
+          attension: attention || "",
+          llm_type: draftLlmType,
+          draft_llm_type: draftLlmType,
+        }),
+      }
+    )
+
+    if (!resp.ok) {
+      const msg = `writerDraft http ${resp.status}`
+      stepMachine.stepError("writerDraft", msg)
+      throw new Error(msg)
+    }
+    if (!resp.body) {
+      const msg = "writerDraft response body is empty"
+      stepMachine.stepError("writerDraft", msg)
+      throw new Error(msg)
+    }
+
+    const reader = resp.body.getReader()
+    const decoder = new TextDecoder("utf-8")
+    let buffer = ""
+    let draftSnapshot = ""
+
+    while (true) {
+      const { value, done } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+
+      const lines = buffer.split("\n")
+      buffer = lines.pop() || ""
+
+      for (const line of lines) {
+        const t = line.trim()
+        if (!t) continue
+        let evt: any
+        try {
+          evt = JSON.parse(t)
+        } catch {
+          continue
+        }
+
+        if (evt?.type === "delta" && typeof evt?.text === "string") {
+          const delta = evt.text
+          draftSnapshot += delta
+          setDraftContent((prev) => prev + delta)
+        }
+
+        if (evt?.type === "result" && evt?.data?.draft != null) {
+          const full = String(evt.data.draft || "")
+          draftSnapshot = full
+          setDraftContent(full)
+        }
+
+        if (evt?.type === "error") {
+          const msg = evt?.message || "writerDraft error"
+          stepMachine.stepError("writerDraft", msg)
+          throw new Error(msg)
+        }
+      }
+    }
+
+    stepMachine.stepEnd("writerDraft", "初稿生成完成")
+    setAutoWriteStatus("初稿生成完成")
+    setAutoWriteElapsed(Date.now() - writerDraftStartTime)
+
+    // StepD：理解检查（critic2）
+    stepMachine.stepStart("critic2", "理解检查")
+    const critic2Resp = await fetch(
+      `/api/aiNoval/chapters/genChapterStreaming/critic2?worldviewId=${selectedChapter.worldview_id}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          draft: draftSnapshot || draftContent || "",
+          prev_content: prevContent || "",
+          curr_context: prompt || "",
+          llm_type: polishLlmType,
+          polish_llm_type: polishLlmType,
+        }),
+      }
+    )
+    if (!critic2Resp.ok) {
+      const msg = `critic2 http ${critic2Resp.status}`
+      stepMachine.stepError("critic2", msg)
+      throw new Error(msg)
+    }
+    const critic2Text = await critic2Resp.text()
+    let misunderstood = false
+    let critic2Raw = ""
+    for (const line of critic2Text.split("\n")) {
+      const t = line.trim()
+      if (!t) continue
+      try {
+        const evt = JSON.parse(t)
+        if (evt?.type === "result") {
+          misunderstood = !!evt?.data?.misunderstood
+          critic2Raw = String(evt?.data?.raw || "")
+        }
+        if (evt?.type === "error") {
+          throw new Error(evt?.message || "critic2 error")
+        }
+      } catch (e: any) {
+        if (e?.message && e.message !== "Unexpected token d in JSON at position 0") {
+          throw e
+        }
+      }
+    }
+
+    const critic2Prefix = misunderstood
+      ? `【理解检查】FAIL（任务理解错误）${critic2Raw ? `：${critic2Raw}` : ""}\n\n`
+      : `【理解检查】PASS${critic2Raw ? `：${critic2Raw}` : ""}\n\n`
+    setDraftContent((prev) => `${critic2Prefix}${prev || draftSnapshot || ""}`)
+
+    if (misunderstood) {
+      const msg = "理解检查未通过：模型误解了任务，已停止后续步骤。"
+      stepMachine.stepError("critic2", msg)
+      setAutoWriteStatus("error")
+      setAutoWriteError(msg)
+      throw new Error(msg)
+    }
+    stepMachine.stepEnd("critic2", "理解检查通过")
+
+    // 结束节点
+    stepMachine.stepStart("end")
+    stepMachine.stepEnd("end")
+  }
+
+  // 处理AI续写（StepB+StepC+StepD：聚合设定 + 生成初稿 + 理解检查）
+  const runFromAggregateToDraftAndCritic2 = async (prevContent: string) => {
+    if (!selectedChapter) {
+      throw new Error("章节为空，无法继续")
+    }
+
+    stepMachine.stepStart("aggregateContext", "聚合设定")
+    setIsAggregatingContext(true)
+    setAggregatedContextError("")
+
+    let contextText = ""
+    try {
+      const response = await fetch(
+        `/api/aiNoval/chapters/genChapterStreaming/aggregateContext?worldviewId=${selectedChapter.worldview_id}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            role_group_names: roleGroupNames || "",
+            role_names: roleNames || "",
+            faction_names: factionNames || "",
+            geo_names: geoNames || "",
+          }),
+        }
+      )
+
+      const text = await response.text()
+      if (!response.ok) {
+        throw new Error(`aggregateContext http ${response.status}`)
+      }
+
+      for (const line of text.split("\n")) {
+        const t = line.trim()
+        if (!t) continue
+        try {
+          const evt = JSON.parse(t)
+          if (evt?.type === "result" && evt?.data?.context) {
+            contextText = evt.data.context || ""
+          }
+        } catch {
+          // ignore parse error for non-json lines
+        }
+      }
+
+      setAggregatedContextText(contextText)
+      stepMachine.stepEnd("aggregateContext", "聚合设定完成")
+    } catch (e: any) {
+      const msg = e?.message || "聚合设定失败"
+      setAggregatedContextError(msg)
+      stepMachine.stepError("aggregateContext", msg)
+      throw e
+    } finally {
+      setIsAggregatingContext(false)
+    }
+
+    await runFromDraftAndCritic2(prevContent, contextText)
+  }
+
   const handleContinue = async () => {
     if (!selectedChapter) return
     if (relatedChapterIds.length === 0 && !isReferSelf) return
@@ -453,142 +665,13 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
       // blocking 缩写结束：StepA done
       stepMachine.stepEnd("prepareInputs", "完成缩写前文")
 
-      // StepB：聚合设定（blocking 获取，供前端展示）
-      currentStep = "aggregateContext"
-      stepMachine.stepStart("aggregateContext", "聚合设定")
-      setIsAggregatingContext(true)
-      setAggregatedContextError("")
-
-      try {
-        const response = await fetch(
-          `/api/aiNoval/chapters/genChapterStreaming/aggregateContext?worldviewId=${selectedChapter.worldview_id}`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              role_group_names: roleGroupNames || "",
-              role_names: roleNames || "",
-              faction_names: factionNames || "",
-              geo_names: geoNames || "",
-            }),
-          }
-        )
-
-        const text = await response.text()
-        if (!response.ok) {
-          throw new Error(`aggregateContext http ${response.status}`)
-        }
-
-        let context = ""
-        for (const line of text.split("\n")) {
-          const t = line.trim()
-          if (!t) continue
-          try {
-            const evt = JSON.parse(t)
-            if (evt?.type === "result" && evt?.data?.context) {
-              context = evt.data.context || ""
-            }
-          } catch {
-            // ignore parse error for non-json lines
-          }
-        }
-
-        setAggregatedContextText(context)
-        stepMachine.stepEnd("aggregateContext", "聚合设定完成")
-      } catch (e: any) {
-        const msg = e?.message || "聚合设定失败"
-        setAggregatedContextError(msg)
-        stepMachine.stepError("aggregateContext", msg)
-      } finally {
-        setIsAggregatingContext(false)
-      }
-
-      // StepC：初稿流式生成（NDJSON streaming）
-      currentStep = "writerDraft"
-      stepMachine.stepStart("writerDraft", "生成初稿（流式）")
-      setDraftContent("")
-      setAutoWriteStatus("初稿生成中")
-      setAutoWriteError("")
-      setAutoWriteElapsed(0)
-      const writerDraftStartTime = Date.now()
-
       const prompt = promptWorkMode === "full" ? seedPrompt : selectedPromptParts.join("\n")
       const prevContent = preparedChapterList
         .filter((c) => c.state === "completed" && c.strippedContent)
         .map((c) => c.strippedContent)
         .join("\n\n")
-
-      const resp = await fetch(
-        `/api/aiNoval/chapters/genChapterStreaming/writerDraft?worldviewId=${selectedChapter.worldview_id}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            prev_content: prevContent || "",
-            curr_context: prompt || "",
-            context: aggregatedContextText || "",
-            attention: attention || "",
-            attension: attention || "",
-            llm_type: draftLlmType,
-            draft_llm_type: draftLlmType,
-          }),
-        }
-      )
-
-      if (!resp.ok) {
-        throw new Error(`writerDraft http ${resp.status}`)
-      }
-      if (!resp.body) {
-        throw new Error("writerDraft response body is empty")
-      }
-
-      const reader = resp.body.getReader()
-      const decoder = new TextDecoder("utf-8")
-      let buffer = ""
-
-      while (true) {
-        const { value, done } = await reader.read()
-        if (done) break
-        buffer += decoder.decode(value, { stream: true })
-
-        const lines = buffer.split("\n")
-        buffer = lines.pop() || ""
-
-        for (const line of lines) {
-          const t = line.trim()
-          if (!t) continue
-          let evt: any
-          try {
-            evt = JSON.parse(t)
-          } catch {
-            continue
-          }
-
-          if (evt?.type === "delta" && typeof evt?.text === "string") {
-            const delta = evt.text
-            setDraftContent((prev) => prev + delta)
-          }
-
-          if (evt?.type === "result" && evt?.data?.draft != null) {
-            const full = String(evt.data.draft || "")
-            setDraftContent(full)
-          }
-
-          if (evt?.type === "error") {
-            throw new Error(evt?.message || "writerDraft error")
-          }
-        }
-      }
-
-      stepMachine.stepEnd("writerDraft", "初稿生成完成")
-      setAutoWriteStatus("初稿生成完成")
-      setAutoWriteElapsed(Date.now() - writerDraftStartTime)
-
-      // 结束节点
-      stepMachine.stepStart("end")
-      stepMachine.stepEnd("end")
+      currentStep = null
+      await runFromAggregateToDraftAndCritic2(prevContent || prompt || "")
     } catch (error: any) {
       console.error("continueChapter error -> ", error)
       message.error("续写失败，原因：" + (error?.message || error))
@@ -610,12 +693,27 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
     if (!selectedChapter) return
 
     try {
-      // 第一步：设置状态，关闭所有编辑权限
       setIsContinuing(true)
       setIsLoading(true)
+      setKeepGoing(true)
+      setDraftContent("")
+      setAutoWriteError("")
+      setAutoWriteElapsed(0)
+      setAutoWriteStatus("重写中")
 
-      // 第二步：使用AI续写
-      await executeAutoWrite();
+      // 按要求：重写不包含“聚合设定”，直接从“生成初稿”开始
+      stepMachine.startRun()
+      stepMachine.setRounds(0, criticMaxRounds)
+      stepMachine.stepSkip("start", "重写从生成初稿开始")
+      stepMachine.stepSkip("prepareInputs", "复用已缩写前文")
+      stepMachine.stepSkip("aggregateContext", "重写不执行聚合设定")
+
+      const prevContent = stripReportList
+        .filter((c) => c.state === "completed" && c.strippedContent)
+        .map((c) => c.strippedContent)
+        .join("\n\n")
+      const prompt = promptWorkMode === "full" ? seedPrompt : selectedPromptParts.join("\n")
+      await runFromDraftAndCritic2(prevContent || prompt || "", aggregatedContextText || "")
 
     } catch (error: any) {
       console.error('continueChapter error -> ', error)
@@ -623,6 +721,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
     } finally {
       setIsContinuing(false)
       setIsLoading(false)
+      setKeepGoing(false)
     }
   }
 
