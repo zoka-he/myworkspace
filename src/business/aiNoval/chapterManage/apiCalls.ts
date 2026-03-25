@@ -698,7 +698,7 @@ export const genChapterBlocking = async (worldviewId: number, inputs: any, difyH
         inputs,
         {
             params: {worldviewId, difyHost},
-            timeout: 1000 * 60 * 25
+            timeout: 1000 * 60 * 60
         }
     );
     return {
