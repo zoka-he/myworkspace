@@ -1,4 +1,5 @@
-import React, { useState } from 'react'import { message } from '@/src/utils/antdAppMessage';
+import React, { useState } from 'react'
+import { message } from '@/src/utils/antdAppMessage';
 
 import { Card, Button, Input, Space, Modal, Typography, Upload, InputNumber } from 'antd'
 import { EditOutlined, CopyOutlined, UploadOutlined, CompressOutlined, TagOutlined, RobotOutlined, FileTextOutlined } from '@ant-design/icons'
@@ -7,6 +8,7 @@ import * as chapterApi from '../apiCalls'
 import styles from './ChapterGeneratePanel.module.scss'
 import type { UploadProps } from 'antd'
 import ChapterContinueModal from './ChapterContinueModal'
+import ChapterContinueStreamingModal from './ChapterContinueStreamingModal'
 import GenChapterByDetailModal from './GenChapterByDetailModal'
 import * as apiCalls from '../apiCalls'
 import copyToClip from '@/src/utils/common/copy'
@@ -32,6 +34,7 @@ function ChapterGeneratePanel({ onChapterChange }: ChapterGeneratePanelProps) {
   const [suggestedName, setSuggestedName] = useState('')
   const [isNaming, setIsNaming] = useState(false)
   const [isContinueModalVisible, setIsContinueModalVisible] = useState(false)
+  const [isContinueStreamingModalVisible, setIsContinueStreamingModalVisible] = useState(false)
   const [isGenDetailModalVisible, setIsGenDetailModalVisible] = useState(false)
 
   // 当选中章节改变时，更新内容
@@ -107,6 +110,16 @@ function ChapterGeneratePanel({ onChapterChange }: ChapterGeneratePanelProps) {
         isVisible={isContinueModalVisible}
         onClose={() => setIsContinueModalVisible(false)}
         // onChapterChange={onChapterChange}
+      />
+    )
+  }
+
+  const renderContinueStreamingFeature = () => {
+    return (
+      <ChapterContinueStreamingModal
+        selectedChapterId={chapterContext?.id}
+        isVisible={isContinueStreamingModalVisible}
+        onClose={() => setIsContinueStreamingModalVisible(false)}
       />
     )
   }
@@ -239,6 +252,15 @@ function ChapterGeneratePanel({ onChapterChange }: ChapterGeneratePanelProps) {
                 >
                   AI生成
                 </Button>
+
+                <Button
+                  type="primary"
+                  icon={<RobotOutlined />}
+                  onClick={() => setIsContinueStreamingModalVisible(true)}
+                >
+                  整章生成（流式）
+                </Button>
+
                 <Button
                   type="primary"
                   icon={<FileTextOutlined />}
@@ -306,6 +328,7 @@ function ChapterGeneratePanel({ onChapterChange }: ChapterGeneratePanelProps) {
       </Card>
 
       {renderContinueFeature()}
+      {renderContinueStreamingFeature()}
       {renderGenDetailFeature()}
       {renderSummarizeFeature()}
 

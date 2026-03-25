@@ -166,7 +166,6 @@ done / error
 这样**自动续接**由「上一段末尾 + 本段提纲要点 + 明确指令」在单段接口内完成，前端只负责拼接和轮次控制；**避免段落开头重复世界观**通过提纲约束 + 本段写作禁令在新模块中一并落实。
 
 ### 4.4 前端调用顺序（分段流程）
-
 1. 用户点击「生成分段提纲」→ 若 `useMcpContext`：`await collectChapterContext(...)` → 得到 `mcpContext`。
 2. `await genChapterSegmentOutline(...)` → 得到 `segmentOutlineList`，设 `phase = 'awaiting_confirmation'`，**回显提纲**（列表展示每段要点）。
 3. 用户查看/可编辑提纲后，点击「确认并开始续写」→ `phase = 'writing_segment'`，从 `segmentIndex = 1` 开始。
