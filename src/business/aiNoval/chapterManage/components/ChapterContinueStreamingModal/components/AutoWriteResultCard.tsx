@@ -7,7 +7,7 @@ export default function AutoWriteResultCard(props: {
   autoWriteElapsed: number;
   deepseekBalance: any;
   autoWriteError: string;
-  autoWriteResult: string;
+  draftContent: string;
   disabledCopy: boolean;
   disabledRewrite: boolean;
   onCopy: () => void;
@@ -53,7 +53,7 @@ export default function AutoWriteResultCard(props: {
       {props.autoWriteError.length > 0 && (
         <Alert message={props.autoWriteError} type="error" />
       )}
-      <ThinkingResult thinkingResult={props.autoWriteResult} />
+      <ThinkingResult thinkingResult={props.draftContent} />
     </Card>
   );
 }

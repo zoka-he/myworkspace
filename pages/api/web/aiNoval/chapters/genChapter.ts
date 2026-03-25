@@ -127,7 +127,7 @@ ${attensionText}
 }
 
 // 构建用户输入
-function buildUserInput(prevContent: string, currContext: string): string {
+export function buildUserInput(prevContent: string, currContext: string): string {
     let parts: string[] = [];
     
     if (prevContent && prevContent.trim().length > 0) {

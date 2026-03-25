@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { message } from '@/src/utils/antdAppMessage';
 
-import { Modal, Button, Space, Row, Col, Form, Select, Checkbox, Divider, Input, Tag, Typography, Card, InputNumber } from 'antd'
+import { Modal, Button, Space, Row, Col, Form, Select, Checkbox, Divider, Input, Tag, Typography, Card, InputNumber, Collapse, Spin } from 'antd'
 import { CloseOutlined, CopyOutlined, EditOutlined, RedoOutlined, RobotOutlined } from '@ant-design/icons'
 import { IChapter } from '@/src/types/IAiNoval'
 import * as chapterApi from '../../apiCalls'
@@ -97,6 +97,14 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
 
   // 自动续写错误
   const [autoWriteError, setAutoWriteError] = useState<string>('');
+
+  // 聚合设定（用于展示）
+  const [aggregatedContextText, setAggregatedContextText] = useState<string>('');
+  const [isAggregatingContext, setIsAggregatingContext] = useState<boolean>(false);
+  const [aggregatedContextError, setAggregatedContextError] = useState<string>('');
+
+  // 初稿（流式生成，独立于最终稿）
+  const [draftContent, setDraftContent] = useState<string>('');
 
   // 更新 keepGoing 时同步更新 ref
   useEffect(() => {
@@ -442,18 +450,145 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
 
       await Promise.all(pendingTasks)
 
-      // blocking 结束
+      // blocking 缩写结束：StepA done
       stepMachine.stepEnd("prepareInputs", "完成缩写前文")
+
+      // StepB：聚合设定（blocking 获取，供前端展示）
       currentStep = "aggregateContext"
+      stepMachine.stepStart("aggregateContext", "聚合设定")
+      setIsAggregatingContext(true)
+      setAggregatedContextError("")
 
-      // 后续：直接走现有 executeAutoWrite（仍阻塞式；后续再接入 atomic streaming）
-      // currentStep = "aggregateContext"
-      // stepMachine.stepStart("aggregateContext" as any, "开始生成续写…")
-      // await executeAutoWrite()
-      // stepMachine.stepEnd("aggregateContext" as any, "生成完成")
+      try {
+        const response = await fetch(
+          `/api/aiNoval/chapters/genChapterStreaming/aggregateContext?worldviewId=${selectedChapter.worldview_id}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              role_group_names: roleGroupNames || "",
+              role_names: roleNames || "",
+              faction_names: factionNames || "",
+              geo_names: geoNames || "",
+            }),
+          }
+        )
 
-      stepMachine.stepStart("end" as any)
-      stepMachine.stepEnd("end" as any)
+        const text = await response.text()
+        if (!response.ok) {
+          throw new Error(`aggregateContext http ${response.status}`)
+        }
+
+        let context = ""
+        for (const line of text.split("\n")) {
+          const t = line.trim()
+          if (!t) continue
+          try {
+            const evt = JSON.parse(t)
+            if (evt?.type === "result" && evt?.data?.context) {
+              context = evt.data.context || ""
+            }
+          } catch {
+            // ignore parse error for non-json lines
+          }
+        }
+
+        setAggregatedContextText(context)
+        stepMachine.stepEnd("aggregateContext", "聚合设定完成")
+      } catch (e: any) {
+        const msg = e?.message || "聚合设定失败"
+        setAggregatedContextError(msg)
+        stepMachine.stepError("aggregateContext", msg)
+      } finally {
+        setIsAggregatingContext(false)
+      }
+
+      // StepC：初稿流式生成（NDJSON streaming）
+      currentStep = "writerDraft"
+      stepMachine.stepStart("writerDraft", "生成初稿（流式）")
+      setDraftContent("")
+      setAutoWriteStatus("初稿生成中")
+      setAutoWriteError("")
+      setAutoWriteElapsed(0)
+      const writerDraftStartTime = Date.now()
+
+      const prompt = promptWorkMode === "full" ? seedPrompt : selectedPromptParts.join("\n")
+      const prevContent = preparedChapterList
+        .filter((c) => c.state === "completed" && c.strippedContent)
+        .map((c) => c.strippedContent)
+        .join("\n\n")
+
+      const resp = await fetch(
+        `/api/aiNoval/chapters/genChapterStreaming/writerDraft?worldviewId=${selectedChapter.worldview_id}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prev_content: prevContent || "",
+            curr_context: prompt || "",
+            context: aggregatedContextText || "",
+            attention: attention || "",
+            attension: attention || "",
+            llm_type: draftLlmType,
+            draft_llm_type: draftLlmType,
+          }),
+        }
+      )
+
+      if (!resp.ok) {
+        throw new Error(`writerDraft http ${resp.status}`)
+      }
+      if (!resp.body) {
+        throw new Error("writerDraft response body is empty")
+      }
+
+      const reader = resp.body.getReader()
+      const decoder = new TextDecoder("utf-8")
+      let buffer = ""
+
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+
+        const lines = buffer.split("\n")
+        buffer = lines.pop() || ""
+
+        for (const line of lines) {
+          const t = line.trim()
+          if (!t) continue
+          let evt: any
+          try {
+            evt = JSON.parse(t)
+          } catch {
+            continue
+          }
+
+          if (evt?.type === "delta" && typeof evt?.text === "string") {
+            const delta = evt.text
+            setDraftContent((prev) => prev + delta)
+          }
+
+          if (evt?.type === "result" && evt?.data?.draft != null) {
+            const full = String(evt.data.draft || "")
+            setDraftContent(full)
+          }
+
+          if (evt?.type === "error") {
+            throw new Error(evt?.message || "writerDraft error")
+          }
+        }
+      }
+
+      stepMachine.stepEnd("writerDraft", "初稿生成完成")
+      setAutoWriteStatus("初稿生成完成")
+      setAutoWriteElapsed(Date.now() - writerDraftStartTime)
+
+      // 结束节点
+      stepMachine.stepStart("end")
+      stepMachine.stepEnd("end")
     } catch (error: any) {
       console.error("continueChapter error -> ", error)
       message.error("续写失败，原因：" + (error?.message || error))
@@ -557,7 +692,9 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
     const res = await chapterApi.genChapterBlocking(selectedChapter.worldview_id, reqObj, store.getState().difySlice.frontHost || '');
     console.info('auto write res -> ', res);
 
-    setAutoWriteResult(res.content || '续写已结束，未返回内容');
+    const nextText = res.content || '续写已结束，未返回内容';
+    setDraftContent(nextText);
+    setAutoWriteResult(nextText);
     setAutoWriteStatus(res.status || 'idle')
     setAutoWriteError(res.error || '')
     setAutoWriteElapsed(res.elapsed_time || 0)
@@ -725,12 +862,12 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
 
   // 复制续写内容
   const handleCopyContinued = () => {
-    if (!autoWriteResult) {
+    if (!draftContent) {
       message.error('续写内容为空')
       return;
     }
 
-    let pureResult = autoWriteResult.replace(/<think>[\s\S]*<\/think>/g, '');
+    let pureResult = draftContent.replace(/<think>[\s\S]*<\/think>/g, '');
     if (!pureResult) {
       message.error('续写内容为空')
       return;
@@ -746,14 +883,14 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
   }
 
   const handleClearThinking = () => {
-    if (!autoWriteResult) {
+    if (!draftContent) {
       message.error('续写内容为空')
       return;
     }
 
-    let pureResult = autoWriteResult.replace(/<think>[\s\S]*<\/think>/g, '');
+    let pureResult = draftContent.replace(/<think>[\s\S]*<\/think>/g, '');
     console.info('handleClearThinking -> ', pureResult);
-    setAutoWriteResult(pureResult)
+    setDraftContent(pureResult)
   }
 
   // 显示章节原文
@@ -1055,6 +1192,13 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
                   <Checkbox checked={antiPlotExplanation} onChange={(e) => setAntiPlotExplanation(e.target.checked)} disabled={isContinuing}>抗剧透及解释</Checkbox>
                   <Checkbox checked={antiSpeechMilitarySummaryStyle} onChange={(e) => setAntiSpeechMilitarySummaryStyle(e.target.checked)} disabled={isContinuing}>抗演讲/军事腔调</Checkbox>
                 </Space>
+
+                <div className="text-right mt-2">
+                  <Button type="primary" onClick={handleStoreActualPrompt}>存储提示词集</Button>
+                </div>
+
+
+
                 <Divider orientation="left">续写选项</Divider>
                 <div className="flex flex-col">
                 <Space wrap>
@@ -1132,13 +1276,44 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
                   onViewStripped={handleViewStripped}
                 />
 
+                <Collapse
+                  size="small"
+                  style={{ marginTop: 12 }}
+                  items={[
+                    {
+                      key: "aggregatedContext",
+                      label: <Typography.Text type="secondary">聚合设定（可折叠展示）</Typography.Text>,
+                      children: (
+                        <div style={{ maxHeight: 600, overflow: "auto" }}>
+                          {isAggregatingContext ? (
+                            <Space>
+                              <Spin size="small" />
+                              <Typography.Text type="secondary">正在聚合设定…</Typography.Text>
+                            </Space>
+                          ) : aggregatedContextError ? (
+                            <Typography.Text type="danger">{aggregatedContextError}</Typography.Text>
+                          ) : aggregatedContextText ? (
+                            <Typography.Paragraph style={{ whiteSpace: "pre-wrap" }}>
+                              {aggregatedContextText}
+                            </Typography.Paragraph>
+                          ) : (
+                            <div style={{ minHeight: 24 }}>
+                              暂无聚合设定内容（请先开始续写）
+                            </div>
+                          )}
+                        </div>
+                      ),
+                    },
+                  ]}
+                />
+
                 <AutoWriteResultCard
                   autoWriteStatus={autoWriteStatus}
                   autoWriteElapsed={autoWriteElapsed}
                   deepseekBalance={deepseekBalance}
                   autoWriteError={autoWriteError}
-                  autoWriteResult={autoWriteResult}
-                  disabledCopy={isLoading || isContinuing || !autoWriteResult}
+                  draftContent={draftContent}
+                  disabledCopy={isLoading || isContinuing || !draftContent}
                   disabledRewrite={isLoading || isContinuing}
                   onCopy={handleCopyContinued}
                   onRewrite={handleReContinue}
