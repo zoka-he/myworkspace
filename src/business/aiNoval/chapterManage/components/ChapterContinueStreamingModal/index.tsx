@@ -281,16 +281,194 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
 
   // 处理AI续写（全流程：缩写+续写）
   const handleContinue = async () => {
-    // 清理旧的“开始续写”一把梭逻辑：
-    // - 旧逻辑：本地并行缩写 + 直接调用 executeAutoWrite（阻塞式续写）
-    // - 新逻辑：将由“原子 Streaming step 编排器”接管（aggregateContext/writerDraft/critic/.../rewrite）
-    stepMachine.startRun()
-    stepMachine.stepStart('start')
-    stepMachine.stepEnd('start')
-    // 按要求：尚未进入 critic1/critic3/modifier/polish 等步骤时，轮次应显示为 0
-    stepMachine.setRounds(0, criticMaxRounds)
-    stepMachine.stepStart('prepareInputs', '等待接入编排器…')
-    message.info('旧的“开始续写”逻辑已移除：步骤条已就绪，待接入原子 Streaming 编排流程。')
+    if (!selectedChapter) return
+    if (relatedChapterIds.length === 0 && !isReferSelf) return
+
+    // blocking 缩写并发执行
+    const difyHost = store.getState().difySlice.frontHost || ""
+
+    let currentStep: any = "prepareInputs"
+    try {
+      // 第一步：设置状态，关闭所有编辑权限
+      setIsContinuing(true)
+      setIsLoading(true)
+      setContinuedContent("")
+      setKeepGoing(true)
+
+      // 步骤条
+      stepMachine.startRun()
+      stepMachine.stepStart("start")
+      stepMachine.stepEnd("start")
+      stepMachine.setRounds(0, criticMaxRounds)
+      currentStep = "prepareInputs"
+      stepMachine.stepStart("prepareInputs", "缩写前文")
+
+      // 第二步：加载所有关联章节内容（有 summary 直接采用；否则标记为 pending 等待 blocking 缩写）
+      const emptyIds: number[] = []
+      const preparedChapterList: ChapterStripReport[] = []
+
+      for (const chapterId of relatedChapterIds) {
+        const res = await apiCalls.getChapterById(chapterId)
+        const originalContent = (res?.content || "") as string
+        const summary = (res?.summary ?? "").toString().trim()
+
+        if (summary) {
+          preparedChapterList.push({
+            state: "completed",
+            chapterNumber: res.chapter_number || 0,
+            chapterTitle: res.title || "",
+            version: res.version || 0,
+            id: res.id,
+            originalContent,
+            strippedContent: summary,
+          })
+          continue
+        }
+
+        if (!originalContent.trim()) {
+          preparedChapterList.push({
+            state: "completed",
+            chapterNumber: res.chapter_number || 0,
+            chapterTitle: res.title || "",
+            version: res.version || 0,
+            id: res.id,
+            originalContent,
+            strippedContent: "",
+          })
+          if (res.id != null) emptyIds.push(res.id)
+          continue
+        }
+
+        preparedChapterList.push({
+          state: "pending",
+          chapterNumber: res.chapter_number || 0,
+          chapterTitle: res.title || "",
+          version: res.version || 0,
+          id: res.id,
+          originalContent,
+          strippedContent: "",
+        })
+      }
+
+      // 如果参考本章，则将本章内容加入到 preparedChapterList 中
+      if (isReferSelf && selectedChapter) {
+        const selfContent = (selectedChapter.content || "") as string
+        const selfSummary = (selectedChapter.summary ?? "").toString().trim()
+
+        if (!isStripSelf) {
+          preparedChapterList.push({
+            state: "completed",
+            chapterNumber: selectedChapter.chapter_number || 0,
+            chapterTitle: selectedChapter.title || "",
+            version: selectedChapter.version || 0,
+            id: selectedChapter.id,
+            originalContent: selfContent,
+            strippedContent: selfContent,
+          })
+        } else if (selfSummary) {
+          preparedChapterList.push({
+            state: "completed",
+            chapterNumber: selectedChapter.chapter_number || 0,
+            chapterTitle: selectedChapter.title || "",
+            version: selectedChapter.version || 0,
+            id: selectedChapter.id,
+            originalContent: selfContent,
+            strippedContent: selfSummary,
+          })
+        } else if (!selfContent.trim()) {
+          preparedChapterList.push({
+            state: "completed",
+            chapterNumber: selectedChapter.chapter_number || 0,
+            chapterTitle: selectedChapter.title || "",
+            version: selectedChapter.version || 0,
+            id: selectedChapter.id,
+            originalContent: selfContent,
+            strippedContent: "",
+          })
+          if (selectedChapter.id != null) emptyIds.push(selectedChapter.id)
+        } else {
+          preparedChapterList.push({
+            state: "pending",
+            chapterNumber: selectedChapter.chapter_number || 0,
+            chapterTitle: selectedChapter.title || "",
+            version: selectedChapter.version || 0,
+            id: selectedChapter.id,
+            originalContent: selfContent,
+            strippedContent: "",
+          })
+        }
+      }
+
+      setEmptyContentChapterIds(emptyIds)
+      setStripReportList(preparedChapterList)
+
+      // 第三步：blocking 缩写 pending chapters（并发）
+      const pendingTasks = preparedChapterList.map(async (chapter, chapterIndex) => {
+        if (chapter.state !== "pending") return
+        if (!keepGoingRef.current) return
+
+        if (chapter.id == null) {
+          // 缺少 id 无法走后端 summarize，直接置空完成
+          setStripReportList(prevList => {
+            const newList = [...prevList]
+            newList[chapterIndex] = { ...chapter, state: "completed", strippedContent: "" }
+            return newList
+          })
+          return
+        }
+
+        // 置为 processing
+        setStripReportList(prevList => {
+          const newList = [...prevList]
+          newList[chapterIndex] = { ...chapter, state: "processing" }
+          return newList
+        })
+
+        // blocking：后端返回后再更新结果
+        const text = await chapterApi.summarizeChapterAndSave(chapter.id, 300, difyHost)
+
+        if (!keepGoingRef.current) return
+
+        setStripReportList(prevList => {
+          const newList = [...prevList]
+          newList[chapterIndex] = {
+            ...chapter,
+            state: "completed",
+            strippedContent: text,
+          }
+          return newList
+        })
+      })
+
+      await Promise.all(pendingTasks)
+
+      // blocking 结束
+      stepMachine.stepEnd("prepareInputs", "完成缩写前文")
+      currentStep = "aggregateContext"
+
+      // 后续：直接走现有 executeAutoWrite（仍阻塞式；后续再接入 atomic streaming）
+      // currentStep = "aggregateContext"
+      // stepMachine.stepStart("aggregateContext" as any, "开始生成续写…")
+      // await executeAutoWrite()
+      // stepMachine.stepEnd("aggregateContext" as any, "生成完成")
+
+      stepMachine.stepStart("end" as any)
+      stepMachine.stepEnd("end" as any)
+    } catch (error: any) {
+      console.error("continueChapter error -> ", error)
+      message.error("续写失败，原因：" + (error?.message || error))
+      if (currentStep) {
+        try {
+          stepMachine.stepError(currentStep, error?.message || "step failed")
+        } catch {
+          // ignore
+        }
+      }
+    } finally {
+      setIsContinuing(false)
+      setIsLoading(false)
+      setKeepGoing(false)
+    }
   }
 
   const handleReContinue = async () => {
