@@ -245,13 +245,13 @@ function ChapterGeneratePanel({ onChapterChange }: ChapterGeneratePanelProps) {
                 >
                   编辑
                 </Button>
-                <Button
+                {/*<Button
                   type="primary"
                   icon={<RobotOutlined />}
                   onClick={() => setIsContinueModalVisible(true)}
                 >
                   AI生成
-                </Button>
+                </Button>*/}
 
                 <Button
                   type="primary"
