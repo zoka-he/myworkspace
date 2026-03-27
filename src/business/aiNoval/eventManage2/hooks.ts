@@ -1,59 +1,92 @@
-import { useContext } from "react";
-import { EventManage2DataContext, EventManage2DispatchContext } from "./context";
+import { useMemo } from "react";
+import useSWR from "swr";
+import { getFactionList, getGeoUnitOptionsForWorldState, getRoleOptionsForWorldState, getStoryLineList, getTimelineEventList, getWorldViewList } from "@/src/api/aiNovel";
+import type { IFactionDefData, IRoleData, IStoryLine, ITimelineEvent, IWorldViewDataWithExtra } from "@/src/types/IAiNoval";
 
-export function useWorldViewId() {
-    const { worldViewId } = useContext(EventManage2DataContext);
-    const { dispatch } = useContext(EventManage2DispatchContext);
-    return [
-        worldViewId,
-        (worldViewId: number | null) => {
-            dispatch({ type: 'SET_WORLD_VIEW_ID', payload: worldViewId });
-        }
-    ] as const;
+export function useWorldviews() {
+    return useSWR(["event-manage-worldviews"], async () => {
+        const response = await getWorldViewList(1, 300);
+        return (response?.data ?? []) as IWorldViewDataWithExtra[];
+    });
 }
 
-export function useFactions() {
-    const { factionList } = useContext(EventManage2DataContext);
-    return [factionList ?? []] as const;
+export function useStoryLines(worldviewId: number | null) {
+    return useSWR(worldviewId ? ["event-manage-story-lines", worldviewId] : null, async () => {
+        if (!worldviewId) return [];
+        const response = await getStoryLineList(worldviewId);
+        return (response?.data ?? []) as IStoryLine[];
+    });
 }
 
-export function useGeos() {
-    const { geoList } = useContext(EventManage2DataContext);
-    return [geoList] as const;
+export function useFactions(worldviewId: number | null) {
+    return useSWR(worldviewId ? ["event-manage-factions", worldviewId] : null, async () => {
+        if (!worldviewId) return [];
+        const response = await getFactionList(worldviewId, 500);
+        return (response?.data ?? []) as IFactionDefData[];
+    });
 }
 
-export function useEvents() {
-    // const { eventList } = useContext(EventManage2DataContext);
-    // return [eventList] as const;
+export function useRoles(worldviewId: number | null) {
+    return useSWR(worldviewId ? ["event-manage-roles", worldviewId] : null, async () => {
+        if (!worldviewId) return [];
+        const response = await getRoleOptionsForWorldState(worldviewId);
+        return (response ?? []) as IRoleData[];
+    });
 }
 
-export function useRoles() {
-    const { roleList } = useContext(EventManage2DataContext);
-    return [roleList] as const;
+export function useLocations(worldviewId: number | null) {
+    return useSWR(worldviewId ? ["event-manage-locations", worldviewId] : null, async () => {
+        if (!worldviewId) return [];
+        const response = await getGeoUnitOptionsForWorldState(worldviewId);
+        return response ?? [];
+    });
 }
 
-export function useRoleGroups( worldViewId: number | null ) {
-    // const { roleList } = useContext(EventManage2DataContext);
-    // return [roleList] as const;
+export function useTimelineEvents(worldviewId: number | null, storyLineId?: number, keyword?: string) {
+    return useSWR(worldviewId ? ["event-manage-events", worldviewId, storyLineId] : null, async () => {
+        if (!worldviewId) return [];
+        const response = await getTimelineEventList(
+            {
+                worldview_id: worldviewId,
+                story_line_id: storyLineId,
+            },
+            1,
+            1000
+        );
+        const rows = (response?.data ?? []) as ITimelineEvent[];
+        return rows.map((item) => normalizeEvent(item));
+    }, {
+        keepPreviousData: true,
+    });
 }
 
-export function useNovelId() {
-    const { novelId } = useContext(EventManage2DataContext);
-    const { dispatch } = useContext(EventManage2DispatchContext);
-    return [
-        novelId,
-        (novelId: number | null) => {
-            dispatch({ type: 'SET_NOVEL_ID', payload: novelId });
-        }
-    ] as const;
+export function useFilteredEvents(events: ITimelineEvent[] | undefined, keyword: string) {
+    return useMemo(() => {
+        if (!events?.length) return [];
+        const trimmedKeyword = keyword.trim().toLowerCase();
+        if (!trimmedKeyword) return events;
+        return events.filter((item) => {
+            const searchable = `${item.title ?? ""}|${item.description ?? ""}|${item.location ?? ""}`.toLowerCase();
+            return searchable.includes(trimmedKeyword);
+        });
+    }, [events, keyword]);
 }
 
-export function useTimelines() {
-    const { timelineList } = useContext(EventManage2DataContext);
-    return [timelineList] as const;
-}
-
-export function useWorldViewData() {
-    const { worldViewData } = useContext(EventManage2DataContext);
-    return [worldViewData] as const;
+function normalizeEvent(item: ITimelineEvent): ITimelineEvent {
+    const validStates = ["enabled", "questionable", "not_yet", "blocked", "closed"];
+    const rawState = item.state ?? (item as unknown as Record<string, string>).State;
+    const state = typeof rawState === "string" && validStates.includes(rawState) ? rawState : "enabled";
+    return {
+        ...item,
+        id: Number(item.id),
+        date: Number(item.date ?? 0),
+        title: item.title ?? "",
+        description: item.description ?? "",
+        location: item.location ?? "",
+        faction_ids: Array.isArray(item.faction_ids) ? item.faction_ids.map(Number) : [],
+        role_ids: Array.isArray(item.role_ids) ? item.role_ids.map((id) => String(id)) : [],
+        story_line_id: Number(item.story_line_id ?? 0),
+        worldview_id: Number(item.worldview_id ?? 0),
+        state,
+    };
 }
