@@ -45,7 +45,7 @@ export default function Figure(props: IFigureProps) {
 
         const zoomBehavior = d3
             .zoom<SVGSVGElement, unknown>()
-            .scaleExtent([1, 1000]) // 缩放范围可按需要调整
+            .scaleExtent([1, 1000000]) // 缩放范围可按需要调整
             // extent / translateExtent 限制拖拽和缩放的有效范围，避免把内容拖出视口之外
             .extent([[0, 0], [svgSize.width, svgSize.height]])
             .translateExtent([[0, 0], [svgSize.width, svgSize.height]])
@@ -74,7 +74,10 @@ export default function Figure(props: IFigureProps) {
             baseTimeline = timelineList[0];
         }
 
-        return [baseTimeline.start_seconds || 0, worldViewData?.te_max_seconds || 1];
+        let start = baseTimeline.start_seconds || 0;
+        let end = (worldViewData?.te_max_seconds || 1) + 3600 * 24 * 365;
+
+        return [start, end];
 
     }, [timelineList, worldViewData]);
 
@@ -102,7 +105,7 @@ export default function Figure(props: IFigureProps) {
                     
                 </div>
                 <div className="w-full flex-1 flex flex-row">
-                    <svg className="h-full w-40">
+                    <svg className="h-full w-20">
                         <TimeAxisSvg />
                     </svg>
                     <svg ref={svgRef} className="flex-1 h-full">
@@ -113,8 +116,8 @@ export default function Figure(props: IFigureProps) {
                         {/* 在此处建立示意图标 */}
                     </svg>
                 </div>
-                <div className="w-full h-30 flex flex-row">
-                    <svg className="h-full w-40">
+                <div className="w-full h-20 flex flex-row">
+                    <svg className="h-full w-20">
                         {/* 留空 */}
                     </svg>
                     
@@ -201,7 +204,7 @@ function TimeAxisSvg() {
     let tickTimes = [minTickTime];
     for (let i = minTickTime; i < maxTickTime; i += tickSize) {
         tickTimes.push(i);
-        console.debug(tickTimes);
+        // console.debug(tickTimes);
     }
     
     const dateFormatter = TimelineDateFormatter.fromWorldViewWithExtra(worldViewData);
@@ -248,28 +251,22 @@ function TimeAxisSvg() {
 
 function GeoAxisSvg() {
     const { svgSize } = useContext(FigureCommonContext);
-    const [geoList] = useGeos();
+    const { leafOfGeoPartitions } = useContext(FigureCommonContext);
 
-    if (!geoList || geoList.length === 0 || svgSize.width <= 0) {
+    if (!leafOfGeoPartitions || leafOfGeoPartitions.length === 0 || svgSize.width <= 0) {
         return null;
     }
 
-    const maxLabels = 20;
-    const total = geoList.length;
-
-    const step = Math.max(1, Math.floor(total / maxLabels));
-    const sampled = geoList.filter((_, index) => true);
-
-    const count = sampled.length;
-
+    const count = leafOfGeoPartitions.length;
+    
     return (
         <g>
             {/* 轴线紧贴容器上侧，宽度按照 svgSize.width */}
             <line x1={0} x2={svgSize.width} y1={0} y2={0} stroke="#999" strokeWidth={1} />
-            {sampled.map((geo, idx) => {
-                const x = ((idx + 0.5) / count) * svgSize.width;
+            {leafOfGeoPartitions.map((geo, idx) => {
+                const x = (geo.x0 + geo.x1) / 2;
                 return (
-                    <g key={geo.code ?? idx}>
+                    <g key={geo.data.code ?? idx}>
                         <line
                             x1={x}
                             x2={x}
@@ -287,7 +284,7 @@ function GeoAxisSvg() {
                             transform={`rotate(90, ${x}, 10)`}
                             alignmentBaseline="middle"
                         >
-                            {geo.name}
+                            {geo.data.name}
                         </text>
                     </g>
                 );

@@ -22,6 +22,11 @@ export function useGeos() {
     return [geoList] as const;
 }
 
+export function useGeoTree() {
+    const { geoTree } = useContext(EventManage2DataContext);
+    return [geoTree] as const;
+}
+
 export function useEvents() {
     // const { eventList } = useContext(EventManage2DataContext);
     // return [eventList] as const;
@@ -56,4 +61,20 @@ export function useTimelines() {
 export function useWorldViewData() {
     const { worldViewData } = useContext(EventManage2DataContext);
     return [worldViewData] as const;
+}
+
+export function useStoryLines() {
+    const { storyLineList } = useContext(EventManage2DataContext);
+    return [storyLineList] as const;
+}
+
+export function useStoryLineIds() {
+    const { storyLineIds } = useContext(EventManage2DataContext);
+    const { dispatch } = useContext(EventManage2DispatchContext);
+    return [
+        storyLineIds,
+        (storyLineIds: number[]) => {
+            dispatch({ type: 'SET_STORY_LINE_IDS', payload: storyLineIds });
+        }
+    ] as const;
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, Checkbox, Select, Space, Typography } from "antd";
 import { message } from "@/src/utils/antdAppMessage";
 import { createOrUpdateTimelineEvent, deleteTimelineEvent } from "@/src/api/aiNovel";
@@ -13,6 +13,7 @@ import { useFactions, useFilteredEvents, useLocations, useRoles, useStoryLines, 
 import type { ITimelineEvent } from "@/src/types/IAiNoval";
 import { EVENT_STATE_OPTIONS } from "./types";
 import styles from "./index.module.scss";
+import { notifyAiNovelWriteCompleted, postAiNovelWorkerMessage, subscribeAiNovelWorker } from "../sharedWorkerBridge";
 
 const { Text } = Typography;
 
@@ -28,6 +29,29 @@ export default function EventManage2() {
     const [showLocation, setShowLocation] = useState(false);
     const [showFactions, setShowFactions] = useState(false);
     const [showRoles, setShowRoles] = useState(false);
+    const [hasIncomingEditRequest, setHasIncomingEditRequest] = useState(false);
+
+    useEffect(() => {
+        const unsubscribe = subscribeAiNovelWorker((workerMessage) => {
+            if (workerMessage.type === "EVENT_EDIT_REQUESTED") {
+                const request = workerMessage.payload;
+                setHasIncomingEditRequest(true);
+                if (request.worldviewId) {
+                    setWorldviewId(request.worldviewId);
+                }
+            }
+            if (workerMessage.type === "STATE_SYNC" && workerMessage.payload.lastEventEditRequest) {
+                const request = workerMessage.payload.lastEventEditRequest;
+                setHasIncomingEditRequest(true);
+                if (request.worldviewId) {
+                    setWorldviewId(request.worldviewId);
+                }
+            }
+        });
+
+        postAiNovelWorkerMessage({ type: "GET_STATE" });
+        return unsubscribe;
+    }, []);
 
     const { data: worldViews = [] } = useWorldviews();
     const { data: storyLines = [] } = useStoryLines(worldviewId);
@@ -145,23 +169,30 @@ export default function EventManage2() {
                 className={styles.rightCard}
                 size="small"
                 title={
-                    <EventFilters
-                        keyword={keyword}
-                        dateSort={dateSort}
-                        canCreate={!!worldviewId}
-                        loading={isLoadingEvents}
-                        onKeywordChange={setKeyword}
-                        onDateSortChange={setDateSort}
-                        onRefresh={() => refreshEvents()}
-                        onCreate={() => {
-                            if (!worldviewId) {
-                                message.warning("请先选择世界观");
-                                return;
-                            }
-                            setEditingEvent(null);
-                            setEditorOpen(true);
-                        }}
-                    />
+                    <div>
+                        {hasIncomingEditRequest ? (
+                            <Text type="warning" style={{ marginRight: 12 }}>
+                                已收到来自总览页的事件编辑请求
+                            </Text>
+                        ) : null}
+                        <EventFilters
+                            keyword={keyword}
+                            dateSort={dateSort}
+                            canCreate={!!worldviewId}
+                            loading={isLoadingEvents}
+                            onKeywordChange={setKeyword}
+                            onDateSortChange={setDateSort}
+                            onRefresh={() => refreshEvents()}
+                            onCreate={() => {
+                                if (!worldviewId) {
+                                    message.warning("请先选择世界观");
+                                    return;
+                                }
+                                setEditingEvent(null);
+                                setEditorOpen(true);
+                            }}
+                        />
+                    </div>
                 }
             >
                 <EventTable
@@ -181,6 +212,7 @@ export default function EventManage2() {
                     }}
                     onDelete={async (row) => {
                         await deleteTimelineEvent(row.id);
+                        notifyAiNovelWriteCompleted({ source: "event", action: "DELETE", api: "/timelineEvent" });
                         message.success(`事件 ${row.id} 已删除`);
                         await refreshEvents();
                     }}
@@ -204,6 +236,11 @@ export default function EventManage2() {
                     setIsSubmitting(true);
                     try {
                         await createOrUpdateTimelineEvent(values);
+                        notifyAiNovelWriteCompleted({
+                            source: "event",
+                            action: editingEvent ? "UPDATE" : "CREATE",
+                            api: "/timelineEvent",
+                        });
                         message.success(editingEvent ? "事件已更新" : "事件已创建");
                         setEditorOpen(false);
                         setEditingEvent(null);
