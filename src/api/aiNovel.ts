@@ -651,3 +651,15 @@ export const getWorldViewList = async (page: number = 1, limit: number = 100) =>
     const response = await fetch.get<IWorldViewDataWithExtra[]>('/api/aiNoval/worldView/list', { params });
     return response;
 }
+
+export const getFactionTerritoryList = async (worldviewId: number, page: number = 1, limit: number = 200) => {
+    const response = await fetch.get('/api/aiNoval/faction/territory/list', {
+        params: {
+            worldview_id: worldviewId,
+            page,
+            limit,
+        },
+    });
+
+    return response.data;
+}

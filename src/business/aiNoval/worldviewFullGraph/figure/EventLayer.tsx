@@ -17,13 +17,15 @@ export default function EventLayer() {
 
 export function EventSubLayer() {
     const { timelineEvents } = useContext(GraphDataContext);
-    const { timelineToScreenY, getXofGeoCode } = useContext(FigureCommonContext);
+    const { timelineToScreenY, getXofGeoCode, getStoryLineRainbowColor } = useContext(FigureCommonContext);
 
     function eventRender(event: ITimelineEvent) {
+        const storyLineColor = getStoryLineRainbowColor(event.story_line_id);
+
         return (
             <g key={event.id} transform={`translate(${getXofGeoCode(event.location)}, ${timelineToScreenY(event.date)})`}>
-                <circle cx={0} cy={0} r={5} fill="red" />
-                <text x={10} y={3} textAnchor="start" fontSize="9px" fill="black">
+                <circle cx={0} cy={0} r={5} fill={storyLineColor} />
+                <text className={styles.eventItemText} x={10} y={3} textAnchor="start" fontSize="9px" fill={storyLineColor}>
                     {event.title}
                 </text>
             </g>

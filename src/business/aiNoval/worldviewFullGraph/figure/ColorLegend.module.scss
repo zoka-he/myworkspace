@@ -1,0 +1,23 @@
+.legendContainer {
+    border-radius: 4px;
+    background-color: white;
+    box-shadow: 0 3 5px 0 rgba(0, 0, 0, 0.1);
+}
+
+.legendItemText {
+    fill: #000;
+}
+
+
+
+:global(html[data-theme="dark"]) {
+    .legendContainer {
+        background-color: #262626;
+        box-shadow: 0 3 5px 0 rgba(127, 127, 127, 0.3);
+    }
+
+    .legendItemText {
+        fill: #fff;
+    }
+}
+

@@ -7,6 +7,7 @@ import { useGeos, useTimelines } from "../hooks";
 import { time } from "console";
 import { useWorldViewData } from "../hooks";
 import { TimelineDateFormatter } from "../../common/novelDateUtils";
+import { FactionColorLegend, StoryLineColorLegend } from "./ColorLegend";
 
 interface IFigureProps {
     children?: React.ReactNode;
@@ -104,7 +105,7 @@ export default function Figure(props: IFigureProps) {
                 <div className="w-full h-0 flex flex-row">
                     
                 </div>
-                <div className="w-full flex-1 flex flex-row">
+                <div className="w-full flex-1 flex flex-row overflow-y-auto overflow-x-visible">
                     <svg className="h-full w-20">
                         <TimeAxisSvg />
                     </svg>
@@ -112,9 +113,11 @@ export default function Figure(props: IFigureProps) {
                         {actualChildren}
                     </svg>
 
-                    <svg className="h-full w-40">
+                    <div className="h-full w-40 overflow-y-auto overflow-x-hidden px-2">
                         {/* 在此处建立示意图标 */}
-                    </svg>
+                        <StoryLineColorLegend />
+                        <FactionColorLegend />
+                    </div>
                 </div>
                 <div className="w-full h-20 flex flex-row">
                     <svg className="h-full w-20">
@@ -179,7 +182,8 @@ function TimeAxisSvg() {
         { trigger: daySeconds, size: 2 * hourSeconds },
         { trigger: 2 * daySeconds, size: 0.5 * daySeconds },
         { trigger: 5 * daySeconds, size: daySeconds },
-        { trigger: monthSeconds, size: 2 * daySeconds },
+        { trigger: 0.5 * monthSeconds, size: 2 * daySeconds },
+        { trigger: monthSeconds, size: 7 * daySeconds },
         { trigger: 2 * monthSeconds, size: 0.5 * monthSeconds },
         { trigger: 5 * monthSeconds, size: monthSeconds },
         { trigger: yearSeconds, size: 2 * monthSeconds },

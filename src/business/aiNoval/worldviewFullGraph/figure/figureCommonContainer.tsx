@@ -1,10 +1,11 @@
 import { createContext, useMemo } from "react";
 import * as d3 from "d3";
 import type { ZoomTransform } from "d3";
-import { useGeos, useGeoTree } from "../hooks";
-import { IGeoUnionData } from "@/src/types/IAiNoval";
+import { useFactions, useGeoTree, useStoryLines } from "../hooks";
+import { IFactionDefData, IGeoUnionData, IStoryLine } from "@/src/types/IAiNoval";
 import { IGeoTreeItem, transfromGeoUnionToGeoTree } from "@/src/business/aiNoval/common/geoDataUtil";
 import { GeoPartitionTree } from "../vo/geoPartitionTree";
+import { createStoryLineRainbowColorScale, FACTION_LABEL_EMPTY_COLOR, STORY_LINE_UNKNOWN_COLOR, colorFromFactionLabel } from "./colorScale";
 
 export interface IFigureCommonContextData {
     svgSize: { width: number; height: number };
@@ -28,6 +29,14 @@ export interface IFigureCommonContextData {
     getXRangeofGeoCode: (geoCode: string) => [number, number];
     /** 获取地理分区叶子节点 */
     leafOfGeoPartitions: d3.HierarchyRectangularNode<GeoPartitionTree>[];
+    /** 当前世界观下的剧情线列表 */
+    storyLineList: IStoryLine[];
+    /** 按剧情线在列表中的顺序映射彩虹色（0~1 均分色相）；未知 id 返回中性灰 */
+    getStoryLineRainbowColor: (storyLineId: number) => string;
+    /** 按阵营名称（标签）取色，`name` 会先 trim；无有效名称时返回 {@link FACTION_LABEL_EMPTY_COLOR} */
+    getFactionColor: (faction: Pick<IFactionDefData, "name">) => string;
+    /** 时间轴范围 */
+    timelineRange: [number, number];
 }
 
 const defaultScale = d3.scaleLinear<number, number>().domain([0, 1]).range([0, 1]);
@@ -44,6 +53,10 @@ const FigureCommonContext = createContext<IFigureCommonContextData>({
     getXofGeoCode: () => 0,
     getXRangeofGeoCode: () => [0, 0],
     leafOfGeoPartitions: [],
+    storyLineList: [],
+    getStoryLineRainbowColor: () => STORY_LINE_UNKNOWN_COLOR,
+    getFactionColor: () => FACTION_LABEL_EMPTY_COLOR,
+    timelineRange: [0, 1],
 });
 
 export default FigureCommonContext;
@@ -58,6 +71,13 @@ export interface IFigureCommonProviderProps {
 export function FigureCommonProvider(props: IFigureCommonProviderProps) {
     const { svgSize, zoomTransform, timelineRange, children } = props;
     const [geoTree] = useGeoTree();
+    const [storyLineList] = useStoryLines();
+    const [factionList] = useFactions();
+
+    const getStoryLineRainbowColor = useMemo(
+        () => createStoryLineRainbowColorScale(storyLineList),
+        [storyLineList],
+    );
 
     let virtualTopOffset = 0;
     let virtualTotalHeight = 0;
@@ -105,6 +125,13 @@ export function FigureCommonProvider(props: IFigureCommonProviderProps) {
         return geoPartition;
     }, [geoPartitions]);
 
+    const getFactionColor = useMemo(
+        () => (faction: Pick<IFactionDefData, "name">) => colorFromFactionLabel(faction),
+        [],
+    );
+
+    
+
     const value: IFigureCommonContextData = {
         svgSize,
         virtualTopOffset,
@@ -117,6 +144,10 @@ export function FigureCommonProvider(props: IFigureCommonProviderProps) {
         leafOfGeoPartitions,
         getXofGeoCode,
         getXRangeofGeoCode,
+        storyLineList,
+        getStoryLineRainbowColor,
+        getFactionColor,
+        timelineRange,
     };
 
     return (

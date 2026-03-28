@@ -13,6 +13,7 @@ import { connectAiNovelSharedWorker, postAiNovelWorkerMessage, subscribeAiNovelW
 import { useTimelineEvents } from './useTimelineEvents';
 import GraphDataContext from './graphDataContext';
 import EventLayer from './figure/EventLayer';
+import TerritoryLayer from './figure/TerritoryLayer';
 
 const { Text } = Typography;
 
@@ -163,6 +164,7 @@ function RightPanel() {
 
     let layers = useMemo(() => {
         return [
+            <TerritoryLayer key="territory-layer" />,
             <EventLayer key="event-layer" />,
         ];
     }, []);

@@ -1,7 +1,7 @@
 import { createContext, useMemo, useReducer } from "react";
 import useSWR from "swr";
-import { getFactionList, getRoleOptionsForWorldState, getChapterList, getTimelineDefList, getWorldViewList, getStoryLineList } from '@/src/api/aiNovel';
-import { IFactionDefData, IGeoUnionData, IRoleData, IChapter, ITimelineDef, IWorldViewDataWithExtra, IStoryLine } from "@/src/types/IAiNoval";
+import { getFactionList, getRoleOptionsForWorldState, getChapterList, getTimelineDefList, getWorldViewList, getStoryLineList, getFactionTerritoryList } from '@/src/api/aiNovel';
+import { IFactionDefData, IGeoUnionData, IRoleData, IChapter, ITimelineDef, IWorldViewDataWithExtra, IStoryLine, IFactionTerritory } from "@/src/types/IAiNoval";
 import { IGeoTreeItem, loadGeoTree } from "@/src/business/aiNoval/common/geoDataUtil";
 import _ from "lodash";
 
@@ -17,6 +17,7 @@ interface EventManage2ContextType {
     timelineList: ITimelineDef[];
     worldViewData: IWorldViewDataWithExtra | null;
     storyLineList: IStoryLine[];
+    territoryList: IFactionTerritory[];
 }
 
 interface EventManage2DispatchType {
@@ -27,6 +28,7 @@ function defaultContextData(): EventManage2ContextType {
     return {
         worldViewId: null,
         novelId: null,
+        storyLineIds: [],
         factionList: [],
         geoTree: [],
         geoList: [],
@@ -35,6 +37,7 @@ function defaultContextData(): EventManage2ContextType {
         timelineList: [],
         worldViewData: null,
         storyLineList: [],
+        territoryList: [],
     }
 }
 
@@ -141,6 +144,16 @@ export default function EventManage2ContextProvider({ children }: { children: Re
         }
     );
 
+    const { data: territoryList, isLoading: isLoadingTerritories, error: errorTerritories } = useSWR(
+        state.worldViewId ? ['territory-list', state.worldViewId] : null,
+        async () => {
+            if (!state.worldViewId) return [];
+            const response = await getFactionTerritoryList(state.worldViewId, 1, 1000);
+            // console.debug('territoryList --->> ', response);
+            return response ?? [];
+        }
+    );
+
     return (
         <EventManage2DataContext.Provider 
             value={{ 
@@ -153,6 +166,7 @@ export default function EventManage2ContextProvider({ children }: { children: Re
                 timelineList: timelineList ?? [],
                 worldViewData: worldviewData ?? null,
                 storyLineList: storyLineList ?? [],
+                territoryList: territoryList ?? [],
             }}
         >
             <EventManage2DispatchContext.Provider value={{ dispatch }}>
