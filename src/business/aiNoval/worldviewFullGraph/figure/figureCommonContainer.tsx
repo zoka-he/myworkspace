@@ -1,4 +1,4 @@
-import { createContext, useMemo } from "react";
+import { createContext, useMemo, useState } from "react";
 import * as d3 from "d3";
 import type { ZoomTransform } from "d3";
 import { useFactions, useGeoTree, useStoryLines } from "../hooks";
@@ -175,7 +175,13 @@ function geosToPartitions(geoTree: IGeoTreeItem<IGeoUnionData>[], svgSize: { wid
         return [];
     }
 
-    const hierarchy = d3.hierarchy(geoRoot).sum(d => 1);
+    const hierarchy = d3.hierarchy(geoRoot).sum(d => {
+        if (d.children?.length > 0) {
+            return 0;
+        } else {
+            return 1;
+        }
+    });
     console.debug(hierarchy);
     const partitions = d3.partition<GeoPartitionTree>()
         .size([svgSize.width, svgSize.height])

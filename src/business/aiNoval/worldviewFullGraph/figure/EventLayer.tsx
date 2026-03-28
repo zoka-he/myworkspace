@@ -23,7 +23,7 @@ export function EventSubLayer() {
         const storyLineColor = getStoryLineRainbowColor(event.story_line_id);
 
         return (
-            <g key={event.id} transform={`translate(${getXofGeoCode(event.location)}, ${timelineToScreenY(event.date)})`}>
+            <g key={`event-${event.id}`} data-event-id={event.id} transform={`translate(${getXofGeoCode(event.location)}, ${timelineToScreenY(event.date)})`}>
                 <circle cx={0} cy={0} r={5} fill={storyLineColor} />
                 <text className={styles.eventItemText} x={10} y={3} textAnchor="start" fontSize="9px" fill={storyLineColor}>
                     {event.title}

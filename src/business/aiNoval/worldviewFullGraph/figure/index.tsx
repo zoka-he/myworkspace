@@ -8,6 +8,8 @@ import { time } from "console";
 import { useWorldViewData } from "../hooks";
 import { TimelineDateFormatter } from "../../common/novelDateUtils";
 import { FactionColorLegend, StoryLineColorLegend } from "./ColorLegend";
+import TerritoryPanel from "./territoryPanel";
+import GeoPanel from "./geoPanel";
 
 interface IFigureProps {
     children?: React.ReactNode;
@@ -21,6 +23,13 @@ export default function Figure(props: IFigureProps) {
     const [zoomTransform, setZoomTransform] = useState<d3.ZoomTransform>(d3.zoomIdentity);
     const [timelineList] = useTimelines();
     const [worldViewData] = useWorldViewData();
+    const [mousePosition, setMousePosition] = useState<{ offsetX: number; offsetY: number; clientX: number; clientY: number }>({ 
+        offsetX: 0, 
+        offsetY: 0, 
+        clientX: 0, 
+        clientY: 0, 
+    });
+    const [activeEventId, setActiveEventId] = useState<number | null>(null);
 
     useEffect(() => {
         if (!svgRef.current) return;
@@ -99,6 +108,29 @@ export default function Figure(props: IFigureProps) {
         return children;
     }, [props.children, props.showDebugLayers]);
 
+    function handleMouseMove(event: React.MouseEvent<SVGSVGElement>) {
+        let nativeEvent = event.nativeEvent;
+        setMousePosition({ 
+            offsetX: nativeEvent.offsetX, 
+            offsetY: nativeEvent.offsetY, 
+            clientX: nativeEvent.clientX, 
+            clientY: nativeEvent.clientY, 
+        });
+
+        if ((event.target as HTMLElement).tagName === 'circle') {
+            let eventId = (event.target as HTMLElement).parentElement?.dataset?.['eventId'];
+            setActiveEventId(eventId ? parseInt(eventId) : null);
+
+            if (eventId) {
+                setActiveEventId(null);
+            }
+        } else {
+            setActiveEventId(null);
+        }
+
+        // console.debug('mouse move --->> ', event);
+    }
+
     return (
         <FigureCommonProvider svgSize={svgSize} zoomTransform={zoomTransform} timelineRange={timelineRange}>
             <div className="w-full h-full flex flex-col">
@@ -109,7 +141,7 @@ export default function Figure(props: IFigureProps) {
                     <svg className="h-full w-20">
                         <TimeAxisSvg />
                     </svg>
-                    <svg ref={svgRef} className="flex-1 h-full">
+                    <svg ref={svgRef} className="flex-1 h-full" onMouseMove={handleMouseMove}>
                         {actualChildren}
                     </svg>
 
@@ -124,9 +156,15 @@ export default function Figure(props: IFigureProps) {
                         {/* 留空 */}
                     </svg>
                     
-                    <svg className="flex-1 h-full">
-                        <GeoAxisSvg />
-                    </svg>
+                    <div className="flex-1 h-full">
+                        <svg className="w-full h-2">
+                            <GeoAxisSvg />
+                        </svg>
+                        <div className="w-full h-18 flex flex-row gap-2">
+                            <GeoPanel className="flex-1 h-full" offsetX={mousePosition.offsetX} />
+                            <TerritoryPanel className="flex-1 h-full"/>
+                        </div>
+                    </div>
 
                     <svg className="h-full w-40">
                         {/* 留空 */}
@@ -267,7 +305,7 @@ function GeoAxisSvg() {
         <g>
             {/* 轴线紧贴容器上侧，宽度按照 svgSize.width */}
             <line x1={0} x2={svgSize.width} y1={0} y2={0} stroke="#999" strokeWidth={1} />
-            {leafOfGeoPartitions.map((geo, idx) => {
+            {/* {leafOfGeoPartitions.map((geo, idx) => {
                 const x = (geo.x0 + geo.x1) / 2;
                 return (
                     <g key={geo.data.code ?? idx}>
@@ -292,7 +330,7 @@ function GeoAxisSvg() {
                         </text>
                     </g>
                 );
-            })}
+            })} */}
         </g>
     );
 }

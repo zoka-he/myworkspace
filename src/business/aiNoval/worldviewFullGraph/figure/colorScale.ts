@@ -51,6 +51,6 @@ export function createStoryLineRainbowColorScale(
     return (storyLineId: number) => {
         const t = idToT.get(storyLineId);
         if (t === undefined) return STORY_LINE_UNKNOWN_COLOR;
-        return d3.interpolateRainbow(t);
+        return d3.interpolateHslLong("red", "purple")(t);
     };
 }

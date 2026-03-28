@@ -1,0 +1,27 @@
+.geoPanel {
+    border-radius: 5px;
+    box-sizing: border-box;
+
+    background-color: #fff;
+    box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+    border: 1px solid #e0e0e0;
+}
+
+
+
+.partition {
+    font-size: 10;
+    fill: #000;
+}
+
+:global(html[data-theme="dark"]) {
+    .geoPanel {
+        background-color: #262626;
+        box-shadow: 0 0 10px 0 rgba(127, 127, 127, 0.3);
+        border: 1px solid #333;
+    }
+
+    .partition {
+        fill: #fff;
+    }
+}
