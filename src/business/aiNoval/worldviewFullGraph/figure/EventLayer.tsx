@@ -5,10 +5,14 @@ import FigureCommonContext from "../figure/figureCommonContainer";
 import { ITimelineEvent } from "@/src/types/IAiNoval";
 import styles from "./EventLayer.module.scss";
 
-export default function EventLayer() {
+interface IEventLayerProps {
+    relationType: string;
+}
+
+export default function EventLayer(props: IEventLayerProps) {
     return (
         <g>
-            <RelationSubLayer />
+            <RelationSubLayer relationType={props.relationType} />
             <EventSubLayer />
         </g>
     )
@@ -41,10 +45,22 @@ export function EventSubLayer() {
     )
 }
 
+interface IRelationSubLayerProps {
+    relationType: string;
+}
 
-
-export function RelationSubLayer() {
-    return <GeoRelationSubLayer />
+export function RelationSubLayer(props: IRelationSubLayerProps) {
+    const { relationType } = props;
+    if (relationType === 'geo-event') {
+        return <GeoRelationSubLayer />;
+    }
+    // if (relationType === 'role-event') {
+    //     return <RoleRelationSubLayer />;
+    // }
+    // if (relationType === 'faction-event') {
+    //     return <FactionRelationSubLayer />;
+    // }
+    return null;
 }
 
 export function GeoRelationSubLayer() {

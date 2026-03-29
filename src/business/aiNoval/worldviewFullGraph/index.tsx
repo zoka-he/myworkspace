@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, Card, Checkbox, Input, Radio, Select, Space, Typography } from 'antd';
+import { Button, Card, Checkbox, Divider, Input, Radio, Select, Space, Typography } from 'antd';
 import styles from './index.module.scss';
 import { PlusOutlined } from '@ant-design/icons';
 import WorldViewSelect from '@/src/components/aiNovel/worldviewSelect';
@@ -28,27 +28,42 @@ import EventLayer from './figure/EventLayer';
 import TerritoryLayer from './figure/TerritoryLayer';
 import EventEditorModal from '../eventManage2/components/EventEditorModal';
 import ViewportFitModal from './ViewportFitModal';
+import type { ITimelineEvent } from '@/src/types/IAiNoval';
 
 const { Text } = Typography;
 
 export default function EventManage2() {
+
+    const [backgroundLayer, setBackgroundLayer] = useState<string>('faction');
+    const [eventRelationType, setEventRelationType] = useState<string>('geo-event');
+
     return (
         <EventManage2ContextProvider>
             <div className={`${styles.patchOutlet} flex flex-row gap-3 h-screen overflow-hidden`}>
                 <div className={`${styles.patchHeader} h-screen overflow-auto`}>
-                    <LeftPanel />
+                    <LeftPanel 
+                        backgroundLayer={backgroundLayer}
+                        eventRelationType={eventRelationType}
+                        onBackgroundLayerChange={setBackgroundLayer}
+                        onEventRelationTypeChange={setEventRelationType}
+                    />
                 </div>
                 <div className={`${styles.patchHeader} flex-1 h-screen overflow-auto`}>
-                    <RightPanel />
+                    <RightPanel backgroundLayer={backgroundLayer} eventRelationType={eventRelationType}/>
                 </div>
             </div>
         </EventManage2ContextProvider>
     );
 }
 
+interface ILeftPanelProps {
+    backgroundLayer: string;
+    eventRelationType: string;
+    onBackgroundLayerChange: (layer: string) => void;
+    onEventRelationTypeChange: (layer: string) => void;
+}
 
-
-function LeftPanel() {
+function LeftPanel(props: ILeftPanelProps) {
     const [worldViewId, setWorldViewId] = useWorldViewId();
     const [novelId, setNovelId] = useNovelId();
     const [timelineList] = useTimelines();
@@ -80,46 +95,83 @@ function LeftPanel() {
                 <Space direction='vertical'>
                     <Space>
                         <Text>世界观：</Text>
-                        <WorldViewSelect value={worldViewId} onChange={setWorldViewId} />
+                        <WorldViewSelect className="w-44" value={worldViewId} onChange={setWorldViewId} />
                     </Space>
                     <Space>
                         <Text>小&nbsp;&nbsp;&nbsp;说：</Text>
-                        <NovelSelect value={novelId} onChange={setNovelId} />
+                        <NovelSelect 
+                            className="w-44" 
+                            value={novelId} 
+                            onChange={setNovelId} 
+                            placeholder="选择以显示章节位置"
+                            disabled
+                        />
                     </Space>
                     <Space>
                         <Text>故事线：</Text>
-                        <Select className="w-44" value={storyLineIds} onChange={setStoryLineIds} options={storyLineOptions} allowClear mode="multiple" />
+                        <Select 
+                            className="w-44" 
+                            value={storyLineIds} 
+                            onChange={setStoryLineIds} 
+                            options={storyLineOptions} 
+                            allowClear 
+                            mode="multiple" 
+                            placeholder="不选=全选"
+                        />
                     </Space>
                 </Space>
             </Card>
 
             <Card title="时间线选择" size="small">
-                <Radio.Group options={timelineOptions} />
+                <Select 
+                    className="w-60" 
+                    options={timelineOptions} 
+                    placeholder="如不选，默认为基准事件线"
+                    disabled
+                    // onChange={(value) => props.onTimelineChange(value)}
+                />
             </Card>
 
             <Card title="浮层选择" size="small">
-                <Space direction='vertical'>
-                    <Checkbox.Group options={[]}>
-                        <Checkbox value="1">阵营</Checkbox>
-                        <Checkbox value="3">文化</Checkbox>
-                        <Checkbox value="4">科技水平</Checkbox>
-                    </Checkbox.Group>
-                    <Checkbox.Group>
-                        <Checkbox value="2">人物</Checkbox>
-                    </Checkbox.Group>
-                    <Checkbox.Group>
-                        <Checkbox value="5">季节</Checkbox>
-                    </Checkbox.Group>
-                    <Checkbox.Group>
-                        <Checkbox value="6">章节</Checkbox>
-                    </Checkbox.Group>
-                </Space>
+
+                <Radio.Group 
+                    style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+                    value={props.backgroundLayer} 
+                    onChange={(e) => props.onBackgroundLayerChange(e.target.value)}
+                    disabled
+                >
+                    <Radio value="faction">阵营</Radio>
+                    <Radio value="culture">文化</Radio>
+                    <Radio value="technology">科技水平</Radio>
+                    <Radio value="seasons">季节</Radio>
+                </Radio.Group>
+                <Divider size="small"/>
+                <Checkbox.Group>
+                    <Checkbox disabled>章节</Checkbox>
+                </Checkbox.Group>
+            </Card>
+
+            <Card title="事件关联方式" size="small">
+                <Radio.Group 
+                    style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+                    value={props.eventRelationType} 
+                    onChange={(e) => props.onEventRelationTypeChange(e.target.value)}
+                >
+                    <Radio value="geo-event">按地点关联</Radio>
+                    <Radio value="role-event">按角色关联</Radio>
+                    <Radio value="faction-event">按阵营关联</Radio>
+                </Radio.Group>
             </Card>
         </div>
     );
 }
+
+interface IRightPanelProps {
+    backgroundLayer: string;
+    eventRelationType: string;
+}
     
-function RightPanel() {
+function RightPanel(props: IRightPanelProps) {
 
     const [worldViewId] = useWorldViewId();
     const [novelId] = useNovelId();
@@ -129,7 +181,15 @@ function RightPanel() {
     const [lastWrite, setLastWrite] = useState<WriteCompletedPayload | null>(null);
     const [workerReady, setWorkerReady] = useState(false);
 
-    const { data: timelineEvents, isLoading: isLoadingTimelineEvents, mutate: refreshTimelineEvents } = useTimelineEvents(worldViewId, null);
+    const { data: timelineEvents, isLoading: isLoadingTimelineEvents, mutate: refreshTimelineEvents } = useTimelineEvents(worldViewId);
+    const [storyLineIds] = useStoryLineIds();
+
+    const filteredTimelineEvents = useMemo(() => {
+        const list = timelineEvents ?? [];
+        if (!storyLineIds.length) return list;
+        const allow = new Set(storyLineIds);
+        return (list as ITimelineEvent[]).filter((e) => allow.has(Number(e.story_line_id)));
+    }, [timelineEvents, storyLineIds]);
     const refreshTimelineEventsRef = useRef(refreshTimelineEvents);
     refreshTimelineEventsRef.current = refreshTimelineEvents;
 
@@ -205,8 +265,8 @@ function RightPanel() {
     const title = (
         <div className="flex flex-row justify-between">
             <Space wrap>
-                <Text>关键字：</Text>
-                <Input placeholder="请输入关键字" size="small"/>
+                {/* <Text>关键字：</Text>
+                <Input placeholder="请输入关键字" size="small"/> */}
                 <Button size="small" type="default" onClick={() => setViewportFitOpen(true)}>
                     对准视口
                 </Button>
@@ -223,14 +283,14 @@ function RightPanel() {
     let layers = useMemo(() => {
         return [
             <TerritoryLayer key="territory-layer" />,
-            <EventLayer key="event-layer" />,
+            <EventLayer key="event-layer" relationType={props.eventRelationType}/>,
         ];
-    }, []);
+    }, [props.eventRelationType]);
 
     return (
         <>
             <Card title={title} size="small" styles={{ body: { height: 'calc(100vh - 110px)', overflow: 'auto' } }}>
-                {(lastWrite || (process.env.NODE_ENV === 'development' && !workerReady)) ? (
+                {/* {(lastWrite || (process.env.NODE_ENV === 'development' && !workerReady)) ? (
                     <div style={{ marginBottom: 8 }}>
                         {lastWrite ? (
                             <Text type="secondary">{`最近写库完成：${lastWrite.source}`}</Text>
@@ -241,9 +301,9 @@ function RightPanel() {
                             </Text>
                         ) : null}
                     </div>
-                ) : null}
+                ) : null} */}
 
-                <GraphDataContext.Provider value={{ timelineEvents }}>
+                <GraphDataContext.Provider value={{ timelineEvents: filteredTimelineEvents }}>
                     <Figure
                         ref={figureRef}
                         // showDebugLayers
