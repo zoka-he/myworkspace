@@ -48,6 +48,7 @@ export default function GeoPanel(props: IGeoPanelProps) {
 
         return (
             <g>
+                <rect className={ styles.titleBackground } x={0} y={0} width={svgSize.width / 2} height={lineHeight * 1.4}/>
                 <text className={styles.partition} x={pl} y={pt + fontSize} fontSize={fontSize}>{partitions.map(item => item.data.name).join(' > ')}</text>
                 {detailLines.map((line, index) => (
                     <text 

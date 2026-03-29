@@ -162,7 +162,7 @@ export default function Figure(props: IFigureProps) {
                         </svg>
                         <div className="w-full h-18 flex flex-row gap-2">
                             <GeoPanel className="flex-1 h-full" offsetX={mousePosition.offsetX} />
-                            <TerritoryPanel className="flex-1 h-full"/>
+                            <TerritoryPanel className="flex-1 h-full" offsetX={mousePosition.offsetX} offsetY={mousePosition.offsetY} />
                         </div>
                     </div>
 
