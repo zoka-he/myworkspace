@@ -10,7 +10,9 @@ import NovelSelect from '@/src/components/aiNovel/novelSelect';
 import Figure from './figure';
 import EventTip from './figure/EventTip';
 import { useEffect, useMemo, useState } from 'react';
-import { connectAiNovelSharedWorker, postAiNovelWorkerMessage, subscribeAiNovelWorker, type WriteCompletedPayload } from '../sharedWorkerBridge';
+import { connectAiNovelSharedWorker, notifyAiNovelWriteCompleted, postAiNovelWorkerMessage, subscribeAiNovelWorker, type WriteCompletedPayload } from '../sharedWorkerBridge';
+import { createOrUpdateTimelineEvent } from '@/src/api/aiNovel';
+import { message } from '@/src/utils/antdAppMessage';
 import { useTimelineEvents } from './useTimelineEvents';
 import GraphDataContext from './graphDataContext';
 import EventLayer from './figure/EventLayer';
@@ -117,7 +119,11 @@ function RightPanel() {
     const [lastWrite, setLastWrite] = useState<WriteCompletedPayload | null>(null);
     const [workerReady, setWorkerReady] = useState(false);
 
-    const { data: timelineEvents, isLoading: isLoadingTimelineEvents } = useTimelineEvents(worldViewId, null);
+    const { data: timelineEvents, isLoading: isLoadingTimelineEvents, mutate: refreshTimelineEvents } = useTimelineEvents(worldViewId, null);
+
+    const [eventEditorOpen, setEventEditorOpen] = useState(false);
+    const [editingEventId, setEditingEventId] = useState<number | null>(null);
+    const [isEventSubmitting, setIsEventSubmitting] = useState(false);
 
     const [eventTip, setEventTip] = useState<{
         eventId: number | null;
@@ -191,24 +197,56 @@ function RightPanel() {
                         ) : null}
                     </div>
                 ) : null}
-                {/* <div> */}
-                    {/* <pre>{JSON.stringify(factionList, null, 2)}</pre> */}
-                    {/* <pre>{JSON.stringify(geoList.map(item => ({ id: item.id, parentId: item.parent_id, name: item.name, code: item.code })), null, 2)}</pre> */}
-                    {/* <pre>{JSON.stringify(roleList, null, 2)}</pre> */}
-                {/* </div> */}
-
-                
 
                 <GraphDataContext.Provider value={{ timelineEvents }}>
                     <Figure
-                        showDebugLayers
+                        // showDebugLayers
                         onShowEventTip={(eventId, position) => setEventTip({ eventId, position })}
+                        onEventClick={(eventId) => {
+                            if (!worldViewId) {
+                                message.warning('请先选择世界观');
+                                return;
+                            }
+                            setEditingEventId(eventId);
+                            setEventEditorOpen(true);
+                        }}
                     >
                         {layers}
                     </Figure>
                     <EventTip eventId={eventTip.eventId} position={eventTip.position} />
                 </GraphDataContext.Provider>
             </Card>
+            <EventEditorModal
+                open={eventEditorOpen}
+                worldviewId={worldViewId}
+                eventId={editingEventId}
+                submitting={isEventSubmitting}
+                onCancel={() => {
+                    setEventEditorOpen(false);
+                    setEditingEventId(null);
+                }}
+                onSubmit={async (values) => {
+                    if (!worldViewId && !values.id) {
+                        message.warning('请先选择世界观');
+                        return;
+                    }
+                    setIsEventSubmitting(true);
+                    try {
+                        await createOrUpdateTimelineEvent(values);
+                        notifyAiNovelWriteCompleted({
+                            source: 'event',
+                            action: values.id ? 'UPDATE' : 'CREATE',
+                            api: '/timelineEvent',
+                        });
+                        message.success(values.id ? '事件已更新' : '事件已创建');
+                        setEventEditorOpen(false);
+                        setEditingEventId(null);
+                        await refreshTimelineEvents();
+                    } finally {
+                        setIsEventSubmitting(false);
+                    }
+                }}
+            />
         </>
     )
 }

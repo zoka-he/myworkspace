@@ -1,13 +1,16 @@
 'use client';
 
 import { Alert, Form, Input, InputNumber, Modal, Select, Spin } from "antd";
-import { useEffect, useMemo } from "react";
+import { useContext, useEffect, useMemo } from "react";
 import useSWR from "swr";
-import { getTimelineEvent } from "@/src/api/aiNovel";
-import type { ITimelineEvent, TimelineEventState } from "@/src/types/IAiNoval";
+import { getTimelineDefList, getTimelineEvent } from "@/src/api/aiNovel";
+import type { ITimelineDef, ITimelineEvent, TimelineEventState } from "@/src/types/IAiNoval";
 import { message } from "@/src/utils/antdAppMessage";
 import { useFactions, useRoles, useStoryLines, normalizeTimelineEvent } from "../hooks";
 import { EVENT_STATE_OPTIONS } from "../types";
+import NovelTimeEdit from "./NovelTimeEdit";
+import GeoSelect from "@/src/components/aiNovel/geoSelect";
+import { EventManage2DataContext } from "@/src/business/aiNoval/worldviewFullGraph/context";
 
 interface Props {
     open: boolean;
@@ -34,6 +37,7 @@ interface FormValues {
 export default function EventEditorModal(props: Props) {
     const [form] = Form.useForm<FormValues>();
     const isEdit = props.eventId != null && props.eventId > 0;
+    const { geoTree: contextGeoTree, worldViewId: contextWorldViewId } = useContext(EventManage2DataContext);
 
     const fetchEventId = props.open && isEdit && props.eventId != null ? props.eventId : null;
     const {
@@ -55,9 +59,37 @@ export default function EventEditorModal(props: Props) {
         return props.worldviewId;
     }, [isEdit, loadedEvent?.worldview_id, props.worldviewId]);
 
+    /** 与父级 EventManage2ContextProvider 同源时复用 geoTree，避免重复请求；独立事件管理页 context 未同步 worldViewId 时不传入 */
+    const geoTreeFromContext = useMemo(() => {
+        if (
+            effectiveWorldviewId != null &&
+            contextWorldViewId != null &&
+            contextWorldViewId === effectiveWorldviewId
+        ) {
+            return contextGeoTree;
+        }
+        return undefined;
+    }, [contextWorldViewId, contextGeoTree, effectiveWorldviewId]);
+
     const { data: storyLines = [] } = useStoryLines(effectiveWorldviewId);
     const { data: factions = [] } = useFactions(effectiveWorldviewId);
     const { data: roles = [] } = useRoles(effectiveWorldviewId);
+
+    const { data: timelineDefList, isLoading: isLoadingTimelineDef } = useSWR(
+        props.open && effectiveWorldviewId != null
+            ? (["event-editor-timeline-defs", effectiveWorldviewId] as const)
+            : null,
+        async ([, wid]) => {
+            const response = await getTimelineDefList(wid);
+            return (response as { data?: ITimelineDef[] })?.data ?? [];
+        }
+    );
+
+    const timelineDef: ITimelineDef | null = useMemo(() => {
+        const list = timelineDefList ?? [];
+        if (!list.length) return null;
+        return list.find((t) => t.faction_id == null) ?? list[0];
+    }, [timelineDefList]);
 
     useEffect(() => {
         if (!props.open) {
@@ -141,14 +173,26 @@ export default function EventEditorModal(props: Props) {
                     <Form.Item label="描述" name="description">
                         <Input.TextArea rows={4} />
                     </Form.Item>
-                    <div className="grid grid-cols-2 gap-3">
-                        <Form.Item label="时间(秒)" name="date" rules={[{ required: true, message: "请输入时间秒数" }]}>
-                            <InputNumber className="w-full" precision={0} />
-                        </Form.Item>
-                        <Form.Item label="地点编码" name="location">
-                            <Input placeholder="如：CT0001" />
-                        </Form.Item>
-                    </div>
+                    <Form.Item label="发生时间" name="date" rules={[{ required: true, message: "请选择发生时间" }]}>
+                        {timelineDef ? (
+                            <NovelTimeEdit timelineDef={timelineDef} disabled={editBlocked} />
+                        ) : (
+                            <InputNumber
+                                className="w-full"
+                                precision={0}
+                                placeholder={isLoadingTimelineDef ? "加载时间线…" : "秒（无时间线定义时可直接填秒）"}
+                                disabled={editBlocked || isLoadingTimelineDef}
+                            />
+                        )}
+                    </Form.Item>
+                    <Form.Item label="地点" name="location">
+                        <GeoSelect
+                            worldviewId={effectiveWorldviewId}
+                            geoTree={geoTreeFromContext}
+                            disabled={editBlocked || effectiveWorldviewId == null}
+                            style={{ width: "100%" }}
+                        />
+                    </Form.Item>
                     <div className="grid grid-cols-2 gap-3">
                         <Form.Item label="故事线" name="story_line_id" rules={[{ required: true, message: "请选择故事线" }]}>
                             <Select
