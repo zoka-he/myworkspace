@@ -83,6 +83,14 @@ export async function getTimelineEventList(
     });
 }
 
+/** GET 单条时间线事件（与列表接口字段一致，含已解析的 faction_ids / role_ids） */
+export async function getTimelineEvent(id: number): Promise<ITimelineEvent> {
+    const data = await fetch.get('/api/aiNoval/timeline/event', {
+        params: { id },
+    });
+    return data as unknown as ITimelineEvent;
+}
+
 export async function createOrUpdateTimelineEvent(data: ITimelineEvent) {
     if (data.id) {
         return fetch.post('/api/aiNoval/timeline/event', data, { params: { id: data.id } });

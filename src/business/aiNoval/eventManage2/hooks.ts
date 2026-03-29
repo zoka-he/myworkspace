@@ -54,7 +54,7 @@ export function useTimelineEvents(worldviewId: number | null, storyLineId?: numb
             1000
         );
         const rows = (response?.data ?? []) as ITimelineEvent[];
-        return rows.map((item) => normalizeEvent(item));
+        return rows.map((item) => normalizeTimelineEvent(item));
     }, {
         keepPreviousData: true,
     });
@@ -72,7 +72,7 @@ export function useFilteredEvents(events: ITimelineEvent[] | undefined, keyword:
     }, [events, keyword]);
 }
 
-function normalizeEvent(item: ITimelineEvent): ITimelineEvent {
+export function normalizeTimelineEvent(item: ITimelineEvent): ITimelineEvent {
     const validStates = ["enabled", "questionable", "not_yet", "blocked", "closed"];
     const rawState = item.state ?? (item as unknown as Record<string, string>).State;
     const state = typeof rawState === "string" && validStates.includes(rawState) ? rawState : "enabled";

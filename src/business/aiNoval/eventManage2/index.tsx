@@ -10,7 +10,6 @@ import EventFilters from "./components/EventFilters";
 import EventTable from "./components/EventTable";
 import EventEditorModal from "./components/EventEditorModal";
 import { useFactions, useFilteredEvents, useLocations, useRoles, useStoryLines, useTimelineEvents, useWorldviews } from "./hooks";
-import type { ITimelineEvent } from "@/src/types/IAiNoval";
 import { EVENT_STATE_OPTIONS } from "./types";
 import styles from "./index.module.scss";
 import { notifyAiNovelWriteCompleted, postAiNovelWorkerMessage, subscribeAiNovelWorker } from "../sharedWorkerBridge";
@@ -24,7 +23,7 @@ export default function EventManage2() {
     const [stateFilter, setStateFilter] = useState<string | undefined>(undefined);
     const [dateSort, setDateSort] = useState<"asc" | "desc">("desc");
     const [editorOpen, setEditorOpen] = useState(false);
-    const [editingEvent, setEditingEvent] = useState<ITimelineEvent | null>(null);
+    const [editingEventId, setEditingEventId] = useState<number | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showLocation, setShowLocation] = useState(false);
     const [showFactions, setShowFactions] = useState(false);
@@ -188,7 +187,7 @@ export default function EventManage2() {
                                     message.warning("请先选择世界观");
                                     return;
                                 }
-                                setEditingEvent(null);
+                                setEditingEventId(null);
                                 setEditorOpen(true);
                             }}
                         />
@@ -207,7 +206,7 @@ export default function EventManage2() {
                     showFactions={showFactions}
                     showRoles={showRoles}
                     onEdit={(row) => {
-                        setEditingEvent(row);
+                        setEditingEventId(row.id);
                         setEditorOpen(true);
                     }}
                     onDelete={async (row) => {
@@ -222,14 +221,11 @@ export default function EventManage2() {
             <EventEditorModal
                 open={editorOpen}
                 worldviewId={worldviewId}
-                editingEvent={editingEvent}
-                storyLines={storyLines}
-                factions={factions}
-                roles={roles}
+                eventId={editingEventId}
                 submitting={isSubmitting}
                 onCancel={() => setEditorOpen(false)}
                 onSubmit={async (values) => {
-                    if (!worldviewId) {
+                    if (!worldviewId && !values.id) {
                         message.warning("请先选择世界观");
                         return;
                     }
@@ -238,12 +234,12 @@ export default function EventManage2() {
                         await createOrUpdateTimelineEvent(values);
                         notifyAiNovelWriteCompleted({
                             source: "event",
-                            action: editingEvent ? "UPDATE" : "CREATE",
+                            action: values.id ? "UPDATE" : "CREATE",
                             api: "/timelineEvent",
                         });
-                        message.success(editingEvent ? "事件已更新" : "事件已创建");
+                        message.success(values.id ? "事件已更新" : "事件已创建");
                         setEditorOpen(false);
-                        setEditingEvent(null);
+                        setEditingEventId(null);
                         await refreshEvents();
                     } finally {
                         setIsSubmitting(false);

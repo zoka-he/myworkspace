@@ -16,6 +16,7 @@ interface IFigureProps {
     children?: React.ReactNode;
     showDebugLayers?: boolean;
     onShowEventTip?: (eventId: number | null, position: { clientX: number; clientY: number }) => void;
+    onEventClick?: (eventId: number) => void;
 }
 
 export default function Figure(props: IFigureProps) {
@@ -136,6 +137,12 @@ export default function Figure(props: IFigureProps) {
         // console.debug('mouse move --->> ', event);
     }
 
+    function handleMouseClick(event: React.MouseEvent<SVGSVGElement>) {
+        if (activeEventId) {
+            props.onEventClick?.(activeEventId);
+        }
+    }
+
     return (
         <FigureCommonProvider svgSize={svgSize} zoomTransform={zoomTransform} timelineRange={timelineRange}>
             <div className="w-full h-full flex flex-col">
@@ -146,7 +153,7 @@ export default function Figure(props: IFigureProps) {
                     <svg className="h-full w-20">
                         <TimeAxisSvg />
                     </svg>
-                    <svg ref={svgRef} className="flex-1 h-full" onMouseMove={handleMouseMove}>
+                    <svg ref={svgRef} className="flex-1 h-full" onMouseMove={handleMouseMove} onClick={handleMouseClick}>
                         {actualChildren}
                     </svg>
 

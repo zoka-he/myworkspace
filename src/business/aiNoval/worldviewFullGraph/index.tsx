@@ -15,6 +15,7 @@ import { useTimelineEvents } from './useTimelineEvents';
 import GraphDataContext from './graphDataContext';
 import EventLayer from './figure/EventLayer';
 import TerritoryLayer from './figure/TerritoryLayer';
+import EventEditorModal from '../eventManage2/components/EventEditorModal';
 
 const { Text } = Typography;
 
