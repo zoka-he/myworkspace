@@ -25,7 +25,8 @@ const { Text } = Typography;
 
 export default function EventManage2() {
     const [worldviewId, setWorldviewId] = useState<number | null>(null);
-    const [storyLineId, setStoryLineId] = useState<number | undefined>(undefined);
+    /** 为空表示不按故事线过滤（等价于全选） */
+    const [storyLineIds, setStoryLineIds] = useState<number[]>([]);
     const [keyword, setKeyword] = useState("");
     const [stateFilter, setStateFilter] = useState<string | undefined>(undefined);
     const [dateSort, setDateSort] = useState<"asc" | "desc">("desc");
@@ -87,14 +88,19 @@ export default function EventManage2() {
         data: events = [],
         isLoading: isLoadingEvents,
         mutate: refreshEvents,
-    } = useTimelineEvents(worldviewId, storyLineId, keyword);
+    } = useTimelineEvents(worldviewId);
     const filteredByKeyword = useFilteredEvents(events, keyword);
+    const filteredByStoryLine = useMemo(() => {
+        if (!storyLineIds.length) return filteredByKeyword;
+        const allow = new Set(storyLineIds);
+        return filteredByKeyword.filter((item) => allow.has(item.story_line_id));
+    }, [filteredByKeyword, storyLineIds]);
     const filteredRows = useMemo(() => {
         const stateFiltered = !stateFilter
-            ? filteredByKeyword
-            : filteredByKeyword.filter((item) => item.state === stateFilter);
+            ? filteredByStoryLine
+            : filteredByStoryLine.filter((item) => item.state === stateFilter);
         return [...stateFiltered].sort((a, b) => (dateSort === "desc" ? b.date - a.date : a.date - b.date));
-    }, [filteredByKeyword, stateFilter, dateSort]);
+    }, [filteredByStoryLine, stateFilter, dateSort]);
     const dateFormatter = useMemo(() => {
         const selectedWorldView = worldViews.find((item) => item.id === worldviewId);
         if (!selectedWorldView) return null;
@@ -105,7 +111,7 @@ export default function EventManage2() {
         if (!dateFormatter) return `${seconds}`;
         return dateFormatter.formatSecondsToDate(seconds);
     };
-    
+
     const locationNameMap = useMemo(() => {
         const map = new Map<string, string>();
         locations.forEach((item) => {
@@ -138,7 +144,7 @@ export default function EventManage2() {
                                 value={worldviewId}
                                 onChange={(value) => {
                                     setWorldviewId(value);
-                                    setStoryLineId(undefined);
+                                    setStoryLineIds([]);
                                     setKeyword("");
                                     setStateFilter(undefined);
                                 }}
@@ -149,10 +155,11 @@ export default function EventManage2() {
                             <Select
                                 size="small"
                                 className="flex-1"
+                                mode="multiple"
                                 allowClear
                                 placeholder="全部故事线"
-                                value={storyLineId}
-                                onChange={setStoryLineId}
+                                value={storyLineIds}
+                                onChange={(v) => setStoryLineIds(v ?? [])}
                                 options={storyLines.map((item) => ({
                                     label: item.name,
                                     value: item.id,

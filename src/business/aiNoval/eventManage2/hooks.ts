@@ -42,13 +42,12 @@ export function useLocations(worldviewId: number | null) {
     });
 }
 
-export function useTimelineEvents(worldviewId: number | null, storyLineId?: number, keyword?: string) {
-    return useSWR(worldviewId ? ["event-manage-events", worldviewId, storyLineId] : null, async () => {
+export function useTimelineEvents(worldviewId: number | null) {
+    return useSWR(worldviewId ? ["event-manage-events", worldviewId] : null, async () => {
         if (!worldviewId) return [];
         const response = await getTimelineEventList(
             {
                 worldview_id: worldviewId,
-                story_line_id: storyLineId,
             },
             1,
             1000

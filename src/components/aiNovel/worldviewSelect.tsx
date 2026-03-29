@@ -54,7 +54,7 @@ function WorldviewSelectWithSWR(props: SelectProps) {
             newProps.style = {};
         }
 
-        if (!newProps.style.width) {
+        if (!newProps.style.width && !newProps.className) {
             newProps.style.width = '160px';
         }
 
