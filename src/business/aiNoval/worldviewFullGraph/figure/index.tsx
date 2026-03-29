@@ -10,10 +10,12 @@ import { TimelineDateFormatter } from "../../common/novelDateUtils";
 import { FactionColorLegend, StoryLineColorLegend } from "./ColorLegend";
 import TerritoryPanel from "./territoryPanel";
 import GeoPanel from "./geoPanel";
+// import { ITimelineEvent } from "@/src/types/IAiNoval";
 
 interface IFigureProps {
     children?: React.ReactNode;
     showDebugLayers?: boolean;
+    onShowEventTip?: (eventId: number | null, position: { clientX: number; clientY: number }) => void;
 }
 
 export default function Figure(props: IFigureProps) {
@@ -120,12 +122,15 @@ export default function Figure(props: IFigureProps) {
         if ((event.target as HTMLElement).tagName === 'circle') {
             let eventId = (event.target as HTMLElement).parentElement?.dataset?.['eventId'];
             setActiveEventId(eventId ? parseInt(eventId) : null);
-
+            
             if (eventId) {
-                setActiveEventId(null);
+                props.onShowEventTip?.(parseInt(eventId), { clientX: nativeEvent.clientX, clientY: nativeEvent.clientY });
+            } else {
+                props.onShowEventTip?.(null, { clientX: nativeEvent.clientX, clientY: nativeEvent.clientY });
             }
         } else {
             setActiveEventId(null);
+            props.onShowEventTip?.(null, { clientX: nativeEvent.clientX, clientY: nativeEvent.clientY });
         }
 
         // console.debug('mouse move --->> ', event);

@@ -8,6 +8,7 @@ import EventManage2ContextProvider from './context';
 import { useFactions, useGeos, useRoles, useWorldViewId, useNovelId, useTimelines, useStoryLineIds, useStoryLines } from './hooks';
 import NovelSelect from '@/src/components/aiNovel/novelSelect';
 import Figure from './figure';
+import EventTip from './figure/EventTip';
 import { useEffect, useMemo, useState } from 'react';
 import { connectAiNovelSharedWorker, postAiNovelWorkerMessage, subscribeAiNovelWorker, type WriteCompletedPayload } from '../sharedWorkerBridge';
 import { useTimelineEvents } from './useTimelineEvents';
@@ -117,6 +118,11 @@ function RightPanel() {
 
     const { data: timelineEvents, isLoading: isLoadingTimelineEvents } = useTimelineEvents(worldViewId, null);
 
+    const [eventTip, setEventTip] = useState<{
+        eventId: number | null;
+        position: { clientX: number; clientY: number };
+    }>({ eventId: null, position: { clientX: 0, clientY: 0 } });
+
     useEffect(() => {
         setWorkerReady(connectAiNovelSharedWorker());
         const unsubscribe = subscribeAiNovelWorker((message) => {
@@ -193,9 +199,13 @@ function RightPanel() {
                 
 
                 <GraphDataContext.Provider value={{ timelineEvents }}>
-                    <Figure showDebugLayers>
+                    <Figure
+                        showDebugLayers
+                        onShowEventTip={(eventId, position) => setEventTip({ eventId, position })}
+                    >
                         {layers}
                     </Figure>
+                    <EventTip eventId={eventTip.eventId} position={eventTip.position} />
                 </GraphDataContext.Provider>
             </Card>
         </>
