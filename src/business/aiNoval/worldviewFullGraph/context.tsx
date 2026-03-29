@@ -1,13 +1,14 @@
 import { createContext, useMemo, useReducer } from "react";
 import useSWR from "swr";
-import { getFactionList, getRoleOptionsForWorldState, getChapterList, getTimelineDefList, getWorldViewList } from '@/src/api/aiNovel';
-import { IFactionDefData, IGeoUnionData, IRoleData, IChapter, ITimelineDef, IWorldViewDataWithExtra } from "@/src/types/IAiNoval";
+import { getFactionList, getRoleOptionsForWorldState, getChapterList, getTimelineDefList, getWorldViewList, getStoryLineList, getFactionTerritoryList } from '@/src/api/aiNovel';
+import { IFactionDefData, IGeoUnionData, IRoleData, IChapter, ITimelineDef, IWorldViewDataWithExtra, IStoryLine, IFactionTerritory } from "@/src/types/IAiNoval";
 import { IGeoTreeItem, loadGeoTree } from "@/src/business/aiNoval/common/geoDataUtil";
 import _ from "lodash";
 
 interface EventManage2ContextType {
     worldViewId: number | null;
     novelId: number | null;
+    storyLineIds: number[];
     factionList: IFactionDefData[];
     geoTree: IGeoTreeItem<IGeoUnionData>[];
     geoList: IGeoUnionData[];
@@ -15,6 +16,8 @@ interface EventManage2ContextType {
     chapterList: IChapter[];
     timelineList: ITimelineDef[];
     worldViewData: IWorldViewDataWithExtra | null;
+    storyLineList: IStoryLine[];
+    territoryList: IFactionTerritory[];
 }
 
 interface EventManage2DispatchType {
@@ -25,6 +28,7 @@ function defaultContextData(): EventManage2ContextType {
     return {
         worldViewId: null,
         novelId: null,
+        storyLineIds: [],
         factionList: [],
         geoTree: [],
         geoList: [],
@@ -32,6 +36,8 @@ function defaultContextData(): EventManage2ContextType {
         chapterList: [],
         timelineList: [],
         worldViewData: null,
+        storyLineList: [],
+        territoryList: [],
     }
 }
 
@@ -46,6 +52,8 @@ function eventManage2Reducer(state: EventManage2ContextType, action: any): Event
             return { ...state, worldViewId: action.payload };
         case 'SET_NOVEL_ID':
             return { ...state, novelId: action.payload };
+        case 'SET_STORY_LINE_IDS':
+            return { ...state, storyLineIds: action.payload };
         default:
             return state;
     }
@@ -127,6 +135,25 @@ export default function EventManage2ContextProvider({ children }: { children: Re
         return (geoTree ?? []).flatMap(toPlain);
     }, [geoTree]);
 
+    const { data: storyLineList, isLoading: isLoadingStoryLines, error: errorStoryLines } = useSWR(
+        state.worldViewId ? ['story-line-list', state.worldViewId] : null,
+        async () => {
+            if (!state.worldViewId) return [];
+            const response = await getStoryLineList(state.worldViewId);
+            return response.data ?? [];
+        }
+    );
+
+    const { data: territoryList, isLoading: isLoadingTerritories, error: errorTerritories } = useSWR(
+        state.worldViewId ? ['territory-list', state.worldViewId] : null,
+        async () => {
+            if (!state.worldViewId) return [];
+            const response = await getFactionTerritoryList(state.worldViewId, 1, 1000);
+            // console.debug('territoryList --->> ', response);
+            return response ?? [];
+        }
+    );
+
     return (
         <EventManage2DataContext.Provider 
             value={{ 
@@ -138,6 +165,8 @@ export default function EventManage2ContextProvider({ children }: { children: Re
                 chapterList: chapterList ?? [],
                 timelineList: timelineList ?? [],
                 worldViewData: worldviewData ?? null,
+                storyLineList: storyLineList ?? [],
+                territoryList: territoryList ?? [],
             }}
         >
             <EventManage2DispatchContext.Provider value={{ dispatch }}>

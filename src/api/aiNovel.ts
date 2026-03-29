@@ -1,5 +1,5 @@
 import fetch from '@/src/fetch';
-import { IChapter, INovalData, IWorldRuleGroup, IWorldRuleItem, IWorldRuleSnapshot, IWorldViewData, IWorldViewDataWithExtra, IBrainstorm, IWorldState, ITimelineDef } from '../types/IAiNoval';
+import { IChapter, INovalData, IWorldRuleGroup, IWorldRuleItem, IWorldRuleSnapshot, IWorldViewData, IWorldViewDataWithExtra, IBrainstorm, IWorldState, ITimelineDef, IStoryLine, ITimelineEvent } from '../types/IAiNoval';
 import _ from 'lodash';
 import DifyApi from '../utils/dify/dify_api';
 
@@ -67,6 +67,51 @@ export async function getFactionList(worldViewId: number, limit: number = 200) {
         }
     );
     return response;
+}
+
+export async function getTimelineEventList(
+    params: { worldview_id: number; story_line_id?: number },
+    page: number = 1,
+    limit: number = 1000
+) {
+    return fetch.get<ITimelineEvent[]>('/api/aiNoval/timeline/event/list', {
+        params: {
+            page,
+            limit,
+            ...params,
+        },
+    });
+}
+
+/** GET 单条时间线事件（与列表接口字段一致，含已解析的 faction_ids / role_ids） */
+export async function getTimelineEvent(id: number): Promise<ITimelineEvent> {
+    const data = await fetch.get('/api/aiNoval/timeline/event', {
+        params: { id },
+    });
+    return data as unknown as ITimelineEvent;
+}
+
+export async function createOrUpdateTimelineEvent(data: ITimelineEvent) {
+    if (data.id) {
+        return fetch.post('/api/aiNoval/timeline/event', data, { params: { id: data.id } });
+    }
+    return fetch.post('/api/aiNoval/timeline/event', data);
+}
+
+export async function deleteTimelineEvent(id: number) {
+    return fetch.delete(`/api/aiNoval/timeline/event?id=${id}`);
+}
+
+export async function getStoryLineList(worldviewId: number, page: number = 1, limit: number = 100) {
+    const params = _.omitBy(
+        {
+            worldview_id: worldviewId,
+            page,
+            limit,
+        },
+        _.isUndefined
+    );
+    return fetch.get<IStoryLine[]>('/api/aiNoval/storyLine/list', { params });
 }
 
 interface PrepareTextEmbeddingRequest {
@@ -613,4 +658,16 @@ export const getWorldViewList = async (page: number = 1, limit: number = 100) =>
     };
     const response = await fetch.get<IWorldViewDataWithExtra[]>('/api/aiNoval/worldView/list', { params });
     return response;
+}
+
+export const getFactionTerritoryList = async (worldviewId: number, page: number = 1, limit: number = 200) => {
+    const response = await fetch.get('/api/aiNoval/faction/territory/list', {
+        params: {
+            worldview_id: worldviewId,
+            page,
+            limit,
+        },
+    });
+
+    return response.data;
 }
