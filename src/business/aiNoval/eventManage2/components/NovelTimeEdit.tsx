@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { IWorldViewDataWithExtra, ITimelineDef } from '@/src/types/IAiNoval'
 import { TimelineDateFormatter, ITimelineDateData } from '@/src/business/aiNoval/common/novelDateUtils'
 import { Form, InputNumber, Select, Space, Typography } from 'antd'
@@ -12,9 +12,11 @@ interface NovelTimeEditProps {
   onChange?: (seconds: number) => void
   timelineDef: ITimelineDef
   disabled?: boolean
+  /** 默认 300；设为 0 时立即回写秒数（用于弹窗等需与确定按钮同步的场景） */
+  debounceMs?: number
 }
 
-function NovelTimeEdit({ value, onChange, timelineDef, disabled }: NovelTimeEditProps) {
+function NovelTimeEdit({ value, onChange, timelineDef, disabled, debounceMs = 300 }: NovelTimeEditProps) {
   const [formatter] = useState(() => new TimelineDateFormatter(timelineDef))
   const [dateData, setDateData] = useState<ITimelineDateData>({
     isBC: false,
@@ -33,13 +35,20 @@ function NovelTimeEdit({ value, onChange, timelineDef, disabled }: NovelTimeEdit
     }
   }, [value, formatter])
 
-  // Create a debounced update function
-  const debouncedUpdate = useCallback(
-    debounce((newDateData: ITimelineDateData) => {
+  const pushSeconds = useCallback(
+    (newDateData: ITimelineDateData) => {
       const seconds = formatter.dateDataToSeconds(newDateData)
       onChange?.(seconds)
-    }, 300),
-    [formatter, onChange]
+    },
+    [formatter, onChange],
+  )
+
+  const debouncedUpdate = useMemo(
+    () =>
+      debounceMs <= 0
+        ? pushSeconds
+        : debounce(pushSeconds, debounceMs),
+    [debounceMs, pushSeconds],
   )
 
   // Update handlers with debounced updates
@@ -97,10 +106,10 @@ function NovelTimeEdit({ value, onChange, timelineDef, disabled }: NovelTimeEdit
     }
   }
 
-  // Cleanup debounced function on unmount
   useEffect(() => {
     return () => {
-      debouncedUpdate.cancel()
+      const d = debouncedUpdate as { cancel?: () => void }
+      d.cancel?.()
     }
   }, [debouncedUpdate])
 
@@ -111,7 +120,7 @@ function NovelTimeEdit({ value, onChange, timelineDef, disabled }: NovelTimeEdit
           value={dateData.isBC ? 'BC' : 'AD'}
           onChange={handleEraChange}
           disabled={disabled}
-          style={{ width: 80 }}
+          style={{ width: 100 }}
         >
           <Option value="BC">公元前</Option>
           <Option value="AD">公元</Option>

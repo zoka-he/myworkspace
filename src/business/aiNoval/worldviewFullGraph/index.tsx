@@ -5,11 +5,11 @@ import styles from './index.module.scss';
 import { PlusOutlined } from '@ant-design/icons';
 import WorldViewSelect from '@/src/components/aiNovel/worldviewSelect';
 import EventManage2ContextProvider from './context';
-import { useFactions, useGeos, useRoles, useWorldViewId, useNovelId, useTimelines, useStoryLineIds, useStoryLines } from './hooks';
+import { useFactions, useGeos, useRoles, useWorldViewId, useNovelId, useTimelines, useStoryLineIds, useStoryLines, useWorldViewData } from './hooks';
 import NovelSelect from '@/src/components/aiNovel/novelSelect';
-import Figure from './figure';
+import Figure, { type IFigureHandle } from './figure';
 import EventTip from './figure/EventTip';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { connectAiNovelSharedWorker, notifyAiNovelWriteCompleted, postAiNovelWorkerMessage, subscribeAiNovelWorker, type WriteCompletedPayload } from '../sharedWorkerBridge';
 import { createOrUpdateTimelineEvent } from '@/src/api/aiNovel';
 import { message } from '@/src/utils/antdAppMessage';
@@ -18,6 +18,7 @@ import GraphDataContext from './graphDataContext';
 import EventLayer from './figure/EventLayer';
 import TerritoryLayer from './figure/TerritoryLayer';
 import EventEditorModal from '../eventManage2/components/EventEditorModal';
+import ViewportFitModal from './ViewportFitModal';
 
 const { Text } = Typography;
 
@@ -130,6 +131,27 @@ function RightPanel() {
         position: { clientX: number; clientY: number };
     }>({ eventId: null, position: { clientX: 0, clientY: 0 } });
 
+    const figureRef = useRef<IFigureHandle>(null);
+    const [viewportFitOpen, setViewportFitOpen] = useState(false);
+    const [timelineList] = useTimelines();
+    const [worldViewData] = useWorldViewData();
+
+    const viewportTimelineDef = useMemo(() => {
+        if (!timelineList?.length) {
+            return null;
+        }
+        return timelineList.find((t) => t.faction_id == null) ?? timelineList[0];
+    }, [timelineList]);
+
+    const viewportDefaultTimes = useMemo(() => {
+        if (!viewportTimelineDef) {
+            return { start: undefined as number | undefined, end: undefined as number | undefined };
+        }
+        const start = viewportTimelineDef.start_seconds || 0;
+        const end = (worldViewData?.te_max_seconds || 1) + 3600 * 24 * 365;
+        return { start, end };
+    }, [viewportTimelineDef, worldViewData]);
+
     useEffect(() => {
         setWorkerReady(connectAiNovelSharedWorker());
         const unsubscribe = subscribeAiNovelWorker((message) => {
@@ -161,10 +183,12 @@ function RightPanel() {
 
     const title = (
         <div className="flex flex-row justify-between">
-            <Space>
+            <Space wrap>
                 <Text>关键字：</Text>
                 <Input placeholder="请输入关键字" size="small"/>
-                {/* <Text>时间范围：</Text> */}
+                <Button size="small" type="default" onClick={() => setViewportFitOpen(true)}>
+                    对准视口
+                </Button>
             </Space>
             <Space>
                 <Button size="small" icon={<PlusOutlined />} onClick={() => openInNewWindow('/novel/geographyManage')}>管理地点</Button>
@@ -200,6 +224,7 @@ function RightPanel() {
 
                 <GraphDataContext.Provider value={{ timelineEvents }}>
                     <Figure
+                        ref={figureRef}
                         // showDebugLayers
                         onShowEventTip={(eventId, position) => setEventTip({ eventId, position })}
                         onEventClick={(eventId) => {
@@ -216,6 +241,17 @@ function RightPanel() {
                     <EventTip eventId={eventTip.eventId} position={eventTip.position} />
                 </GraphDataContext.Provider>
             </Card>
+            <ViewportFitModal
+                open={viewportFitOpen}
+                onCancel={() => setViewportFitOpen(false)}
+                timelineDef={viewportTimelineDef}
+                defaultStartSeconds={viewportDefaultTimes.start}
+                defaultEndSeconds={viewportDefaultTimes.end}
+                onConfirm={(visibleStartSeconds, visibleEndSeconds) => {
+                    figureRef.current?.fitViewportToTimeRange(visibleStartSeconds, visibleEndSeconds);
+                    setViewportFitOpen(false);
+                }}
+            />
             <EventEditorModal
                 open={eventEditorOpen}
                 worldviewId={worldViewId}

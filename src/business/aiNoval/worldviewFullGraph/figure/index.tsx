@@ -1,16 +1,24 @@
 'use client';
 
 import * as d3 from "d3";
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useContext, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import FigureCommonContext, { FigureCommonProvider } from "./figureCommonContainer";
-import { useGeos, useTimelines } from "../hooks";
-import { time } from "console";
+import { useTimelines } from "../hooks";
 import { useWorldViewData } from "../hooks";
 import { TimelineDateFormatter } from "../../common/novelDateUtils";
+import type { IWorldViewDataWithExtra } from "@/src/types/IAiNoval";
 import { FactionColorLegend, StoryLineColorLegend } from "./ColorLegend";
 import TerritoryPanel from "./territoryPanel";
 import GeoPanel from "./geoPanel";
 // import { ITimelineEvent } from "@/src/types/IAiNoval";
+
+export interface IFigureHandle {
+    /**
+     * 将主图纵轴视口对准 [visibleStartSeconds, visibleEndSeconds]（世界秒）：
+     * 较小值对应屏幕下方，较大值对应屏幕上方。与 FigureCommonProvider 中 yScale 方向一致。
+     */
+    fitViewportToTimeRange: (visibleStartSeconds: number, visibleEndSeconds: number) => void;
+}
 
 interface IFigureProps {
     children?: React.ReactNode;
@@ -19,9 +27,38 @@ interface IFigureProps {
     onEventClick?: (eventId: number) => void;
 }
 
-export default function Figure(props: IFigureProps) {
+/** 由 timeline domain [t0,t1] 与视口高度 H 解算 d3 zoom 的 k、y（与 figureCommonContainer 中 virtualTopOffset / virtualTotalHeight 约定一致）。 */
+export function computeZoomForVisibleTimeRange(
+    t0: number,
+    t1: number,
+    viewportHeight: number,
+    visibleStartSeconds: number,
+    visibleEndSeconds: number,
+    minK = 1,
+    maxK = 1_000_000,
+): { k: number; y: number } {
+    const domainSpan = t1 - t0;
+    const span = visibleEndSeconds - visibleStartSeconds;
+    if (viewportHeight <= 0 || domainSpan <= 0 || span <= 0) {
+        return { k: 1, y: 0 };
+    }
+    let k = domainSpan / span;
+    if (k < minK) {
+        return { k: minK, y: 0 };
+    }
+    if (k > maxK) {
+        k = maxK;
+    }
+    const y = (viewportHeight * k * (visibleEndSeconds - t1)) / domainSpan;
+    return { k, y };
+}
+
+const Figure = forwardRef<IFigureHandle, IFigureProps>(function Figure(props, ref) {
 
     const svgRef = useRef<SVGSVGElement>(null);
+    const zoomBehaviorRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
+    const timelineRangeRef = useRef<[number, number]>([0, 1]);
+    const svgSizeRef = useRef<{ width: number; height: number }>({ width: 0, height: 0 });
     const [svgSize, setSvgSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
     const [zoomTransform, setZoomTransform] = useState<d3.ZoomTransform>(d3.zoomIdentity);
     const [timelineList] = useTimelines();
@@ -49,7 +86,9 @@ export default function Figure(props: IFigureProps) {
 
     }, []);
 
-    // d3 缩放 + 拖拽，并限制拖拽范围不超出有效区域
+    svgSizeRef.current = svgSize;
+
+    // d3 缩放 + 拖拽；translateExtent 放宽以允许负向 y（视口对准某段区间时需要），并与程序化 zoom.transform 一致
     useEffect(() => {
         if (!svgRef.current) return;
         if (svgSize.width <= 0 || svgSize.height <= 0) return;
@@ -58,25 +97,25 @@ export default function Figure(props: IFigureProps) {
 
         const zoomBehavior = d3
             .zoom<SVGSVGElement, unknown>()
-            .scaleExtent([1, 1000000]) // 缩放范围可按需要调整
-            // extent / translateExtent 限制拖拽和缩放的有效范围，避免把内容拖出视口之外
+            .scaleExtent([1, 1000000])
             .extent([[0, 0], [svgSize.width, svgSize.height]])
-            .translateExtent([[0, 0], [svgSize.width, svgSize.height]])
+            .translateExtent([[-1e12, -1e12], [1e12, 1e12]])
             .on("zoom", (event) => {
                 const t = event.transform;
                 setZoomTransform(t);
-                // 实际几何变换交给 svg 内部的元素使用此 transform
                 svgSelection.selectAll<SVGGElement, unknown>("g[data-zoom-layer='true']").attr("transform", t.toString());
             });
 
+        zoomBehaviorRef.current = zoomBehavior;
         svgSelection.call(zoomBehavior as any);
 
         return () => {
+            zoomBehaviorRef.current = null;
             svgSelection.on(".zoom", null);
         };
     }, [svgSize.width, svgSize.height]);
 
-    const timelineRange = useMemo(() => {
+    const timelineRange = useMemo((): [number, number] => {
         if (!timelineList || timelineList.length === 0) {
             return [0, 1];
         }
@@ -91,8 +130,31 @@ export default function Figure(props: IFigureProps) {
         let end = (worldViewData?.te_max_seconds || 1) + 3600 * 24 * 365;
 
         return [start, end];
-
     }, [timelineList, worldViewData]);
+
+    timelineRangeRef.current = timelineRange;
+
+    useImperativeHandle(ref, () => ({
+        fitViewportToTimeRange: (visibleStartSeconds: number, visibleEndSeconds: number) => {
+            let a = visibleStartSeconds;
+            let b = visibleEndSeconds;
+            if (a > b) {
+                const t = a;
+                a = b;
+                b = t;
+            }
+            const el = svgRef.current;
+            const zb = zoomBehaviorRef.current;
+            const H = svgSizeRef.current.height;
+            if (!el || !zb || H <= 0) {
+                return;
+            }
+            const [t0, t1] = timelineRangeRef.current;
+            const { k, y } = computeZoomForVisibleTimeRange(t0, t1, H, a, b);
+            const transform = d3.zoomIdentity.translate(0, y).scale(k);
+            zb.transform(d3.select(el), transform);
+        },
+    }), []);
 
     const actualChildren = useMemo(() => {
         const children: React.ReactNode[] = [];
@@ -184,8 +246,12 @@ export default function Figure(props: IFigureProps) {
                 </div>
             </div>
         </FigureCommonProvider>
-    )
-}
+    );
+});
+
+Figure.displayName = "Figure";
+
+export default Figure;
 
 function DimmisionLayer() {
     const { svgSize } = useContext(FigureCommonContext);
@@ -261,7 +327,9 @@ function TimeAxisSvg() {
         // console.debug(tickTimes);
     }
     
-    const dateFormatter = TimelineDateFormatter.fromWorldViewWithExtra(worldViewData);
+    const dateFormatter = TimelineDateFormatter.fromWorldViewWithExtra(
+        (worldViewData ?? {}) as IWorldViewDataWithExtra,
+    );
     
     const ticks = tickTimes.map(time => {
         const y = timelineToScreenY(time);
