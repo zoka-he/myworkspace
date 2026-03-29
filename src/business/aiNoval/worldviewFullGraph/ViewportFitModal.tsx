@@ -1,13 +1,25 @@
 'use client';
 
-import { Modal, Space, Typography, Alert } from 'antd';
-import { useEffect, useState } from 'react';
+import { Alert, Button, Modal, Space, Typography } from 'antd';
+import { useEffect, useMemo, useState } from 'react';
 import { message } from '@/src/utils/antdAppMessage';
 import NovelTimeEdit from '@/src/business/aiNoval/eventManage2/components/NovelTimeEdit';
 import type { ITimelineDef } from '@/src/types/IAiNoval';
 import { useWorldViewData } from './hooks';
 
 const { Text } = Typography;
+
+/** 按世界观历法换算标准日/月/年长度（秒） */
+function useWorldCalendarSeconds() {
+    const [worldViewData] = useWorldViewData();
+    return useMemo(() => {
+        const hourSeconds = worldViewData?.tl_hour_length_in_seconds ?? 3600;
+        const daySeconds = hourSeconds * (worldViewData?.tl_day_length_in_hours ?? 24);
+        const monthSeconds = daySeconds * (worldViewData?.tl_month_length_in_days ?? 30);
+        const yearSeconds = monthSeconds * (worldViewData?.tl_year_length_in_months ?? 12);
+        return { hourSeconds, daySeconds, monthSeconds, yearSeconds, worldViewData };
+    }, [worldViewData]);
+}
 
 export interface ViewportFitModalProps {
     open: boolean;
@@ -26,7 +38,7 @@ export default function ViewportFitModal(props: ViewportFitModalProps) {
     const { open, onCancel, onConfirm, timelineDef, defaultStartSeconds, defaultEndSeconds } = props;
     const [start, setStart] = useState<number | null>(null);
     const [end, setEnd] = useState<number | null>(null);
-    const [worldviewData] = useWorldViewData();
+    const calendar = useWorldCalendarSeconds();
 
     useEffect(() => {
         if (!open) {
@@ -61,6 +73,48 @@ export default function ViewportFitModal(props: ViewportFitModalProps) {
         onConfirm(start, end);
     }
 
+    /** 以 te_max_seconds 为视口止（上方），向前倒推 span 秒作为视口起（下方） */
+    function applyPresetBackFromTeMax(spanSeconds: number, label: string) {
+        if (!timelineDef) {
+            message.warning('请先选择世界观并等待时间线加载');
+            return;
+        }
+        const teMax = calendar.worldViewData?.te_max_seconds;
+        if (teMax == null || !Number.isFinite(teMax)) {
+            message.warning('当前世界观缺少叙事最大时间 te_max_seconds，无法快捷倒推');
+            return;
+        }
+        if (spanSeconds <= 0 || !Number.isFinite(spanSeconds)) {
+            message.warning('快捷区间无效');
+            return;
+        }
+        const endSec = teMax;
+        const rawStart = endSec - spanSeconds;
+        const tMin = timelineDef.start_seconds ?? 0;
+        const startSec = Math.max(tMin, rawStart);
+        if (startSec >= endSec) {
+            message.warning(`「${label}」倒推后区间为空，请缩短跨度或检查时间线起点与 te_max_seconds`);
+            return;
+        }
+        setStart(startSec);
+        setEnd(endSec);
+    }
+
+    const quickPresets: { key: string; label: string; span: number }[] = [
+        // { key: '1h', label: '近1小时', span: calendar.hourSeconds },
+        // { key: '1d', label: '近1日', span: calendar.daySeconds },
+        { key: '1m', label: '近1月', span: calendar.monthSeconds },
+        { key: '3m', label: '近3月', span: 3 * calendar.monthSeconds },
+        { key: '1y', label: '近1年', span: calendar.yearSeconds },
+        { key: '2y', label: '近2年', span: 2 * calendar.yearSeconds },
+        { key: '10y', label: '近10年', span: 10 * calendar.yearSeconds },
+        { key: '100y', label: '近100年', span: 100 * calendar.yearSeconds },
+    ];
+
+    const teMaxReady =
+        calendar.worldViewData?.te_max_seconds != null &&
+        Number.isFinite(calendar.worldViewData.te_max_seconds as number);
+
     return (
         <Modal
             title="视口对准时间"
@@ -77,6 +131,30 @@ export default function ViewportFitModal(props: ViewportFitModalProps) {
                 <Text type="secondary">
                     较小时间在屏幕下方，较大时间在上方；与主图时间轴方向一致。
                 </Text>
+                {timelineDef && teMaxReady ? (
+                    <div className="flex flex-col gap-2">
+                        <Text type="secondary">
+                            快捷设定（以叙事最大时间 te_max_seconds 为终点，按历法向前倒推）：
+                        </Text>
+                        <Space wrap size="small">
+                            {quickPresets.map((p) => (
+                                <Button
+                                    key={p.key}
+                                    size="small"
+                                    onClick={() => applyPresetBackFromTeMax(p.span, p.label)}
+                                >
+                                    {p.label}
+                                </Button>
+                            ))}
+                        </Space>
+                    </div>
+                ) : timelineDef && !teMaxReady ? (
+                    <Alert
+                        type="info"
+                        showIcon
+                        message="未配置 te_max_seconds 时无法使用快捷倒推，请手动填写起止时间"
+                    />
+                ) : null}
                 {!timelineDef ? (
                     <Alert type="warning" showIcon message="请先选择世界观并等待时间线加载完成" />
                 ) : null}
