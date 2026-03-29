@@ -159,7 +159,7 @@ function LeftPanel(props: ILeftPanelProps) {
                 >
                     <Radio value="geo-event">按地点关联</Radio>
                     <Radio value="role-event">按角色关联</Radio>
-                    <Radio value="faction-event">按阵营关联</Radio>
+                    <Radio value="faction-event" disabled>按阵营关联</Radio>
                 </Radio.Group>
             </Card>
         </div>

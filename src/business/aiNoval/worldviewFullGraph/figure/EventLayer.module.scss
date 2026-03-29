@@ -12,8 +12,20 @@
     stroke-width: 1;
 }
 
+.roleRelationLine {
+    fill: none;
+    stroke: #6b8cae;
+    stroke-dasharray: 3, 4;
+    stroke-width: 1;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
 :global(html[data-theme="dark"]) {
     .geoRelationLine {
         stroke: silver;
+    }
+    .roleRelationLine {
+        stroke: #8fa8c4;
     }
 }
