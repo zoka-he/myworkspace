@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, Checkbox, Select, Space, Typography } from "antd";
 import { message } from "@/src/utils/antdAppMessage";
 import { createOrUpdateTimelineEvent, deleteTimelineEvent } from "@/src/api/aiNovel";
@@ -12,7 +12,14 @@ import EventEditorModal from "./components/EventEditorModal";
 import { useFactions, useFilteredEvents, useLocations, useRoles, useStoryLines, useTimelineEvents, useWorldviews } from "./hooks";
 import { EVENT_STATE_OPTIONS } from "./types";
 import styles from "./index.module.scss";
-import { notifyAiNovelWriteCompleted, postAiNovelWorkerMessage, subscribeAiNovelWorker } from "../sharedWorkerBridge";
+import {
+    connectAiNovelSharedWorker,
+    notifyAiNovelWriteCompleted,
+    postAiNovelWorkerMessage,
+    subscribeAiNovelWorker,
+    subscribeEventManage2BroadcastChannel,
+    type EventEditRequestPayload,
+} from "../sharedWorkerBridge";
 
 const { Text } = Typography;
 
@@ -30,26 +37,45 @@ export default function EventManage2() {
     const [showRoles, setShowRoles] = useState(false);
     const [hasIncomingEditRequest, setHasIncomingEditRequest] = useState(false);
 
+    const applyIncomingRef = useRef<(request: EventEditRequestPayload) => void>(() => {});
+
+    applyIncomingRef.current = (request: EventEditRequestPayload) => {
+        setHasIncomingEditRequest(true);
+        if (request.worldviewId != null) {
+            setWorldviewId(request.worldviewId);
+        }
+        const raw = request.eventId;
+        const eid = typeof raw === "number" ? raw : Number(raw);
+        if (Number.isFinite(eid) && eid > 0) {
+            setEditingEventId(eid);
+            setEditorOpen(true);
+        }
+    };
+
     useEffect(() => {
+        connectAiNovelSharedWorker();
+        postAiNovelWorkerMessage({ type: "REGISTER_TAB", payload: { role: "eventManage2" } });
+
         const unsubscribe = subscribeAiNovelWorker((workerMessage) => {
             if (workerMessage.type === "EVENT_EDIT_REQUESTED") {
-                const request = workerMessage.payload;
-                setHasIncomingEditRequest(true);
-                if (request.worldviewId) {
-                    setWorldviewId(request.worldviewId);
-                }
+                applyIncomingRef.current(workerMessage.payload);
             }
             if (workerMessage.type === "STATE_SYNC" && workerMessage.payload.lastEventEditRequest) {
-                const request = workerMessage.payload.lastEventEditRequest;
-                setHasIncomingEditRequest(true);
-                if (request.worldviewId) {
-                    setWorldviewId(request.worldviewId);
-                }
+                applyIncomingRef.current(workerMessage.payload.lastEventEditRequest);
             }
         });
 
         postAiNovelWorkerMessage({ type: "GET_STATE" });
-        return unsubscribe;
+        return () => {
+            postAiNovelWorkerMessage({ type: "UNREGISTER_TAB" });
+            unsubscribe();
+        };
+    }, []);
+
+    useEffect(() => {
+        return subscribeEventManage2BroadcastChannel((payload) => {
+            applyIncomingRef.current(payload);
+        });
     }, []);
 
     const { data: worldViews = [] } = useWorldviews();
@@ -74,10 +100,12 @@ export default function EventManage2() {
         if (!selectedWorldView) return null;
         return TimelineDateFormatter.fromWorldViewWithExtra(selectedWorldView);
     }, [worldViews, worldviewId]);
+
     const formatDate = (seconds: number) => {
         if (!dateFormatter) return `${seconds}`;
         return dateFormatter.formatSecondsToDate(seconds);
     };
+    
     const locationNameMap = useMemo(() => {
         const map = new Map<string, string>();
         locations.forEach((item) => {
@@ -169,11 +197,11 @@ export default function EventManage2() {
                 size="small"
                 title={
                     <div>
-                        {hasIncomingEditRequest ? (
+                        {/* {hasIncomingEditRequest ? (
                             <Text type="warning" style={{ marginRight: 12 }}>
                                 已收到来自总览页的事件编辑请求
                             </Text>
-                        ) : null}
+                        ) : null} */}
                         <EventFilters
                             keyword={keyword}
                             dateSort={dateSort}

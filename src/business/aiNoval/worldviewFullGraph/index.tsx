@@ -10,7 +10,16 @@ import NovelSelect from '@/src/components/aiNovel/novelSelect';
 import Figure, { type IFigureHandle } from './figure';
 import EventTip from './figure/EventTip';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { connectAiNovelSharedWorker, notifyAiNovelWriteCompleted, postAiNovelWorkerMessage, subscribeAiNovelWorker, type WriteCompletedPayload } from '../sharedWorkerBridge';
+import {
+    broadcastEventEditRequest,
+    connectAiNovelSharedWorker,
+    getEventManage2TabCount,
+    notifyAiNovelWriteCompleted,
+    postAiNovelWorkerMessage,
+    subscribeAiNovelWorker,
+    subscribeWorldviewBroadcastForWriteCompleted,
+    type WriteCompletedPayload,
+} from '../sharedWorkerBridge';
 import { createOrUpdateTimelineEvent } from '@/src/api/aiNovel';
 import { message } from '@/src/utils/antdAppMessage';
 import { useTimelineEvents } from './useTimelineEvents';
@@ -121,6 +130,8 @@ function RightPanel() {
     const [workerReady, setWorkerReady] = useState(false);
 
     const { data: timelineEvents, isLoading: isLoadingTimelineEvents, mutate: refreshTimelineEvents } = useTimelineEvents(worldViewId, null);
+    const refreshTimelineEventsRef = useRef(refreshTimelineEvents);
+    refreshTimelineEventsRef.current = refreshTimelineEvents;
 
     const [eventEditorOpen, setEventEditorOpen] = useState(false);
     const [editingEventId, setEditingEventId] = useState<number | null>(null);
@@ -154,15 +165,25 @@ function RightPanel() {
 
     useEffect(() => {
         setWorkerReady(connectAiNovelSharedWorker());
-        const unsubscribe = subscribeAiNovelWorker((message) => {
-            if (message.type === 'WRITE_COMPLETED') {
-                setLastWrite(message.payload);
-            } else if (message.type === 'STATE_SYNC' && message.payload.lastWriteCompleted) {
-                setLastWrite(message.payload.lastWriteCompleted);
+        const unsubscribe = subscribeAiNovelWorker((workerMessage) => {
+            if (workerMessage.type === 'WRITE_COMPLETED') {
+                setLastWrite(workerMessage.payload);
+                if (workerMessage.payload.source === 'event') {
+                    void refreshTimelineEventsRef.current();
+                }
+            } else if (workerMessage.type === 'STATE_SYNC' && workerMessage.payload.lastWriteCompleted) {
+                setLastWrite(workerMessage.payload.lastWriteCompleted);
             }
         });
         postAiNovelWorkerMessage({ type: 'GET_STATE' });
         return unsubscribe;
+    }, []);
+
+    useEffect(() => {
+        return subscribeWorldviewBroadcastForWriteCompleted((payload) => {
+            setLastWrite(payload);
+            void refreshTimelineEventsRef.current();
+        });
     }, []);
 
     const openInNewWindow = (path: string) => {
@@ -227,9 +248,25 @@ function RightPanel() {
                         ref={figureRef}
                         // showDebugLayers
                         onShowEventTip={(eventId, position) => setEventTip({ eventId, position })}
-                        onEventClick={(eventId) => {
+                        onEventClick={async (eventId) => {
                             if (!worldViewId) {
                                 message.warning('请先选择世界观');
+                                return;
+                            }
+                            const n = await getEventManage2TabCount();
+                            if (n > 0) {
+                                const payload = {
+                                    from: 'worldviewFullGraph' as const,
+                                    worldviewId: worldViewId ?? null,
+                                    novelId: novelId ?? null,
+                                    eventId,
+                                };
+                                postAiNovelWorkerMessage({
+                                    type: 'REQUEST_EVENT_EDIT',
+                                    payload,
+                                });
+                                broadcastEventEditRequest(payload);
+                                message.info('已在事件管理页签打开编辑，请在该页签中完成修改。');
                                 return;
                             }
                             setEditingEventId(eventId);
