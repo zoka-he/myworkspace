@@ -1,6 +1,7 @@
 import React from "react";
 import { Alert, Button, Card, Space, Tabs, Tag, Typography } from "antd";
 import ThinkingResult from "./ThinkingResult";
+import { useTheme } from "@/src/utils/hooks/useTheme";
 
 export default function AutoWriteResultCard(props: {
   autoWriteStatus: string;
@@ -22,14 +23,20 @@ export default function AutoWriteResultCard(props: {
   onCopy: (text?: string) => void;
   onRewrite: () => void;
 }) {
+  const { currentTheme } = useTheme();
+
+  const colorStyle = {
+    background: currentTheme === "light" ? "#fafafa" : "#333",
+    border: currentTheme === "light" ? "1px solid #f0f0f0" : "1px solid #555",
+  };
+
   const renderBlock = (title: string, content: string, isDraft?: boolean) => (
     <div
       style={{
         marginBottom: 12,
         padding: 12,
-        background: "#fafafa",
-        border: "1px solid #f0f0f0",
         borderRadius: 8,
+        ...colorStyle,
       }}
     >
       <Typography.Text strong>{title}</Typography.Text>
@@ -54,9 +61,8 @@ export default function AutoWriteResultCard(props: {
           alignItems: "center",
           marginBottom: 8,
           padding: "8px 10px",
-          background: "#fafafa",
-          border: "1px solid #f0f0f0",
           borderRadius: 6,
+          ...colorStyle,
         }}
       >
         <Typography.Text type="secondary">{subtitle || "稿件内容"}</Typography.Text>
@@ -94,9 +100,8 @@ export default function AutoWriteResultCard(props: {
               alignItems: "center",
               marginBottom: 8,
               padding: "8px 10px",
-              background: "#fafafa",
-              border: "1px solid #f0f0f0",
               borderRadius: 6,
+              ...colorStyle,
             }}
           >
             <Typography.Text type="secondary">{`润色第 ${r.round} 轮`}</Typography.Text>
