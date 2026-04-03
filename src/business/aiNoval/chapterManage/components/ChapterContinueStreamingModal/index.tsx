@@ -100,7 +100,8 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
 
   // LLM类型（初稿/润色分离，默认均为 deepseek）
   const [draftLlmType, setDraftLlmType] = useState<'gemini' | 'deepseek' | 'deepseek-chat' | 'gemini3'>('deepseek')
-  const [polishLlmType, setPolishLlmType] = useState<'gemini' | 'deepseek' | 'deepseek-chat' | 'gemini3'>('deepseek')
+  const [polishLlmType, setPolishLlmType] = useState<'gemini' | 'deepseek' | 'deepseek-chat' | 'gemini3'>('deepseek-chat')
+  const [criticLlmType, setCriticLlmType] = useState<'gemini' | 'deepseek' | 'deepseek-chat' | 'gemini3'>('deepseek')
 
   // 是否缩写本章
   const [isStripSelf, setIsStripSelf] = useState<boolean>(false)
@@ -130,6 +131,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
   const [draftContent, setDraftContent] = useState<string>('');
   const [initialDraftContent, setInitialDraftContent] = useState<string>('');
   const [polishRounds, setPolishRounds] = useState<PolishRoundData[]>([]);
+  const latestWriterDraftRef = useRef<string>("")
 
   // 更新 keepGoing 时同步更新 ref
   useEffect(() => {
@@ -218,6 +220,9 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
   const stepMachine = useGenChapterStepMachine()
 
   const STREAM_IDLE_TIMEOUT_MS = 3 * 60 * 1000
+  const getCurrentPrompt = () => (promptWorkMode === "full" ? seedPrompt : selectedPromptParts.join("\n"))
+  const stripCritic2Prefix = (text: string) =>
+    text.replace(/^【理解检查】(?:PASS|FAIL（任务理解错误）)(?:：[^\n]*)?\n\n/, "")
 
   const readNdjsonStream = async (
     reader: ReadableStreamDefaultReader<Uint8Array>,
@@ -395,7 +400,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
     setAutoWriteElapsed(0)
     const writerDraftStartTime = Date.now()
 
-    const prompt = promptWorkMode === "full" ? seedPrompt : selectedPromptParts.join("\n")
+    const prompt = getCurrentPrompt()
 
     const writerDraftController = new AbortController()
     const resp = await fetch(
@@ -452,6 +457,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
     })
 
     stepMachine.stepEnd("writerDraft", "初稿生成完成")
+    latestWriterDraftRef.current = draftSnapshot || ""
     setAutoWriteStatus("初稿生成完成")
     setAutoWriteElapsed(Date.now() - writerDraftStartTime)
 
@@ -466,8 +472,8 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
           draft: draftSnapshot || draftContent || "",
           prev_content: prevContent || "",
           curr_context: prompt || "",
-          llm_type: polishLlmType,
-          polish_llm_type: polishLlmType,
+          llm_type: criticLlmType,
+          polish_llm_type: criticLlmType,
         }),
       }
     )
@@ -506,7 +512,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
     setInitialDraftContent(firstDraftWithCritic2)
 
     if (misunderstood) {
-      const msg = "理解检查未通过：模型误解了任务，已停止后续步骤。"
+      const msg = "理解检查未通过：模型误解了任务，已停止后续步骤。可点击“重新润色”手动继续润色流程。"
       stepMachine.stepError("critic2", msg)
       setAutoWriteStatus("error")
       setAutoWriteError(msg)
@@ -565,8 +571,8 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
             prev_content: prevContent || "",
             curr_context: prompt || "",
             context: contextText || "",
-            llm_type: polishLlmType,
-            polish_llm_type: polishLlmType,
+            llm_type: criticLlmType,
+            polish_llm_type: criticLlmType,
           }),
         }
       )
@@ -620,8 +626,10 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
             prev_content: prevContent || "",
             curr_context: prompt || "",
             context: contextText || "",
-            llm_type: polishLlmType,
-            polish_llm_type: polishLlmType,
+            attention: attention || "",
+            attension: attention || "",
+            llm_type: criticLlmType,
+            polish_llm_type: criticLlmType,
             critic1_pass: critic1Pass,
             critic1_reason: critic1Reason || "",
           }),
@@ -920,14 +928,14 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
       currentStep = "prepareInputs"
       stepMachine.stepStart("prepareInputs", "缩写前文")
 
-      // 第二步：加载所有关联章节内容（有 summary 直接采用；否则标记为 pending 等待 blocking 缩写）
+      // 第二步：加载所有关联章节内容（有 summary 或者 actual_seed_prompt 直接采用；否则标记为 pending 等待 blocking 缩写）
       const emptyIds: number[] = []
       const preparedChapterList: ChapterStripReport[] = []
 
       for (const chapterId of relatedChapterIds) {
         const res = await apiCalls.getChapterById(chapterId)
         const originalContent = (res?.content || "") as string
-        const summary = (res?.summary ?? "").toString().trim()
+        let summary = (res?.summary ??  "").toString().trim()
 
         if (summary) {
           preparedChapterList.push({
@@ -1062,7 +1070,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
       // blocking 缩写结束：StepA done
       stepMachine.stepEnd("prepareInputs", "完成缩写前文")
 
-      const prompt = promptWorkMode === "full" ? seedPrompt : selectedPromptParts.join("\n")
+      const prompt = getCurrentPrompt()
       const prevContent = preparedChapterList
         .filter((c) => c.state === "completed" && c.strippedContent)
         .map((c) => c.strippedContent)
@@ -1111,12 +1119,293 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
         .filter((c) => c.state === "completed" && c.strippedContent)
         .map((c) => c.strippedContent)
         .join("\n\n")
-      const prompt = promptWorkMode === "full" ? seedPrompt : selectedPromptParts.join("\n")
+      const prompt = getCurrentPrompt()
       await runFromDraftAndCritic2(prevContent || prompt || "", aggregatedContextText || "")
 
     } catch (error: any) {
       console.error('continueChapter error -> ', error)
       message.error('续写失败，原因：' + error.message)
+    } finally {
+      setIsContinuing(false)
+      setIsLoading(false)
+      setKeepGoing(false)
+    }
+  }
+
+  const handleRePolish = async () => {
+    if (!selectedChapter) return
+
+    const prompt = getCurrentPrompt()
+    const prevContent = stripReportList
+      .filter((c) => c.state === "completed" && c.strippedContent)
+      .map((c) => c.strippedContent)
+      .join("\n\n")
+    const roundSeedDraft = (
+      latestWriterDraftRef.current.trim() ||
+      stripCritic2Prefix((initialDraftContent || draftContent || "").trim())
+    ).trim()
+
+    if (!roundSeedDraft) {
+      message.warning("暂无可用于重新润色的初稿")
+      return
+    }
+
+    try {
+      setIsContinuing(true)
+      setIsLoading(true)
+      setKeepGoing(true)
+      setAutoWriteError("")
+      setAutoWriteStatus("重新润色中")
+      setPolishRounds([])
+
+      stepMachine.startRun()
+      stepMachine.setRounds(0, criticMaxRounds)
+      stepMachine.stepSkip("start", "手动触发重新润色")
+      stepMachine.stepSkip("prepareInputs", "复用已缩写前文")
+      stepMachine.stepSkip("aggregateContext", "重新润色不执行聚合设定")
+      stepMachine.stepSkip("writerDraft", "复用已有初稿")
+      stepMachine.stepSkip("critic2", "手动触发，跳过理解检查")
+
+      let roundDraft = roundSeedDraft
+      const upsertRound = (round: number, patch: Partial<PolishRoundData>) => {
+        setPolishRounds((prev) => {
+          const index = prev.findIndex((x) => x.round === round)
+          const base: PolishRoundData =
+            index >= 0
+              ? prev[index]
+              : {
+                  round,
+                  inputDraft: "",
+                  critic1: { pass: false, reason: "", raw: "" },
+                  critic3: { pass: false, reason: "", advice: "", raw: "" },
+                  modifier: { tunedDraft: "", skipped: false },
+                  polish: { draft: "" },
+                }
+          const nextItem: PolishRoundData = {
+            ...base,
+            ...patch,
+            critic1: { ...base.critic1, ...(patch.critic1 || {}) },
+            critic3: { ...base.critic3, ...(patch.critic3 || {}) },
+            modifier: { ...base.modifier, ...(patch.modifier || {}) },
+            polish: { ...base.polish, ...(patch.polish || {}) },
+          }
+          if (index >= 0) {
+            const next = [...prev]
+            next[index] = nextItem
+            return next
+          }
+          return [...prev, nextItem]
+        })
+      }
+
+      for (let round = 1; round <= criticMaxRounds; round++) {
+        stepMachine.setRounds(round, criticMaxRounds)
+        upsertRound(round, { inputDraft: roundDraft || "" })
+
+        stepMachine.stepStart("critic1")
+        const critic1Controller = new AbortController()
+        const critic1Resp = await fetch(
+          `/api/aiNoval/chapters/genChapterStreaming/critic1?worldviewId=${selectedChapter.worldview_id}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            signal: critic1Controller.signal,
+            body: JSON.stringify({
+              draft: roundDraft || "",
+              prev_content: prevContent || "",
+              curr_context: prompt || "",
+              context: aggregatedContextText || "",
+              llm_type: criticLlmType,
+              polish_llm_type: criticLlmType,
+            }),
+          }
+        )
+        if (!critic1Resp.ok || !critic1Resp.body) {
+          const msg = !critic1Resp.ok ? `critic1 http ${critic1Resp.status}` : "critic1 response body is empty"
+          stepMachine.stepError("critic1", msg)
+          throw new Error(msg)
+        }
+        const c1Reader = critic1Resp.body.getReader()
+        let critic1Pass = false
+        let critic1Reason = ""
+        let critic1Raw = ""
+        await readNdjsonStream(c1Reader, {
+          step: "critic1",
+          controller: critic1Controller,
+          onEvent: (evt) => {
+            if (evt?.type === "delta" && typeof evt?.text === "string") {
+              critic1Raw += evt.text
+              upsertRound(round, { critic1: { pass: critic1Pass, reason: critic1Reason, raw: critic1Raw } })
+            }
+            if (evt?.type === "result") {
+              critic1Pass = !!evt?.data?.pass
+              critic1Reason = String(evt?.data?.reason || "")
+              critic1Raw = String(evt?.data?.raw || critic1Raw || "")
+              upsertRound(round, { critic1: { pass: critic1Pass, reason: critic1Reason, raw: critic1Raw } })
+            }
+            if (evt?.type === "error") throw new Error(evt?.message || "critic1 error")
+          },
+        })
+        stepMachine.stepEnd("critic1")
+
+        stepMachine.stepStart("critic3")
+        stepMachine.stepStart("modifier")
+        const critic3Controller = new AbortController()
+        const modifierController = new AbortController()
+        const [critic3Resp, modifierResp] = await Promise.all([
+          fetch(`/api/aiNoval/chapters/genChapterStreaming/critic3?worldviewId=${selectedChapter.worldview_id}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            signal: critic3Controller.signal,
+            body: JSON.stringify({
+              draft: roundDraft || "",
+              prev_content: prevContent || "",
+              curr_context: prompt || "",
+              context: aggregatedContextText || "",
+              attention: attention || "",
+              attension: attention || "",
+              llm_type: criticLlmType,
+              polish_llm_type: criticLlmType,
+              critic1_pass: critic1Pass,
+              critic1_reason: critic1Reason || "",
+            }),
+          }),
+          fetch(`/api/aiNoval/chapters/genChapterStreaming/modifier?worldviewId=${selectedChapter.worldview_id}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            signal: modifierController.signal,
+            body: JSON.stringify({
+              draft: roundDraft || "",
+              critic1_reason: critic1Reason || "",
+            }),
+          }),
+        ])
+        if (!critic3Resp.ok || !critic3Resp.body) {
+          const msg = !critic3Resp.ok ? `critic3 http ${critic3Resp.status}` : "critic3 response body is empty"
+          stepMachine.stepError("critic3", msg)
+          throw new Error(msg)
+        }
+        if (!modifierResp.ok || !modifierResp.body) {
+          const msg = !modifierResp.ok ? `modifier http ${modifierResp.status}` : "modifier response body is empty"
+          stepMachine.stepError("modifier", msg)
+          throw new Error(msg)
+        }
+
+        const c3Reader = critic3Resp.body.getReader()
+        let critic3Pass = false
+        let critic3Reason = ""
+        let critic3Advice = ""
+        let critic3Raw = ""
+        await readNdjsonStream(c3Reader, {
+          step: "critic3",
+          controller: critic3Controller,
+          onEvent: (evt) => {
+            if (evt?.type === "delta" && typeof evt?.text === "string") {
+              critic3Raw += evt.text
+              upsertRound(round, { critic3: { pass: critic3Pass, reason: critic3Reason, advice: critic3Advice, raw: critic3Raw } })
+            }
+            if (evt?.type === "result") {
+              critic3Pass = !!evt?.data?.pass
+              critic3Reason = String(evt?.data?.reason || "")
+              critic3Advice = String(evt?.data?.advice || "")
+              critic3Raw = String(evt?.data?.raw || critic3Raw || "")
+              upsertRound(round, { critic3: { pass: critic3Pass, reason: critic3Reason, advice: critic3Advice, raw: critic3Raw } })
+            }
+            if (evt?.type === "error") throw new Error(evt?.message || "critic3 error")
+          },
+        })
+        stepMachine.stepEnd("critic3")
+
+        if (critic1Pass && critic3Pass) {
+          try { modifierController.abort() } catch {}
+          stepMachine.stepSkip("modifier", "1号与3号均 PASS，跳过改写")
+          stepMachine.stepSkip("polish", "1号与3号均 PASS，跳过改写")
+          upsertRound(round, {
+            modifier: { tunedDraft: roundDraft || "", skipped: true },
+            polish: { draft: roundDraft || "" },
+          })
+          setDraftContent(roundDraft || "")
+          setAutoWriteStatus(`润色第 ${round} 轮通过（1号&3号均 PASS）`)
+          break
+        }
+
+        const mReader = modifierResp.body.getReader()
+        let tunedDraft = roundDraft || ""
+        let modifierSkipped = false
+        await readNdjsonStream(mReader, {
+          step: "modifier",
+          controller: modifierController,
+          onEvent: (evt) => {
+            if (evt?.type === "delta" && typeof evt?.text === "string") {
+              tunedDraft += evt.text
+              upsertRound(round, { modifier: { tunedDraft, skipped: false } })
+            }
+            if (evt?.type === "result") {
+              tunedDraft = String(evt?.data?.tunedDraft || tunedDraft || "")
+              modifierSkipped = !!evt?.data?.skipped
+              upsertRound(round, { modifier: { tunedDraft: tunedDraft || "", skipped: modifierSkipped } })
+            }
+            if (evt?.type === "error") throw new Error(evt?.message || "modifier error")
+          },
+        })
+        stepMachine.stepEnd("modifier")
+
+        stepMachine.stepStart("polish")
+        const polishController = new AbortController()
+        const polishResp = await fetch(
+          `/api/aiNoval/chapters/genChapterStreaming/rewrite?worldviewId=${selectedChapter.worldview_id}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            signal: polishController.signal,
+            body: JSON.stringify({
+              draft: tunedDraft || "",
+              rejectedDraft: tunedDraft || "",
+              prev_content: prevContent || "",
+              curr_context: prompt || "",
+              context: aggregatedContextText || "",
+              attention: attention || "",
+              attension: attention || "",
+              llm_type: polishLlmType,
+              polish_llm_type: polishLlmType,
+              mergedCriticReason: critic3Advice || critic1Reason || "",
+              criticReason: critic3Advice || critic1Reason || "",
+            }),
+          }
+        )
+        if (!polishResp.ok || !polishResp.body) {
+          const msg = !polishResp.ok ? `polish http ${polishResp.status}` : "polish response body is empty"
+          stepMachine.stepError("polish", msg)
+          throw new Error(msg)
+        }
+        const pReader = polishResp.body.getReader()
+        let polishedDraft = ""
+        await readNdjsonStream(pReader, {
+          step: "polish",
+          controller: polishController,
+          onEvent: (evt) => {
+            if (evt?.type === "delta" && typeof evt?.text === "string") {
+              polishedDraft += evt.text
+              upsertRound(round, { polish: { draft: polishedDraft } })
+            }
+            if (evt?.type === "result" && evt?.data?.draft != null) {
+              polishedDraft = String(evt?.data?.draft || "")
+              upsertRound(round, { polish: { draft: polishedDraft } })
+            }
+            if (evt?.type === "error") throw new Error(evt?.message || "polish error")
+          },
+        })
+        stepMachine.stepEnd("polish")
+        roundDraft = polishedDraft || roundDraft || ""
+        setDraftContent(roundDraft)
+        setAutoWriteStatus(`润色第 ${round} 轮完成`)
+      }
+
+      stepMachine.stepStart("end")
+      stepMachine.stepEnd("end")
+    } catch (error: any) {
+      console.error("repolish error -> ", error)
+      message.error("重新润色失败，原因：" + (error?.message || error))
     } finally {
       setIsContinuing(false)
       setIsLoading(false)
@@ -1721,6 +2010,14 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
                     <Select.Option value="gpt" disabled>GPT-4o（实验）</Select.Option>
                   </Select>
 
+                  <Typography.Text>审稿模型：</Typography.Text>
+                  <Select value={criticLlmType} onChange={(value) => setCriticLlmType(value)} disabled={isContinuing}>
+                    <Select.Option value="gemini3">Gemini3</Select.Option>
+                    <Select.Option value="deepseek">DeepSeek（reasoner）</Select.Option>
+                    <Select.Option value="deepseek-chat">DeepSeek-Chat</Select.Option>
+                    <Select.Option value="gpt" disabled>GPT-4o（实验）</Select.Option>
+                  </Select>
+
                   <Typography.Text>审稿员审核次数：</Typography.Text>
                   <InputNumber
                     min={1}
@@ -1730,8 +2027,10 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
                     disabled={isContinuing}
                   />
 
+                  {/* 
                   <Checkbox checked={isReferSelf} onChange={(e) => setIsReferSelf(e.target.checked)} disabled={isContinuing}>参考本章已有内容</Checkbox>
                   <Checkbox checked={isStripSelf} onChange={(e) => setIsStripSelf(e.target.checked)} disabled={isContinuing}>缩写本章</Checkbox>
+                  */}
 
                   { isContinuing ? (
                     <Button
@@ -1816,8 +2115,10 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
                   polishRounds={polishRounds}
                   disabledCopy={isLoading || isContinuing || !draftContent}
                   disabledRewrite={isLoading || isContinuing}
+                  disabledRePolish={isLoading || isContinuing || !(initialDraftContent || draftContent).trim()}
                   onCopy={handleCopyContinued}
                   onRewrite={handleReContinue}
+                  onRePolish={handleRePolish}
                 />
             </Col>
           </Row>

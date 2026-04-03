@@ -20,8 +20,10 @@ export default function AutoWriteResultCard(props: {
   }>;
   disabledCopy: boolean;
   disabledRewrite: boolean;
+  disabledRePolish: boolean;
   onCopy: (text?: string) => void;
   onRewrite: () => void;
+  onRePolish: () => void;
 }) {
   const { currentTheme } = useTheme();
 
@@ -154,6 +156,14 @@ export default function AutoWriteResultCard(props: {
               onClick={props.onRewrite}
             >
               重写
+            </Button>
+            <Button
+              type="primary"
+              size="small"
+              disabled={props.disabledRePolish}
+              onClick={props.onRePolish}
+            >
+              重新润色
             </Button>
           </Space>
         </div>
