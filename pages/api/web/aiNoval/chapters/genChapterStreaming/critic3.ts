@@ -31,13 +31,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const prev_content = body.prev_content || "";
   const curr_context = body.curr_context || "";
   const context = body.context || "";
+  const attension = body.attension || body.attention || "";
   const llm_type = body.polish_llm_type || body.llm_type || "deepseek-chat";
   const critic1_pass = !!body.critic1_pass;
   const critic1_reason = body.critic1_reason || "";
 
   try {
     writePhaseStart(res, step, { llm_type });
-    const criticInput = buildCritic3UserInput(draft, prev_content, curr_context, critic1_pass, critic1_reason);
+    const criticInput = buildCritic3UserInput(draft, prev_content, curr_context, critic1_pass, critic1_reason, attension);
     const systemPromptWithContext = CRITIC3_SYSTEM_PROMPT.replace("{{context}}", context || "");
     const chain = createStreamingChain(llm_type, systemPromptWithContext, criticInput, {
       temperature: 0.9,
