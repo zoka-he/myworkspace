@@ -188,6 +188,13 @@ export interface IFactionDefData {
     relations?: IFactionRelation[] | null,
 }
 
+export interface IRoleRelationType {
+  id: string,
+  label: string,
+  default_strength: number, // 0-100, 0=敌对, 50=中立, 100=亲密
+  default_color: string, // 默认=none
+}
+
 export interface IRoleData {
     version_name?: any
     version_count?: number

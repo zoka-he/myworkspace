@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import * as d3 from 'd3'
 import type { SimulationNodeDatum } from 'd3'
-import type { IRoleRelation, IRoleData, IRoleInfo } from '@/src/types/IAiNoval'
-import { RELATION_TYPES } from '@/src/types/IAiNoval'
+import type { IRoleRelation, IRoleData, IRoleInfo, IRoleRelationType } from '@/src/types/IAiNoval'
 import apiCalls from '../../../aiNoval/roleManage/apiCalls'
 import { useRoleDefList, useRoleId, useRoleInfoId, useWorldViewId } from '../roleManageContext'
 
@@ -29,9 +28,10 @@ interface RoleGraphData {
 }
 
 interface D3RoleRelationGraphProps {
-  // worldview_id: string
   updateTimestamp?: number
   onNodeClick?: (roleId: string) => void
+  /** 来自 role_relation_type 表，与父组件共用一份数据 */
+  relationTypes?: IRoleRelationType[]
 }
 
 // 全局计数器，在模块级别
@@ -42,9 +42,9 @@ let lastDimHeight: number = 0;
 let lastUpdateTimestamp: number | undefined = undefined;
 
 export function D3RoleRelationGraph({ 
-  // worldview_id,
   updateTimestamp,
-  onNodeClick
+  onNodeClick,
+  relationTypes = [],
 }: D3RoleRelationGraphProps) {
   globalMountCount++;
   console.warn('=== [D3Graph] RENDER ===', globalMountCount);
@@ -178,6 +178,16 @@ export function D3RoleRelationGraph({
         console.warn('=== [D3Graph] CANCELLED, SKIPPING ===');
         return;
       }
+
+      const relationTypeById = new Map<string, IRoleRelationType>(
+        relationTypes.map((t) => [String(t.id), t])
+      )
+      const relationTypeLabel = (code: string | undefined) => {
+        if (code == null || code === '') return ''
+        const t = relationTypeById.get(String(code))
+        return t?.label ?? String(code)
+      }
+
       const data: RoleGraphData = {
         nodes: roleRes.data,
         relations: relationRes.data
@@ -354,9 +364,8 @@ export function D3RoleRelationGraph({
         .text(d => {
           // 获取所有关系类型的中文标签
           const relationLabels = d.relations.map(r => {
-            const relationType = RELATION_TYPES.find(t => t.value === r.relation_type)
-            return relationType?.label || r.relation_type
-          }).filter((label): label is string => label !== undefined)
+            return relationTypeLabel(r.relation_type as string | undefined)
+          }).filter((label): label is string => label !== undefined && label !== '')
           // 去重并合并
           return Array.from(new Set(relationLabels)).join(' / ')
         })
@@ -407,8 +416,7 @@ export function D3RoleRelationGraph({
         .text(d => {
           // 按关系类型分组
           const groupedRelations = d.relations.reduce((acc, r) => {
-            const relationType = RELATION_TYPES.find(t => t.value === r.relation_type)
-            const label = relationType?.label || r.relation_type
+            const label = relationTypeLabel(r.relation_type as string | undefined) || String(r.relation_type ?? '')
             if (label) {
               if (!acc[label]) {
                 acc[label] = []
@@ -502,7 +510,7 @@ export function D3RoleRelationGraph({
       isCancelled = true;
       simulation.stop()
     }
-  }, [worldViewId, dimensions.width, dimensions.height, updateTimestamp])
+  }, [worldViewId, dimensions.width, dimensions.height, updateTimestamp, relationTypes])
 
   return (
     <div ref={containerRef} style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
