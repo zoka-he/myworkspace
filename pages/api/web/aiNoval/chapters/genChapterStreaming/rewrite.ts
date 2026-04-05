@@ -1,6 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import _ from "lodash";
-import { buildPromptTemplate, buildRewriteUserInput } from "../genChapter";
+import {
+  buildPromptTemplate,
+  buildRewriteUserInput,
+  appendAntiStyleConfrontationBlocks,
+  antiStyleFlagsFromRequestBody,
+} from "../genChapter";
 import { initNdjsonStream, writeError, writeNdjson, writePhaseEnd, writePhaseStart } from "@/src/utils/streaming/ndjson";
 import { createStreamingChain, getChunkText } from "./streamingChain";
 
@@ -37,7 +42,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     writePhaseStart(res, step, { llm_type });
-    const systemPrompt = buildPromptTemplate(attensionText);
+    const antiFlags = antiStyleFlagsFromRequestBody(body as Record<string, unknown>);
+    const systemPrompt = appendAntiStyleConfrontationBlocks(buildPromptTemplate(attensionText), antiFlags);
     const rewriteUserInput = buildRewriteUserInput(prev_content, curr_context, mergedCriticReason, rejectedDraft);
     const systemPromptWithContext = systemPrompt.replace("{{context}}", context || "");
     const chain = createStreamingChain(llm_type, systemPromptWithContext, rewriteUserInput, {

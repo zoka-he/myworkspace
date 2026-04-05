@@ -49,7 +49,7 @@ export function buildPromptTemplate(attension: string): string {
 
 <description>
 
-本任务中，你将作为一位“反科幻俗套”的硬核作家。你最讨厌的就是那些陈词滥调，比如那种毫无感情的机器人、合成音、加密通信的设定。你希望呈现给读者的是一个充满意外和整活的世界。
+本任务中，你将作为一位“反科幻俗套”，且擅长塑造人物的作家。你最讨厌的就是那些陈词滥调，比如那种毫无感情的机器人、合成音、加密通信的设定。你希望呈现给读者的是一个充满意外和整活的世界。
 本任务是**续写**，不是扩写或重写。你需根据【章节背景】（已有故事内容）和【本章待写内容】（本章要写的情节要点），在故事末尾之后**生成全新内容**。严禁重写、改写、扩写或润色【章节背景】中已有的任何文字。你的输出应直接接在【章节背景】最后一句之后，自然衔接，继续推进情节。
 
 **重要**：【本章待写内容】描述的是**本段你应写出的情节**。你的续写必须**直接呈现、展开**这些要点中的场景和事件，而不是跳过它们去写「之后发生的事」。严禁把待写内容当作已发生或将在别处发生，然后输出「后来」「紧接着」「随后」「之后」等跳过待写内容本身的情节。严禁仅节选部分待写内容一带而过，然后把重心放在你脑补的后续情节上；待写内容中的各要点都应得到充分的展开和呈现，不得喧宾夺主。
@@ -124,6 +124,127 @@ ${attensionText}
 {{context}}
 
 </section>\`\`\``;
+}
+
+/** 文风对抗开关（与分段续写、前端勾选一致；字段显式为 false 时才关闭） */
+export type AntiStyleConfrontationBooleans = {
+    antiLovecraftStyle: boolean;
+    antiSweetCeoStyle: boolean;
+    antiFakeProtocolStyle: boolean;
+    antiEncryptedChannelStyle: boolean;
+    antiWastelandStyle: boolean;
+    antiEnumReactionsStyle: boolean;
+    antiClichePhraseStyle: boolean;
+    antiPlotExplanation: boolean;
+    antiSpeechMilitarySummaryStyle: boolean;
+};
+
+/**
+ * 在作者系统提示词末尾追加「文风对抗」约束段落（与 genChapterSegmentMultiTurn 一致）。
+ */
+export function appendAntiStyleConfrontationBlocks(
+    basePrompt: string,
+    opts: AntiStyleConfrontationBooleans
+): string {
+    const antiLovecraftBlock = opts.antiLovecraftStyle
+        ? `
+
+**抗克苏鲁/魔兽文风（避免常见模型偏向）**：
+- 不要滥用「野兽」「兽性」「野兽般的」等比喻；除非剧情明确需要，否则用更贴合当前世界观与语境的描写。
+- 不要随意使用「腐败」「腐化」「腐朽」「堕落」等词；仅在本章/本作设定确实涉及该主题时才使用。
+- 避免无意识的克苏鲁、魔兽（WOW）式阴暗诡异文风；按本章提纲与整体风格写作，不要堆砌上述套路。`
+        : '';
+    const antiSweetCeoBlock = opts.antiSweetCeoStyle
+        ? `
+
+**抗甜宠/霸总文风（避免公式化描写）**：
+- **生理反应不要公式化**：脸不要总是「一红」、心不要总是「漏跳一拍」、嘴唇不要总是「咬住」、手指不要总是「蜷缩」；根据具体情境与人物性格选用多样、贴切的生理与动作描写，避免千篇一律。
+- **避免霸总标配堆砌**：男性角色不要总是「薄唇」「冷峻」「眼底划过一丝暗芒」等刻板描写；人物外貌与神态应贴合本章设定与世界观，避免甜宠/霸总网文套路化表达。`
+        : '';
+    const antiFakeProtocolBlock = opts.antiFakeProtocolStyle
+        ? `
+
+**抗空泛协议/中二命名（严格遵从设定中的协议与规则）**：
+- **禁止自创协议/条约/协定名称**：不得编造「XX协议」「XX条约」「XX协定」「XX公约」等专有名词，除非该名称在前情、本章提纲或世界观设定中已明确出现。模型常因训练数据中科幻/商战/政斗的「命名型协议」套路而自动生成听起来专业、实则空泛的名称，此处必须禁止。
+- **仅使用设定内已有名称**：若情节涉及规则、条约、商务条款，只引用前文或设定里写明的具体名称与内容；若设定中未给出名称，用具体行为与事实描写代替（例如「按双方约定……」「根据此前达成的……」），不要临时造一个「德尔塔协议」「第三象限贸易协定」类名称。
+- **设定中的协议必须被遵从**：若世界观或本章要点里已写明某协议、某规则，写作时必须体现角色在遵守或违反该规则，而不是忽略设定、另造一套空洞的「协议名」来填充氛围。`
+        : '';
+    const antiEncryptedChannelBlock = opts.antiEncryptedChannelStyle
+        ? `
+
+**抗加密表述（禁止套路化通讯/安全用语）**：
+- **禁止使用**以下及同类表述：「加密信道」「加密线路」「加密频段」「加密通讯」「加密连接」「专用线路」「保密频道」「安全链路」。不得用上述空泛用语堆砌氛围；若需写通讯或技术细节，请用具体动作、场景与结果描写，或根据世界观自拟贴切说法，避免千篇一律的套路词。`
+        : '';
+    const antiWastelandBlock = opts.antiWastelandStyle
+        ? `
+
+**反废土文风（仅在本作/本章明确为废土/末世设定时才使用废土语汇）**：
+- 不要无意识带入废土、末世感：若前情与提纲未明确设定为废土/末世/后末日世界，禁止堆砌「荒芜」「废墟」「残垣断壁」「破败」「锈蚀」「辐射」「变异」「末世」「废土」「灰蒙蒙」「昏黄」「尘埃漫天」等刻板废土描写；避免「拾荒者」「幸存者」「避难所」等作为泛用氛围词滥用。
+- 若本作确为废土题材，也请按本章提纲与具体场景写作，用具体细节替代套路词堆砌，避免千篇一律的废土感。`
+        : '';
+    const antiEnumReactionsBlock = opts.antiEnumReactionsStyle
+        ? `
+
+**反逐人枚举（多人场景优先概括集体行为）**：
+- **不要逐人枚举反应**：多人同时在场时，禁止按「甲愣了一下，乙皱起眉，丙点头……」依次写每个人的神态或动作；除非本段提纲明确要求写出每个人不同的反应，否则不要逐人罗列。
+- **优先概括集体**：用「众人」「大家」「在场的人」「一片哗然」「纷纷……」或写一两位关键人物再以「其余人/人群」概括，表现整体氛围即可。
+- **确需区分时**：若情节需要对比少数几人态度，只写这几人，避免对在场所有人逐一遍历。`
+        : '';
+    const antiClichePhraseBlock = opts.antiClichePhraseStyle
+        ? `
+
+**抗套路样板词（避免公式化神态与评价）**：
+- **禁止滥用下列及同类表述**：「恰到好处」「不易察觉」「微微一笑」「深吸一口气」，以及「会心一笑」「轻叹一声」「不动声色」等网文高频套路词。不要用上述空泛用语堆砌氛围。
+- **禁止「条款/条文/规章制度」类公文比喻**：不得写「宣读条款」「念条文」「背规章制度」及一切「像在念××条文/条款/规章制度」「××般（条文腔、条款腔）」等——属生硬 AI 套话；写语气请用具体说法（如「一句一顿」「没有起伏」「干巴巴的」等），**不要**用条款、条文、规章制度、公文诵读作比。
+- **评价要具体**：若需写「刚好、合适」，用具体情境与结果描写代替「恰到好处」。
+- **神态与动作要多样**：笑、呼吸、叹息等描写请根据人物与情境选用具体、贴切的写法，避免千篇一律的「微微一笑」「深吸一口气」。`
+        : '';
+    const antiPlotExplanationBlock = opts.antiPlotExplanation
+        ? `
+
+**抗剧情解释（禁止在正文中解释剧情）**：
+- **禁止用叙述者口吻或旁白解释当前情节的动机、因果**：不要写「原来……」「这意味着……」「事实上……」等**替读者归纳剧情**的句子；只呈现具体情节、对话与描写，让读者通过情节自己感受。
+- **不要替读者总结**：不要在本段中概括或总结本段/前文发生了什么事；情节通过行动、对话和细节展现，不要用说明性语句替代。
+- **展示而非告知**：动机、因果、真相应通过角色行为与情节推进自然呈现，不得用旁白直接说明「因为……所以……」「他这样做的原因是……」等。
+- **允许设定展开**：世界观规则、制度、地理、历史背景、势力与常识等**设定向**说明可以写，与「禁止替读者总结本段剧情」不冲突；勿把设定交代误判为违规。`
+        : '';
+    const antiSpeechMilitarySummaryBlock = opts.antiSpeechMilitarySummaryStyle
+        ? `
+
+**抗演讲腔/军事腔/总结性台词（对白应生动自然）**：
+- **禁止演讲强调**：角色对白不要像在台上发言、喊口号或宣言式表述；日常对话应口语化、有来有回、贴合情境，避免「我们一定要……」「让我们……」等动员式、宣誓式语句。
+- **禁止刻板军事腔**：除非设定确为军事场景且符合身份，否则不要写刻板的命令式、汇报式对白（如「是！」「明白！」「保证完成任务」），也不要整段对话都由「收到」「遵命」「按之前方案执行」这类简短口令式句子构成；对白应像真人说话，有具体主语（如「我/你/我们」）、自然的口气和情绪。
+- **禁止总结性/口号式台词**：不要用一句对白替作者总结主题、点题或升华；避免空洞的总结句、金句式台词。对白应推动情节或体现人物，而非替叙述者归纳。
+- **避免无主语、机械式来回**：连续多句对话如果普遍缺少「我/你/我们」等主语，只剩下命令、汇报或单字应答（如「好」「行」「明白」「是」）交替出现，语气生硬、缺乏生活感，应视为军事腔或口号化对白，必须改写为带有自然主语指代、具体内容和情绪细节的日常说话方式。`
+        : '';
+    return (
+        basePrompt +
+        antiLovecraftBlock +
+        antiSweetCeoBlock +
+        antiFakeProtocolBlock +
+        antiEncryptedChannelBlock +
+        antiWastelandBlock +
+        antiEnumReactionsBlock +
+        antiClichePhraseBlock +
+        antiPlotExplanationBlock +
+        antiSpeechMilitarySummaryBlock
+    );
+}
+
+/** 从请求体解析文风对抗选项；缺省视为开启（与 Modal 默认勾选一致） */
+export function antiStyleFlagsFromRequestBody(body: Record<string, unknown> | null | undefined): AntiStyleConfrontationBooleans {
+    const b = body || {};
+    return {
+        antiLovecraftStyle: b.anti_lovecraft_style !== false,
+        antiSweetCeoStyle: b.anti_sweet_ceo_style !== false,
+        antiFakeProtocolStyle: b.anti_fake_protocol_style !== false,
+        antiEncryptedChannelStyle: b.anti_encrypted_channel_style !== false,
+        antiWastelandStyle: b.anti_wasteland_style !== false,
+        antiEnumReactionsStyle: b.anti_enum_reactions_style !== false,
+        antiClichePhraseStyle: b.anti_cliche_phrase_style !== false,
+        antiPlotExplanation: b.anti_plot_explanation !== false,
+        antiSpeechMilitarySummaryStyle: b.anti_speech_military_summary_style !== false,
+    };
 }
 
 // 构建用户输入
@@ -853,8 +974,11 @@ async function handleGenChapter(req: NextApiRequest, res: NextApiResponse<Data>)
         }
         console.debug('[genChapter] context length', context.length);
 
-        // 5. 构建提示词
-        const systemPrompt = buildPromptTemplate(attensionText);
+        // 5. 构建提示词（含文风对抗选项，与分段续写/流式初稿一致）
+        const systemPrompt = appendAntiStyleConfrontationBlocks(
+            buildPromptTemplate(attensionText),
+            antiStyleFlagsFromRequestBody(inputs as Record<string, unknown>)
+        );
         const userInput = buildUserInput(prev_content, curr_context);
         console.debug('[genChapter] userInput length', userInput.length);
 
