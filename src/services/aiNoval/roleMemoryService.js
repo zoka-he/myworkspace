@@ -1,4 +1,5 @@
 import { MysqlNovalService } from '@/src/utils/mysql/service';
+import RoleInfoService from '@/src/services/aiNoval/roleInfoService';
 
 const IMPORTANCE_ORDER = ['critical', 'high', 'medium', 'low', 'marginal'];
 const IMPORTANCE_FIELD = "FIELD(importance, 'critical','high','medium','low','marginal')";
@@ -127,5 +128,69 @@ export default class RoleMemoryService extends MysqlNovalService {
     values.push(limitVal);
     const data = await this.queryBySql(sql, values);
     return { data: data || [], count: (data || []).length };
+  }
+
+  /**
+   * 将源角色信息版本下的记忆复制到目标版本（同一 role_id、同一 worldview）
+   */
+  async copyMemoriesFromRoleInfo({ worldview_id, from_role_info_id, to_role_info_id }) {
+    const wv = Number(worldview_id);
+    const fromId = Number(from_role_info_id);
+    const toId = Number(to_role_info_id);
+    if (!Number.isFinite(wv) || !Number.isFinite(fromId) || !Number.isFinite(toId)) {
+      throw new Error('worldview_id、from_role_info_id、to_role_info_id 均为必填数字');
+    }
+    if (fromId === toId) {
+      throw new Error('源版本与当前版本不能相同');
+    }
+    const roleInfoSvc = new RoleInfoService();
+    const [fromInfo, toInfo] = await Promise.all([
+      roleInfoSvc.queryOne({ id: fromId }),
+      roleInfoSvc.queryOne({ id: toId }),
+    ]);
+    if (!fromInfo || !toInfo) {
+      throw new Error('未找到角色信息记录');
+    }
+    if (Number(fromInfo.worldview_id) !== wv || Number(toInfo.worldview_id) !== wv) {
+      throw new Error('世界观不一致');
+    }
+    const fromRid = fromInfo.role_id != null ? Number(fromInfo.role_id) : NaN;
+    const toRid = toInfo.role_id != null ? Number(toInfo.role_id) : NaN;
+    if (!Number.isFinite(fromRid) || !Number.isFinite(toRid) || fromRid !== toRid) {
+      throw new Error('仅支持同一角色（role_id 相同）的不同版本间拷贝');
+    }
+    const listResult = await this.getList({
+      worldview_id: wv,
+      role_info_id: fromId,
+      page: 1,
+      limit: 5000,
+    });
+    const rows = listResult.data || [];
+    let copied = 0;
+    for (const row of rows) {
+      const payload = {
+        worldview_id: wv,
+        role_info_id: toId,
+        chapter_id: row.chapter_id ?? null,
+        scope: row.scope ?? 'global',
+        start_chapter_id: row.start_chapter_id ?? null,
+        end_chapter_id: row.end_chapter_id ?? null,
+        content: row.content,
+        impact_summary: row.impact_summary ?? null,
+        importance: row.importance ?? 'medium',
+        memory_type: row.memory_type ?? null,
+        affects_slot: row.affects_slot ?? null,
+        related_role_info_id: row.related_role_info_id ?? null,
+        narrative_usage: row.narrative_usage ?? null,
+        sort_order: row.sort_order ?? 0,
+      };
+      if (row.affects_slots != null && row.affects_slots !== '') {
+        payload.affects_slots =
+          typeof row.affects_slots === 'string' ? row.affects_slots : JSON.stringify(row.affects_slots);
+      }
+      await this.insertOne(payload);
+      copied += 1;
+    }
+    return { copied };
   }
 }

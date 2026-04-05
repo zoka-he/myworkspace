@@ -80,6 +80,14 @@ const apiCalls = {
     deleteRoleMemory: (id: number) => {
         return fetch.delete('/api/web/aiNoval/roleMemory', { params: { id } });
     },
+    /** 将源角色信息版本的记忆复制到目标版本（同一 role_id） */
+    copyRoleMemoriesFromVersion: (body: {
+        worldview_id: number;
+        from_role_info_id: number;
+        to_role_info_id: number;
+    }) => {
+        return fetch.post('/api/web/aiNoval/roleMemory/copy', body);
+    },
 }
 
 export default apiCalls;
