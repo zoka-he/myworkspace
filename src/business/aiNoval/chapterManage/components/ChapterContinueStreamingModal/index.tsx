@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef, useMemo } from 'react'
 import { message } from '@/src/utils/antdAppMessage';
 
 import { Modal, Button, Space, Row, Col, Form, Select, Checkbox, Divider, Input, Tag, Typography, Card, InputNumber, Collapse, Spin } from 'antd'
@@ -213,6 +213,32 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
   /** 审稿员最多审核次数，默认 3 */
   const [criticMaxRounds, setCriticMaxRounds] = useState(3)
 
+  /** 文风对抗：写入初稿/润色流式接口请求体（与 blocking genChapter 字段一致） */
+  const antiStyleRequestFields = useMemo(
+    () => ({
+      anti_lovecraft_style: antiLovecraftStyle,
+      anti_sweet_ceo_style: antiSweetCeoStyle,
+      anti_fake_protocol_style: antiFakeProtocolStyle,
+      anti_encrypted_channel_style: antiEncryptedChannelStyle,
+      anti_wasteland_style: antiWastelandStyle,
+      anti_enum_reactions_style: antiEnumReactionsStyle,
+      anti_cliche_phrase_style: antiClichePhraseStyle,
+      anti_plot_explanation: antiPlotExplanation,
+      anti_speech_military_summary_style: antiSpeechMilitarySummaryStyle,
+    }),
+    [
+      antiLovecraftStyle,
+      antiSweetCeoStyle,
+      antiFakeProtocolStyle,
+      antiEncryptedChannelStyle,
+      antiWastelandStyle,
+      antiEnumReactionsStyle,
+      antiClichePhraseStyle,
+      antiPlotExplanation,
+      antiSpeechMilitarySummaryStyle,
+    ]
+  )
+
   // Deepseek余额
   const deepseekBalance = useDeepseekBalance()
 
@@ -417,6 +443,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
           attension: attention || "",
           llm_type: draftLlmType,
           draft_llm_type: draftLlmType,
+          ...antiStyleRequestFields,
         }),
       }
     )
@@ -774,6 +801,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
             polish_llm_type: polishLlmType,
             mergedCriticReason: critic3Advice || critic1Reason || "",
             criticReason: critic3Advice || critic1Reason || "",
+            ...antiStyleRequestFields,
           }),
         }
       )
@@ -1370,6 +1398,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
               polish_llm_type: polishLlmType,
               mergedCriticReason: critic3Advice || critic1Reason || "",
               criticReason: critic3Advice || critic1Reason || "",
+              ...antiStyleRequestFields,
             }),
           }
         )
@@ -1410,85 +1439,6 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
       setIsContinuing(false)
       setIsLoading(false)
       setKeepGoing(false)
-    }
-  }
-
-  // 执行自动续写
-  const executeAutoWrite = async () => {
-    if (!selectedChapter) return
-    // if (relatedChapterIds.length === 0 && !isReferSelf) return
-
-    setAutoWriteResult('正在续写...')
-    setAutoWriteStatus('processing')
-    setAutoWriteError('')
-    setAutoWriteElapsed(0)
-
-    // 使用函数式更新获取最新的stripReportList状态
-    const latestStripReportList = await new Promise<ChapterStripReport[]>(resolve => {
-      setStripReportList(prevList => {
-        resolve(prevList);
-        return prevList;
-      });
-    });
-
-    let prompt = '';
-    if (promptWorkMode === 'full') {
-      prompt = seedPrompt;
-    } else {
-      prompt = selectedPromptParts.join('\n');
-    }
-
-    // 要确保角色、阵营、地理名称不为空，否则会报错
-    const reqObj = {
-      prev_content: latestStripReportList
-        .filter(chapter => chapter.state === 'completed' && chapter.strippedContent)
-        .map(chapter => chapter.strippedContent)
-        .join('\n\n'),
-      curr_context: prompt,
-      role_group_names: roleGroupNames || '',
-      role_names: roleNames || '',
-      faction_names: factionNames || '',
-      geo_names: geoNames || '',
-      // 兼容旧后端参数 llm_type，同时传入拆分后的初稿/润色模型
-      llm_type: draftLlmType,
-      draft_llm_type: draftLlmType,
-      polish_llm_type: polishLlmType,
-      attention: attention || '',
-      manual_section: manualSection || '', // 手写部分，不落库，接口中拼在注意事项前
-      chapter_style: chapterStyle || '',
-      extra_settings: extraSettings || '',
-      // 文风对抗选项
-      anti_lovecraft_style: antiLovecraftStyle,
-      anti_sweet_ceo_style: antiSweetCeoStyle,
-      anti_fake_protocol_style: antiFakeProtocolStyle,
-      anti_encrypted_channel_style: antiEncryptedChannelStyle,
-      anti_wasteland_style: antiWastelandStyle,
-      anti_enum_reactions_style: antiEnumReactionsStyle,
-      anti_cliche_phrase_style: antiClichePhraseStyle,
-      anti_plot_explanation: antiPlotExplanation,
-      anti_speech_military_summary_style: antiSpeechMilitarySummaryStyle,
-      critic_max_rounds: criticMaxRounds,
-    };
-    console.info('auto write reqObj -> ', reqObj);
-
-    // 有时候角色不填时，它会变成一个数组，要把它改回 String 类型
-    if ((reqObj.role_names as any) instanceof Array) {
-      reqObj.role_names = (reqObj.role_names as any).join(',');
-    }
-
-    const res = await chapterApi.genChapterBlocking(selectedChapter.worldview_id, reqObj, store.getState().difySlice.frontHost || '');
-    console.info('auto write res -> ', res);
-
-    const nextText = res.content || '续写已结束，未返回内容';
-    setDraftContent(nextText);
-    setAutoWriteResult(nextText);
-    setAutoWriteStatus(res.status || 'idle')
-    setAutoWriteError(res.error || '')
-    setAutoWriteElapsed(res.elapsed_time || 0)
-
-    // dify bug, 直接重试一次
-    if (typeof res.error === 'string' && res.error.includes('operation not permitted')) {
-      executeAutoWrite();
     }
   }
 

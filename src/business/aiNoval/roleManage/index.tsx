@@ -10,6 +10,7 @@ import { DeleteOutlined, EditOutlined, ExclamationCircleOutlined, PlusOutlined, 
 import { RoleInfoPanel } from "./panel/roleInfoPanel";
 import { RoleInfoEditModal, RoleInfoEditModalRef } from './edit/roleInfoEditModal';
 import { RoleRelationPanel } from "./panel/roleRelationPanel";
+import { RoleRelationTypePanel } from "./panel/roleRelationTypePanel";
 import { D3RoleRelationGraph } from "./panel/d3RoleRelationGraph";
 import RoleManageContextProvider, { useFactionList, useLoadFactionList, useLoadRoleDefList, useLoadRoleInfoList, useLoadWorldViewList, useRoleDefList, useRoleId, useRoleInfoList, useWorldViewId, useWorldViewList, useRoleInfoId, useRoleChromaMetadataList, calculateRoleInfoFingerprint, IRoleChromaMetadata, useLoadRoleChromaMetadataList } from "./roleManageContext";
 import { IFactionDefData } from "@/src/types/IAiNoval";
@@ -70,6 +71,9 @@ export default function RoleManage() {
         case 'relations':
             content = <RoleRelationPanel onUpdate={() => {}} />;
             break;
+        case 'relationTypes':
+            content = <RoleRelationTypePanel />;
+            break;
         case 'query':
             content = <QueryTestPanel />;
             break;
@@ -98,6 +102,7 @@ export default function RoleManage() {
                         >
                         <Radio.Button value="attributes">角色属性及版本</Radio.Button>
                         <Radio.Button value="memory">角色记忆</Radio.Button>
+                        <Radio.Button value="relationTypes">关系类型</Radio.Button>
                         <Radio.Button value="relations">角色关系</Radio.Button>
                         <Radio.Button value="query">查询测试</Radio.Button>
                         </Radio.Group>

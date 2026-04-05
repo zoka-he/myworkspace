@@ -1,5 +1,5 @@
 import fetch from "@/src/fetch";
-import { IRoleData, IRoleInfo, IRoleRelation, IRoleMemory } from "@/src/types/IAiNoval";
+import { IRoleData, IRoleInfo, IRoleRelation, IRoleMemory, IRoleRelationType } from "@/src/types/IAiNoval";
 
 const apiCalls = {
     getRoleList: (worldViewId?: number | null, page: number = 1, limit: number = 100) => {
@@ -44,6 +44,18 @@ const apiCalls = {
     deleteRoleRelation: (data: IRoleRelation) => {
         return fetch.delete(`/api/aiNoval/role/relation`, { params: { id: data.id } });
     },
+    getRoleRelationTypeList: (page: number = 1, limit: number = 500) => {
+        return fetch.get(`/api/aiNoval/role/relationType/list`, { params: { page, limit } });
+    },
+    createRoleRelationType: (data: Pick<IRoleRelationType, "id" | "label" | "default_strength">) => {
+        return fetch.post(`/api/aiNoval/role/relationType`, data);
+    },
+    updateRoleRelationType: (data: Pick<IRoleRelationType, "id" | "label" | "default_strength">) => {
+        return fetch.post(`/api/aiNoval/role/relationType`, data, { params: { id: data.id } });
+    },
+    deleteRoleRelationType: (id: string) => {
+        return fetch.delete(`/api/aiNoval/role/relationType`, { params: { id } });
+    },
     findRole: (worldviewId: number, keywords: string[], threshold?: number) => {
         return fetch.get('/api/web/aiNoval/llm/once/findRole', { 
             params: { 
@@ -67,6 +79,14 @@ const apiCalls = {
     },
     deleteRoleMemory: (id: number) => {
         return fetch.delete('/api/web/aiNoval/roleMemory', { params: { id } });
+    },
+    /** 将源角色信息版本的记忆复制到目标版本（同一 role_id） */
+    copyRoleMemoriesFromVersion: (body: {
+        worldview_id: number;
+        from_role_info_id: number;
+        to_role_info_id: number;
+    }) => {
+        return fetch.post('/api/web/aiNoval/roleMemory/copy', body);
     },
 }
 

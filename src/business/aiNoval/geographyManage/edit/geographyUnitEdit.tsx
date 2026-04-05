@@ -1,4 +1,5 @@
-import { useRef, useState, forwardRef, useImperativeHandle } from "react";import { message } from '@/src/utils/antdAppMessage';
+import { useRef, useState, forwardRef, useImperativeHandle } from "react";
+import { message } from '@/src/utils/antdAppMessage';
 
 import { Form, Modal, Input, Button, Radio, Select, Space } from "antd";
 import _ from 'lodash';
@@ -299,6 +300,7 @@ const GeographyUnitEditModal = forwardRef<IGeographyUnitEditRef, IGeographyUnitE
             planet_id: null,
             satellite_id: null,
             description: null,
+            forbidden: null,
             described_in_llm: 0,
             embed_document: null,
         }
@@ -392,6 +394,9 @@ const GeographyUnitEditModal = forwardRef<IGeographyUnitEditRef, IGeographyUnitE
                     </Form.Item>
                     <Form.Item label={'地理单元描述'} name={'description'}>
                         <Input.TextArea autoSize={{ minRows: 10 }}/>
+                    </Form.Item>
+                    <Form.Item label={'描述禁止项'} name={'forbidden'}>
+                        <Input.TextArea autoSize={{ minRows: 3 }}/>
                     </Form.Item>
                     
                     <Form.Item label={'嵌入文档'}>

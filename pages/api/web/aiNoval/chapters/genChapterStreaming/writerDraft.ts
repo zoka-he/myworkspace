@@ -4,7 +4,12 @@ import { ChatDeepSeek } from "@langchain/deepseek";
 import { ChatOpenAI } from "@langchain/openai";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { RunnableSequence } from "@langchain/core/runnables";
-import { buildPromptTemplate, buildUserInput } from "../genChapter";
+import {
+  buildPromptTemplate,
+  buildUserInput,
+  appendAntiStyleConfrontationBlocks,
+  antiStyleFlagsFromRequestBody,
+} from "../genChapter";
 import { initNdjsonStream, writeError, writeNdjson, writePhaseEnd, writePhaseStart } from "@/src/utils/streaming/ndjson";
 
 const WRITER_SAMPLING = {
@@ -120,7 +125,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     writePhaseStart(res, step, { llm_type });
-    const systemPrompt = buildPromptTemplate(attensionText);
+    const antiFlags = antiStyleFlagsFromRequestBody(body as Record<string, unknown>);
+    const systemPrompt = appendAntiStyleConfrontationBlocks(buildPromptTemplate(attensionText), antiFlags);
     const userInput = buildUserInput(prev_content, curr_context);
     const systemPromptWithContext = systemPrompt.replace("{{context}}", context || "");
     const chain = createWriterChain(llm_type, systemPromptWithContext, userInput);

@@ -1,4 +1,5 @@
-import { useRef, useState, forwardRef, useImperativeHandle } from "react";import { message } from '@/src/utils/antdAppMessage';
+import { useRef, useState, forwardRef, useImperativeHandle } from "react";
+import { message } from '@/src/utils/antdAppMessage';
 
 import { Form, Modal, Input, Button, Radio, TreeSelect, Space } from "antd";
 import _ from 'lodash';
@@ -137,6 +138,7 @@ const StarSystemEditModal = forwardRef<IStarSystemEditRef, IStarSystemEditProps>
             described_in_llm: 0,
             parent_system_id: null,
             embed_document: null,
+            forbidden: null,
         }
     }
 
@@ -176,6 +178,9 @@ const StarSystemEditModal = forwardRef<IStarSystemEditRef, IStarSystemEditProps>
 
                     <Form.Item label={'天体系统描述'} name={'description'} rules={[{ required: true, message: '描述为必填！' }]}>
                         <Input.TextArea autoSize={{ minRows: 10 }}/>
+                    </Form.Item>
+                    <Form.Item label={'描述禁止项'} name={'forbidden'}>
+                        <Input.TextArea autoSize={{ minRows: 3 }}/>
                     </Form.Item>
 
                     <Form.Item label={'父级天体系统'} name={'parent_system_id'}>

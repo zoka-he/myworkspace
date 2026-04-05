@@ -2,8 +2,9 @@
  * 角色记忆面板：与章节发展关联，支持优先级与槽位指向性，便于手动管理
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Card, Table, Button, Space, Select, Modal, Form, Input, message, Typography, Divider, Tooltip } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { message } from '@/src/utils/antdAppMessage';
+import { Card, Table, Button, Space, Select, Modal, Form, Input, Typography, Divider, Tooltip } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import apiCalls from '../apiCalls';
 import {
@@ -37,6 +38,10 @@ export default function RoleMemoryPanel() {
   const [editingRecord, setEditingRecord] = useState<IRoleMemory | null>(null);
   const [form] = Form.useForm();
   const [submitLoading, setSubmitLoading] = useState(false);
+
+  const [copyModalOpen, setCopyModalOpen] = useState(false);
+  const [copySourceRoleInfoId, setCopySourceRoleInfoId] = useState<number | undefined>();
+  const [copyLoading, setCopyLoading] = useState(false);
 
   const [chapterList, setChapterList] = useState<IChapter[]>([]);
 
@@ -130,6 +135,38 @@ export default function RoleMemoryPanel() {
       end_chapter_id: record.end_chapter_id ?? undefined,
     });
     setModalVisible(true);
+  };
+
+  const openCopyModal = () => {
+    setCopySourceRoleInfoId(otherVersionOptions[0]?.value);
+    setCopyModalOpen(true);
+  };
+
+  const handleCopyFromVersion = async () => {
+    if (!worldViewId || roleInfoId == null || copySourceRoleInfoId == null) {
+      message.warning('请选择源版本');
+      return;
+    }
+    setCopyLoading(true);
+    try {
+      const res = (await apiCalls.copyRoleMemoriesFromVersion({
+        worldview_id: worldViewId,
+        from_role_info_id: copySourceRoleInfoId,
+        to_role_info_id: roleInfoId,
+      })) as { success?: boolean; data?: { copied?: number }; error?: string };
+      if (!res?.success) {
+        message.error(res?.error || '拷贝失败');
+        return;
+      }
+      const n = res.data?.copied ?? 0;
+      message.success(n > 0 ? `已从所选版本拷贝 ${n} 条记忆` : '源版本下没有可拷贝的记忆');
+      setCopyModalOpen(false);
+      loadList();
+    } catch {
+      message.error('拷贝失败');
+    } finally {
+      setCopyLoading(false);
+    }
   };
 
   const handleDelete = (record: IRoleMemory) => {
@@ -290,6 +327,18 @@ export default function RoleMemoryPanel() {
       .map((info) => ({ value: info.id!, label: info.name_in_worldview || `#${info.id}` }));
   }, [roleInfoList, roleInfoId]);
 
+  /** 同一角色定义（role_id）下的其它版本，用于「从指定版本拷贝」 */
+  const otherVersionOptions = useMemo(() => {
+    const rid = currentRoleInfo?.role_id;
+    if (rid == null) return [];
+    return (roleInfoList || [])
+      .filter((info) => info.id != null && info.id !== roleInfoId && info.role_id === rid)
+      .map((info) => ({
+        value: info.id!,
+        label: `${info.version_name?.trim() ? `v${info.version_name}` : '未命名版本'} · ${info.name_in_worldview || `#${info.id}`}`,
+      }));
+  }, [roleInfoList, roleInfoId, currentRoleInfo?.role_id]);
+
   const chapterOptions = useMemo(
     () =>
       chapterList.map((c) => ({
@@ -345,6 +394,11 @@ export default function RoleMemoryPanel() {
             onChange={setFilterImportanceMin}
             options={ROLE_MEMORY_IMPORTANCE.map((s) => ({ value: s.value, label: s.label }))}
           />
+          <Tooltip title={otherVersionOptions.length === 0 ? '当前角色没有其它版本可拷贝' : undefined}>
+            <Button icon={<CopyOutlined />} onClick={openCopyModal} disabled={otherVersionOptions.length === 0}>
+              从版本拷贝
+            </Button>
+          </Tooltip>
           <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
             新增记忆
           </Button>
@@ -360,6 +414,30 @@ export default function RoleMemoryPanel() {
         pagination={{ total, pageSize: 20, showSizeChanger: false }}
         size="small"
       />
+
+      <Modal
+        title="从指定版本拷贝记忆"
+        open={copyModalOpen}
+        onOk={handleCopyFromVersion}
+        onCancel={() => setCopyModalOpen(false)}
+        confirmLoading={copyLoading}
+        okText="开始拷贝"
+        destroyOnClose
+      >
+        <p className="text-gray-600 text-sm mb-3">
+          将所选版本下的全部记忆复制到当前版本（追加到列表末尾，不会删除已有记忆）。仅可在同一角色不同信息版本之间拷贝。
+        </p>
+        <div className="mb-2">
+          <span className="mr-2">源版本</span>
+          <Select
+            className="min-w-[240px]"
+            placeholder="选择要拷贝的版本"
+            value={copySourceRoleInfoId}
+            onChange={(v) => setCopySourceRoleInfoId(v)}
+            options={otherVersionOptions}
+          />
+        </div>
+      </Modal>
 
       <Modal
         title={editingRecord ? '编辑角色记忆' : '新增角色记忆'}

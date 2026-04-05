@@ -1,4 +1,5 @@
-import { Card, Space, Button, Input, InputNumber, Tag, Typography, Descriptions, Alert } from "antd";import { message } from '@/src/utils/antdAppMessage';
+import { Card, Space, Button, Input, InputNumber, Tag, Typography, Descriptions, Alert } from "antd";
+import { message } from '@/src/utils/antdAppMessage';
 
 import { useState } from "react";
 import { IGeoUnionData } from "@/src/types/IAiNoval";
@@ -269,6 +270,11 @@ export default function FindGeo({ }: FindGeoProps) {
                                         {item.description && (
                                             <Descriptions.Item label="描述" span={2}>
                                                 {item.description}
+                                            </Descriptions.Item>
+                                        )}
+                                        {item.forbidden && (
+                                            <Descriptions.Item label="描写禁止项" span={2}>
+                                                {item.forbidden}
                                             </Descriptions.Item>
                                         )}
                                     </Descriptions>

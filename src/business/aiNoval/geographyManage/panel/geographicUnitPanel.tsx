@@ -65,7 +65,7 @@ export default function(props: IGeographyUnitPanelProps) {
                         <dt>简介：</dt><dd>{ data?.description }</dd>
                     </dl>
                     <dl>
-                        <dt>是否在知识库中：</dt><dd>{ described_in_llm ? '是' : '否' }</dd>
+                        <dt>描写禁止项：</dt><dd>{ data?.forbidden || '--' }</dd>
                     </dl>
                 </Col>
             </Row>

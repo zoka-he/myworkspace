@@ -19,6 +19,7 @@ export default class GeoStarSystemService extends MysqlNovalService {
             'parent_system_id',
             'embed_document',
             'description',
+            'forbidden'
         ]);
     }
 

@@ -28,6 +28,7 @@ export interface IGeoStarSystemData {
     has_geo_area?: string,
     parent_system_id?: number | null,
     embed_document?: string | null,
+    forbidden?: string | null,
 }
 
 export interface IGeoStarData {
@@ -45,6 +46,7 @@ export interface IGeoStarData {
     children_area_coef?: number | null,
     has_geo_area?: string,
     embed_document?: string | null,
+    forbidden?: string | null,
 }
 
 export interface IGeoPlanetData {
@@ -61,6 +63,7 @@ export interface IGeoPlanetData {
     children_area_coef?: number | null,
     has_geo_area?: string,
     embed_document?: string | null,
+    forbidden?: string | null,
 }
 
 export interface IGeoSatelliteData {
@@ -78,6 +81,7 @@ export interface IGeoSatelliteData {
     children_area_coef?: number | null,
     has_geo_area?: string,
     embed_document?: string | null,
+    forbidden?: string | null,
 }
 
 export interface IGeoGeographyUnitData {
@@ -99,6 +103,7 @@ export interface IGeoGeographyUnitData {
     children_area_coef?: number | null,
     has_geo_area?: string,
     embed_document?: string | null,
+    forbidden?: string | null,
 }
 
 export interface IGeoUnionData extends IGeoStarSystemData, IGeoStarData, IGeoPlanetData, IGeoSatelliteData, IGeoGeographyUnitData {
@@ -181,6 +186,13 @@ export interface IFactionDefData {
     person_naming_prohibition?: string | null,
     /** 阵营关系列表 */
     relations?: IFactionRelation[] | null,
+}
+
+export interface IRoleRelationType {
+  id: string,
+  label: string,
+  default_strength: number, // 0-100, 0=敌对, 50=中立, 100=亲密
+  default_color: string, // 默认=none
 }
 
 export interface IRoleData {

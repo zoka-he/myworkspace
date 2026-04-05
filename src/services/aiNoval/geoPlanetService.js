@@ -19,6 +19,7 @@ export default class GeoPlanetService extends MysqlNovalService {
             'children_area_coef',
             'has_geo_area',
             'embed_document',
+            'forbidden'
         ]);
     }
 

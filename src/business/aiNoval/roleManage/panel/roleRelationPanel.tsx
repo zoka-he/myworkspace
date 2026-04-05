@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'import { message } from '@/src/utils/antdAppMessage';
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { message } from '@/src/utils/antdAppMessage';
 
-import { Card, List, Button, Space, Modal, Form, Input, Select, Slider, DatePicker, Tag, Typography, Radio, Row, Col } from 'antd'
+import { App, Card, List, Button, Space, Modal, Form, Input, Select, Slider, DatePicker, Tag, Typography, Radio, Row, Col } from 'antd'
 import { PlusOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
-import { IRoleData, IWorldViewData, IRoleRelation, RELATION_TYPES } from '@/src/types/IAiNoval'
+import { IRoleData, IWorldViewData, IRoleRelation, IRoleRelationType } from '@/src/types/IAiNoval'
 import apiCalls from '../apiCalls'
 import { useRoleDefList, useRoleId, useRoleInfoId, useWorldViewId, useWorldViewList } from '../roleManageContext'
 import { D3RoleRelationGraph } from './d3RoleRelationGraph'
@@ -31,6 +32,8 @@ export function RoleRelationPanel({
 }: RoleRelationPanelProps) {
   roleRelationPanelRenderCount++;
   console.warn('=== [RoleRelationPanel] RENDER ===', roleRelationPanelRenderCount);
+
+  const { modal } = App.useApp();
   
   const [roleId, setRoleDefId] = useRoleId();
   const [roleList] = useRoleDefList();
@@ -57,12 +60,50 @@ export function RoleRelationPanel({
 
 
   const [relations, setRelations] = useState<IRoleRelation[]>([])
+  const [relationTypes, setRelationTypes] = useState<IRoleRelationType[]>([])
   const [loading, setLoading] = useState(false)
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [editingRelation, setEditingRelation] = useState<IRoleRelation | null>(null)
   const [form] = Form.useForm()
   const [sliderColor, setSliderColor] = useState('#52c41a')
   const [relationStrength, setRelationStrength] = useState(50)
+
+  const relationTypeMap = useMemo(() => {
+    const m = new Map<string, IRoleRelationType>()
+    for (const t of relationTypes) {
+      m.set(String(t.id), {
+        ...t,
+        id: String(t.id),
+        default_strength: Number(t.default_strength ?? 50),
+        default_color: t.default_color || 'default',
+      })
+    }
+    return m
+  }, [relationTypes])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await apiCalls.getRoleRelationTypeList(1, 500)
+        if (cancelled) return
+        const list = (res?.data || []) as IRoleRelationType[]
+        setRelationTypes(
+          list.map((r) => ({
+            ...r,
+            id: String(r.id ?? ''),
+            default_strength: Number(r.default_strength ?? 50),
+            default_color: r.default_color || 'default',
+          }))
+        )
+      } catch {
+        if (!cancelled) message.error('加载关系类型失败')
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     fetchIRoleRelations()
@@ -83,7 +124,7 @@ export function RoleRelationPanel({
   }
 
   const handleDelete = (record: IRoleRelation) => {
-    Modal.confirm({
+    modal.confirm({
       title: '确认删除',
       content: '确定要删除这条角色关系吗？',
       onOk: async () => {
@@ -173,7 +214,8 @@ export function RoleRelationPanel({
   }
 
   const renderRelationItem = (item: IRoleRelation) => {
-    const relationType = RELATION_TYPES.find(t => t.value === item.relation_type)
+    const typeCode = item.relation_type != null ? String(item.relation_type) : ''
+    const relationType = typeCode ? relationTypeMap.get(typeCode) : undefined
 
     let related_role_name = (roleList || []).find(role => role.id === item.related_role_id)?.name || '未知角色';
     let relation_strength = item.relation_strength || 50;
@@ -207,7 +249,9 @@ export function RoleRelationPanel({
             title={
               <Space>
                 <Typography.Text strong>{related_role_name}</Typography.Text>
-                <Tag color={relationType?.color}>{relationType?.label}</Tag>
+                <Tag color={relationType?.default_color ?? 'default'}>
+                  {relationType?.label ?? (typeCode || '—')}
+                </Tag>
                 {!item.is_active && <Tag color="default">已结束</Tag>}
               </Space>
             }
@@ -265,13 +309,13 @@ export function RoleRelationPanel({
           <Col span={17}>
             <Card title="角色关系力导向图" size="small" styles={{ body: { height: 'calc(100vh - 220px)', padding: 0 } }}>
               <D3RoleRelationGraph
-                // worldview_id={worldViewId?.toString() || ''}
+                relationTypes={relationTypes}
                 updateTimestamp={graphUpdateTimestamp}
                 onNodeClick={(roleId: string) => {
                   let roleDef = roleList.find(role => role.id === Number(roleId))
                   if (roleDef) {
-                    setRoleDefId(roleDef.id)
-                    setRoleInfoId(roleDef.version)
+                    setRoleDefId(roleDef.id ?? null)
+                    setRoleInfoId(roleDef.version ?? null)
                   }
                 }}
               />
@@ -331,15 +375,14 @@ export function RoleRelationPanel({
               onValuesChange={(changedValues, allValues) => {
                 // 处理关系类型变化
                 if ('relation_type' in changedValues) {
-                  const relationType = RELATION_TYPES.find(t => t.value === changedValues.relation_type)
+                  const code =
+                    changedValues.relation_type != null ? String(changedValues.relation_type) : ''
+                  const relationType = code ? relationTypeMap.get(code) : undefined
                   if (relationType) {
-                    setRelationStrength(relationType.presetStrength)
+                    const s = relationType.default_strength
+                    setRelationStrength(s)
                     setSliderColor(
-                      relationType.presetStrength <= 30 
-                        ? '#ff4d4f'  // 敌对 - 红色
-                        : relationType.presetStrength <= 70 
-                          ? '#faad14'  // 中立 - 黄色
-                          : '#52c41a'  // 亲密 - 绿色
+                      s <= 30 ? '#ff4d4f' : s <= 70 ? '#faad14' : '#52c41a'
                     )
                   }
                 }
@@ -372,7 +415,12 @@ export function RoleRelationPanel({
                 >
                   <Select
                     placeholder="请选择关系类型"
-                    options={RELATION_TYPES}
+                    showSearch
+                    optionFilterProp="label"
+                    options={relationTypes.map((t) => ({
+                      value: t.id,
+                      label: t.label,
+                    }))}
                   />
                 </Form.Item>
               </div>
