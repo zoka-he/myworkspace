@@ -1,4 +1,5 @@
-import { useRef, useState, forwardRef, useImperativeHandle } from "react";import { message } from '@/src/utils/antdAppMessage';
+import { useRef, useState, forwardRef, useImperativeHandle } from "react";
+import { message } from '@/src/utils/antdAppMessage';
 
 import { Form, Modal, Input, Button, Radio, Select, TreeSelect, Space } from "antd";
 import _ from 'lodash';
@@ -187,6 +188,7 @@ const SatelliteEditModal = forwardRef<ISatelliteEditRef, ISatelliteEditProps>((p
             name: null,
             code: null,
             description: null,
+            forbidden: null,
             described_in_llm: 0,
             embed_document: null,
         }
@@ -242,6 +244,9 @@ const SatelliteEditModal = forwardRef<ISatelliteEditRef, ISatelliteEditProps>((p
                     </Form.Item>
                     <Form.Item label={'卫星描述'} name={'description'}>
                         <Input.TextArea autoSize={{ minRows: 10 }}/>
+                    </Form.Item>
+                    <Form.Item label={'描述禁止项'} name={'forbidden'}>
+                        <Input.TextArea autoSize={{ minRows: 3 }}/>
                     </Form.Item>
                     
                     <Form.Item label={'嵌入文档'}>
