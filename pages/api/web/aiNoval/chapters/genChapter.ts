@@ -137,6 +137,7 @@ export type AntiStyleConfrontationBooleans = {
     antiClichePhraseStyle: boolean;
     antiPlotExplanation: boolean;
     antiSpeechMilitarySummaryStyle: boolean;
+    antiDoubleNegativeStyle: boolean;
 };
 
 /**
@@ -217,6 +218,13 @@ export function appendAntiStyleConfrontationBlocks(
 - **禁止总结性/口号式台词**：不要用一句对白替作者总结主题、点题或升华；避免空洞的总结句、金句式台词。对白应推动情节或体现人物，而非替叙述者归纳。
 - **避免无主语、机械式来回**：连续多句对话如果普遍缺少「我/你/我们」等主语，只剩下命令、汇报或单字应答（如「好」「行」「明白」「是」）交替出现，语气生硬、缺乏生活感，应视为军事腔或口号化对白，必须改写为带有自然主语指代、具体内容和情绪细节的日常说话方式。`
         : '';
+    const antiDoubleNegativeBlock = opts.antiDoubleNegativeStyle
+        ? `
+
+**抗双重否定句（表述宜直截了当）**：
+- **禁用双重否定**：除非语气或逻辑刻意需要，避免「不是……而是」「不是……是」「并非……而是」等否定套否定的句式及其变体；优先改用单一、清晰的肯定或否定表述，让读者一眼读懂。
+- **对白与旁白同理**：叙述与人物台词均避免为了「书面感」而堆砌「不是……而是……」类拐弯说法；该肯定就肯定，该否定就否定。`
+        : '';
     return (
         basePrompt +
         antiLovecraftBlock +
@@ -227,7 +235,8 @@ export function appendAntiStyleConfrontationBlocks(
         antiEnumReactionsBlock +
         antiClichePhraseBlock +
         antiPlotExplanationBlock +
-        antiSpeechMilitarySummaryBlock
+        antiSpeechMilitarySummaryBlock +
+        antiDoubleNegativeBlock
     );
 }
 
@@ -244,6 +253,7 @@ export function antiStyleFlagsFromRequestBody(body: Record<string, unknown> | nu
         antiClichePhraseStyle: b.anti_cliche_phrase_style !== false,
         antiPlotExplanation: b.anti_plot_explanation !== false,
         antiSpeechMilitarySummaryStyle: b.anti_speech_military_summary_style !== false,
+        antiDoubleNegativeStyle: b.anti_double_negative_style !== false,
     };
 }
 

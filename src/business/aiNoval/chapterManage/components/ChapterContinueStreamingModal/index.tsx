@@ -209,6 +209,8 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
   const [antiPlotExplanation, setAntiPlotExplanation] = useState(true)
   /** 抗演讲/军事腔调：避免对白像演讲、口号或军事命令，默认勾选 */
   const [antiSpeechMilitarySummaryStyle, setAntiSpeechMilitarySummaryStyle] = useState(true)
+  /** 抗双重否定句：少用叠床架屋的双重否定，优先清晰直陈，默认勾选 */
+  const [antiDoubleNegativeStyle, setAntiDoubleNegativeStyle] = useState(true)
 
   /** 审稿员最多审核次数，默认 3 */
   const [criticMaxRounds, setCriticMaxRounds] = useState(3)
@@ -225,6 +227,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
       anti_cliche_phrase_style: antiClichePhraseStyle,
       anti_plot_explanation: antiPlotExplanation,
       anti_speech_military_summary_style: antiSpeechMilitarySummaryStyle,
+      anti_double_negative_style: antiDoubleNegativeStyle,
     }),
     [
       antiLovecraftStyle,
@@ -236,6 +239,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
       antiClichePhraseStyle,
       antiPlotExplanation,
       antiSpeechMilitarySummaryStyle,
+      antiDoubleNegativeStyle,
     ]
   )
 
@@ -1927,6 +1931,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
                   <Checkbox checked={antiWastelandStyle} onChange={(e) => setAntiWastelandStyle(e.target.checked)} disabled={isContinuing}>反废土文风</Checkbox>
                   <Checkbox checked={antiEnumReactionsStyle} onChange={(e) => setAntiEnumReactionsStyle(e.target.checked)} disabled={isContinuing}>反逐人枚举</Checkbox>
                   <Checkbox checked={antiClichePhraseStyle} onChange={(e) => setAntiClichePhraseStyle(e.target.checked)} disabled={isContinuing}>抗套路样板词</Checkbox>
+                  <Checkbox checked={antiDoubleNegativeStyle} onChange={(e) => setAntiDoubleNegativeStyle(e.target.checked)} disabled={isContinuing}>抗双重否定句</Checkbox>
                   <Checkbox checked={antiPlotExplanation} onChange={(e) => setAntiPlotExplanation(e.target.checked)} disabled={isContinuing}>抗剧透及解释</Checkbox>
                   <Checkbox checked={antiSpeechMilitarySummaryStyle} onChange={(e) => setAntiSpeechMilitarySummaryStyle(e.target.checked)} disabled={isContinuing}>抗演讲/军事腔调</Checkbox>
                 </Space>
