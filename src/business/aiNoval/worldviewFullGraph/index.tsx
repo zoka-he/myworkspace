@@ -9,6 +9,7 @@ import { useFactions, useGeos, useRoles, useWorldViewId, useNovelId, useTimeline
 import NovelSelect from '@/src/components/aiNovel/novelSelect';
 import Figure, { type IFigureHandle } from './figure';
 import EventTip from './figure/EventTip';
+import ChapterTip from './figure/ChapterTip';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
     broadcastEventEditRequest,
@@ -201,6 +202,10 @@ function RightPanel(props: IRightPanelProps) {
         eventId: number | null;
         position: { clientX: number; clientY: number };
     }>({ eventId: null, position: { clientX: 0, clientY: 0 } });
+    const [chapterTip, setChapterTip] = useState<{
+        chapterId: number | null;
+        position: { clientX: number; clientY: number };
+    }>({ chapterId: null, position: { clientX: 0, clientY: 0 } });
 
     const figureRef = useRef<IFigureHandle>(null);
     const [viewportFitOpen, setViewportFitOpen] = useState(false);
@@ -308,6 +313,7 @@ function RightPanel(props: IRightPanelProps) {
                         ref={figureRef}
                         // showDebugLayers
                         onShowEventTip={(eventId, position) => setEventTip({ eventId, position })}
+                        onShowChapterTip={(chapterId, position) => setChapterTip({ chapterId, position })}
                         onEventClick={async (eventId) => {
                             if (!worldViewId) {
                                 message.warning('请先选择世界观');
@@ -336,6 +342,7 @@ function RightPanel(props: IRightPanelProps) {
                         {layers}
                     </Figure>
                     <EventTip eventId={eventTip.eventId} position={eventTip.position} />
+                    <ChapterTip chapterId={chapterTip.chapterId} position={chapterTip.position} />
                 </GraphDataContext.Provider>
             </Card>
             <ViewportFitModal

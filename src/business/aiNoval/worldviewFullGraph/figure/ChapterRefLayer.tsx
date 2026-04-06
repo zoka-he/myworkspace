@@ -18,6 +18,7 @@ export default function ChapterRefLayer() {
             <line
                 key={`chapter-ref-${chapter.id}`}
                 className={styles.chapterRefLine}
+                data-chapter-id={chapter.id}
                 x1="0%"
                 x2="100%"
                 y1={y}

@@ -67,6 +67,7 @@ export default function ChapterLabelLayer() {
                     strokeLinejoin="miter"
                     strokeLinecap="square"
                     shapeRendering="crispEdges"
+                    data-chapter-id={chapter.id}
                 />
                 <text
                     x={bodyW / 2}
