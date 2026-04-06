@@ -96,11 +96,13 @@ function getChunkShape(chunk: any) {
   };
 }
 
+type ModifierStripReplacement = string | ((match: string, ...args: string[]) => string);
+
 /** 与修改员 system 提示中的「必须删除」套话对齐，对模型输出再做一轮正则剔除（兜底）。 */
 function stripModifierBannedPhrasesRegex(text: string): string {
   if (!text) return text;
   let s = text;
-  const rules: Array<[RegExp, string]> = [
+  const rules: Array<[RegExp, ModifierStripReplacement]> = [
     [/目光重新落(?:在|到)[^。\n;；!！?？]{0,20}?身上/g, ""],
     [/转头看向他|转头看向她/g, ""],
     [/重新看向/g, ""],
@@ -126,11 +128,48 @@ function stripModifierBannedPhrasesRegex(text: string): string {
     // 双重否定 / 对比否定句式（与 1 号审稿「不是……而是……」类要求对齐）：删掉框架，尽量保留后半正面表述
     [/与其说是[^。\n]{0,160}?不如说是[，、]?\s*/g, ""],
     [/与其说[^。\n]{0,160}?不如说[，、]?\s*/g, ""],
-    [/(?:并非|不是)[^。\n]{0,200}?[，、]?\s*而是[，、]?\s*/g, ""],
-    [/(?:并非|不是)[^。\n]{0,200}?[，、]?\s*只是[，、]?\s*/g, ""],
+    [/(?:并非|不是)[^。\n]{0,200}?[，、]?\s*而?是[，、]?\s*/g, ""],
+    [/(?:并非|不是)[^。\n]{0,200}?[，、]?\s*只?是[，、]?\s*/g, ""],
+    // 替换“加密通讯”为适配小说场景的联系动作，多方案随机抽取式替换
+    [
+      /(?:通过|利用|使用)?加密通讯(设备|频道|信号|系统)?/g,
+      (_match: string, suffix?: string) => {
+        const optionsMap: Record<string, string[]> = {
+          "": [
+            "联络",
+            "短暂交流",
+          ],
+          "设备": [
+            "特殊联络工具",
+            "隐秘通信装置",
+            "暗号传送器",
+          ],
+          "频道": [
+            "秘密频道",
+            "专属联络频道",
+          ],
+          "信号": [
+            "暗号",
+            "特殊联络暗号",
+          ],
+          "系统": [
+            "专属联络系统",
+            "机密通讯体系",
+          ],
+        };
+        // suffix 可能为 undefined
+        const key = suffix || "";
+        const options = optionsMap[key] || optionsMap[""];
+        return options[Math.floor(Math.random() * options.length)];
+      }
+    ],
   ];
   for (const [re, rep] of rules) {
-    s = s.replace(re, rep);
+    if (typeof rep === "function") {
+      s = s.replace(re, rep);
+    } else {
+      s = s.replace(re, rep);
+    }
   }
   s = s.replace(/[ \t\f\v]{2,}/g, " ");
   s = s.replace(/[，、]{2,}/g, "，");
