@@ -175,6 +175,8 @@ export interface GenChapterSegmentMultiTurnInput {
   anti_plot_explanation?: boolean;
   /** 抗演讲腔/军事腔/总结性台词：避免角色对白像演讲、命令式或口号式，要求生动自然，默认开启 */
   anti_speech_military_summary_style?: boolean;
+  /** 抗双重否定句：少用「不是没有」等叠床架屋的双重否定，优先清晰直陈，默认开启 */
+  anti_double_negative_style?: boolean;
   /** 是否启用审稿员（多轮文风纠正），默认关闭 */
   enable_critic?: boolean;
   /** 审稿员最多审核次数，默认 5 */
@@ -254,7 +256,8 @@ function buildSystemPrompt(
   antiEnumReactionsStyle: boolean,
   antiClichePhraseStyle: boolean,
   antiPlotExplanation: boolean,
-  antiSpeechMilitarySummaryStyle: boolean
+  antiSpeechMilitarySummaryStyle: boolean,
+  antiDoubleNegativeStyle: boolean
 ): string {
   const basePrompt = buildPromptTemplate(attensionText);
   const segmentExtra = `
@@ -284,6 +287,7 @@ function buildSystemPrompt(
     antiClichePhraseStyle,
     antiPlotExplanation,
     antiSpeechMilitarySummaryStyle,
+    antiDoubleNegativeStyle,
   });
 }
 
@@ -441,6 +445,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     anti_cliche_phrase_style = true,
     anti_plot_explanation = true,
     anti_speech_military_summary_style = true,
+    anti_double_negative_style = true,
     enable_critic = true, // 与前端默认一致；断点重写时也需审稿员
     critic_max_rounds = 5,
   } = body || {};
@@ -458,7 +463,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       context = context + "\n\n【本章待写内容（总体）】\n" + curr_context.trim();
     }
     
-    const systemPrompt = buildSystemPrompt(attensionText, segment_index, targetChars, !!anti_lovecraft_style, !!anti_sweet_ceo_style, !!anti_fake_protocol_style, !!anti_encrypted_channel_style, !!anti_wasteland_style, !!anti_enum_reactions_style, !!anti_cliche_phrase_style, !!anti_plot_explanation, !!anti_speech_military_summary_style);
+    const systemPrompt = buildSystemPrompt(attensionText, segment_index, targetChars, !!anti_lovecraft_style, !!anti_sweet_ceo_style, !!anti_fake_protocol_style, !!anti_encrypted_channel_style, !!anti_wasteland_style, !!anti_enum_reactions_style, !!anti_cliche_phrase_style, !!anti_plot_explanation, !!anti_speech_military_summary_style, !!anti_double_negative_style);
     const systemPromptWithContext = systemPrompt.replace('{{context}}', context);
     
     const model = createModel(llm_type);

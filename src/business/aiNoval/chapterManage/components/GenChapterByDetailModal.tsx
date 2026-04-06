@@ -96,6 +96,8 @@ function GenChapterByDetailModal({
   const [antiPlotExplanation, setAntiPlotExplanation] = useState(true)
   /** 抗演讲腔/军事腔/总结性台词：避免对白像演讲、命令式或口号式，要求生动自然，默认勾选 */
   const [antiSpeechMilitarySummaryStyle, setAntiSpeechMilitarySummaryStyle] = useState(true)
+  /** 抗双重否定句：少用叠床架屋的双重否定，优先清晰直陈，默认勾选 */
+  const [antiDoubleNegativeStyle, setAntiDoubleNegativeStyle] = useState(true)
   /** 是否启用审稿员（多轮文风纠正），默认关闭 */
   const [enableCritic, setEnableCritic] = useState(true)
   /** 审稿员最多审核次数，默认 5 */
@@ -450,6 +452,7 @@ function GenChapterByDetailModal({
           anti_cliche_phrase_style: antiClichePhraseStyle,
           anti_plot_explanation: antiPlotExplanation,
           anti_speech_military_summary_style: antiSpeechMilitarySummaryStyle,
+          anti_double_negative_style: antiDoubleNegativeStyle,
           enable_critic: useEnableCritic,
           critic_max_rounds: useCriticMaxRounds,
         })
@@ -571,6 +574,7 @@ function GenChapterByDetailModal({
           anti_cliche_phrase_style: antiClichePhraseStyle,
           anti_plot_explanation: antiPlotExplanation,
           anti_speech_military_summary_style: antiSpeechMilitarySummaryStyle,
+          anti_double_negative_style: antiDoubleNegativeStyle,
           enable_critic: useEnableCritic,
           critic_max_rounds: useCriticMaxRounds,
         })
@@ -1474,6 +1478,13 @@ function GenChapterByDetailModal({
             disabled={isFormDisabled}
           >
             抗套路样板词
+          </Checkbox>
+          <Checkbox
+            checked={antiDoubleNegativeStyle}
+            onChange={(e) => setAntiDoubleNegativeStyle(e.target.checked)}
+            disabled={isFormDisabled}
+          >
+            抗双重否定句
           </Checkbox>
           <Checkbox
             checked={antiPlotExplanation}
