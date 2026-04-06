@@ -1,4 +1,5 @@
-import { Modal, Form, Input, TreeSelect, Select, Space, Button, Divider, Flex } from 'antd';import { message } from '@/src/utils/antdAppMessage';
+import { Modal, Form, Input, TreeSelect, Select, Space, Button, Divider, Flex } from 'antd';
+import { message } from '@/src/utils/antdAppMessage';
 
 import { IFactionDefData } from '@/src/types/IAiNoval';
 import { useEffect, forwardRef, useImperativeHandle, useState } from 'react';
@@ -77,6 +78,7 @@ const FactionEdit = forwardRef<FactionEditRef, IFactionEditProps>(({
                 ideology_or_meme: values.ideology_or_meme,
                 scale_of_operation: values.scale_of_operation,
                 decision_taboo: values.decision_taboo,
+                forbiddens: values.forbiddens,
                 primary_threat_model: values.primary_threat_model,
                 internal_contradictions: values.internal_contradictions,
                 legitimacy_source: values.legitimacy_source,
@@ -110,6 +112,7 @@ const FactionEdit = forwardRef<FactionEditRef, IFactionEditProps>(({
                 ideology_or_meme: values.ideology_or_meme,
                 scale_of_operation: values.scale_of_operation,
                 decision_taboo: values.decision_taboo,
+                forbiddens: values.forbiddens,
                 primary_threat_model: values.primary_threat_model,
                 internal_contradictions: values.internal_contradictions,
                 legitimacy_source: values.legitimacy_source,
@@ -136,6 +139,7 @@ const FactionEdit = forwardRef<FactionEditRef, IFactionEditProps>(({
                 ideology_or_meme: initialValues.ideology_or_meme,
                 scale_of_operation: initialValues.scale_of_operation,
                 decision_taboo: initialValues.decision_taboo,
+                forbiddens: initialValues.forbiddens,
                 primary_threat_model: initialValues.primary_threat_model,
                 internal_contradictions: initialValues.internal_contradictions,
                 legitimacy_source: initialValues.legitimacy_source,
@@ -337,6 +341,10 @@ const FactionEdit = forwardRef<FactionEditRef, IFactionEditProps>(({
                         autoSize={{ minRows: 6 }}
                         placeholder="请输入阵营描述"
                     />
+                </Form.Item>
+
+                <Form.Item name="forbiddens" label="设定禁止项">
+                    <Input.TextArea rows={2} placeholder="该阵营设定中禁止出现的元素、行为或表达" />
                 </Form.Item>
 
                 <Form.Item name="faction_type" label="阵营类型">

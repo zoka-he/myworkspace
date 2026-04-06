@@ -1,4 +1,5 @@
-import { Button, Card, Descriptions, Divider, Table, Typography } from 'antd';import { message } from '@/src/utils/antdAppMessage';
+import { Button, Card, Descriptions, Divider, Table, Typography } from 'antd';
+import { message } from '@/src/utils/antdAppMessage';
 
 import { FactionRelationType, IFactionDefData, IFactionRelation } from '@/src/types/IAiNoval';
 import { EditOutlined } from '@ant-design/icons';
@@ -43,6 +44,11 @@ export default function FactionInfoPanel() {
             </Typography.Title>
             <Typography.Paragraph style={{ fontSize: '12px' }}>
                 <pre style={{ minHeight: '10em' }}>{currentFaction.description || '-'}</pre>
+            </Typography.Paragraph>
+
+            <Typography.Paragraph style={{ fontSize: '12px', marginTop: 8 }}>
+                <strong>设定禁止项：</strong>
+                <pre style={{ minHeight: '4em', marginTop: 4 }}>{currentFaction.forbiddens || '-'}</pre>
             </Typography.Paragraph>
 
 

@@ -1,0 +1,13 @@
+.chapterRefLine {
+    stroke: #d4b106;
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+    shape-rendering: crispEdges;
+    pointer-events: none;
+}
+
+:global(html[data-theme="dark"]) {
+    .chapterRefLine {
+        stroke: #f0d767;
+    }
+}

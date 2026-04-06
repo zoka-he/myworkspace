@@ -15,6 +15,17 @@ interface QueryResult extends IGeoUnionData {
     db_score?: number;
     combined_score?: number;
     rerank_score?: number;
+    geo_link?: Array<{
+        code?: string | null;
+        name?: string | null;
+    }>;
+    faction_territories?: Array<{
+        start_date?: number | null;
+        end_date?: number | null;
+        faction_name?: string | null;
+        alias_name?: string | null;
+        description?: string | null;
+    }>;
 }
 
 interface FindGeoProps {
@@ -103,6 +114,27 @@ export default function FindGeo({ }: FindGeoProps) {
         if (!dataType) return { name: '未知', color: 'default', icon: <EnvironmentOutlined /> };
         return typeMap[dataType] || { name: dataType, color: 'default', icon: <EnvironmentOutlined /> };
     };
+
+    const factionTerritoryText = (data: QueryResult) => {
+        if (!data.faction_territories?.[0]) {
+            return '-';
+        }
+
+        let { faction_name, start_date, end_date, alias_name, description } = data.faction_territories?.[0] || {};
+        
+        let text = [];
+        if (faction_name) {
+            text.push(`归属阵营: ${faction_name}`);
+        }
+        if (alias_name) {
+            text.push(`行政区名: ${alias_name}`);
+        }
+        if (description) {
+            text.push(`${description}`);
+        }
+
+        return text.join(' | ');
+    }
 
     return (
         <div style={{ padding: '16px' }}>
@@ -277,6 +309,18 @@ export default function FindGeo({ }: FindGeoProps) {
                                                 {item.forbidden}
                                             </Descriptions.Item>
                                         )}
+                                        {item.geo_link && (
+                                            <Descriptions.Item label="地理层级" span={2}>
+                                                {item.geo_link.map(item => `${item.name}(${item.code})`).join(' -> ')}
+                                            </Descriptions.Item>
+                                        )}
+                                        {
+                                            item.faction_territories && (
+                                                <Descriptions.Item label="领土归属" span={2}>
+                                                    {factionTerritoryText(item)}
+                                                </Descriptions.Item>
+                                            )
+                                        }
                                     </Descriptions>
                                 </Space>
                             </Card>

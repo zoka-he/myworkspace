@@ -10,6 +10,8 @@ import type { IWorldViewDataWithExtra } from "@/src/types/IAiNoval";
 import { FactionColorLegend, StoryLineColorLegend } from "./ColorLegend";
 import TerritoryPanel from "./territoryPanel";
 import GeoPanel from "./geoPanel";
+import ChapterLabelLayer from "./ChapterLabelLayer";
+import ChapterRefLayer from "./ChapterRefLayer";
 // import { ITimelineEvent } from "@/src/types/IAiNoval";
 
 export interface IFigureHandle {
@@ -24,6 +26,7 @@ interface IFigureProps {
     children?: React.ReactNode;
     showDebugLayers?: boolean;
     onShowEventTip?: (eventId: number | null, position: { clientX: number; clientY: number }) => void;
+    onShowChapterTip?: (chapterId: number | null, position: { clientX: number; clientY: number }) => void;
     onEventClick?: (eventId: number) => void;
 }
 
@@ -70,6 +73,7 @@ const Figure = forwardRef<IFigureHandle, IFigureProps>(function Figure(props, re
         clientY: 0, 
     });
     const [activeEventId, setActiveEventId] = useState<number | null>(null);
+    const [activeChapterId, setActiveChapterId] = useState<number | null>(null);
 
     useEffect(() => {
         if (!svgRef.current) return;
@@ -196,6 +200,17 @@ const Figure = forwardRef<IFigureHandle, IFigureProps>(function Figure(props, re
             props.onShowEventTip?.(null, { clientX: nativeEvent.clientX, clientY: nativeEvent.clientY });
         }
 
+        const chapterHolder = (event.target as HTMLElement).closest('[data-chapter-id]') as HTMLElement | null;
+        const chapterIdText = chapterHolder?.dataset?.['chapterId'];
+        if (chapterIdText) {
+            const chapterId = parseInt(chapterIdText, 10);
+            setActiveChapterId(Number.isNaN(chapterId) ? null : chapterId);
+            props.onShowChapterTip?.(Number.isNaN(chapterId) ? null : chapterId, { clientX: nativeEvent.clientX, clientY: nativeEvent.clientY });
+        } else {
+            setActiveChapterId(null);
+            props.onShowChapterTip?.(null, { clientX: nativeEvent.clientX, clientY: nativeEvent.clientY });
+        }
+
         // console.debug('mouse move --->> ', event);
     }
 
@@ -212,10 +227,12 @@ const Figure = forwardRef<IFigureHandle, IFigureProps>(function Figure(props, re
                     
                 </div>
                 <div className="w-full flex-1 flex flex-row overflow-y-auto overflow-x-visible">
-                    <svg className="h-full w-20">
+                    <svg className="h-full w-20" onMouseMove={handleMouseMove} onClick={handleMouseClick}>
                         <TimeAxisSvg />
+                        <ChapterLabelLayer />
                     </svg>
                     <svg ref={svgRef} className="flex-1 h-full" onMouseMove={handleMouseMove} onClick={handleMouseClick}>
+                        <ChapterRefLayer />
                         {actualChildren}
                     </svg>
 

@@ -164,6 +164,8 @@ export interface IFactionDefData {
     scale_of_operation?: string | null,
     /** 阵营绝不会做的事情 */
     decision_taboo?: string | null,
+    /** 设定禁止项 */
+    forbiddens?: string | null,
     /** 最大威胁来源 */
     primary_threat_model?: string | null,
     /** 阵营内部允许被公开展示的矛盾 */
@@ -544,6 +546,8 @@ export interface IChapter {
     /** 章节文风：叙述视角、文风、节奏等整体风格要求 */
     chapter_style?: string
     extra_settings?: string
+    /** 章节在世界观时间线中的关联时间（秒） */
+    time_in_worldview?: number
     actual_seed_prompt?: string
     actual_skeleton_prompt?: string
     summary?: string

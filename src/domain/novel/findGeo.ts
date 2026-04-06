@@ -7,8 +7,10 @@ import EmbedService from "@/src/services/aiNoval/embedService";
 import { chromaService, QueryResult } from "@/src/server/chroma";
 import { distanceToSimilarity, sigmoid } from "@/src/utils/rag/scores";
 import _ from 'lodash';
-import { IGeoUnionData, IRoleInfo } from "@/src/types/IAiNoval";
+import { IFactionTerritory, IGeoUnionData, IRoleInfo } from "@/src/types/IAiNoval";
 import { rerankService } from "@/src/services/aiNoval/rerankService";
+import { dataLength } from "ethers";
+import FactionTerritoryService from "@/src/services/aiNoval/factionTerritoryService";
 
 const geoGeographyService = new GeoGeographyService();
 const geoStarSystemService = new GeoStarSystemService();
@@ -16,8 +18,36 @@ const geoStarService = new GeoStarService();
 const geoPlanetService = new GeoPlanetService();
 const geoSatelliteService = new GeoSatelliteService();
 const embedService = new EmbedService();
+const factionTerritoryService = new FactionTerritoryService();
 
-export default async function findGeo(worldviewId: number, keywords: string[], thresholdNum: number = 0.5) {
+type GeoLinkItem = Pick<IGeoUnionData, 'code' | 'name'>;
+
+type FindGeoCombinedItem = IGeoUnionData & {
+    chroma_score: number;
+    db_score: number;
+    combined_score: number;
+    rerank_score?: number;
+};
+
+type FactionTerritoryItem = IFactionTerritory & {
+    faction_name: string;
+};
+
+type FindGeoRerankedItem = Omit<FindGeoCombinedItem, 'rerank_score'> & {
+    rerank_score: number;
+};
+
+type FindGeoItemWithGeoLink = FindGeoRerankedItem & {
+    geo_link: GeoLinkItem[];
+};
+
+type FindGeoItemWithFactionTerritory = FindGeoItemWithGeoLink & {
+    faction_territories: FactionTerritoryItem[];
+};
+
+export type FindGeoResultItem = FindGeoItemWithFactionTerritory;
+
+export default async function findGeo(worldviewId: number, keywords: string[], thresholdNum: number = 0.5): Promise<FindGeoResultItem[]> {
     // 先薅一波embedding数据（取用code，去mysql连带拉取geo数据）
     let chroma_data: (QueryResult & { chroma_score?: number })[] = await findInChroma(_.toNumber(worldviewId), keywords);
     let chroma_codes = chroma_data.map(item => item.id); // chroma 中地理信息使用 code 作为 id
@@ -65,19 +95,20 @@ export default async function findGeo(worldviewId: number, keywords: string[], t
     //     db_coef = 0;
     // }
 
-    let combined_data = db_data.map((item) => {
+    let combined_data: FindGeoCombinedItem[] = db_data.map((item) => {
         // 注意注意，这里需要将item.code转换为字符串，因为chroma_data.id是字符串（chroma龟腚！）
         let chroma_item = chroma_data.find(chroma_item => chroma_item.id === _.toString(item.code));
         let chroma_score = chroma_item?.chroma_score || 0;
         let db_score = item.db_score || 0;
 
         let combined_score = (chroma_score * w_chroma + db_score * w_db);
+        const { score: _score, match_percent: _matchPercent, ...rest } = item;
 
-        return _.omit({
-            ...item,
+        return {
+            ...rest,
             chroma_score: chroma_score,
             combined_score: combined_score,
-        }, ['score', 'match_percent']);
+        };
     });
 
     // 对 combined_data 进行 rerank 重排序
@@ -138,7 +169,27 @@ export default async function findGeo(worldviewId: number, keywords: string[], t
 
     // console.debug('threshold ------------->> ', thresholdNum);
     // res.status(200).json({ success: true, data: combined_data.sort((a, b) => b.combined_score - a.combined_score).filter(item => item.combined_score >= thresholdNum) });
-    return combined_data.filter(item => item.rerank_score >= thresholdNum);
+    // 过滤掉得分低于阈值的数据
+    combined_data = combined_data.filter(item => (item.rerank_score ?? item.combined_score) >= thresholdNum);
+
+    // 为每个数据绑定地理父级链路
+    const dataWithGeoLink: FindGeoItemWithGeoLink[] = await Promise.all(combined_data.map(async item => {
+        return {
+            ...item,
+            rerank_score: item.rerank_score ?? item.combined_score,
+            geo_link: await bindGeoDataLink(item),
+        }
+    }));
+
+    // 为每个数据绑定 faction 领土
+    const dataWithFactionTerritory: FindGeoItemWithFactionTerritory[] = await Promise.all(dataWithGeoLink.map(async item => {
+        return {
+            ...item,
+            faction_territories: await bindFactionTerritory(item),
+        }
+    }));
+
+    return dataWithFactionTerritory;
 }
 
 
@@ -290,3 +341,115 @@ async function getGeoMatchingByKeyword(worldviewId: number, keywords: string[], 
 
     return Array.from(resultMap.values()).sort((a, b) => b.score - a.score);
 }
+
+async function bindGeoDataLink(data: IGeoUnionData) {
+
+    let link: IGeoUnionData[] = [data];
+
+    async function findParentGeoData(data: IGeoUnionData) {
+        let parentType = null;
+        let parentId = null;
+
+        switch (data.data_type) {
+            case 'starSystem':
+                parentType = 'starSystem';
+                parentId = data.parent_system_id;
+                break;
+            case 'star':
+                parentType = 'starSystem';
+                parentId = data.star_system_id;
+                break
+            case 'planet':
+                parentType = 'starSystem';
+                parentId = data.star_system_id;
+                break;
+            case 'satellite':
+                parentType = 'starSystem';
+                parentId = data.star_system_id;
+                break;
+            case 'geoUnit':
+            case 'geographyUnit':
+            case 'geographicUnit':
+                parentType = data.parent_type;
+                switch (parentType) {
+                    case 'planet':
+                        parentId = data.planet_id;
+                        break;
+                    case 'satellite':
+                        parentId = data.satellite_id;
+                        break;
+                    default:
+                        parentId = data.parent_id;
+                        break;
+                }
+                break;
+        }
+
+        if (!parentType || !parentId) {
+            console.debug(`条件：name=${data.name}, code=${data.code}，父级条件：data_type=${data.data_type}, parent_type=${parentType}, parent_id=${parentId} 未查询到对象，迭代结束`);
+            return null;
+        }
+
+        let parentResData: IGeoUnionData & { data_type: string } | null = null;
+
+        switch (parentType) {
+            case 'starSystem':
+                parentResData = await geoStarSystemService.queryOne({ id: parentId });
+                break;
+            case 'star':
+                parentResData = await geoStarService.queryOne({ id: parentId });
+                break;
+            case 'planet':
+                parentResData = await geoPlanetService.queryOne({ id: parentId });
+                break;
+            case 'satellite':
+                parentResData = await geoSatelliteService.queryOne({ id: parentId });
+                break;
+            case 'geoUnit':
+            case 'geographicUnit':
+                parentResData = await geoGeographyService.queryOne({ id: parentId });
+                break;
+        }
+
+        if (parentResData) {
+            parentResData.data_type = parentType;
+        }
+
+        return parentResData;
+    }
+
+    let maxLoop = 20;
+    for (let i = 0; i < maxLoop; i++) {
+        let parentData = await findParentGeoData(link[0]);
+        if (parentData) {
+            link.unshift(parentData);
+        } else {
+            break;
+        }
+    }
+
+    return link.map(item => {
+        return {
+            code: item.code,
+            name: item.name
+        }
+    });
+}
+
+async function bindFactionTerritory(data: FindGeoItemWithGeoLink): Promise<FactionTerritoryItem[]> {
+    let link = Array.from(data.geo_link);
+    let maxLoop = 20, loopCount = 0;
+    let factionTerritory: FactionTerritoryItem[] = [];
+    while (link.length > 0 && loopCount < maxLoop) {
+        let pop = link.pop();
+        if (pop) {
+            factionTerritory = await factionTerritoryService.queryTerritoryByCode(pop.code) as FactionTerritoryItem[];
+            if (factionTerritory && factionTerritory.length > 0) {
+                break;
+            }
+        }
+        loopCount++;
+    }
+    return factionTerritory;
+}
+
