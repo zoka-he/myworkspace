@@ -69,7 +69,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     advice = advice.replace(/^下一秒$/g, "");
     advice = advice.replace(/^同一时刻$/g, "");
     advice = advice.replace(/^无意识(的|地)?$/g, "");
-
+    // 删除“不是……，而是……”、“并非……，而是”、“不是……，是”的句式
+    advice = advice.replace(/(不是|并非)[^，。,.]*?(，|,)?而是[^，。,.]*?(。|，|,|\.|!|\?|？|！)?/g, "");
+    advice = advice.replace(/不是[^，。,.]*?(，|,)?是[^，。,.]*?(。|，|,|\.|!|\?|？|！)?/g, "");
+    
     if (isClosed()) return;
     writeNdjson(res, {
       type: "result",
