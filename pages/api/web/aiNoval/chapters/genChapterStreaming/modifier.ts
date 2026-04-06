@@ -96,6 +96,47 @@ function getChunkShape(chunk: any) {
   };
 }
 
+/** 与修改员 system 提示中的「必须删除」套话对齐，对模型输出再做一轮正则剔除（兜底）。 */
+function stripModifierBannedPhrasesRegex(text: string): string {
+  if (!text) return text;
+  let s = text;
+  const rules: Array<[RegExp, string]> = [
+    [/目光重新落(?:在|到)[^。\n;；!！?？]{0,20}?身上/g, ""],
+    [/转头看向他|转头看向她/g, ""],
+    [/重新看向/g, ""],
+    [/转向他|转向她/g, ""],
+    [/\s*顿了顿[，、]?\s*(?:道|说)?/g, ""],
+    [/顿了顿/g, ""],
+    [/声音不大[，、]\s*但/g, ""],
+    [/声音不高[，、]\s*却/g, ""],
+    [/语速很快|语速极快/g, ""],
+    [/虚拟形象/g, ""],
+    [/剑柄|刀柄/g, ""],
+    [/无意识的|无意识地/g, ""],
+    [/精准的|精准地/g, ""],
+    [/冰冷的|冰冷地/g, ""],
+    [/猛(?!然)(?:的|地)/g, ""],
+    [/死死的|死死地/g, ""],
+    [/空气凝固|气氛瞬间凝固|气氛凝固|现场一片死寂/g, ""],
+    [/陷入沉默/g, ""],
+    [/挺直了背|挺直脊背|身体前倾|前倾身体/g, ""],
+    [/声音压低|声音沙哑/g, ""],
+    [/咬了咬下唇/g, ""],
+    [/目光锐利如刀|目光锐利得像刀/g, ""],
+    // 双重否定 / 对比否定句式（与 1 号审稿「不是……而是……」类要求对齐）：删掉框架，尽量保留后半正面表述
+    [/与其说是[^。\n]{0,160}?不如说是[，、]?\s*/g, ""],
+    [/与其说[^。\n]{0,160}?不如说[，、]?\s*/g, ""],
+    [/(?:并非|不是)[^。\n]{0,200}?[，、]?\s*而是[，、]?\s*/g, ""],
+    [/(?:并非|不是)[^。\n]{0,200}?[，、]?\s*只是[，、]?\s*/g, ""],
+  ];
+  for (const [re, rep] of rules) {
+    s = s.replace(re, rep);
+  }
+  s = s.replace(/[ \t\f\v]{2,}/g, " ");
+  s = s.replace(/[，、]{2,}/g, "，");
+  return s;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
     res.status(405).json({ message: "Method Not Allowed" });
@@ -385,7 +426,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
     }
-    writeNdjson(res, { type: "result", step, data: { tunedDraft: (tunedDraft || "").trim() || draft || "", skipped: false } });
+    const trimmedOut = (tunedDraft || "").trim();
+    const regexStripped = stripModifierBannedPhrasesRegex(trimmedOut).trim();
+    const tunedOut = regexStripped || trimmedOut || draft || "";
+    writeNdjson(res, { type: "result", step, data: { tunedDraft: tunedOut, skipped: false } });
     writePhaseEnd(res, step);
     res.end();
   } catch (e: any) {
