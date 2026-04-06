@@ -26,7 +26,7 @@ function parseThreshold(v: unknown): number | null {
 export class FindGeoTool extends BaseMCPTool {
   readonly definition: MCPToolDefinition = {
     name: 'find_geo',
-    description: '在指定世界观下按关键词检索地理实体（星系统、星球、卫星、地理单元等），返回相似度≥threshold的结果。',
+    description: '在指定世界观下按关键词检索地理实体，返回相似度 >= threshold 的结果，并附带地理层级链（geo_link）与领土归属信息（faction_territories）。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -36,7 +36,7 @@ export class FindGeoTool extends BaseMCPTool {
         },
         keywords: {
           type: 'string',
-          description: '检索关键词，多个可用空格分隔',
+          description: '检索关键词（支持单个字符串；多个关键词建议用空格、逗号或换行分隔）',
         },
         threshold: {
           type: 'number',
@@ -75,7 +75,13 @@ export class FindGeoTool extends BaseMCPTool {
 
     try {
       const data = await findGeoDomain(worldviewId, keywords, threshold);
-      const text = `找到 ${data.length} 条地理实体（相似度 ≥ ${threshold}）：\n${JSON.stringify(data, null, 2)}`;
+      const text =
+        `找到 ${data.length} 条地理实体（相似度 >= ${threshold}）。\n` +
+        `字段说明：\n` +
+        `- geo_link: 地理层级链，按“从上到下”排列（例如：恒星系 -> 行星 -> 卫星 -> 地理单元）。\n` +
+        `- faction_territories: 领土归属信息；若当前实体无直接归属，会沿 geo_link 向上查找最近的有效归属。\n` +
+        `- rerank_score: 重排后的最终相关性分数（主要用于结果排序与阈值过滤）。\n` +
+        `结果详情：\n${JSON.stringify(data, null, 2)}`;
       return {
         content: [{ type: 'text' as const, text }],
         isError: false,

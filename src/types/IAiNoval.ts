@@ -164,6 +164,8 @@ export interface IFactionDefData {
     scale_of_operation?: string | null,
     /** 阵营绝不会做的事情 */
     decision_taboo?: string | null,
+    /** 设定禁止项 */
+    forbiddens?: string | null,
     /** 最大威胁来源 */
     primary_threat_model?: string | null,
     /** 阵营内部允许被公开展示的矛盾 */
