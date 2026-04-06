@@ -103,8 +103,8 @@ function LeftPanel(props: ILeftPanelProps) {
                             className="w-44" 
                             value={novelId} 
                             onChange={setNovelId} 
+                            allowClear
                             placeholder="选择以显示章节位置"
-                            disabled
                         />
                     </Space>
                     <Space>

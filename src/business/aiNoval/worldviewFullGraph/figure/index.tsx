@@ -10,6 +10,8 @@ import type { IWorldViewDataWithExtra } from "@/src/types/IAiNoval";
 import { FactionColorLegend, StoryLineColorLegend } from "./ColorLegend";
 import TerritoryPanel from "./territoryPanel";
 import GeoPanel from "./geoPanel";
+import ChapterLabelLayer from "./ChapterLabelLayer";
+import ChapterRefLayer from "./ChapterRefLayer";
 // import { ITimelineEvent } from "@/src/types/IAiNoval";
 
 export interface IFigureHandle {
@@ -214,8 +216,10 @@ const Figure = forwardRef<IFigureHandle, IFigureProps>(function Figure(props, re
                 <div className="w-full flex-1 flex flex-row overflow-y-auto overflow-x-visible">
                     <svg className="h-full w-20">
                         <TimeAxisSvg />
+                        <ChapterLabelLayer />
                     </svg>
                     <svg ref={svgRef} className="flex-1 h-full" onMouseMove={handleMouseMove} onClick={handleMouseClick}>
+                        <ChapterRefLayer />
                         {actualChildren}
                     </svg>
 

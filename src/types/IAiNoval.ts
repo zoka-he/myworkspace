@@ -544,6 +544,8 @@ export interface IChapter {
     /** 章节文风：叙述视角、文风、节奏等整体风格要求 */
     chapter_style?: string
     extra_settings?: string
+    /** 章节在世界观时间线中的关联时间（秒） */
+    time_in_worldview?: number
     actual_seed_prompt?: string
     actual_skeleton_prompt?: string
     summary?: string

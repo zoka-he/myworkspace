@@ -1,7 +1,7 @@
 import { createContext, useMemo, useReducer } from "react";
 import useSWR from "swr";
-import { getFactionList, getRoleOptionsForWorldState, getChapterList, getTimelineDefList, getWorldViewList, getStoryLineList, getFactionTerritoryList } from '@/src/api/aiNovel';
-import { IFactionDefData, IGeoUnionData, IRoleData, IChapter, ITimelineDef, IWorldViewDataWithExtra, IStoryLine, IFactionTerritory } from "@/src/types/IAiNoval";
+import { getFactionList, getRoleOptionsForWorldState, getChapterList, getTimelineDefList, getWorldViewList, getStoryLineList, getFactionTerritoryList, getNovelList } from '@/src/api/aiNovel';
+import { IFactionDefData, IGeoUnionData, IRoleData, IChapter, ITimelineDef, IWorldViewDataWithExtra, IStoryLine, IFactionTerritory, INovalData } from "@/src/types/IAiNoval";
 import { IGeoTreeItem, loadGeoTree } from "@/src/business/aiNoval/common/geoDataUtil";
 import _ from "lodash";
 
@@ -18,6 +18,7 @@ interface EventManage2ContextType {
     worldViewData: IWorldViewDataWithExtra | null;
     storyLineList: IStoryLine[];
     territoryList: IFactionTerritory[];
+    novalList: INovalData[];
 }
 
 interface EventManage2DispatchType {
@@ -38,6 +39,7 @@ function defaultContextData(): EventManage2ContextType {
         worldViewData: null,
         storyLineList: [],
         territoryList: [],
+        novalList: [],
     }
 }
 
@@ -102,7 +104,7 @@ export default function EventManage2ContextProvider({ children }: { children: Re
         state.novelId ? ['chapter-list', state.novelId] : null,
         async () => {
             if (!state.novelId) return [];
-            const response = await getChapterList(state.novelId);
+            const response = await getChapterList(state.novelId, 1, 2000);
             return response.data ?? [];
         }
     )
@@ -154,6 +156,15 @@ export default function EventManage2ContextProvider({ children }: { children: Re
         }
     );
 
+    const { data: novalList, isLoading: isLoadingNoval, error: errorNoval } = useSWR(
+        state.worldViewId ? ['noval-list', state.worldViewId] : null,
+        async () => {
+            if (!state.worldViewId) return [];
+            const response = await getNovelList();
+            return response.data ?? [];
+        }
+    );
+
     return (
         <EventManage2DataContext.Provider 
             value={{ 
@@ -167,6 +178,7 @@ export default function EventManage2ContextProvider({ children }: { children: Re
                 worldViewData: worldviewData ?? null,
                 storyLineList: storyLineList ?? [],
                 territoryList: territoryList ?? [],
+                novalList: novalList ?? [],
             }}
         >
             <EventManage2DispatchContext.Provider value={{ dispatch }}>

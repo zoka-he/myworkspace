@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Space, Typography, Button, Input, Form, Tag, Select, TreeSelect, Row, Col, GetRef, Divider, Affix } from 'antd'
+import { Space, Typography, Button, Input, Form, Tag, Select, TreeSelect, Row, Col, GetRef, Divider, Affix, InputNumber } from 'antd'
 import { ReloadOutlined, EditOutlined, CopyOutlined, SortAscendingOutlined, RobotOutlined, InfoCircleOutlined } from '@ant-design/icons'
-import { IChapter, IWorldViewDataWithExtra, IGeoUnionData, IFactionDefData, IRoleData, ITimelineEvent, IGeoStarSystemData, IGeoGeographyUnitData, IGeoPlanetData, IGeoSatelliteData, IGeoStarData } from '@/src/types/IAiNoval'
+import { IChapter, IWorldViewDataWithExtra, IGeoUnionData, IFactionDefData, IRoleData, ITimelineEvent, IGeoStarSystemData, IGeoGeographyUnitData, IGeoPlanetData, IGeoSatelliteData, IGeoStarData, ITimelineDef } from '@/src/types/IAiNoval'
 import styles from './ChapterSkeletonPanel.module.scss'
 import { getTimelineEventByIds, updateChapter, getChapterById, getChapterList } from '../apiCalls'
 import _ from 'lodash'
@@ -20,6 +20,7 @@ import { getRoleListForChapter } from '@/src/api/aiNovel'
 import roleGroupApiCalls from '@/src/business/aiNoval/roleGroupManage/apiCalls'
 import { textDecorationLine } from 'html2canvas/dist/types/css/property-descriptors/text-decoration-line'
 import CharacterGroupSelect from '@/src/components/aiNovel/characterGroupSelect'
+import NovelTimeEdit from '@/src/business/aiNoval/eventManage2/components/NovelTimeEdit'
 
 const { Text } = Typography
 const { TextArea } = Input
@@ -72,6 +73,23 @@ function ChapterSkeletonPanel({
   const promptTextAreaRef = useRef<GetRef<typeof Input.TextArea> | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLElement | null>(null)
+  const timelineDef = useMemo<ITimelineDef | null>(() => {
+    if (!worldViewData?.id) {
+      return null
+    }
+    return {
+      id: worldViewData?.tl_id ?? 0,
+      worldview_id: worldViewData?.id ?? 0,
+      epoch: worldViewData?.tl_epoch ?? '',
+      start_seconds: worldViewData?.tl_start_seconds ?? 0,
+      hour_length_in_seconds: worldViewData?.tl_hour_length_in_seconds ?? 3600,
+      day_length_in_hours: worldViewData?.tl_day_length_in_hours ?? 24,
+      month_length_in_days: worldViewData?.tl_month_length_in_days ?? 30,
+      year_length_in_months: worldViewData?.tl_year_length_in_months ?? 365,
+      base_seconds: worldViewData?.tl_base_seconds ?? 0,
+      faction_id: undefined,
+    }
+  }, [worldViewData])
 
   // 获取事件关联信息
   const locations = useMemo(() => {
@@ -176,7 +194,8 @@ function ChapterSkeletonPanel({
         skeleton_prompt: chapterContext.skeleton_prompt || '',
         extra_settings: chapterContext.extra_settings || '',
         attension: chapterContext.attension || '',
-        chapter_style: chapterContext.chapter_style || ''
+        chapter_style: chapterContext.chapter_style || '',
+        time_in_worldview: chapterContext.time_in_worldview
       })
     }
   }, [chapterContext])
@@ -698,7 +717,8 @@ function ChapterSkeletonPanel({
         skeleton_prompt: values.skeleton_prompt,
         attension: values.attension,
         chapter_style: values.chapter_style,
-        extra_settings: values.extra_settings
+        extra_settings: values.extra_settings,
+        time_in_worldview: typeof values.time_in_worldview === 'number' ? values.time_in_worldview : undefined
       };
 
       // console.debug('updateObject', updateObject);
@@ -932,6 +952,25 @@ function ChapterSkeletonPanel({
                 <Select.Option value={chapter.id}>{chapter.chapter_number} {chapter.title} : v{chapter.version}</Select.Option>
               ))}
             </Select>
+          </Form.Item>
+
+          <Form.Item
+            label={
+              <div className={styles.formItemLabel}>
+                <Text strong>章节关联时间</Text>
+              </div>
+            }
+            name="time_in_worldview"
+          >
+            {timelineDef ? (
+              <NovelTimeEdit timelineDef={timelineDef} />
+            ) : (
+              <InputNumber
+                className="f-fit-width"
+                precision={0}
+                placeholder="秒（未配置时间线定义时可直接填写）"
+              />
+            )}
           </Form.Item>
 
           <Form.Item

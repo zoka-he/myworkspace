@@ -78,3 +78,8 @@ export function useStoryLineIds() {
         }
     ] as const;
 }
+
+export function useNovalList() {
+    const { novalList } = useContext(EventManage2DataContext);
+    return [novalList] as const;
+}

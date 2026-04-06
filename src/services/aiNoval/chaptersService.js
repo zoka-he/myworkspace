@@ -50,7 +50,7 @@ export default class ChaptersService extends MysqlNovalService {
 
     // 获取章节列表基础信息
     async getChapterListBaseInfo(novelId, page = 1, limit = 20) {
-        const columns = ['id', 'chapter_number', 'version', 'title', 'event_ids', 'created_at', 'updated_at'];
+        const columns = ['id', 'chapter_number', 'version', 'title', 'event_ids', 'created_at', 'updated_at', 'time_in_worldview'];
 
         const result = await this.query(
             `SELECT ${columns.join(',')} FROM chapters WHERE novel_id = ?`, [novelId],
@@ -63,7 +63,7 @@ export default class ChaptersService extends MysqlNovalService {
 
     // 按世界观ID获取章节列表基础信息（供脑洞关联章节等使用）
     async getChapterListBaseInfoByWorldviewId(worldviewId, page = 1, limit = 1500) {
-        const columns = ['id', 'chapter_number', 'version', 'title', 'event_ids', 'created_at', 'updated_at'];
+        const columns = ['id', 'chapter_number', 'version', 'title', 'event_ids', 'created_at', 'updated_at', 'time_in_worldview'];
 
         const result = await this.query(
             `SELECT ${columns.join(',')} FROM chapters WHERE worldview_id = ?`, [worldviewId],
