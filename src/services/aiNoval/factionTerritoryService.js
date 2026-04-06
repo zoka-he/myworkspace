@@ -18,4 +18,17 @@ export default class FactionTerritoryService extends MysqlNovalService {
         ]);
     }
 
+    async queryTerritoryByCode(geoCode) {
+        return this.queryBySql(
+            `select 
+  ft.*,
+  f.name faction_name
+from faction_territory ft
+left join Faction f on ft.faction_id = f.id
+where geo_code = ?
+order by start_date desc`,
+            [geoCode]
+        );
+    }
+
 }
