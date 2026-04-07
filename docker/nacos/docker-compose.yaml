@@ -1,0 +1,15 @@
+services:
+  nacos-server:
+    image: nacos/nacos-server:v3.2.0
+    container_name: my-nacos
+    ports:
+      - "0.0.0.0:23000:8080"
+      - "0.0.0.0:28848:8848"
+      - "0.0.0.0:29848:9848"
+      - "0.0.0.0:27848:7848"
+    environment:
+      - MODE=standalone
+      # - NACOS_SERVER_IP=0.0.0.0
+      - NACOS_AUTH_TOKEN=MTE0NTE0ZnVjayEhISEhITExNDUxNGZ1Y2shISEhISE=   #114514fuck!!!!!!114514fuck!!!!!!
+      - NACOS_AUTH_IDENTITY_KEY=myworksite-nacos-1919810-fuck!!!
+      - NACOS_AUTH_IDENTITY_VALUE=114514fuck!!!

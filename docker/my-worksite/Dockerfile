@@ -54,6 +54,18 @@ ENV RABBITMQ_AMQP_USER=myworksite
 ENV RABBITMQ_AMQP_PASSWD=nsds123456
 ENV RABBITMQ_AMQP_VHOST=/
 
+# Nacos 客户端配置（可通过 docker run -e 覆盖）
+ENV NACOS_ENABLE_CLIENT=true
+ENV NACOS_SERVER_ADDR=host.docker.internal:28848
+ENV NACOS_NAMESPACE=public
+ENV NACOS_USERNAME=nacos
+ENV NACOS_PASSWORD=nacos
+ENV NACOS_ENABLE_NAMING=false
+ENV NACOS_NAMING_AUTO_REGISTER=false
+ENV NACOS_SERVICE_NAME=my-next-app
+ENV NACOS_SERVICE_IP=host.docker.internal
+ENV NACOS_SERVICE_PORT=3000
+
 # 设置用户
 # RUN addgroup --system --gid 1001 nodejs
 # RUN adduser --system --uid 1001 nextjs
