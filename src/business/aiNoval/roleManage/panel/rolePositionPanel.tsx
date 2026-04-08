@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Card, Divider, Form, Input, InputNumber, Modal, Radio, Select, Space, Table, Tag, Typography } from 'antd';
+import { Alert, App, Button, Card, Divider, Form, Input, InputNumber, Modal, Radio, Select, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { PlusOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import { message } from '@/src/utils/antdAppMessage';
@@ -48,6 +48,7 @@ function joinDecisionFactors(obj?: Record<string, number> | null): string {
 }
 
 export default function RolePositionPanel() {
+  const { modal } = App.useApp();
   const [worldViewId] = useWorldViewId();
   const [worldViewList] = useWorldViewList();
   const [roleId] = useRoleId();
@@ -301,7 +302,7 @@ export default function RolePositionPanel() {
       }
       if (validate?.level === 'warn') {
         const yes = await new Promise<boolean>((resolve) => {
-          Modal.confirm({
+          modal.confirm({
             title: '瞬移风险提示',
             content: `风险分 ${validate.risk_score}，仍要保存吗？`,
             onOk: () => resolve(true),
@@ -338,7 +339,7 @@ export default function RolePositionPanel() {
 
   const handleDelete = (row: IRolePositionRecord) => {
     if (!row.id) return;
-    Modal.confirm({
+    modal.confirm({
       title: '确认删除',
       content: '确定删除这条位置记录吗？',
       onOk: async () => {

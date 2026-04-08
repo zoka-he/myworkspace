@@ -51,22 +51,51 @@ export function RoleSubLayer(props: IRoleSubLayerProps) {
     const pointList: Array<{ key: string; roleId: number; x: number; y: number; geoCode: string; time: number; showLabel: boolean }> = [];
 
     for (const [roleId, list] of Array.from(byRole.entries())) {
-      const sorted = [...list]
-        .filter((r) => r.geo_code && r.occurred_at != null)
-        .sort((a, b) => Number(a.occurred_at) - Number(b.occurred_at));
+      const timelineAnchors: Array<{
+        key: string;
+        roleId: number;
+        geoCode: string;
+        time: number;
+      }> = [];
+
+      list.forEach((r, i) => {
+        if (!r.geo_code || r.occurred_at == null) return;
+        const geoCode = String(r.geo_code);
+        const occurredAt = Number(r.occurred_at);
+        timelineAnchors.push({
+          key: `${roleId}-${r.id ?? i}-arrive`,
+          roleId,
+          geoCode,
+          time: occurredAt,
+        });
+        // 若存在离开时间，补插同地点离开锚点，强化停留时段与轨迹连续性
+        if (r.leave_at != null) {
+          const leaveAt = Number(r.leave_at);
+          if (Number.isFinite(leaveAt) && leaveAt !== occurredAt) {
+            timelineAnchors.push({
+              key: `${roleId}-${r.id ?? i}-leave`,
+              roleId,
+              geoCode,
+              time: leaveAt,
+            });
+          }
+        }
+      });
+
+      const sorted = timelineAnchors.sort((a, b) => a.time - b.time);
       const pts: [number, number][] = sorted.map((r) => [
-        getXofGeoCode(String(r.geo_code)),
-        timelineToScreenY(Number(r.occurred_at)),
+        getXofGeoCode(r.geoCode),
+        timelineToScreenY(r.time),
       ]);
       const built = buildPath(pts);
       if (built) lineList.push({ roleId, d: built.d, flipY: built.flipY });
       const rolePoints = sorted.map((r, i) => ({
-        key: `${roleId}-${r.id ?? i}`,
+        key: `${r.key}-${i}`,
         roleId,
-        x: getXofGeoCode(String(r.geo_code)),
-        y: timelineToScreenY(Number(r.occurred_at)),
-        geoCode: String(r.geo_code),
-        time: Number(r.occurred_at),
+        x: getXofGeoCode(r.geoCode),
+        y: timelineToScreenY(r.time),
+        geoCode: r.geoCode,
+        time: r.time,
       }));
       // 仅在当前视口可见区域内挑选“最上方”点做标签，保证随视口变化动态切换
       const visiblePoints = rolePoints.filter((p) => p.y >= 0 && p.y <= svgSize.height);
