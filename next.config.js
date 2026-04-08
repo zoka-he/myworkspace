@@ -23,6 +23,16 @@ const nextConfig = {
         destination: '/api/web/:path*',
       },
       {
+        // Backward-compatible alias: worldview -> worldView
+        source: '/api/web/aiNoval/worldview/:path*',
+        destination: '/api/web/aiNoval/worldView/:path*',
+      },
+      {
+        // Backward-compatible alias when calling through /api/*
+        source: '/api/aiNoval/worldview/:path*',
+        destination: '/api/web/aiNoval/worldView/:path*',
+      },
+      {
         source: '/api/mcp',
         destination: '/api/mcp',
       },

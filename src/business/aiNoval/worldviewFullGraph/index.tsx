@@ -212,6 +212,11 @@ function RightPanel(props: IRightPanelProps) {
     const [timelineList] = useTimelines();
     const [worldViewData] = useWorldViewData();
 
+    const handleRolePositionUpdated = useRef<(payload: WriteCompletedPayload) => void>(() => {});
+    handleRolePositionUpdated.current = (_payload: WriteCompletedPayload) => {
+        // TODO: 角色位置写入后，按需要刷新图层（如角色轨迹层）或重新拉取相关数据
+    };
+
     const viewportTimelineDef = useMemo(() => {
         if (!timelineList?.length) {
             return null;
@@ -235,6 +240,8 @@ function RightPanel(props: IRightPanelProps) {
                 setLastWrite(workerMessage.payload);
                 if (workerMessage.payload.source === 'event') {
                     void refreshTimelineEventsRef.current();
+                } else if (workerMessage.payload.source === 'role') {
+                    handleRolePositionUpdated.current(workerMessage.payload);
                 }
             } else if (workerMessage.type === 'STATE_SYNC' && workerMessage.payload.lastWriteCompleted) {
                 setLastWrite(workerMessage.payload.lastWriteCompleted);
@@ -248,6 +255,9 @@ function RightPanel(props: IRightPanelProps) {
         return subscribeWorldviewBroadcastForWriteCompleted((payload) => {
             setLastWrite(payload);
             void refreshTimelineEventsRef.current();
+            if (payload.source === 'role') {
+                handleRolePositionUpdated.current(payload);
+            }
         });
     }, []);
 

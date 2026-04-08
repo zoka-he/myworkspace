@@ -232,6 +232,68 @@ export interface IRoleInfo {
     forbiddens?: string | null,
 }
 
+export interface IRolePositionRecord {
+    id?: number | null
+    worldview_id?: number | null
+    role_id?: number | null
+    role_info_id?: number | null
+    geo_code?: string | null
+    occurred_at?: number | null
+    distance_from_prev_km?: number | null
+    travel_mode?: string | null
+    stay_leave_intent_score?: number | null
+    intent_reason?: string | null
+    stay_cost_score?: number | null
+    leave_cost_score?: number | null
+    stay_cost_reason?: string | null
+    leave_cost_reason?: string | null
+    desired_geo_codes?: string[] | null
+    desired_reason?: string | null
+    via_geo_codes?: string[] | null
+    move_decision_factors?: Record<string, number> | null
+    decision_reason?: string | null
+    validation_snapshot?: any
+    note?: string | null
+    created_by?: string | null
+    source?: string | null
+    is_deleted?: number | null
+    created_at?: Date | string | null
+    updated_at?: Date | string | null
+}
+
+export interface IWorldviewPositionRule {
+    worldview_id: number
+    enforcement_mode?: 'warn' | 'block'
+    max_speed_by_mode_json?: Record<string, number> | null
+    allow_special_transfer?: 0 | 1
+    special_transfer_requires_tag?: string | null
+    w_distance?: number
+    w_intent?: number
+    w_stay_cost?: number
+    w_leave_cost?: number
+    w_desired?: number
+    w_path?: number
+    w_decision?: number
+    ok_threshold?: number
+    block_threshold?: number
+}
+
+export interface IRolePositionValidationResult {
+    ok: boolean
+    level: 'ok' | 'warn' | 'block'
+    risk_score: number
+    max_reachable_km: number
+    actual_distance_km: number
+    enforcement_mode: 'warn' | 'block'
+    intent_effect?: number
+    stay_cost_effect?: number
+    leave_cost_effect?: number
+    desired_effect?: number
+    path_effect?: number
+    decision_effect?: number
+    reason?: string
+}
+
 
 export interface IRoleRelation {
     id?: number
