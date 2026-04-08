@@ -6,8 +6,11 @@ CREATE TABLE IF NOT EXISTS `role_position_timeline` (
   `role_info_id` bigint unsigned NOT NULL COMMENT '角色版本 ID（role_info.id）',
   `geo_code` varchar(128) NOT NULL COMMENT '当前位置地理编码',
   `occurred_at` bigint NOT NULL COMMENT '发生时间点（时间线秒）',
+  `leave_at` bigint NULL DEFAULT NULL COMMENT '离开时间点（时间线秒，可选）',
   `distance_from_prev_km` decimal(12,3) NULL DEFAULT NULL COMMENT '与上一记录距离（公里，可选冗余）',
   `travel_mode` varchar(32) NOT NULL DEFAULT 'walk' COMMENT '移动方式',
+  `travel_mode_desc` text NULL COMMENT '移动方式说明',
+  `move_purpose` text NULL COMMENT '移动目的',
   `stay_leave_intent_score` int NOT NULL DEFAULT 0 COMMENT '离开(-100)~留驻(100) 意愿',
   `intent_reason` text NULL COMMENT '意愿原因',
   `stay_cost_score` int NOT NULL DEFAULT 0 COMMENT '留驻代价 0~100',
@@ -40,6 +43,11 @@ CREATE TABLE IF NOT EXISTS `role_position_timeline` (
 -- UPDATE `role_position_timeline` SET `stay_cost_reason` = `cost_reason` WHERE `stay_cost_reason` IS NULL;
 -- UPDATE `role_position_timeline` SET `leave_cost_reason` = `cost_reason` WHERE `leave_cost_reason` IS NULL;
 -- ALTER TABLE `role_position_timeline` DROP COLUMN `cost_reason`;
+-- ALTER TABLE `role_position_timeline`
+--   ADD COLUMN `travel_mode_desc` text NULL COMMENT '移动方式说明' AFTER `travel_mode`,
+--   ADD COLUMN `move_purpose` text NULL COMMENT '移动目的' AFTER `travel_mode_desc`;
+-- ALTER TABLE `role_position_timeline`
+--   ADD COLUMN `leave_at` bigint NULL DEFAULT NULL COMMENT '离开时间点（时间线秒，可选）' AFTER `occurred_at`;
 
 CREATE TABLE IF NOT EXISTS `worldview_position_rule` (
   `worldview_id` bigint unsigned NOT NULL,

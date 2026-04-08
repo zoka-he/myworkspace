@@ -16,6 +16,7 @@ function parseBody(body: any) {
     role_id: body.role_id != null ? Number(body.role_id) : body.role_id,
     role_info_id: body.role_info_id != null ? Number(body.role_info_id) : body.role_info_id,
     occurred_at: body.occurred_at != null ? Number(body.occurred_at) : body.occurred_at,
+    leave_at: body.leave_at != null && body.leave_at !== '' ? Number(body.leave_at) : null,
   };
 }
 

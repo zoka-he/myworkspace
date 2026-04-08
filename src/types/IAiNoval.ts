@@ -239,8 +239,11 @@ export interface IRolePositionRecord {
     role_info_id?: number | null
     geo_code?: string | null
     occurred_at?: number | null
+    leave_at?: number | null
     distance_from_prev_km?: number | null
     travel_mode?: string | null
+    travel_mode_desc?: string | null
+    move_purpose?: string | null
     stay_leave_intent_score?: number | null
     intent_reason?: string | null
     stay_cost_score?: number | null

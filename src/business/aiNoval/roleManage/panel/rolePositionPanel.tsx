@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Card, Divider, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, Typography } from 'antd';
+import { Alert, Button, Card, Divider, Form, Input, InputNumber, Modal, Radio, Select, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { PlusOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import { message } from '@/src/utils/antdAppMessage';
@@ -9,6 +9,8 @@ import type { IRolePositionRecord, IRolePositionValidationResult, IWorldviewPosi
 import GeoSelect from '@/src/components/aiNovel/geoSelect';
 import NovelTimeEdit from '@/src/business/aiNoval/eventManage2/components/NovelTimeEdit';
 import { notifyAiNovelWriteCompleted } from '@/src/business/aiNoval/sharedWorkerBridge';
+import { TimelineDateFormatter } from '@/src/business/aiNoval/common/novelDateUtils';
+import { loadGeoUnionList } from '@/src/business/aiNoval/common/geoDataUtil';
 
 const { TextArea } = Input;
 const { Title, Text } = Typography;
@@ -19,6 +21,8 @@ const travelModeOptions = [
   { value: 'vehicle', label: '载具' },
   { value: 'portal', label: '传送' },
 ];
+
+const travelModeLabelMap = new Map(travelModeOptions.map((item) => [item.value, item.label]));
 
 function splitDecisionFactors(text?: string): Record<string, number> {
   const ret: Record<string, number> = {};
@@ -53,6 +57,7 @@ export default function RolePositionPanel() {
   const [list, setList] = useState<IRolePositionRecord[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [geoNameMap, setGeoNameMap] = useState<Map<string, string>>(new Map());
 
   const [rule, setRule] = useState<IWorldviewPositionRule | null>(null);
   const [ruleSaving, setRuleSaving] = useState(false);
@@ -106,6 +111,46 @@ export default function RolePositionPanel() {
     [worldViewId]
   );
 
+  const dateFormatter = useMemo(() => {
+    try {
+      const worldView: any = (worldViewList || []).find((w: any) => w.id === worldViewId);
+      if (worldView?.tl_id != null) {
+        return TimelineDateFormatter.fromWorldViewWithExtra(worldView as any);
+      }
+      return TimelineDateFormatter.fromTimelineDef(timelineDef || fallbackTimelineDef);
+    } catch {
+      return TimelineDateFormatter.fromTimelineDef(fallbackTimelineDef);
+    }
+  }, [worldViewId, worldViewList, timelineDef, fallbackTimelineDef]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadGeoNames() {
+      if (!worldViewId) {
+        setGeoNameMap(new Map());
+        return;
+      }
+      try {
+        const geoList = await loadGeoUnionList(worldViewId);
+        if (cancelled) return;
+        const m = new Map<string, string>();
+        (geoList || []).forEach((g: any) => {
+          const code = g?.code != null ? String(g.code) : '';
+          if (!code) return;
+          const name = g?.name != null && String(g.name).trim() !== '' ? String(g.name) : code;
+          m.set(code, name);
+        });
+        setGeoNameMap(m);
+      } catch {
+        if (!cancelled) setGeoNameMap(new Map());
+      }
+    }
+    void loadGeoNames();
+    return () => {
+      cancelled = true;
+    };
+  }, [worldViewId]);
+
   const loadList = useCallback(async () => {
     if (!worldViewId || !roleId || !roleInfoId) return;
     setLoading(true);
@@ -149,8 +194,12 @@ export default function RolePositionPanel() {
       geo_code: '',
       via_geo_codes: [],
       occurred_at: undefined,
+      has_leave_at: 'N',
+      leave_at: undefined,
       distance_from_prev_km: 0,
       travel_mode: 'walk',
+      travel_mode_desc: '',
+      move_purpose: '',
       stay_leave_intent_score: 0,
       intent_reason: '',
       stay_cost_score: 0,
@@ -172,8 +221,12 @@ export default function RolePositionPanel() {
       geo_code: row.geo_code,
       via_geo_codes: row.via_geo_codes ?? [],
       occurred_at: row.occurred_at ?? undefined,
+      has_leave_at: row.leave_at == null ? 'N' : 'Y',
+      leave_at: row.leave_at ?? undefined,
       distance_from_prev_km: row.distance_from_prev_km ?? 0,
       travel_mode: row.travel_mode ?? 'walk',
+      travel_mode_desc: row.travel_mode_desc ?? '',
+      move_purpose: row.move_purpose ?? '',
       stay_leave_intent_score: row.stay_leave_intent_score ?? 0,
       intent_reason: row.intent_reason ?? '',
       stay_cost_score: row.stay_cost_score ?? 0,
@@ -220,8 +273,13 @@ export default function RolePositionPanel() {
         role_info_id: roleInfoId,
         geo_code: values.geo_code,
         occurred_at: Number(values.occurred_at),
+        leave_at: values.has_leave_at === 'Y'
+          ? (values.leave_at != null && values.leave_at !== '' ? Number(values.leave_at) : null)
+          : null,
         distance_from_prev_km: Number(values.distance_from_prev_km || 0),
         travel_mode: values.travel_mode,
+        travel_mode_desc: values.travel_mode_desc || '',
+        move_purpose: values.move_purpose || '',
         stay_leave_intent_score: Number(values.stay_leave_intent_score || 0),
         intent_reason: values.intent_reason || '',
         stay_cost_score: Number(values.stay_cost_score || 0),
@@ -301,16 +359,78 @@ export default function RolePositionPanel() {
   };
 
   const columns: ColumnsType<IRolePositionRecord> = [
-    { title: '发生时间', dataIndex: 'occurred_at', key: 'occurred_at', width: 130 },
-    { title: '位置', dataIndex: 'geo_code', key: 'geo_code', width: 160 },
-    { title: '移动方式', dataIndex: 'travel_mode', key: 'travel_mode', width: 90 },
     {
-      title: '目标地点',
-      dataIndex: 'desired_geo_codes',
-      key: 'desired_geo_codes',
-      width: 220,
-      render: (v?: string[]) => (Array.isArray(v) && v.length ? v.join(', ') : '-'),
+      title: '发生时间',
+      dataIndex: 'occurred_at',
+      key: 'occurred_at',
+      width: 180,
+      render: (v?: number) => {
+        if (v == null) return '-';
+        try {
+          return dateFormatter.formatSecondsToDate(Number(v));
+        } catch {
+          return String(v);
+        }
+      },
     },
+    {
+      title: '离开时间',
+      dataIndex: 'leave_at',
+      key: 'leave_at',
+      width: 180,
+      render: (v?: number | null) => {
+        if (v == null) return '-';
+        try {
+          return dateFormatter.formatSecondsToDate(Number(v));
+        } catch {
+          return String(v);
+        }
+      },
+    },
+    {
+      title: '位置',
+      dataIndex: 'geo_code',
+      key: 'geo_code',
+      width: 180,
+      render: (code?: string) => {
+        if (!code) return '-';
+        return geoNameMap.get(String(code)) || String(code);
+      },
+    },
+    {
+      title: '移动方式',
+      dataIndex: 'travel_mode',
+      key: 'travel_mode',
+      width: 90,
+      render: (v?: string) => {
+        if (!v) return '-';
+        return travelModeLabelMap.get(v) || v;
+      },
+    },
+    {
+      title: '移动方式说明',
+      dataIndex: 'travel_mode_desc',
+      key: 'travel_mode_desc',
+      width: 180,
+      render: (v?: string) => (v && v.trim() ? v : '-'),
+    },
+    {
+      title: '移动目的',
+      dataIndex: 'move_purpose',
+      key: 'move_purpose',
+      width: 180,
+      render: (v?: string) => (v && v.trim() ? v : '-'),
+    },
+    // {
+    //   title: '目标地点',
+    //   dataIndex: 'desired_geo_codes',
+    //   key: 'desired_geo_codes',
+    //   width: 220,
+    //   render: (v?: string[]) => {
+    //     if (!Array.isArray(v) || v.length === 0) return '-';
+    //     return v.map((code) => geoNameMap.get(String(code)) || String(code)).join(', ');
+    //   },
+    // },
     {
       title: '风险',
       dataIndex: 'validation_snapshot',
@@ -412,6 +532,27 @@ export default function RolePositionPanel() {
             <Form.Item name="occurred_at" label="发生时间" rules={[{ required: true, message: '请输入发生时间' }]} style={{ flex: 1 }}>
               <NovelTimeEdit timelineDef={timelineDef || fallbackTimelineDef} debounceMs={0} />
             </Form.Item>
+            <Form.Item name="has_leave_at" label="离开时间" initialValue="N" style={{ flex: 1 }}>
+              <Radio.Group
+                options={[
+                  { value: 'N', label: '无' },
+                  { value: 'Y', label: '有' },
+                ]}
+                optionType="button"
+                buttonStyle="solid"
+              />
+            </Form.Item>
+          <Form.Item noStyle shouldUpdate={(prev, curr) => prev.has_leave_at !== curr.has_leave_at}>
+            {({ getFieldValue }) => {
+              const hasLeaveAt = getFieldValue('has_leave_at') === 'Y';
+              if (!hasLeaveAt) return null;
+              return (
+                <Form.Item name="leave_at" label="离开时间" rules={[{ required: true, message: '请选择离开时间' }]} style={{ flex: 1 }}>
+                  <NovelTimeEdit timelineDef={timelineDef || fallbackTimelineDef} debounceMs={0} />
+                </Form.Item>
+              );
+            }}
+          </Form.Item>
           <Space style={{ width: '100%' }} size={12}>
             <Form.Item name="distance_from_prev_km" label="与上次距离（km）" style={{ flex: 1 }}>
               <InputNumber min={0} style={{ width: '100%' }} />
@@ -420,6 +561,12 @@ export default function RolePositionPanel() {
               <Select options={travelModeOptions} />
             </Form.Item>
           </Space>
+          <Form.Item name="travel_mode_desc" label="移动方式说明">
+            <TextArea autoSize={{ minRows: 2 }} placeholder="例如：借道商队、夜间潜行、短距跃迁等" />
+          </Form.Item>
+          <Form.Item name="move_purpose" label="移动目的">
+            <TextArea autoSize={{ minRows: 2 }} placeholder="例如：赴约、避险、执行任务、补给等" />
+          </Form.Item>
 
           <Form.Item name="stay_leave_intent_score" label="离开倾向(-100) — 留驻倾向(+100)">
             <InputNumber min={-100} max={100} style={{ width: '100%' }} />
