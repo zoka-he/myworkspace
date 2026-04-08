@@ -332,10 +332,17 @@ export const RoleInfoPanel = connect(mapStateToProps)(function RoleInfoPanel({
                 </Typography.Paragraph>
               </Descriptions.Item>
               <Descriptions.Item label="角色背景" span={3}>
-                <Typography.Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }} ellipsis={{ rows: 3 }}>
+                <Typography.Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }} ellipsis={{ rows: 10 }}>
                   {roleInfo.background}
                 </Typography.Paragraph>
               </Descriptions.Item>
+              {roleInfo.forbiddens && (
+                <Descriptions.Item label="设定禁止项" span={3}>
+                  <Typography.Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }} ellipsis={{ rows: 10 }}>
+                    {roleInfo.forbiddens}
+                  </Typography.Paragraph>
+                </Descriptions.Item>
+              )}
             </Descriptions>
 
             <Divider />

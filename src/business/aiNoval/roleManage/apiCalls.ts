@@ -1,5 +1,5 @@
 import fetch from "@/src/fetch";
-import { IRoleData, IRoleInfo, IRoleRelation, IRoleMemory, IRoleRelationType } from "@/src/types/IAiNoval";
+import { IRoleData, IRoleInfo, IRoleRelation, IRoleMemory, IRoleRelationType, IRolePositionRecord, IWorldviewPositionRule } from "@/src/types/IAiNoval";
 
 const apiCalls = {
     getRoleList: (worldViewId?: number | null, page: number = 1, limit: number = 100) => {
@@ -87,6 +87,30 @@ const apiCalls = {
         to_role_info_id: number;
     }) => {
         return fetch.post('/api/web/aiNoval/roleMemory/copy', body);
+    },
+    getRolePositionList: (params: { worldview_id: number; role_id?: number; role_info_id?: number; page?: number; limit?: number }) => {
+        return fetch.get('/api/aiNoval/role/position/list', { params });
+    },
+    getRolePosition: (id: number) => {
+        return fetch.get('/api/aiNoval/role/position', { params: { id } });
+    },
+    createRolePosition: (data: Partial<IRolePositionRecord>) => {
+        return fetch.post('/api/aiNoval/role/position', data);
+    },
+    updateRolePosition: (id: number, data: Partial<IRolePositionRecord>) => {
+        return fetch.post('/api/aiNoval/role/position', data, { params: { id } });
+    },
+    deleteRolePosition: (id: number) => {
+        return fetch.delete('/api/aiNoval/role/position', { params: { id } });
+    },
+    validateRolePosition: (data: Partial<IRolePositionRecord>) => {
+        return fetch.post('/api/aiNoval/role/position/validate', data);
+    },
+    getWorldviewPositionRule: (worldview_id: number) => {
+        return fetch.get('/api/aiNoval/worldview/position-rule', { params: { worldview_id } });
+    },
+    updateWorldviewPositionRule: (worldview_id: number, data: Partial<IWorldviewPositionRule>) => {
+        return fetch.post('/api/aiNoval/worldview/position-rule', data, { params: { worldview_id } });
     },
 }
 

@@ -19,6 +19,7 @@ import { getRabbitMQClient, RabbitMQClient } from "@/src/utils/rabbitmq";
 import { IMessage } from "@stomp/stompjs";
 import { QueryTestPanel } from "./panel/queryTestPanel"; 
 import RoleMemoryPanel from "./panel/roleMemoryPanel";
+import RolePositionPanel from "./panel/rolePositionPanel";
 
 export default function RoleManage() {
 
@@ -80,6 +81,9 @@ export default function RoleManage() {
         case 'memory':
             content = <RoleMemoryPanel />;
             break;
+        case 'position':
+            content = <RolePositionPanel />;
+            break;
     }
 
 
@@ -102,6 +106,7 @@ export default function RoleManage() {
                         >
                         <Radio.Button value="attributes">角色属性及版本</Radio.Button>
                         <Radio.Button value="memory">角色记忆</Radio.Button>
+                        <Radio.Button value="position">角色位置</Radio.Button>
                         <Radio.Button value="relationTypes">关系类型</Radio.Button>
                         <Radio.Button value="relations">角色关系</Radio.Button>
                         <Radio.Button value="query">查询测试</Radio.Button>
