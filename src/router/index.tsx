@@ -10,6 +10,12 @@ const WishBoard = lazy(() => import("../business/roadbook/wishBoard/favPosManage
 const CountBoard = lazy(() => import("../business/roadbook/wishBoard/roadbookGraph"));
 
 
+const Permission = lazy(() => import('../business/user/permission/index'));
+const UserAccount = lazy(() => import('../business/user/account'));
+const UserRole = lazy(() => import('../business/user/role'));
+const UserProfile = lazy(() => import('../business/user/profile'));
+const SystemStatePanel = lazy(() => import('../business/user/systemState'));
+
 const Dashboard = lazy(() => import("../business/dashboard"));
 const TaskManage = lazy(() => import('../business/projectManage/taskManage'));
 const EmployeeManage = lazy(() => import('../business/projectManage/employeeManage'));
@@ -23,12 +29,7 @@ const AccountManage = lazy(() => import('../business/accountManage'));
 const RoadBookCalendar = lazy(() => import('../business/roadbook/calendar'));
 const WheelDev = lazy(() => import('../business/bike/WheelDev/editor'));
 const BikeManage = lazy(() => import('../business/bike/bikeManage/index'));
-const Permission = lazy(() => import('../business/user/permission/index'));
-const UserAccount = lazy(() => import('../business/user/account'));
-const UserRole = lazy(() => import('../business/user/role'));
-const UserProfile = lazy(() => import('../business/user/profile'));
 const TaskFigure = lazy(() => import('../business/projectManage/taskManage/taskFigures'));
-
 const DevEncoding = lazy(() => import('../business/devTools/encoding'));
 
 // ai小说
@@ -102,6 +103,7 @@ export default function () {
                         <Route path="user/account" element={<UserAccount />} />
                         <Route path="user/role" element={<UserRole />} />
                         <Route path="user/profile" element={<UserProfile />} />
+                        <Route path="user/systemState" element={<SystemStatePanel />} />
 
                         {/* 开发工具 */}
                         <Route path="devTools/encoding" element={<DevEncoding />} />

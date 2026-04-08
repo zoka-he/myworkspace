@@ -22,6 +22,7 @@
     "@langchain/community": "^1.1.4",
     "@langchain/core": "^1.1.5",
     "@langchain/deepseek": "^1.0.3",
+    "@langchain/langgraph": "^1.2.7",
     "@langchain/mcp-adapters": "^1.1.0",
     "@langchain/openai": "^1.2.2",
     "@langchain/weaviate": "^1.0.1",
@@ -65,6 +66,7 @@
     "log4js": "^6.9.1",
     "moment": "^2.29.4",
     "mysql2": "^3.1.2",
+    "nacos": "^2.6.1",
     "net": "^1.0.2",
     "next": "16.0.10",
     "next-auth": "^4.22.3",
@@ -74,6 +76,7 @@
     "node-rsa": "^1.1.1",
     "observable-hooks": "^4.2.4",
     "openai": "^6.10.0",
+    "proxy-agent": "^8.0.1",
     "qiankun": "^2.10.16",
     "querystring-es3": "^0.2.1",
     "react": "18.3.1",
@@ -94,7 +97,8 @@
     "ts-node": "^10.9.1",
     "typescript": "^5.9.3",
     "viem": "^2.44.4",
-    "wagmi": "^3.1.0"
+    "wagmi": "^3.1.0",
+    "zod": "^4.3.6"
   },
   "resolutions": {
     "@types/react": "19.2.7",

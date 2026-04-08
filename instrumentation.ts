@@ -11,6 +11,7 @@ export async function register() {
     // 只在服务器端 Node.js 运行时执行
     if (process.env.NEXT_RUNTIME === 'nodejs') {
         console.log('[Instrumentation] Initializing server-side services...');
+        await startNacosClient();
         
         // 检查是否启用 RabbitMQ 消费者
         const enableRabbitMQ = process.env.RABBITMQ_ENABLE_SERVER_CONSUMER === 'true';
@@ -24,6 +25,26 @@ export async function register() {
     }
 }
 
+async function startNacosClient() {
+    const enableNacos = process.env.NACOS_ENABLE_CLIENT === 'true';
+    if (!enableNacos) {
+        console.log('[Instrumentation] Nacos client is disabled');
+        console.log('[Instrumentation] Set NACOS_ENABLE_CLIENT=true to enable');
+        return;
+    }
+
+    try {
+        const { initNacosClient, closeNacosClient } = await import('./src/server/nacos/client');
+        console.log('[Instrumentation] Starting Nacos client...');
+        await initNacosClient();
+        // 注意：instrumentation 文件会被 Edge 规则静态检查，避免在此直接使用 process.on。
+        // 如需优雅退出，可在纯 Node.js 入口（例如独立 server 启动文件）中调用 closeNacosClient。
+    } catch (error) {
+        console.error('[Instrumentation] Failed to start Nacos client:', error);
+        // 不抛出错误，允许应用继续运行
+    }
+}
+
 async function startRabbitMQConsumer() {
     try {
         // 动态导入以避免客户端打包问题
@@ -33,16 +54,7 @@ async function startRabbitMQConsumer() {
         console.log('[Instrumentation] Starting RabbitMQ consumer...');
         await initializeHandlers();
         console.log('[Instrumentation] RabbitMQ consumer started successfully');
-        
-        // 优雅关闭
-        const shutdown = async () => {
-            console.log('[Instrumentation] Shutting down RabbitMQ consumer...');
-            await closeRabbitMQConsumer();
-            process.exit(0);
-        };
-        
-        process.on('SIGTERM', shutdown);
-        process.on('SIGINT', shutdown);
+        void closeRabbitMQConsumer;
         
     } catch (error) {
         console.error('[Instrumentation] Failed to start RabbitMQ consumer:', error);
