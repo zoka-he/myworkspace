@@ -13,8 +13,8 @@ interface IEventLayerProps {
 export default function EventLayer(props: IEventLayerProps) {
     return (
         <g>
-            <RelationSubLayer relationType={props.relationType} />
             <EventSubLayer />
+            {props.relationType === 'geo-event' ? <RelationSubLayer relationType={props.relationType} /> : null}
         </g>
     )
 }
@@ -55,9 +55,8 @@ export function RelationSubLayer(props: IRelationSubLayerProps) {
     if (relationType === 'geo-event') {
         return <GeoRelationSubLayer />;
     }
-    if (relationType === 'role-event') {
-        return <RoleRelationSubLayer />;
-    }
+    // role-event 的关联虚线由 RoleSubLayer 承担，此处不再重复渲染
+    if (relationType === 'role-event') return null;
     // if (relationType === 'faction-event') {
     //     return <FactionRelationSubLayer />;
     // }
