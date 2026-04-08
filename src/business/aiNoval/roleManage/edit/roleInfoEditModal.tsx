@@ -243,7 +243,7 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
       title={modalTitle}
       open={open}
       onCancel={onCancel}
-      width={800}
+      width={"80vw"}
       footer={[
         <Button key="cancel" onClick={onCancel}>
           取消
@@ -409,7 +409,20 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
               labelCol={{ span: 3 }}
               wrapperCol={{ span: 21 }}
             >
-              <Input.TextArea rows={4} placeholder="请输入角色背景" />
+              <Input.TextArea autoSize={{ minRows: 4 }} placeholder="请输入角色背景" />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          <Col span={24}>
+            <Form.Item
+              name="forbiddens"
+              label="设定禁止项"
+              labelCol={{ span: 3 }}
+              wrapperCol={{ span: 21 }}
+            >
+              <Input.TextArea autoSize={{ minRows: 4 }} placeholder="请输入设定禁止项" />
             </Form.Item>
           </Col>
         </Row>
@@ -425,7 +438,7 @@ export const RoleInfoEditModal = forwardRef<RoleInfoEditModalRef, RoleInfoEditMo
               <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                 <Button loading={embedLoading} onClick={handleGenerateEmbedDocument}>生成嵌入文档</Button>
                 <Form.Item name="embed_document" noStyle>
-                  <Input.TextArea rows={4} placeholder="请输入嵌入内容" />
+                  <Input.TextArea autoSize={{ minRows: 4 }} placeholder="请输入嵌入内容" />
                 </Form.Item>
               </Space>
             </Form.Item>

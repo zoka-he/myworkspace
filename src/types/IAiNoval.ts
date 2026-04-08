@@ -229,6 +229,7 @@ export interface IRoleInfo {
     dify_dataset_id?: string | null,
     embed_document?: string | null,
     is_enabled?: 'Y' | 'N' | null,
+    forbiddens?: string | null,
 }
 
 
