@@ -6,9 +6,9 @@ export type GenChapterStepId =
   | "aggregateContext"
   | "writerDraft"
   | "critic2"
+  | "modifier"
   | "critic1"
   | "critic3"
-  | "modifier"
   | "polish"
   | "end";
 
@@ -52,14 +52,14 @@ const DEFAULT_STEPS: GenChapterStepStateItem[] = [
   { id: "aggregateContext", title: "聚合设定", status: "idle" },
   { id: "writerDraft", title: "生成初稿", status: "idle" },
   { id: "critic2", title: "理解检查", status: "idle" },
+  { id: "modifier", title: "修改员", status: "idle" },
   { id: "critic1", title: "1号审稿", status: "idle" },
   { id: "critic3", title: "3号建议", status: "idle" },
-  { id: "modifier", title: "修改员", status: "idle" },
   { id: "polish", title: "润色", status: "idle" },
   { id: "end", title: "结束", status: "idle" },
 ];
 
-const ROUND_STEP_IDS: GenChapterStepId[] = ["critic1", "critic3", "modifier", "polish"];
+const ROUND_STEP_IDS: GenChapterStepId[] = ["modifier", "critic1", "critic3", "polish"];
 
 function formatRound(round: number, maxRounds: number) {
   const safeRound = Math.max(0, round);

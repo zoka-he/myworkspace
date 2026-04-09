@@ -116,6 +116,7 @@ export default function AutoWriteResultCard(props: {
               复制本页稿件
             </Button>
           </div>
+          {renderBlock("修改员输出", r.modifier.tunedDraft || "（无）", true)}
           {renderBlock(
             "1号审稿",
             `${r.critic1.pass ? "PASS" : "FAIL"}${r.critic1.reason ? `：${r.critic1.reason}` : ""}`
@@ -125,7 +126,6 @@ export default function AutoWriteResultCard(props: {
             `${r.critic3.pass ? "PASS" : "FAIL"}${r.critic3.reason ? `：${r.critic3.reason}` : ""}`
           )}
           {renderBlock("3号建议", r.critic3.advice || "（无）")}
-          {renderBlock("修改员输出", r.modifier.tunedDraft || "（无）", true)}
           {renderBlock("润色稿", r.polish.draft || "", true)}
         </div>
       ),

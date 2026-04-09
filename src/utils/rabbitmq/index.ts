@@ -59,6 +59,30 @@ export class RabbitMQClient {
         return false;
     }
 
+    private resolveBrokerUrl(rawUrl: string): string {
+        const input = (rawUrl || '').trim();
+        if (!input) {
+            throw new Error('RabbitMQ wsUrl is empty');
+        }
+
+        if (input.startsWith('ws://') || input.startsWith('wss://')) {
+            return input;
+        }
+
+        if (input.startsWith('http://') || input.startsWith('https://')) {
+            return input.replace(/^http:/, 'ws:').replace(/^https:/, 'wss:');
+        }
+
+        // 同源策略: "/ws" 或 "ws"
+        if (typeof window !== 'undefined') {
+            const normalizedPath = input.startsWith('/') ? input : `/${input}`;
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            return `${protocol}//${window.location.host}${normalizedPath}`;
+        }
+
+        throw new Error(`Unsupported wsUrl format: ${rawUrl}`);
+    }
+
     /**
      * Initialize and connect to RabbitMQ
      */
@@ -81,9 +105,7 @@ export class RabbitMQClient {
 
         // RabbitMQ Web STOMP 只支持原生 WebSocket，不支持 SockJS
         // 转换为 WebSocket URL (ws:// 或 wss://)
-        const connectionUrl = this.config.wsUrl
-            .replace(/^http:/, 'ws:')
-            .replace(/^https:/, 'wss:');
+        const connectionUrl = this.resolveBrokerUrl(this.config.wsUrl);
 
         this.log(`Connecting using native WebSocket to:`, connectionUrl);
         this.log(`User Agent:`, typeof window !== 'undefined' ? window.navigator.userAgent : 'N/A');

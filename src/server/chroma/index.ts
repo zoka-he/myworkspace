@@ -90,6 +90,20 @@ class ChromaService {
         this.startHealthCheck();
     }
 
+    async reconfigure(chromaUrl: string): Promise<void> {
+        if (!chromaUrl) {
+            throw new Error('[ChromaService] chromaUrl is required');
+        }
+        this.client = new ChromaClient({
+            path: chromaUrl,
+        });
+        chromaConfig.CHROMA_URL = chromaUrl;
+        this.isConnected = false;
+        this.reconnectAttempts = 0;
+        await this.checkHealthAndReconnect();
+        console.log('[ChromaService] Reconfigured from runtime config:', chromaUrl);
+    }
+
     /**
      * 启动健康检查和自动重连
      */
@@ -753,6 +767,10 @@ export const chromaService = new ChromaService();
 
 function getInstance() {
     return chromaService;
+}
+
+export async function reconfigureChromaService(chromaUrl: string) {
+    await chromaService.reconfigure(chromaUrl);
 }
 
 // 导出类以便需要时创建新实例
