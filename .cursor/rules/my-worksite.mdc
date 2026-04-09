@@ -14,6 +14,7 @@ orm框架目前是自定义的，针对mysql，基类位于src\utils\mysql\serve
 ## 重要约定
 1.代码联想/代码补全时，不得整段删除代码
 2.进行重大调整前，遵循 **plan -> 确认 -> 调整** 的思路
+3.Antd 开启 theme/App 模式时，弹窗确认统一使用 `const { modal } = App.useApp(); modal.confirm(...)`，禁止使用 `Modal.confirm(...)` 与 `window.confirm(...)`
 
 
 ## 项目目录：

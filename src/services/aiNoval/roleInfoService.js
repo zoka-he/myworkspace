@@ -28,6 +28,7 @@ export default class RoleDefService extends MysqlNovalService {
             'score',
             'embed_document',
             'is_enabled',
+            'forbiddens',
         ]);
     }
 

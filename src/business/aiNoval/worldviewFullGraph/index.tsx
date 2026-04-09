@@ -24,9 +24,11 @@ import {
 import { createOrUpdateTimelineEvent } from '@/src/api/aiNovel';
 import { message } from '@/src/utils/antdAppMessage';
 import { useTimelineEvents } from './useTimelineEvents';
+import { useRolePositions } from './useRolePositions';
 import GraphDataContext from './graphDataContext';
 import EventLayer from './figure/EventLayer';
 import TerritoryLayer from './figure/TerritoryLayer';
+import { RoleSubLayer } from './figure/RoleLayer';
 import EventEditorModal from '../eventManage2/components/EventEditorModal';
 import ViewportFitModal from './ViewportFitModal';
 import type { ITimelineEvent } from '@/src/types/IAiNoval';
@@ -183,6 +185,7 @@ function RightPanel(props: IRightPanelProps) {
     const [workerReady, setWorkerReady] = useState(false);
 
     const { data: timelineEvents, isLoading: isLoadingTimelineEvents, mutate: refreshTimelineEvents } = useTimelineEvents(worldViewId);
+    const { data: rolePositions = [], mutate: refreshRolePositions } = useRolePositions(worldViewId);
     const [storyLineIds] = useStoryLineIds();
 
     const filteredTimelineEvents = useMemo(() => {
@@ -193,6 +196,8 @@ function RightPanel(props: IRightPanelProps) {
     }, [timelineEvents, storyLineIds]);
     const refreshTimelineEventsRef = useRef(refreshTimelineEvents);
     refreshTimelineEventsRef.current = refreshTimelineEvents;
+    const refreshRolePositionsRef = useRef(refreshRolePositions);
+    refreshRolePositionsRef.current = refreshRolePositions;
 
     const [eventEditorOpen, setEventEditorOpen] = useState(false);
     const [editingEventId, setEditingEventId] = useState<number | null>(null);
@@ -211,6 +216,12 @@ function RightPanel(props: IRightPanelProps) {
     const [viewportFitOpen, setViewportFitOpen] = useState(false);
     const [timelineList] = useTimelines();
     const [worldViewData] = useWorldViewData();
+
+    const handleRolePositionUpdated = useRef<(payload: WriteCompletedPayload) => void>(() => {});
+    handleRolePositionUpdated.current = (_payload: WriteCompletedPayload) => {
+        // TODO: 角色位置写入后，按需要联动刷新更多数据（如角色状态/tooltip）
+        void refreshRolePositionsRef.current();
+    };
 
     const viewportTimelineDef = useMemo(() => {
         if (!timelineList?.length) {
@@ -235,6 +246,8 @@ function RightPanel(props: IRightPanelProps) {
                 setLastWrite(workerMessage.payload);
                 if (workerMessage.payload.source === 'event') {
                     void refreshTimelineEventsRef.current();
+                } else if (workerMessage.payload.source === 'role') {
+                    handleRolePositionUpdated.current(workerMessage.payload);
                 }
             } else if (workerMessage.type === 'STATE_SYNC' && workerMessage.payload.lastWriteCompleted) {
                 setLastWrite(workerMessage.payload.lastWriteCompleted);
@@ -248,6 +261,9 @@ function RightPanel(props: IRightPanelProps) {
         return subscribeWorldviewBroadcastForWriteCompleted((payload) => {
             setLastWrite(payload);
             void refreshTimelineEventsRef.current();
+            if (payload.source === 'role') {
+                handleRolePositionUpdated.current(payload);
+            }
         });
     }, []);
 
@@ -286,10 +302,19 @@ function RightPanel(props: IRightPanelProps) {
     );
 
     let layers = useMemo(() => {
-        return [
-            <TerritoryLayer key="territory-layer" />,
-            <EventLayer key="event-layer" relationType={props.eventRelationType}/>,
-        ];
+        let layers = [];
+
+        layers.push(<TerritoryLayer key="territory-layer" />);
+
+        if (props.eventRelationType === 'role-event') {
+            layers.push(<EventLayer key="event-layer" relationType={props.eventRelationType}/>);
+            layers.push(<RoleSubLayer key="role-sub-layer" relationType={props.eventRelationType} />);
+        } else if (props.eventRelationType === 'geo-event') {
+            layers.push(<RoleSubLayer key="role-sub-layer" relationType={props.eventRelationType} />);
+            layers.push(<EventLayer key="event-layer" relationType={props.eventRelationType}/>);
+        }
+
+        return layers;
     }, [props.eventRelationType]);
 
     return (
@@ -308,7 +333,7 @@ function RightPanel(props: IRightPanelProps) {
                     </div>
                 ) : null} */}
 
-                <GraphDataContext.Provider value={{ timelineEvents: filteredTimelineEvents }}>
+                <GraphDataContext.Provider value={{ timelineEvents: filteredTimelineEvents, rolePositions }}>
                     <Figure
                         ref={figureRef}
                         // showDebugLayers
