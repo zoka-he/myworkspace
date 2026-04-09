@@ -551,7 +551,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
     }
     stepMachine.stepEnd("critic2", "理解检查通过")
 
-    // StepE~H：润色迭代（critic1 -> critic3/modifier并发 -> polish）
+    // StepE~H：润色迭代（modifier -> critic1 -> critic3 -> polish）
     let roundDraft = draftSnapshot || ""
     setPolishRounds([])
     const upsertRound = (round: number, patch: Partial<PolishRoundData>) => {
@@ -588,7 +588,55 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
       stepMachine.setRounds(round, criticMaxRounds)
       upsertRound(round, { inputDraft: roundDraft || "" })
 
-      // StepE: critic1
+      // StepE: modifier（先无条件执行一轮改写）
+      stepMachine.stepStart("modifier")
+      const modifierController = new AbortController()
+      const modifierResp = await fetch(
+        `/api/aiNoval/chapters/genChapterStreaming/modifier?worldviewId=${selectedChapter.worldview_id}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: modifierController.signal,
+          body: JSON.stringify({
+            draft: roundDraft || "",
+            critic1_reason: "",
+          }),
+        }
+      )
+      if (!modifierResp.ok) {
+        const msg = `modifier http ${modifierResp.status}`
+        stepMachine.stepError("modifier", msg)
+        throw new Error(msg)
+      }
+      if (!modifierResp.body) {
+        const msg = "modifier response body is empty"
+        stepMachine.stepError("modifier", msg)
+        throw new Error(msg)
+      }
+      const mReader = modifierResp.body.getReader()
+      let tunedDraft = roundDraft || ""
+      let modifierSkipped = false
+      await readNdjsonStream(mReader, {
+        step: "modifier",
+        controller: modifierController,
+        onEvent: (evt) => {
+          if (evt?.type === "delta" && typeof evt?.text === "string") {
+            tunedDraft += evt.text
+            upsertRound(round, { modifier: { tunedDraft, skipped: false } })
+          }
+          if (evt?.type === "result") {
+            tunedDraft = String(evt?.data?.tunedDraft || tunedDraft || "")
+            modifierSkipped = !!evt?.data?.skipped
+            upsertRound(round, { modifier: { tunedDraft: tunedDraft || "", skipped: modifierSkipped } })
+          }
+          if (evt?.type === "error") {
+            throw new Error(evt?.message || "modifier error")
+          }
+        },
+      })
+      stepMachine.stepEnd("modifier")
+
+      // StepF: critic1（以 modifier 结果为输入）
       stepMachine.stepStart("critic1")
       const critic1Controller = new AbortController()
       const critic1Resp = await fetch(
@@ -598,7 +646,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
           headers: { "Content-Type": "application/json" },
           signal: critic1Controller.signal,
           body: JSON.stringify({
-            draft: roundDraft || "",
+            draft: tunedDraft || "",
             prev_content: prevContent || "",
             curr_context: prompt || "",
             context: contextText || "",
@@ -642,18 +690,17 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
       })
       stepMachine.stepEnd("critic1")
 
-      // StepF + StepG 并发
+      // StepG: critic3（以 modifier 结果为输入）
       stepMachine.stepStart("critic3")
-      stepMachine.stepStart("modifier")
       const critic3Controller = new AbortController()
-      const modifierController = new AbortController()
-      const [critic3Resp, modifierResp] = await Promise.all([
-        fetch(`/api/aiNoval/chapters/genChapterStreaming/critic3?worldviewId=${selectedChapter.worldview_id}`, {
+      const critic3Resp = await fetch(
+        `/api/aiNoval/chapters/genChapterStreaming/critic3?worldviewId=${selectedChapter.worldview_id}`,
+        {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           signal: critic3Controller.signal,
           body: JSON.stringify({
-            draft: roundDraft || "",
+            draft: tunedDraft || "",
             prev_content: prevContent || "",
             curr_context: prompt || "",
             context: contextText || "",
@@ -664,36 +711,16 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
             critic1_pass: critic1Pass,
             critic1_reason: critic1Reason || "",
           }),
-        }),
-        fetch(`/api/aiNoval/chapters/genChapterStreaming/modifier?worldviewId=${selectedChapter.worldview_id}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          signal: modifierController.signal,
-          body: JSON.stringify({
-            draft: roundDraft || "",
-            critic1_reason: critic1Reason || "",
-          }),
-        }),
-      ])
+        }
+      )
       if (!critic3Resp.ok) {
         const msg = `critic3 http ${critic3Resp.status}`
         stepMachine.stepError("critic3", msg)
         throw new Error(msg)
       }
-      if (!modifierResp.ok) {
-        const msg = `modifier http ${modifierResp.status}`
-        stepMachine.stepError("modifier", msg)
-        throw new Error(msg)
-      }
-
       if (!critic3Resp.body) {
         const msg = "critic3 response body is empty"
         stepMachine.stepError("critic3", msg)
-        throw new Error(msg)
-      }
-      if (!modifierResp.body) {
-        const msg = "modifier response body is empty"
-        stepMachine.stepError("modifier", msg)
         throw new Error(msg)
       }
 
@@ -728,61 +755,6 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
       })
       stepMachine.stepEnd("critic3")
       const bothPass = critic1Pass && critic3Pass
-      if (bothPass) {
-        try {
-          modifierController.abort()
-        } catch {
-          // ignore abort error
-        }
-        stepMachine.stepSkip("modifier", "1号与3号均 PASS，跳过改写")
-        stepMachine.stepSkip("polish", "1号与3号均 PASS，跳过改写")
-        upsertRound(round, {
-          inputDraft: roundDraft || "",
-          critic1: {
-            pass: critic1Pass,
-            reason: critic1Reason,
-            raw: critic1Raw,
-          },
-          critic3: {
-            pass: critic3Pass,
-            reason: critic3Reason,
-            advice: critic3Advice,
-            raw: critic3Raw,
-          },
-          modifier: {
-            tunedDraft: roundDraft || "",
-            skipped: true,
-          },
-          polish: {
-            draft: roundDraft || "",
-          },
-        })
-        setAutoWriteStatus(`润色第 ${round} 轮通过（1号&3号均 PASS）`)
-        break
-      }
-
-      const mReader = modifierResp.body.getReader()
-      let tunedDraft = roundDraft || ""
-      let modifierSkipped = false
-      await readNdjsonStream(mReader, {
-        step: "modifier",
-        controller: modifierController,
-        onEvent: (evt) => {
-          if (evt?.type === "delta" && typeof evt?.text === "string") {
-            tunedDraft += evt.text
-            upsertRound(round, { modifier: { tunedDraft, skipped: false } })
-          }
-          if (evt?.type === "result") {
-            tunedDraft = String(evt?.data?.tunedDraft || tunedDraft || "")
-            modifierSkipped = !!evt?.data?.skipped
-            upsertRound(round, { modifier: { tunedDraft: tunedDraft || "", skipped: modifierSkipped } })
-          }
-          if (evt?.type === "error") {
-            throw new Error(evt?.message || "modifier error")
-          }
-        },
-      })
-      stepMachine.stepEnd("modifier")
 
       // StepH: polish（rewrite 接口）
       stepMachine.stepStart("polish")
@@ -866,7 +838,10 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
       })
       roundDraft = polishedDraft || roundDraft || ""
       setDraftContent(roundDraft)
-      setAutoWriteStatus(`润色第 ${round} 轮完成`)
+      setAutoWriteStatus(bothPass ? `润色第 ${round} 轮通过（1号&3号均 PASS）` : `润色第 ${round} 轮完成`)
+      if (bothPass) {
+        break
+      }
     }
 
     // 结束节点

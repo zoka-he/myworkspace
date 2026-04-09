@@ -4,6 +4,7 @@
  */
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { NextRequest, NextResponse } from 'next/server';
+import { ensureRuntimeReady } from '@/src/server/runtime/ready';
 
 type PagesHandler = (req: NextApiRequest, res: NextApiResponse) => void | Promise<void>;
 
@@ -89,6 +90,16 @@ export async function withPagesHandler(
   request: NextRequest,
   pathSegments: string[]
 ): Promise<Response> {
+  try {
+    await ensureRuntimeReady(5000);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'runtime is not ready';
+    return NextResponse.json(
+      { success: false, message: `Service warming up: ${message}` },
+      { status: 503 }
+    );
+  }
+
   const req = buildReq(request, pathSegments);
 
   if (request.method !== 'GET' && request.method !== 'HEAD') {

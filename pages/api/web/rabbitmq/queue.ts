@@ -38,8 +38,7 @@ export default async function handler(
     const { name } = req.query;
     
     // 从环境变量获取配置
-    const managementUrl = process.env.RABBITMQ_MANAGEMENT_URL 
-        || `http://${process.env.RABBITMQ_STOMP_HOST || 'localhost'}:15672`;
+    const managementUrl = resolveRabbitManagementUrl();
     const username = process.env.RABBITMQ_STOMP_USER || 'guest';
     const password = process.env.RABBITMQ_STOMP_PASSWD || 'guest';
     const vhost = encodeURIComponent(process.env.RABBITMQ_STOMP_VHOST || '/');
@@ -115,4 +114,23 @@ export default async function handler(
             error: error instanceof Error ? error.message : 'Unknown error' 
         });
     }
+}
+
+function resolveRabbitManagementUrl() {
+    if (process.env.RABBITMQ_MANAGEMENT_URL) {
+        return process.env.RABBITMQ_MANAGEMENT_URL;
+    }
+
+    const backendUrl = process.env.RABBITMQ_STOMP_BACKEND_URL;
+    if (backendUrl) {
+        try {
+            const parsed = new URL(backendUrl);
+            const protocol = parsed.protocol === 'wss:' ? 'https:' : (parsed.protocol === 'ws:' ? 'http:' : parsed.protocol);
+            return `${protocol}//${parsed.host}`;
+        } catch {
+            // ignore invalid URL and fallback below
+        }
+    }
+
+    return `http://${process.env.RABBITMQ_STOMP_HOST || 'localhost'}:15672`;
 }
