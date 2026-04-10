@@ -70,6 +70,36 @@ function ChapterSkeletonPanel({
   const [isGeneratingAttention, setIsGeneratingAttention] = useState(false)
   const [isExtractingEntities, setIsExtractingEntities] = useState(false)
 
+  const buildStartFromHint = () => {
+    if (!chapterContext) return ''
+    const chapterNo = chapterContext.chapter_number != null ? `第${chapterContext.chapter_number}章` : '当前章节'
+    const chapterTitle = (chapterContext.title || '').trim()
+    const chapterLabel = chapterTitle ? `${chapterNo}《${chapterTitle}》` : chapterNo
+    const values = form.getFieldsValue()
+    const seedPrompt = (values.seed_prompt || '').toString().trim()
+    const content = (chapterContext.content || '').toString().trim()
+    const lastParagraph = content
+      .split(/\n+/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .pop() || ''
+    const tail = lastParagraph.length > 80 ? `${lastParagraph.slice(0, 80)}...` : lastParagraph
+    const promptLead = seedPrompt.split('\n').map((s: string) => s.trim()).find(Boolean) || ''
+    const promptHint = promptLead ? `并优先承接本章目标「${promptLead.slice(0, 40)}${promptLead.length > 40 ? '...' : ''}」` : ''
+    const tailHint = tail ? `紧接当前章末段「${tail}」` : `紧接${chapterLabel}已写内容`
+    return `【本章起点】${tailHint}展开续写${promptHint}；前序章节仅作背景参考，不属于本章已写正文。`
+  }
+
+  const buildEffectiveAttention = (baseAttention: string) => {
+    const startHint = buildStartFromHint()
+    const attentionText = (baseAttention || '')
+      .split('\n')
+      .filter((line) => !line.trim().startsWith('【本章起点】'))
+      .join('\n')
+      .trim()
+    return [startHint, attentionText].filter(Boolean).join('\n\n')
+  }
+
   const promptTextAreaRef = useRef<GetRef<typeof Input.TextArea> | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLElement | null>(null)
@@ -573,6 +603,7 @@ function ChapterSkeletonPanel({
     }
     const values = form.getFieldsValue()
     const seedPrompt = values.seed_prompt || ''
+    const relatedIds: number[] = Array.isArray(values.related_chapter_ids) ? values.related_chapter_ids : []
 
     const processTreeSelectValue = <T extends string | number>(value: T | { value: T }): T =>
       typeof value === 'object' && value !== null && 'value' in value ? (value as { value: T }).value : value
@@ -599,15 +630,38 @@ function ChapterSkeletonPanel({
 
     setIsGeneratingAttention(true)
     try {
+      const relatedSummaryResults = await Promise.all(
+        relatedIds.map(async (id) => {
+          try {
+            const ch = await getChapterById(Number(id))
+            const chapterNo = ch?.chapter_number ?? id
+            const chapterTitle = ch?.title || '未命名'
+            let sum = (ch?.summary ?? '').toString().trim()
+            if (!sum && ch?.id != null && (ch?.content || '').toString().trim()) {
+              sum = await apiCalls.summarizeChapterAndSave(Number(ch.id), 300)
+            }
+            if (!sum) return ''
+            return `- 第${chapterNo}章《${chapterTitle}》：${sum}`
+          } catch {
+            // 单章失败不影响注意事项生成
+            return ''
+          }
+        })
+      )
+      const relatedSummaries = relatedSummaryResults.filter(Boolean)
+      const relatedSummaryContext = relatedSummaries.length
+        ? ['以下为前序章节缩写（仅供背景，不属于本章已写正文）：', ...relatedSummaries].join('\n')
+        : ''
+
       const text = await apiCalls.genChapterAttention({
         worldview_id: worldviewId,
-        curr_context: seedPrompt,
+        curr_context: [seedPrompt, relatedSummaryContext].filter(Boolean).join('\n\n'),
         role_names: roleNames,
         faction_names: factionNames,
         geo_names: geoNames,
         chapter_style: values.chapter_style || '',
       })
-      form.setFieldsValue({ attension: text || '' })
+      form.setFieldsValue({ attension: buildEffectiveAttention(text || '') })
       if (text) message.success('注意事项已生成')
       else message.warning('未生成内容')
     } catch (e: unknown) {
@@ -1244,7 +1298,7 @@ function ChapterSkeletonPanel({
         content={''}
         onApply={(str) => {
           form.setFieldsValue({
-            attension: str
+            attension: buildEffectiveAttention(str)
           });
         }}
       />

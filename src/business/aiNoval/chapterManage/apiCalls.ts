@@ -636,6 +636,7 @@ export const genChapterSegmentMultiTurn = async (
         anti_plot_explanation?: boolean
         anti_speech_military_summary_style?: boolean
         anti_double_negative_style?: boolean
+        anti_total_part_total_structure?: boolean
         enable_critic?: boolean
         critic_max_rounds?: number
     }
@@ -677,6 +678,7 @@ export const genChapterSegmentMultiTurn = async (
             anti_plot_explanation: params.anti_plot_explanation !== false,
             anti_speech_military_summary_style: params.anti_speech_military_summary_style !== false,
             anti_double_negative_style: params.anti_double_negative_style !== false,
+            anti_total_part_total_structure: params.anti_total_part_total_structure !== false,
             enable_critic: params.enable_critic === true,
             critic_max_rounds: params.critic_max_rounds ?? 5,
         },
