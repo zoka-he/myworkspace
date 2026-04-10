@@ -5,7 +5,7 @@ import { Provider, useSelector } from 'react-redux';
 import store, { IRootState } from '@/src/store';
 import dynamic from 'next/dynamic';
 import Script from 'next/script';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { IMessage } from '@stomp/stompjs';
 
 import { App as AntdApp, ConfigProvider } from 'antd';
@@ -31,6 +31,13 @@ const MyRouter = dynamic(() => import('@/src/router'), { ssr: false });
 
 function AppCore() {
   const { message } = AntdApp.useApp();
+  const [stompConfig, setStompConfig] = useState<{
+    wsUrl: string;
+    managementUrl: string;
+    login: string;
+    passcode: string;
+    vhost: string;
+  } | null>(null);
 
   function onMessage(_message: IMessage) {}
 
@@ -51,16 +58,12 @@ function AppCore() {
     message.error('后端队列连接错误: ' + error);
   }
 
-  const getRabbitMQConfig = () => {
-    if (typeof window === 'undefined') {
-      const host = process.env.RABBITMQ_STOMP_HOST || 'localhost';
-      const port = process.env.RABBITMQ_STOMP_PORT || '28010';
-      return {
-        wsUrl: `http://${host}:${port}/ws`,
-        managementUrl: `http://${host}:28008`,
-      };
-    }
-
+  const getRabbitMQConfig = (runtimeConfig?: {
+    frontendUrl?: string;
+    host?: string;
+    port?: string;
+    managementUrl?: string;
+  }) => {
     const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
     let hostname = window.location.hostname;
 
@@ -68,16 +71,62 @@ function AppCore() {
       hostname = mysqlConfig.MYSQL_HOST;
     }
 
-    const wsPort = process.env.NEXT_PUBLIC_RABBITMQ_STOMP_PORT || '28010';
+    const wsPort = runtimeConfig?.port || process.env.NEXT_PUBLIC_RABBITMQ_STOMP_PORT || '28010';
     const mgmtPort = process.env.NEXT_PUBLIC_RABBITMQ_MANAGEMENT_PORT || '28008';
+    const wsUrl = runtimeConfig?.frontendUrl?.trim()
+      ? runtimeConfig.frontendUrl
+      : `${protocol}//${runtimeConfig?.host || hostname}:${wsPort}/ws`;
+    const managementUrl = runtimeConfig?.managementUrl?.trim()
+      ? runtimeConfig.managementUrl
+      : `${protocol}//${runtimeConfig?.host || hostname}:${mgmtPort}`;
 
     return {
-      wsUrl: `${protocol}//${hostname}:${wsPort}/ws`,
-      managementUrl: `${protocol}//${hostname}:${mgmtPort}`,
+      wsUrl,
+      managementUrl,
     };
   };
 
-  const rabbitMQConfig = getRabbitMQConfig();
+  useEffect(() => {
+    let cancelled = false;
+    const loadStompConfig = async () => {
+      try {
+        const resp = await fetch('/api/web/rabbitmq/stomp-config', { cache: 'no-store' });
+        const json = await resp.json();
+        if (!resp.ok || !json?.success || !json?.data) {
+          throw new Error(json?.error || `HTTP ${resp.status}`);
+        }
+        const rabbitMQConfig = getRabbitMQConfig({
+          frontendUrl: json.data.frontendUrl,
+          host: json.data.host,
+          port: json.data.port,
+          managementUrl: json.data.managementUrl,
+        });
+        if (!cancelled) {
+          setStompConfig({
+            ...rabbitMQConfig,
+            login: json.data.login || '',
+            passcode: json.data.passcode || '',
+            vhost: json.data.vhost || '/',
+          });
+        }
+      } catch (error) {
+        console.error('[AppCore] Failed to load STOMP runtime config:', error);
+        if (!cancelled) {
+          const rabbitMQConfig = getRabbitMQConfig();
+          setStompConfig({
+            ...rabbitMQConfig,
+            login: '',
+            passcode: '',
+            vhost: '/',
+          });
+        }
+      }
+    };
+    loadStompConfig();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <WagmiProvider config={wagmiConfig}>
@@ -85,18 +134,23 @@ function AppCore() {
         <RabbitMQProvider
           config={{
             ...mqConfig,
-            wsUrl: rabbitMQConfig.wsUrl,
-            managementUrl: rabbitMQConfig.managementUrl,
+            wsUrl: stompConfig?.wsUrl || mqConfig.wsUrl,
+            managementUrl: stompConfig?.managementUrl || mqConfig.managementUrl,
+            login: stompConfig?.login || mqConfig.login,
+            passcode: stompConfig?.passcode || mqConfig.passcode,
+            vhost: stompConfig?.vhost || mqConfig.vhost,
           }}
         >
           <MyRouter />
-          <MQHolder
-            onMessage={onMessage}
-            onConnectionChange={onConnectionChange}
-            onError={onError}
-          >
-            <NoticeConsumer />
-          </MQHolder>
+          {stompConfig?.login && stompConfig?.passcode ? (
+            <MQHolder
+              onMessage={onMessage}
+              onConnectionChange={onConnectionChange}
+              onError={onError}
+            >
+              <NoticeConsumer />
+            </MQHolder>
+          ) : null}
         </RabbitMQProvider>
       </QueryClientProvider>
     </WagmiProvider>

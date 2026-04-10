@@ -69,13 +69,20 @@ export interface QueueInfo {
  * 默认配置
  * 环境变量通过 next.config.js 的 env 配置暴露给客户端
  */
+function getDefaultWsUrl(): string {
+    if (process.env.RABBITMQ_STOMP_FRONTEND_URL) {
+        return process.env.RABBITMQ_STOMP_FRONTEND_URL;
+    }
+    // 仅在浏览器环境读取 window；服务端构建阶段返回安全兜底值
+    if (typeof window !== 'undefined') {
+        return `ws://${window.location.hostname}:28010/ws`;
+    }
+    return '/ws';
+}
+
 export const defaultRabbitMQConfig: RabbitMQConfig = {
-    // 前端 URL 优先；若未配置（空字符串）则走同源策略 "/ws"
-    wsUrl: process.env.RABBITMQ_STOMP_FRONTEND_URL
-        ? process.env.RABBITMQ_STOMP_FRONTEND_URL
-        : (process.env.RABBITMQ_STOMP_HOST && process.env.RABBITMQ_STOMP_PORT
-            ? `http://${process.env.RABBITMQ_STOMP_HOST}:${process.env.RABBITMQ_STOMP_PORT}/ws`
-            : '/ws'),
+    // 前端 URL 优先；未配置时浏览器端使用当前 hostname，服务端构建走兜底
+    wsUrl: getDefaultWsUrl(),
     // 注释默认管理地址兜底，便于暴露配置缺失问题
     managementUrl: process.env.RABBITMQ_MANAGEMENT_URL,
     // 注释 guest 默认账号，缺失时在连接阶段显式报错
