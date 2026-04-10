@@ -190,6 +190,35 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
   // 注意事项 AI 生成 loading
   const [isGeneratingAttention, setIsGeneratingAttention] = useState(false)
 
+  const buildStartFromHint = () => {
+    if (!selectedChapter) return ''
+    const chapterNo = selectedChapter.chapter_number != null ? `第${selectedChapter.chapter_number}章` : '当前章节'
+    const chapterTitle = (selectedChapter.title || '').trim()
+    const chapterLabel = chapterTitle ? `${chapterNo}《${chapterTitle}》` : chapterNo
+    const content = (selectedChapter.content || '').toString().trim()
+    const lastParagraph = content
+      .split(/\n+/)
+      .map((s: string) => s.trim())
+      .filter(Boolean)
+      .pop() || ''
+    const tail = lastParagraph.length > 80 ? `${lastParagraph.slice(0, 80)}...` : lastParagraph
+    const promptLead = (seedPrompt || '').split('\n').map((s: string) => s.trim()).find(Boolean) || ''
+    const promptHint = promptLead ? `并优先承接本章目标「${promptLead.slice(0, 40)}${promptLead.length > 40 ? '...' : ''}」` : ''
+    const tailHint = tail ? `紧接当前章末段「${tail}」` : `紧接${chapterLabel}已写内容`
+    return `【本章起点】${tailHint}展开续写${promptHint}；前序章节仅作背景参考，不属于本章已写正文。`
+  }
+
+  const buildSummaryRefsFromReportList = (chapterList: ChapterStripReport[]) =>
+    chapterList
+      .filter((chapter) => chapter.state === 'completed' && (chapter.strippedContent || '').trim())
+      .map((chapter) => `- 第${chapter.chapterNumber}章《${chapter.chapterTitle || '未命名'}》：${(chapter.strippedContent || '').trim()}`)
+
+  const effectiveAttention = useMemo(() => {
+    const startHint = buildStartFromHint()
+    const attentionText = (attention || '').trim()
+    return [startHint, attentionText].filter(Boolean).join('\n\n')
+  }, [attention, selectedChapter, seedPrompt])
+
   // 文风对抗选项（与 GenChapterByDetailModal 一致）
   /** 抗克苏鲁文风：避免野兽比喻、腐败/腐化等常见模型偏向，默认勾选 */
   const [antiLovecraftStyle, setAntiLovecraftStyle] = useState(true)
@@ -211,6 +240,8 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
   const [antiSpeechMilitarySummaryStyle, setAntiSpeechMilitarySummaryStyle] = useState(true)
   /** 抗双重否定句：少用叠床架屋的双重否定，优先清晰直陈，默认勾选 */
   const [antiDoubleNegativeStyle, setAntiDoubleNegativeStyle] = useState(true)
+  /** 抗「总分总」结构：禁止开篇一句概括全段或全章，默认勾选 */
+  const [antiTotalPartTotalStructure, setAntiTotalPartTotalStructure] = useState(true)
 
   /** 审稿员最多审核次数，默认 3 */
   const [criticMaxRounds, setCriticMaxRounds] = useState(3)
@@ -228,6 +259,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
       anti_plot_explanation: antiPlotExplanation,
       anti_speech_military_summary_style: antiSpeechMilitarySummaryStyle,
       anti_double_negative_style: antiDoubleNegativeStyle,
+      anti_total_part_total_structure: antiTotalPartTotalStructure,
     }),
     [
       antiLovecraftStyle,
@@ -240,6 +272,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
       antiPlotExplanation,
       antiSpeechMilitarySummaryStyle,
       antiDoubleNegativeStyle,
+      antiTotalPartTotalStructure,
     ]
   )
 
@@ -443,8 +476,8 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
           prev_content: prevContent || "",
           curr_context: prompt || "",
           context: contextText || "",
-          attention: attention || "",
-          attension: attention || "",
+          attention: effectiveAttention || "",
+          attension: effectiveAttention || "",
           llm_type: draftLlmType,
           draft_llm_type: draftLlmType,
           ...antiStyleRequestFields,
@@ -704,8 +737,8 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
             prev_content: prevContent || "",
             curr_context: prompt || "",
             context: contextText || "",
-            attention: attention || "",
-            attension: attention || "",
+            attention: effectiveAttention || "",
+            attension: effectiveAttention || "",
             llm_type: criticLlmType,
             polish_llm_type: criticLlmType,
             critic1_pass: critic1Pass,
@@ -771,8 +804,8 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
             prev_content: prevContent || "",
             curr_context: prompt || "",
             context: contextText || "",
-            attention: attention || "",
-            attension: attention || "",
+            attention: effectiveAttention || "",
+            attension: effectiveAttention || "",
             llm_type: polishLlmType,
             polish_llm_type: polishLlmType,
             mergedCriticReason: critic3Advice || critic1Reason || "",
@@ -1269,8 +1302,8 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
               prev_content: prevContent || "",
               curr_context: prompt || "",
               context: aggregatedContextText || "",
-              attention: attention || "",
-              attension: attention || "",
+              attention: effectiveAttention || "",
+              attension: effectiveAttention || "",
               llm_type: criticLlmType,
               polish_llm_type: criticLlmType,
               critic1_pass: critic1Pass,
@@ -1371,8 +1404,8 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
               prev_content: prevContent || "",
               curr_context: prompt || "",
               context: aggregatedContextText || "",
-              attention: attention || "",
-              attension: attention || "",
+              attention: effectiveAttention || "",
+              attension: effectiveAttention || "",
               llm_type: polishLlmType,
               polish_llm_type: polishLlmType,
               mergedCriticReason: critic3Advice || critic1Reason || "",
@@ -1647,15 +1680,38 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
     }
     setIsGeneratingAttention(true)
     try {
+      const difyHost = store.getState().difySlice.frontHost || ''
+      const relatedSummaryResults = await Promise.all(
+        relatedChapterIds.map(async (id) => {
+          try {
+            const ch = await apiCalls.getChapterById(id)
+            const chapterNo = ch?.chapter_number ?? id
+            const chapterTitle = ch?.title || '未命名'
+            let sum = (ch?.summary ?? '').toString().trim()
+            if (!sum && ch?.id != null && (ch?.content || '').toString().trim()) {
+              sum = await chapterApi.summarizeChapterAndSave(Number(ch.id), 300, difyHost)
+            }
+            if (!sum) return ''
+            return `- 第${chapterNo}章《${chapterTitle}》：${sum}`
+          } catch {
+            return ''
+          }
+        })
+      )
+      const relatedSummaries = relatedSummaryResults.filter(Boolean)
+      const relatedSummaryContext = relatedSummaries.length
+        ? ['以下为前序章节缩写（仅供背景，不属于本章已写正文）：', ...relatedSummaries].join('\n')
+        : ''
       const text = await apiCalls.genChapterAttention({
         worldview_id: worldviewId,
-        curr_context: seedPrompt,
+        curr_context: [seedPrompt, relatedSummaryContext].filter(Boolean).join('\n\n'),
         role_names: roleNames,
         faction_names: factionNames,
         geo_names: geoNames,
         chapter_style: chapterStyle || '',
       })
-      setAttention(text || '')
+      const startHint = buildStartFromHint()
+      setAttention([startHint, text || ''].filter(Boolean).join('\n\n'))
       if (text) message.success('注意事项已生成')
       else message.warning('未生成内容')
     } catch (e: any) {
@@ -1907,6 +1963,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
                   <Checkbox checked={antiEnumReactionsStyle} onChange={(e) => setAntiEnumReactionsStyle(e.target.checked)} disabled={isContinuing}>反逐人枚举</Checkbox>
                   <Checkbox checked={antiClichePhraseStyle} onChange={(e) => setAntiClichePhraseStyle(e.target.checked)} disabled={isContinuing}>抗套路样板词</Checkbox>
                   <Checkbox checked={antiDoubleNegativeStyle} onChange={(e) => setAntiDoubleNegativeStyle(e.target.checked)} disabled={isContinuing}>抗双重否定句</Checkbox>
+                  <Checkbox checked={antiTotalPartTotalStructure} onChange={(e) => setAntiTotalPartTotalStructure(e.target.checked)} disabled={isContinuing}>抗「总分总」结构</Checkbox>
                   <Checkbox checked={antiPlotExplanation} onChange={(e) => setAntiPlotExplanation(e.target.checked)} disabled={isContinuing}>抗剧透及解释</Checkbox>
                   <Checkbox checked={antiSpeechMilitarySummaryStyle} onChange={(e) => setAntiSpeechMilitarySummaryStyle(e.target.checked)} disabled={isContinuing}>抗演讲/军事腔调</Checkbox>
                 </Space>
@@ -2076,7 +2133,7 @@ function ChapterContinueModal({ selectedChapterId, isVisible, onClose }: Chapter
         onClose={() => setIsAttentionRefVisible(false)}
         content={selectedChapter?.attension || ''}
         onApply={(str) => {
-          setAttention(str)
+          setAttention([buildStartFromHint(), str].filter(Boolean).join('\n\n'))
         }}
       />
     </>
