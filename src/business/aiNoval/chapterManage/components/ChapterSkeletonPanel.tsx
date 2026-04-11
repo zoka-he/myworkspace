@@ -33,6 +33,16 @@ const STYLE_QUICK_TAGS = [
   '奇幻魔法', '银魂式搞笑', '周星驰式搞笑', '沙丘风',
 ]
 
+/** 本章提示词前半（按字符数对半），用于开头场景说明 */
+function distillOpeningSceneFromSeedPrompt(seedPrompt: string, maxLen = 200): string {
+  const t = (seedPrompt || '').trim()
+  if (!t) return ''
+  const half = Math.ceil(t.length / 2)
+  let s = t.slice(0, half).replace(/\s+/g, ' ').trim()
+  if (s.length > maxLen) s = `${s.slice(0, maxLen)}...`
+  return s
+}
+
 interface ChapterSkeletonPanelProps {
   onEditEventPool: () => void
   onChapterChange: (chapterId: number | null) => void
@@ -72,22 +82,13 @@ function ChapterSkeletonPanel({
 
   const buildStartFromHint = () => {
     if (!chapterContext) return ''
-    const chapterNo = chapterContext.chapter_number != null ? `第${chapterContext.chapter_number}章` : '当前章节'
-    const chapterTitle = (chapterContext.title || '').trim()
-    const chapterLabel = chapterTitle ? `${chapterNo}《${chapterTitle}》` : chapterNo
     const values = form.getFieldsValue()
     const seedPrompt = (values.seed_prompt || '').toString().trim()
-    const content = (chapterContext.content || '').toString().trim()
-    const lastParagraph = content
-      .split(/\n+/)
-      .map((s) => s.trim())
-      .filter(Boolean)
-      .pop() || ''
-    const tail = lastParagraph.length > 80 ? `${lastParagraph.slice(0, 80)}...` : lastParagraph
-    const promptLead = seedPrompt.split('\n').map((s: string) => s.trim()).find(Boolean) || ''
-    const promptHint = promptLead ? `并优先承接本章目标「${promptLead.slice(0, 40)}${promptLead.length > 40 ? '...' : ''}」` : ''
-    const tailHint = tail ? `紧接当前章末段「${tail}」` : `紧接${chapterLabel}已写内容`
-    return `【本章起点】${tailHint}展开续写${promptHint}；前序章节仅作背景参考，不属于本章已写正文。`
+    const scene = distillOpeningSceneFromSeedPrompt(seedPrompt)
+    if (scene) {
+      return `【本章起点】必须从章节提示词前半段落笔并展开本章；前半提炼：「${scene}」`
+    }
+    return `【本章起点】必须从章节提示词前半段落笔并展开本章（请先填写章节提示词）。`
   }
 
   const buildEffectiveAttention = (baseAttention: string) => {
